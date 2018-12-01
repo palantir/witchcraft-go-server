@@ -1,0 +1,17 @@
+version: 1
+merge:
+  whitelist:
+    labels: ["Merge When Ready"]
+    comment_substrings: ["==MERGE_WHEN_READY=="]
+  blacklist:
+    labels: ["Do Not Merge"]
+    comment_substrings: ["==DO_NOT_MERGE=="]
+  method: squash
+  options:
+    squash:
+      body: summarize_commits
+  delete_after_merge: true
+
+update:
+  blacklist:
+    labels: [] # Always Update

@@ -1,0 +1,5 @@
+product-name: "example-app"
+use-console-log: true
+server:
+  port: 8100
+my-num: 7

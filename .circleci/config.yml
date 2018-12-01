@@ -1,0 +1,48 @@
+working_dir: &working_dir
+  working_directory: /go/src/github.com/palantir/witchcraft-go-server
+
+steps: &steps
+  - checkout
+  - restore_cache:
+      keys:
+        - godel-cache-{{ checksum "godelw" }}-{{ checksum "godel/config/godel.yml" }}-v1
+  - run: ./godelw version
+  - save_cache:
+      key: godel-cache-{{ checksum "godelw" }}-{{ checksum "godel/config/godel.yml" }}-v1
+      paths:
+        - ~/.godel
+  - run: echo 'export TESTS_DIR=/tmp/test-results' >> $BASH_ENV
+  - run: mkdir -p "${TESTS_DIR}"
+  - run: |
+         if [ ! -z "$VERIFY" ]; then
+           echo "Verify" && ./godelw verify --apply=false --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
+         else
+           echo "Test" && ./godelw test --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
+         fi
+  - type: test-results-store
+    path: /tmp/test-results
+  - type: artifacts-store
+    path: /tmp/test-results
+    destination: test-results
+
+version: 2
+jobs:
+  go-latest:
+    <<: *working_dir
+    environment:
+      VERIFY: 1
+    docker:
+      - image: golang:1.11.2
+    steps: *steps
+  go-prev:
+    <<: *working_dir
+    docker:
+      - image: golang:1.10.5
+    steps: *steps
+
+workflows:
+  version: 2
+  verify:
+    jobs:
+      - go-latest
+      - go-prev
