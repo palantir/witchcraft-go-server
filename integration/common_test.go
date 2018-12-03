@@ -126,16 +126,16 @@ func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn
 func createTestServer(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) (server *witchcraft.Server) {
 	server = witchcraft.
 		NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
+		WithInitFunc(func(ctx context.Context, initInfo witchcraft.InitInfo) (func(), error) {
 			// register handler that returns "ok"
-			err := router.Get("/ok", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			err := initInfo.Router.Get("/ok", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				rest.WriteJSONResponse(rw, "ok", http.StatusOK)
 			}))
 			if err != nil {
 				return nil, err
 			}
 			if initFn != nil {
-				return initFn(ctx, router, installConfig, runtimeConfig)
+				return initFn(ctx, initInfo)
 			}
 			return nil, nil
 		}).

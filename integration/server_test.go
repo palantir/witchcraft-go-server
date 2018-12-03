@@ -34,7 +34,6 @@ import (
 	"github.com/palantir/witchcraft-go-server/conjure/sls/spec/health"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,8 +61,8 @@ func TestServerShutdown(t *testing.T) {
 		logOutputBuffer := &bytes.Buffer{}
 		calledC := make(chan bool, 1)
 		doneC := make(chan bool, 1)
-		initFn := func(ctx context.Context, router witchcraft.ConfigurableRouter, installCfg interface{}, _ refreshable.Refreshable) (func(), error) {
-			return nil, router.Get("/wait", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		initFn := func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			return nil, info.Router.Get("/wait", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				calledC <- true
 				// just wait for 1 second to hold the connection open.
 				time.Sleep(1 * time.Second)
@@ -153,8 +152,8 @@ func TestServerShutdown(t *testing.T) {
 func TestEmptyPathHandler(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	var called bool
-	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (deferFn func(), rErr error) {
-		return nil, router.Get("/", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+		return nil, info.Router.Get("/", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			called = true
 		}))
 	}, logOutputBuffer)

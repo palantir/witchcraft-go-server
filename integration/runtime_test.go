@@ -28,7 +28,6 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,7 +96,7 @@ exclamations: 4
 		WithRuntimeConfigType(testRuntimeConfig{}).
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (deferFn func(), rErr error) {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
 				cfg, ok := cfgI.(testRuntimeConfig)
 				if !ok {
@@ -105,8 +104,8 @@ exclamations: 4
 				}
 				currCfg = cfg
 			}
-			setCfg(runtimeConfig.Current())
-			runtimeConfig.Subscribe(setCfg)
+			setCfg(info.RuntimeConfig.Current())
+			info.RuntimeConfig.Subscribe(setCfg)
 			return nil, nil
 		})
 

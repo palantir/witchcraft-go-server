@@ -154,18 +154,29 @@ type Server struct {
 }
 
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
-// the duration of the server. router is a ConfigurableRouter that implements wrouter.Router for the server. It can be
-// used to register endpoints on the server and to configure things such as health, readiness and liveness sources and
-// any middleware (note that any values set using router will override any values previously set on the server).
-// installConfig the install configuration (its type is determined by the struct provided to the "With" function), and
-// runtimeConfig is a refreshable that contains the initial runtime configuration (the type returned by the refreshable
-// is determined by the struct provided to the "With" function). If the returned deferFn is non-nil, it is deferred
-// (meaning that it will run on server termination). If a non-nil error is returned, the server will not start.
+// the duration of the server. Refer to the documentation of InitInfo for its fields.
+//
+// If the returned cleanup function is non-nil, it is deferred and run on server shutdown. If the returned error is
+// non-nil, the server will not start and will return the error.
 type InitFunc func(
 	ctx context.Context,
-	router ConfigurableRouter,
-	installConfig interface{},
-	runtimeConfig refreshable.Refreshable) (deferFn func(), rErr error)
+	info InitInfo) (cleanup func(), rErr error)
+
+type InitInfo struct {
+	// Router is a ConfigurableRouter that implements wrouter.Router for the server. It can be
+	// used to register endpoints on the server and to configure things such as health, readiness and liveness sources and
+	// any middleware (note that any values set using router will override any values previously set on the server).
+	Router ConfigurableRouter
+
+	// InstallConfig the install configuration. Its type is determined by the struct provided to the
+	// "WithInstallConfigType" function (the default is config.Install).
+	InstallConfig interface{}
+
+	// RuntimeConfig is a refreshable that contains the initial runtime configuration. The type returned by the
+	// refreshable is determined by the struct provided to the "WithRuntimeConfigType" function (the default is
+	// config.Runtime).
+	RuntimeConfig refreshable.Refreshable
+}
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
 // readiness, liveness and middleware.
@@ -454,20 +465,22 @@ func (s *Server) Start() error {
 		}
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
-		deferFn, err := s.initFn(
+		cleanupFn, err := s.initFn(
 			ctx,
-			&configurableRouterImpl{
-				Router: newMultiRouterImpl(router, mgmtRouter),
-				Server: s,
+			InitInfo{
+				Router: &configurableRouterImpl{
+					Router: newMultiRouterImpl(router, mgmtRouter),
+					Server: s,
+				},
+				InstallConfig: fullInstallCfg,
+				RuntimeConfig: refreshableRuntimeCfg,
 			},
-			fullInstallCfg,
-			refreshableRuntimeCfg,
 		)
 		if err != nil {
 			return err
 		}
-		if deferFn != nil {
-			defer deferFn()
+		if cleanupFn != nil {
+			defer cleanupFn()
 		}
 	}
 
