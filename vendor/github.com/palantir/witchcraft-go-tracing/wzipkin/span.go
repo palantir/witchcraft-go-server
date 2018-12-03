@@ -25,18 +25,16 @@ import (
 
 func fromZipkinSpan(span zipkin.Span) wtracing.Span {
 	return &spanImpl{
-		SpanContext: fromZipkinSpanContext(span.Context()),
-		span:        span,
+		span: span,
 	}
 }
 
 type spanImpl struct {
-	wtracing.SpanContext
 	span zipkin.Span
 }
 
 func (s *spanImpl) Context() wtracing.SpanContext {
-	return s.SpanContext
+	return fromZipkinSpanContext(s.span.Context())
 }
 
 func (s *spanImpl) Finish() {
@@ -45,7 +43,7 @@ func (s *spanImpl) Finish() {
 
 func fromZipkinSpanContext(spanCtx model.SpanContext) wtracing.SpanContext {
 	var parentID *wtracing.SpanID
-	if zipkinParentID := spanCtx.ParentID; zipkinParentID != nil {
+	if zipkinParentID := spanCtx.ParentID; zipkinParentID != nil && *zipkinParentID != 0 {
 		parentIDStr := zipkinParentID.String()
 		parentID = (*wtracing.SpanID)(&parentIDStr)
 	}
@@ -89,16 +87,23 @@ func toZipkinSpanOptions(impl *wtracing.SpanOptionImpl) []zipkin.SpanOption {
 }
 
 func toZipkinSpanContext(sc wtracing.SpanContext) model.SpanContext {
-	traceIDStrVal := string(sc.TraceID)
-	traceID, err := model.TraceIDFromHex(traceIDStrVal)
-	if err != nil {
-		panic(fmt.Sprintf("TraceID() value %v returned by wtracing.SpanContext invalid: %v", traceIDStrVal, err))
+	var err error
+
+	var traceID model.TraceID
+	if traceIDStrVal := string(sc.TraceID); traceIDStrVal != "" {
+		traceID, err = model.TraceIDFromHex(traceIDStrVal)
+		if err != nil {
+			panic(fmt.Sprintf("TraceID() value %v returned by wtracing.SpanContext invalid: %v", traceIDStrVal, err))
+		}
 	}
 
-	spanIDStrVal := string(sc.ID)
-	spanIDUintVal, err := strconv.ParseUint(spanIDStrVal, 16, 64)
-	if err != nil {
-		panic(fmt.Sprintf("ID() value %v returned by wtracing.SpanContext invalid: %v", spanIDStrVal, err))
+	var spanID model.ID
+	if spanIDStrVal := string(sc.ID); spanIDStrVal != "" {
+		spanIDUintVal, err := strconv.ParseUint(spanIDStrVal, 16, 64)
+		if err != nil {
+			panic(fmt.Sprintf("ID() value %v returned by wtracing.SpanContext invalid: %v", spanIDStrVal, err))
+		}
+		spanID = model.ID(spanIDUintVal)
 	}
 
 	var parentID *model.ID
@@ -113,7 +118,7 @@ func toZipkinSpanContext(sc wtracing.SpanContext) model.SpanContext {
 
 	return model.SpanContext{
 		TraceID:  traceID,
-		ID:       model.ID(spanIDUintVal),
+		ID:       spanID,
 		ParentID: parentID,
 		Debug:    sc.Debug,
 		Sampled:  sc.Sampled,

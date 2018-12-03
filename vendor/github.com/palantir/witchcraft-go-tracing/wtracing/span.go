@@ -82,9 +82,24 @@ func WithKind(kind Kind) SpanOption {
 	})
 }
 
-func WithParent(sc SpanContext) SpanOption {
+// WithParent sets the parent SpanContext to be the context of the specified span. If the provided span is nil, the
+// parent span context is explicitly set to be nil (indicating that the created span is a root span).
+func WithParent(parent Span) SpanOption {
+	var parentCtx SpanContext
+	if parent != nil {
+		parentCtx = parent.Context()
+	}
+	return WithParentSpanContext(parentCtx)
+}
+
+// WithParentSpanContext sets the parent span context to be the specified span context. If the provided context is valid
+// (TraceID and SpanID are set), the new span will use the same TraceID and set its ParentID to be the SpanID. If the
+// TraceID is set but the SpanID is not, the new span will be a root span and its TraceId and SpanID will both be the
+// same value as the TraceID in the provided context. The debug and sampled values are always inherited (regardless of
+// the other fields).
+func WithParentSpanContext(parentCtx SpanContext) SpanOption {
 	return spanOptionFn(func(impl *SpanOptionImpl) {
-		impl.ParentSpan = &sc
+		impl.ParentSpan = &parentCtx
 	})
 }
 

@@ -54,5 +54,5 @@ func loggerFromContext(ctx context.Context) Logger {
 	if logger, ok := ctx.Value(contextKey).(Logger); ok {
 		return logger
 	}
-	return DefaultLogger()
+	return defaultLoggerCreator()
 }

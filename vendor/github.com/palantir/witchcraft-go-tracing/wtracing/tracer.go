@@ -45,7 +45,6 @@ func (t tracerOptionFn) apply(impl *TracerOptionImpl) {
 
 type TracerOptionImpl struct {
 	Sampler       Sampler
-	Generator     IDGenerator
 	LocalEndpoint *Endpoint
 }
 
@@ -54,19 +53,6 @@ type Sampler func(id uint64) bool
 func WithSampler(sampler Sampler) TracerOption {
 	return tracerOptionFn(func(impl *TracerOptionImpl) {
 		impl.Sampler = sampler
-	})
-}
-
-type IDGenerator interface {
-	// Generates a new Span ID
-	SpanID(traceID TraceID) SpanID
-	// Generates a new Trace ID
-	TraceID() TraceID
-}
-
-func WithIDGenerator(generator IDGenerator) TracerOption {
-	return tracerOptionFn(func(impl *TracerOptionImpl) {
-		impl.Generator = generator
 	})
 }
 

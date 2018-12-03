@@ -53,6 +53,26 @@ func SpanFromContext(ctx context.Context) Span {
 	return nil
 }
 
+// StartSpanFromContext starts a new span with the provided parameters using the provided tracer and the span
+// information in the provided context. If the context contains a span, the new span will be configured to be a child
+// span of that span (unless any of the user-provided span options overrides this). Returns the newly started span and a
+// copy of the provided context that has the new span set as its current span. Returns a nil span if the provided tracer
+// is nil.
+//
+// This function does not read or set the tracer on the provided context. To start a span new span from the tracer set
+// on a context, call StartSpanFromContext(TracerFromContext(ctx), ctx, spanName, spanOptions).
+func StartSpanFromContext(ctx context.Context, tracer Tracer, spanName string, spanOptions ...SpanOption) (Span, context.Context) {
+	if tracer == nil {
+		return nil, ctx
+	}
+	if spanInCtx := SpanFromContext(ctx); spanInCtx != nil {
+		spanOptions = append([]SpanOption{WithParent(spanInCtx)}, spanOptions...)
+	}
+	newSpan := tracer.StartSpan(spanName, spanOptions...)
+	newCtx := ContextWithSpan(ctx, newSpan)
+	return newSpan, newCtx
+}
+
 // TraceIDFromContext returns the traceId associated with the span stored in the provided context. Returns an empty
 // string if no span is stored in the context.
 func TraceIDFromContext(ctx context.Context) TraceID {
