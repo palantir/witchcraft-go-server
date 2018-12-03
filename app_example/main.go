@@ -43,17 +43,17 @@ type AppRuntimeConfig struct {
 func main() {
 	if err := witchcraft.
 		NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
 			// register endpoint that uses install configuration
-			if err := registerInstallNumEndpoint(router, installConfig.(AppInstallConfig).MyNum); err != nil {
+			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
 				return nil, err
 			}
 
 			// register endpoint that uses runtime configuration
-			myNumRefreshable := refreshable.NewInt(runtimeConfig.Map(func(in interface{}) interface{} {
+			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
 				return in.(AppRuntimeConfig).MyNum
 			}))
-			if err := registerRuntimeNumEndpoint(router, myNumRefreshable); err != nil {
+			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
 

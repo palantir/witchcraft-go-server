@@ -200,8 +200,8 @@ import (
 
 func main() {
 	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
-			if err := registerMyNumEndpoint(router); err != nil {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			if err := registerMyNumEndpoint(info.Router); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -224,13 +224,11 @@ the server, and the `Start()` function starts the server using the specified con
 
 The `WithInitFunc(InitFunc)` function is used to register routes on the server. The initialization function provided to 
 `WithInitFunc` is of the type `witchcraft.InitFunc`, which has the following definition:
-`type InitFunc func(ctx context.Context, router ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (deferFn func(), rErr error)`.
+`type InitFunc func(ctx context.Context, info InitInfo) (cleanup func(), rErr error)`.
 
-The `ctx` provided to the function is valid for the duration of the server and has loggers configured on it. The
-`router` is used to register endpoints. The `installConfig` and `runtimeConfig` provide the install and runtime 
-configuration that has been read from their providers. The function returns a function that is deferred and run when the
-server terminates (the function can be `nil` if no defer action is required) and an error. If the returned error is
-non-`nil`, the server does not start.
+The `ctx` provided to the function is valid for the duration of the server and has loggers configured on it. The `info`
+struct contains fields that can be used to initialize various state and configuration for the server -- refer to the
+`InitInfo` documentation for more information. 
 
 In this example, a "GET" endpoint is registered on the router using the "/myNum" path, and `rest` package is used to
 write a JSON response.
@@ -249,8 +247,8 @@ defaults:
 ```go
 func main() {
 	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
-			if err := registerMyNumEndpoint(router); err != nil {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			if err := registerMyNumEndpoint(info.Router); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -333,8 +331,8 @@ type AppInstallConfig struct {
 
 func main() {
 	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
-			if err := registerMyNumEndpoint(router, installConfig.(AppInstallConfig).MyNum); err != nil {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			if err := registerMyNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -399,8 +397,8 @@ type AppInstallConfig struct {
 
 func main() {
 	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
-			if err := registerMyNumEndpoint(router, installConfig.(AppInstallConfig).MyNum); err != nil {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			if err := registerMyNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -464,11 +462,11 @@ type AppRuntimeConfig struct {
 
 func main() {
 	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
-			myNumRefreshable := refreshable.NewInt(runtimeConfig.Map(func(in interface{}) interface{} {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
 				return in.(AppRuntimeConfig).MyNum
 			}))
-			if err := registerMyNumEndpoint(router, myNumRefreshable); err != nil {
+			if err := registerMyNumEndpoint(info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -556,15 +554,15 @@ type AppRuntimeConfig struct {
 
 func main() {
 	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
-			if err := registerInstallNumEndpoint(router, installConfig.(AppInstallConfig).MyNum); err != nil {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
 				return nil, err
 			}
 
-			myNumRefreshable := refreshable.NewInt(runtimeConfig.Map(func(in interface{}) interface{} {
+			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
 				return in.(AppRuntimeConfig).MyNum
 			}))
-			if err := registerRuntimeNumEndpoint(router, myNumRefreshable); err != nil {
+			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -649,7 +647,7 @@ For example, for the call:
 
 ```go
 witchcraft.NewServer().
-    WithInitFunc(func(ctx context.Context, router witchcraft.ConfigurableRouter, installConfig interface{}, runtimeConfig refreshable.Refreshable) (func(), error) {
+    WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
         return nil, nil
     }).
     WithRuntimeConfigType(AppRuntimeConfig{})
