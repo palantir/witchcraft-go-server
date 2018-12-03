@@ -158,9 +158,7 @@ type Server struct {
 //
 // If the returned cleanup function is non-nil, it is deferred and run on server shutdown. If the returned error is
 // non-nil, the server will not start and will return the error.
-type InitFunc func(
-	ctx context.Context,
-	info InitInfo) (cleanup func(), rErr error)
+type InitFunc func(ctx context.Context, info InitInfo) (cleanup func(), rErr error)
 
 type InitInfo struct {
 	// Router is a ConfigurableRouter that implements wrouter.Router for the server. It can be
