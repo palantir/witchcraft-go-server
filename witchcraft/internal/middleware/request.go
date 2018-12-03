@@ -29,6 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/witchcraft/internal/negroni"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
+	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 )
 
@@ -108,29 +109,12 @@ func NewRequestExtractIDs(
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
 		// retrieve existing trace info from request and create a span
-		const spanName = "witchcraft-go-server request middleware"
-		var span wtracing.Span
-		switch requestSpanCtx := wtracing.ExtractB3HeaderVals(req); {
-		case requestSpanCtx.Err == nil || (requestSpanCtx.TraceID != "" && requestSpanCtx.ID != ""):
-			// extracted span is valid OR extracted span is not valid but has a TraceID and ParentID (for example,
-			// sampled header had invalid value): create a new span with the incoming span as the parent
-			span = tracer.StartSpan(spanName, wtracing.WithParent(requestSpanCtx))
-		case requestSpanCtx.TraceID != "":
-			// extracted span is invalid but it has a TraceID and no SpanID: created a new root span that uses the
-			// extracted TraceID. This requires using a custom tracer that hard-codes the TraceID.
-			customTracer, err := wzipkin.NewTracer(traceReporter, wtracing.WithIDGenerator(staticRootSpanIDGenerator(requestSpanCtx.TraceID)))
-			if err != nil && svcLogger != nil {
-				svcLogger.Error("Failed to create tracer", svc1log.Stacktrace(err))
-			}
-			span = customTracer.StartSpan(spanName)
-		default:
-			// extracted span is invalid and has no TraceID: create a new root span
-			span = tracer.StartSpan(spanName)
-		}
+		reqSpanContext := b3.SpanExtractor(req)()
+		span := tracer.StartSpan("witchcraft-go-server request middleware", wtracing.WithParentSpanContext(reqSpanContext))
 		defer span.Finish()
 
 		ctx = wtracing.ContextWithSpan(ctx, span)
-		wtracing.InjectB3HeaderVals(req, span.Context())
+		b3.SpanInjector(req)(span.Context())
 
 		// update request with new context
 		req = req.WithContext(ctx)

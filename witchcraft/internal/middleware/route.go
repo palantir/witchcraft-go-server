@@ -22,6 +22,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/witchcraft/internal/negroni"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
+	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
 func NewRouteRequestLog(reqLogger req2log.Logger, baseParamPerms req2log.RequestParamPerms) wrouter.RouteHandlerMiddleware {
@@ -93,15 +94,15 @@ func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
 		if reqVals.Spec.PathTemplate != "" {
 			spanName += " " + reqVals.Spec.PathTemplate
 		}
-		reqSpanCtx := wtracing.ExtractB3HeaderVals(req)
-		span := tracer.StartSpan(spanName, wtracing.WithParent(reqSpanCtx))
+		reqSpanCtx := b3.SpanExtractor(req)()
+		span := tracer.StartSpan(spanName, wtracing.WithParentSpanContext(reqSpanCtx))
 		defer span.Finish()
 
 		ctx := req.Context()
 		ctx = wtracing.ContextWithSpan(ctx, span)
 
 		req = req.WithContext(ctx)
-		wtracing.InjectB3HeaderVals(req, span.Context())
+		b3.SpanInjector(req)(span.Context())
 
 		next(rw, req, reqVals)
 	}

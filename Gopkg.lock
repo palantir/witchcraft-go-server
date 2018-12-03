@@ -94,7 +94,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:988d717719d7912577b928565f3eabf7cad62dd75331cc8756655773bd506d44"
+  digest = "1:a2a82648a0076cf9c99762d019ab135afca06559ce2b3b963d24bcf194ff2a9a"
   name = "github.com/palantir/witchcraft-go-logging"
   packages = [
     "conjure/sls/spec/logging",
@@ -113,7 +113,7 @@
     "wlog/trclog/trc1log",
   ]
   pruneopts = "UT"
-  revision = "886ff6a66bdf3a6624851e55f58b68de956c7393"
+  revision = "4b113b1f60c769a16690d127a1176a9431f157fb"
 
 [[projects]]
   branch = "develop"
@@ -125,14 +125,15 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:cb4ca2dc028714c1b8dc17c42a3f242391d42527f86c4d9b6f0814819b8ad8b1"
+  digest = "1:d8535c90bfb7910c395b18ca2bc63b37c70af276d28713134ceb53c8620df5a0"
   name = "github.com/palantir/witchcraft-go-tracing"
   packages = [
     "wtracing",
+    "wtracing/propagation/b3",
     "wzipkin",
   ]
   pruneopts = "UT"
-  revision = "9bbc60bf738dedb14cd1ca439e8d823ac77a44be"
+  revision = "cdc181c163e22a6bee05a6277f8462bf786c0d4c"
 
 [[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
@@ -267,6 +268,7 @@
     "github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log",
     "github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log",
     "github.com/palantir/witchcraft-go-tracing/wtracing",
+    "github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3",
     "github.com/palantir/witchcraft-go-tracing/wzipkin",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",

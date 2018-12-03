@@ -16,21 +16,31 @@ package wzipkin
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/openzipkin/zipkin-go"
-	"github.com/openzipkin/zipkin-go/idgenerator"
 	"github.com/openzipkin/zipkin-go/model"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 )
 
 func NewTracer(rep wtracing.Reporter, opts ...wtracing.TracerOption) (wtracing.Tracer, error) {
-	zipkinTracer, err := zipkin.NewTracer(newZipkinReporterAdapter(rep), toZipkinTracerOptions(wtracing.FromTracerOptions(opts...))...)
+	zipkinReporter := newZipkinReporterAdapter(rep)
+	zipkinTracerOpts := toZipkinTracerOptions(wtracing.FromTracerOptions(opts...))
+
+	zipkinTracer, err := zipkin.NewTracer(zipkinReporter, zipkinTracerOpts...)
 	if err != nil {
 		return nil, err
 	}
+
 	return &tracerImpl{
 		tracer: zipkinTracer,
+		rootSpanTracerCreator: func(traceID model.TraceID) *zipkin.Tracer {
+			// add option that sets ID generator to be a fixed one that returns provided TraceID and SpanID based on it
+			opts := append(zipkinTracerOpts, zipkin.WithIDGenerator(fixedTraceIDRootSpanGenerator(traceID)))
+
+			// known that error cannot be nil: if it were, the first construction should have returned a non-nil error
+			zipkinTracer, _ := zipkin.NewTracer(zipkinReporter, opts...)
+			return zipkinTracer
+		},
 	}, nil
 }
 
@@ -41,18 +51,39 @@ func toZipkinTracerOptions(impl *wtracing.TracerOptionImpl) []zipkin.TracerOptio
 	if impl.Sampler != nil {
 		zipkinTracerOptions = append(zipkinTracerOptions, zipkin.WithSampler(zipkin.Sampler(impl.Sampler)))
 	}
-	if impl.Generator != nil {
-		zipkinTracerOptions = append(zipkinTracerOptions, zipkin.WithIDGenerator(toZipkinIDGenerator(impl.Generator)))
-	}
 	return zipkinTracerOptions
 }
 
 type tracerImpl struct {
+	// tracer is that standard tracer used to create spans. Used in all cases except when a span with custom properties
+	// needs to be created: specifically, creating a new root span with a partial parent information (where the TraceID
+	// needs to match the parent's TraceID and the SpanID must match that as well) requires custom tracer configuration.
 	tracer *zipkin.Tracer
+
+	// rootSpanTracerCreator is a function that creates a new tracer that, given a TraceID, returns a new *zipkin.Tracer
+	// that creates spans that use the provided TraceID as the TraceID and a SpanID equal to the lower 64 bits of the
+	// TraceID as its SpanID. The returned tracer should be configured in the same manner as the stored tracer except
+	// for this aspect.
+	rootSpanTracerCreator func(traceID model.TraceID) *zipkin.Tracer
 }
 
 func (t *tracerImpl) StartSpan(name string, options ...wtracing.SpanOption) wtracing.Span {
-	return fromZipkinSpan(t.tracer.StartSpan(name, toZipkinSpanOptions(wtracing.FromSpanOptions(options...))...))
+	wtracingSpanOptions := wtracing.FromSpanOptions(options...)
+	zipkinSpanOptions := toZipkinSpanOptions(wtracingSpanOptions)
+
+	tracer := t.tracer
+	if parentSpan := wtracingSpanOptions.ParentSpan; parentSpan != nil &&
+		parentSpan.TraceID != "" &&
+		parentSpan.ID == "" {
+		// parent span exists and has TraceID but no SpanID: create a new tracer that creates spans with TraceID and
+		// SpanID that matches the TraceID of the parent
+		traceID, err := model.TraceIDFromHex(string(parentSpan.TraceID))
+		if err != nil {
+			panic(fmt.Errorf("malformed TraceID %s: this should not be possible at this point. Error: %v", parentSpan.TraceID, err))
+		}
+		tracer = t.rootSpanTracerCreator(traceID)
+	}
+	return fromZipkinSpan(tracer.StartSpan(name, zipkinSpanOptions...))
 }
 
 func toZipkinEndpoint(endpoint *wtracing.Endpoint) *model.Endpoint {
@@ -79,52 +110,12 @@ func fromZipkinEndpoint(endpoint *model.Endpoint) *wtracing.Endpoint {
 	}
 }
 
-func toZipkinIDGenerator(generator wtracing.IDGenerator) idgenerator.IDGenerator {
-	return &idGeneratorAdapter{
-		generator: generator,
-	}
+type fixedTraceIDRootSpanGenerator model.TraceID
+
+func (gen fixedTraceIDRootSpanGenerator) TraceID() model.TraceID {
+	return model.TraceID(gen)
 }
 
-type idGeneratorAdapter struct {
-	generator wtracing.IDGenerator
-}
-
-func (gen *idGeneratorAdapter) TraceID() model.TraceID {
-	traceID := gen.generator.TraceID()
-	zipkinTraceID, err := model.TraceIDFromHex(string(traceID))
-	if err != nil {
-		panic(fmt.Sprintf("invalid TraceID %s: %v", traceID, err))
-	}
-	return zipkinTraceID
-}
-
-func (gen *idGeneratorAdapter) SpanID(traceID model.TraceID) model.ID {
-	spanID := gen.generator.SpanID(wtracing.TraceID(traceID.String()))
-	zipkinSpanID, err := strconv.ParseUint(string(spanID), 16, 64)
-	if err != nil {
-		panic(fmt.Sprintf("invalid SpanID %s: %v", spanID, err))
-	}
-	return model.ID(zipkinSpanID)
-}
-
-func FromZipkinIDGenerator(generator idgenerator.IDGenerator) wtracing.IDGenerator {
-	return &zipkinIDGeneratorAdapter{
-		generator: generator,
-	}
-}
-
-type zipkinIDGeneratorAdapter struct {
-	generator idgenerator.IDGenerator
-}
-
-func (gen *zipkinIDGeneratorAdapter) TraceID() wtracing.TraceID {
-	return wtracing.TraceID(gen.generator.TraceID().String())
-}
-
-func (gen *zipkinIDGeneratorAdapter) SpanID(traceID wtracing.TraceID) wtracing.SpanID {
-	zipkinTraceID, err := model.TraceIDFromHex(string(traceID))
-	if err != nil {
-		panic(fmt.Sprintf("invalid TraceID %s: %v", string(traceID), err))
-	}
-	return wtracing.SpanID(gen.generator.SpanID(zipkinTraceID).String())
+func (gen fixedTraceIDRootSpanGenerator) SpanID(traceID model.TraceID) model.ID {
+	return model.ID(gen.Low)
 }

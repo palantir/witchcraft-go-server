@@ -15,9 +15,39 @@
 package evt2log
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"os"
+
+	"github.com/palantir/witchcraft-go-logging/wlog"
+	"github.com/palantir/witchcraft-go-logging/wlog/internal"
 )
 
-func DefaultLogger() Logger {
-	return New(os.Stdout)
+func SetDefaultLoggerCreator(creator func() Logger) {
+	defaultLoggerCreator = creator
+}
+
+var defaultLoggerCreator = func() Logger {
+	return &warnLogger{
+		w: os.Stderr,
+		// store the DefaultLoggerProvider at creation-time so that the output of this logger will be consistent
+		// throughout its lifetime (if the default logger provider is changed after a specific warnLogger is created,
+		// that should not change the creator used for that warnLogger).
+		creator: wlog.DefaultLoggerProvider().NewLogger,
+	}
+}
+
+// warnLogger is a logger that writes a warning to the provided io.Writer whenever its logging function is invoked. When
+// the logging function is invoked, a new logger is created using the wlog.LoggerCreator and a warning and the output of
+// the created logger are written to the io.Writer.
+type warnLogger struct {
+	w       io.Writer
+	creator wlog.LoggerCreator
+}
+
+func (l *warnLogger) Event(name string, params ...Param) {
+	buf := &bytes.Buffer{}
+	NewFromCreator(buf, l.creator).Event(name, params...)
+	_, _ = fmt.Fprintln(l.w, wloginternal.WarnLoggerOutput("evt2log", buf.String(), 2))
 }
