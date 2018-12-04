@@ -24,27 +24,13 @@
 #   go-tests = true
 #   unused-packages = true
 
-# TODO(nmiyake): change to real constraint after release
 [[constraint]]
   name = "github.com/palantir/pkg"
-  branch = "master"
-
-[[constraint]]
-  name = "github.com/stretchr/testify"
-  version = "1.2.2"
-
-[[constraint]]
-  name = "gopkg.in/natefinch/lumberjack.v2"
-  version = "2.1.0"
-
-[[constraint]]
-  name = "gopkg.in/yaml.v2"
-  version = "2.2.1"
+  version = ">=0.8.0, <1.0.0"
 
 [[constraint]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
-  version = "v1.4.7"
 
 [prune]
   go-tests = true

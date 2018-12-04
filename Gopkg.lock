@@ -67,8 +67,7 @@
   revision = "a1d3024b37d8cdd6c19d748051f7228155f0a0d9"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ac091a1e8d68578608c2d1b143cd8dcd3fb5dc6c32b699d81065b0d03ac7a20a"
+  digest = "1:4ea3ce84309ecf272ac56d0659483cd323f6a3c63c077bed32a980c8e533890d"
   name = "github.com/palantir/pkg"
   packages = [
     "httpserver",
@@ -79,7 +78,8 @@
     "tlsconfig",
   ]
   pruneopts = "UT"
-  revision = "66645f23367493f51150460292bdca77a607692e"
+  revision = "b99e4c174bb7f8375643e79008d03e193cdbec2e"
+  version = "0.8.0"
 
 [[projects]]
   branch = "develop"
