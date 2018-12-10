@@ -19,9 +19,9 @@ import (
 	"path"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-params"
 )
@@ -131,13 +131,7 @@ func initLineCaller(skip int) (string, int, bool) {
 	// the 1 skips the current "initLineCaller" function
 	_, file, line, ok := runtime.Caller(1 + skip)
 	if ok {
-		// Trim everything up to the first /src/ as a heuristic for limiting the file to the go import path. This is a
-		// very simple heuristic that will break if the GOPATH exists in a directory with /src/ in the path
-		// (e.g. ~/src/go/src/github...), but is considered best-effort.
-		const srcDir = `/src/`
-		if idx := strings.Index(file, srcDir); idx >= 0 {
-			file = file[idx+len(srcDir):]
-		}
+		file = gopath.TrimPrefix(file)
 	}
 	return file, line, ok
 }

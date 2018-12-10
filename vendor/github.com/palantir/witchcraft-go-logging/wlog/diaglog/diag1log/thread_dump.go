@@ -22,6 +22,7 @@ import (
 
 	"github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging"
 	"github.com/palantir/witchcraft-go-logging/internal/conjuretype"
+	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 )
 
 // ThreadDumpV1FromGoroutines unmarshals a "goroutine dump" (as formatted by panic or the runtime package)
@@ -45,16 +46,14 @@ func unmarshalThreadDump(goroutine []byte) logging.ThreadInfoV1 {
 		return logging.ThreadInfoV1{}
 	}
 
-	info := logging.ThreadInfoV1{Params: map[string]interface{}{}}
+	info := logging.ThreadInfoV1{Params: make(map[string]interface{})}
 
 	// Unmarshal title (first) line
-	matches := titleLinePattern.FindSubmatch(lines[0])
-	if len(matches) >= 4 {
+	if matches := titleLinePattern.FindSubmatch(lines[0]); len(matches) >= 4 {
 		name := string(matches[1])
 		info.Name = &name
 
-		idInt, err := strconv.ParseInt(string(matches[2]), 0, 64)
-		if err == nil {
+		if idInt, err := strconv.ParseInt(string(matches[2]), 0, 64); err == nil {
 			id, err := conjuretype.NewSafeLong(idInt)
 			if err == nil {
 				info.Id = &id
@@ -94,12 +93,6 @@ func unmarshalFuncLine(funcLine []byte, frame *logging.StackFrameV1) {
 	if argIndex != -1 {
 		procedure := string(funcLine[:argIndex])
 		frame.Procedure = &procedure
-
-		// TODO(bmoylan): Would including function arguments be safe?
-		//args := bytes.Split(funcLine[argIndex+1:len(funcLine)-1], []byte(", "))
-		//for i, arg := range args {
-		//	frame.Params[fmt.Sprintf("arg%d", i)] = string(arg)
-		//}
 	}
 }
 
@@ -110,16 +103,8 @@ func unmarshalFileLine(fileLine []byte, frame *logging.StackFrameV1) {
 	sepIdx := strings.LastIndex(segments[0], ":")
 	absPath := segments[0][:sepIdx]
 
-	// Trim everything up to the first /src/ as a hueristic for limiting the file
-	// to the go import path. This will break if someone's GOPATH exists in a directory
-	// with /src/ in the path (e.g. ~/src/go/src/github...), but we should not be
-	// deploying binaries compiled in non-standard build environments.
-	const srcDir = `/src/`
-	idx := strings.Index(absPath, srcDir)
-	if idx >= 0 {
-		file := absPath[idx+len(srcDir):]
-		frame.File = &file
-	}
+	file := gopath.TrimPrefix(absPath)
+	frame.File = &file
 
 	lineNumStr := segments[0][sepIdx+1:]
 	lineNum, err := strconv.Atoi(lineNumStr)

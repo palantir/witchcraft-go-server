@@ -94,11 +94,12 @@
 
 [[projects]]
   branch = "bm/diagnostic-thread-dump"
-  digest = "1:47b03a071f07d7c6e6942d59564e0355913156db62c266a9f2ed31be74ec751d"
+  digest = "1:a3543b7d6976509c736b047df04474aca789396e36d01d8d91493977d0786fae"
   name = "github.com/palantir/witchcraft-go-logging"
   packages = [
     "conjure/sls/spec/logging",
     "internal/conjuretype",
+    "internal/gopath",
     "wlog",
     "wlog-zap",
     "wlog-zap/internal",
@@ -114,7 +115,7 @@
     "wlog/trclog/trc1log",
   ]
   pruneopts = "UT"
-  revision = "4fc29edc12b4eaccf03108f212701f232c7cfc56"
+  revision = "bb7a6bd9830dceffd4aa32bfa40f60cf8bebbff4"
 
 [[projects]]
   branch = "develop"
