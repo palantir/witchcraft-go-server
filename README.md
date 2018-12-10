@@ -35,7 +35,7 @@ handlers  is configured with all of the standard loggers (service logger, event 
 
 When registering routes on the router, it is also possible to specify path/header/query param keys that should be
 considered "safe" or "forbidden" when used as parameters in logging. These are combined with the default set of safe and
-forbidden header parameters defined by the `req2log` package in `witchcraft-logging-go`.
+forbidden header parameters defined by the `req2log` package in `witchcraft-go-logging`.
 
 ### Liveness, readiness, and health
 `witchcraft-server` registers the endpoints `/status/liveness`, `/status/readiness` and `/status/health` to report the
@@ -66,7 +66,7 @@ traffic itself is still encrypted.
 
 ### Logging
 `witchcraft-server` is configured with service, event, metric, request and trace loggers from the 
-`witchcraft-logging-go` project and emits structured JSON logs using [`zap`](https://github.com/uber-go/zap) as the 
+`witchcraft-go-logging` project and emits structured JSON logs using [`zap`](https://github.com/uber-go/zap) as the
 logger implementation. The default behavior emits logs to the `var/log` directory (`var/log/service.log`, 
 `var/log/request.log`, etc.) unless the server is run in a Docker container, in which case the logs are always emitted 
 to `stdout`. The `use-console-log` property in the install configuration can also be set to "true" to always output logs 
@@ -113,8 +113,8 @@ root span), and that trace ID is registered on the context. The `witchcraft.Trac
 function can be used to retrieve the trace ID from the context.
 
 ### Creating new spans/trace log entries
-Use the `witchcraft.StartSpanFromContext(ctx context.Context, spanName string) (zipkin.Span, context.Context)` function
-to start a new span. This function will create a new span that is a child span of the span in the provided context.
+Use the `wtracing.StartSpanFromContext` function to start a new span.
+This function will create a new span that is a child span of the span in the provided context.
 Defer the `Finish()` function of the returned span to ensure that the span is properly marked as finished (the "finish"
 operation will also generate a trace log entry if the span is sampled).
 
@@ -157,8 +157,8 @@ It is recommended that such goroutines be launched in the initialization functio
 the `ctx Context` as its context. This context has the same lifecycle as the server and has all of the configured 
 loggers (service loggers, metric loggers, etc.) already configured on it.
 
-The provided context does not have a span or trace ID associated with it. If a trace ID is desired, the
-`witchcraft.ContextWithNewRootSpan` function should be used with the provided context to derive a new context that has a
+The provided context does not have a span or trace ID associated with it. If a trace ID is desired,
+[create a new span](#creating-new-spanstrace-log-entries) with `wtracing.StartSpanFromContext` and the provided context to derive a new context that has a
 new root span associated with it. This function also updates any loggers in the context to use the new trace ID (for 
 example, service loggers will include the trace ID).
 
@@ -169,8 +169,8 @@ metric log entries once every metric emit interval, which is 60 seconds by defau
 interval in the install configuration).
 
 By default, `witchcraft-server` captures various Go runtime metrics (such as allocations, number of running goroutines, 
-etc.) at the same frequency as the metric emit frequency. The collection of Go runtime statistics can be disabled by
-code.
+etc.) at the same frequency as the metric emit frequency. The collection of Go runtime statistics can be disabled with
+the `WithDisableGoRuntimeMetrics` server method.
 
 ### SIGQUIT handling
 `witchcraft-server` sets up a SIGQUIT handler such that, if the program is terminated using a SIGQUIT signal
