@@ -26,11 +26,16 @@
 
 [[constraint]]
   name = "github.com/palantir/pkg"
-  version = ">=0.8.0, <1.0.0"
+#  version = ">=0.8.0, <1.0.0"
+  branch = "bm/stacktrace-handler"
 
 [[constraint]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
+
+[[constraint]]
+  name = "github.com/palantir/witchcraft-go-logging"
+  branch = "bm/diagnostic-thread-dump"
 
 [prune]
   go-tests = true
