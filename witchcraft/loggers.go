@@ -22,6 +22,7 @@ import (
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
@@ -54,6 +55,7 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
 	s.metricLogger = metric1log.New(logOutputFn("metrics"))
 	s.trcLogger = trc1log.New(logOutputFn("trace"))
 	s.auditLogger = audit2log.New(logOutputFn("audit"))
+	s.diagLogger = diag1log.New(logOutputFn("diagnostic"))
 	s.reqLogger = req2log.New(logOutputFn("request"),
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),

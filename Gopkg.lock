@@ -67,7 +67,7 @@
   revision = "a1d3024b37d8cdd6c19d748051f7228155f0a0d9"
 
 [[projects]]
-  digest = "1:4ea3ce84309ecf272ac56d0659483cd323f6a3c63c077bed32a980c8e533890d"
+  digest = "1:06c17d0943eb3a078ad3c2a394eec532ce22c61b17386fef091c33855f86d2b6"
   name = "github.com/palantir/pkg"
   packages = [
     "httpserver",
@@ -78,8 +78,8 @@
     "tlsconfig",
   ]
   pruneopts = "UT"
-  revision = "b99e4c174bb7f8375643e79008d03e193cdbec2e"
-  version = "0.8.0"
+  revision = "97c88835cd7ba5e284c4d94f1b63e0709a78bc01"
+  version = "0.8.1"
 
 [[projects]]
   branch = "develop"
@@ -94,16 +94,18 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:a2a82648a0076cf9c99762d019ab135afca06559ce2b3b963d24bcf194ff2a9a"
+  digest = "1:87241e14bfcf49aa2f68e46aaaa5b15d4caacd3220ed60a8f75a7507a8010881"
   name = "github.com/palantir/witchcraft-go-logging"
   packages = [
     "conjure/sls/spec/logging",
     "internal/conjuretype",
+    "internal/gopath",
     "wlog",
     "wlog-zap",
     "wlog-zap/internal",
     "wlog-zap/internal/marshalers",
     "wlog/auditlog/audit2log",
+    "wlog/diaglog/diag1log",
     "wlog/evtlog/evt2log",
     "wlog/extractor",
     "wlog/internal",
@@ -113,7 +115,7 @@
     "wlog/trclog/trc1log",
   ]
   pruneopts = "UT"
-  revision = "4b113b1f60c769a16690d127a1176a9431f157fb"
+  revision = "97c3fe7a52ab39445c4286344b601960c3edd33e"
 
 [[projects]]
   branch = "develop"
@@ -261,6 +263,7 @@
     "github.com/palantir/witchcraft-go-logging/wlog",
     "github.com/palantir/witchcraft-go-logging/wlog-zap",
     "github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log",
+    "github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log",
     "github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log",
     "github.com/palantir/witchcraft-go-logging/wlog/extractor",
     "github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log",

@@ -23,13 +23,16 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"syscall"
 	"time"
 
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
@@ -67,9 +70,12 @@ type Server struct {
 	stateManager serverStateManager
 
 	// specifies the io.Writer to which goroutine dump will be written if a SIGQUIT is received while the server is
-	// running. If nil, os.Stdout is used as the default. If the value is ioutil.Discard, then no SIGQUIT listener will
-	// be registered.
+	// running. If nil, os.Stdout is used as the default. If the value is ioutil.Discard, then no plaintext output will
+	// be emitted. A diagnostic.1 line is logged unless disableSigQuitHandler is true.
 	sigQuitHandlerWriter io.Writer
+
+	// if true, disables the default behavior of emitting a goroutine dump on SIGQUIT signals.
+	disableSigQuitHandler bool
 
 	// provides the bytes for the install configuration for the server. If nil, a default configuration provider that
 	// reads the file at "var/conf/install.yml" is used.
@@ -147,6 +153,7 @@ type Server struct {
 	auditLogger  audit2log.Logger
 	metricLogger metric1log.Logger
 	trcLogger    trc1log.Logger
+	diagLogger   diag1log.Logger
 	reqLogger    req2log.Logger
 
 	// the http.Server for the main server
@@ -341,6 +348,18 @@ func (s *Server) WithTraceSampler(traceSampler func(id uint64) bool) *Server {
 	return s
 }
 
+// WithSigQuitHandlerWriter sets the output for the goroutine dump on SIGQUIT.
+func (s *Server) WithSigQuitHandlerWriter(w io.Writer) *Server {
+	s.sigQuitHandlerWriter = w
+	return s
+}
+
+// WithDisableSigQuitHandler disables the server's enabled-by-default goroutine dump on SIGQUIT.
+func (s *Server) WithDisableSigQuitHandler() *Server {
+	s.disableSigQuitHandler = true
+	return s
+}
+
 // WithDisableGoRuntimeMetrics disables the server's enabled-by-default collection of runtime memory statistics.
 func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	s.disableGoRuntimeMetrics = true
@@ -371,21 +390,6 @@ func (s *Server) Start() error {
 	}
 	// Run() function only terminates after server stops, so reset state at that point
 	defer s.stateManager.setState(ServerIdle)
-
-	// if sigQuitHandlerWriter is nil, use os.Stdout as the default value
-	if s.sigQuitHandlerWriter == nil {
-		s.sigQuitHandlerWriter = os.Stdout
-	}
-
-	// if sigQuitHandlerWriter is not ioutil.Discard, register handler that dumps stack to writer on SIGQUIT signal
-	if s.sigQuitHandlerWriter != ioutil.Discard {
-		unregisterSignalsFn := signals.RegisterStackTraceWriter(s.sigQuitHandlerWriter, func(err error) {
-			if s.svcLogger != nil {
-				s.svcLogger.Error("Failed to dump goroutines", svc1log.Stacktrace(err))
-			}
-		})
-		defer unregisterSignalsFn()
-	}
 
 	// set provider for ECV key
 	if s.ecvKeyProvider == nil {
@@ -451,6 +455,8 @@ func (s *Server) Start() error {
 		s.svcLogger.SetLevel(baseRuntimeCfg.LoggerConfig.Level)
 	})
 	defer unsubscribe()
+
+	s.initStackTraceHandler(ctx)
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -596,6 +602,36 @@ func (s *Server) initRuntimeConfig(ctx context.Context, ecvKey *encryptedconfigv
 			return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
 		}),
 		nil
+}
+
+func (s *Server) initStackTraceHandler(ctx context.Context) {
+	if s.disableSigQuitHandler {
+		return
+	}
+
+	// if sigQuitHandlerWriter is nil, use os.Stdout as the default value
+	if s.sigQuitHandlerWriter == nil {
+		s.sigQuitHandlerWriter = os.Stdout
+	}
+
+	stackTraceHandler := func(stackTraceOutput []byte) error {
+		if s.diagLogger != nil {
+			s.diagLogger.Diagnostic(logging.NewDiagnosticFromThreadDump(diag1log.ThreadDumpV1FromGoroutines(stackTraceOutput)))
+		}
+		if s.sigQuitHandlerWriter != nil {
+			if _, err := s.sigQuitHandlerWriter.Write(stackTraceOutput); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	errHandler := func(err error) {
+		if s.svcLogger != nil && err != nil {
+			s.svcLogger.Error("Failed to dump goroutines", svc1log.Stacktrace(err))
+		}
+	}
+
+	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false
