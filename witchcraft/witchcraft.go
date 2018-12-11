@@ -614,23 +614,25 @@ func (s *Server) initStackTraceHandler() (unregister func()) {
 	if s.sigQuitHandlerWriter == nil {
 		s.sigQuitHandlerWriter = os.Stdout
 	}
+
+	stackTraceHandler := func(stackTraceOutput []byte) error {
+		if s.diagLogger != nil {
+			s.diagLogger.Diagnostic(logging.NewDiagnosticFromThreadDump(diag1log.ThreadDumpV1FromGoroutines(stackTraceOutput)))
+		}
+		if s.sigQuitHandlerWriter != nil {
+			if _, err := s.sigQuitHandlerWriter.Write(stackTraceOutput); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 	errHandler := func(err error) {
 		if s.svcLogger != nil && err != nil {
 			s.svcLogger.Error("Failed to dump goroutines", svc1log.Stacktrace(err))
 		}
 	}
-	outHandler := func(bytes []byte) {
-		if s.diagLogger != nil {
-			s.diagLogger.Diagnostic(logging.NewDiagnosticFromThreadDump(diag1log.ThreadDumpV1FromGoroutines(bytes)))
-		}
-		if s.sigQuitHandlerWriter != nil {
-			if _, err := s.sigQuitHandlerWriter.Write(bytes); err != nil {
-				errHandler(err)
-			}
-		}
-	}
 
-	return signals.RegisterStackTraceHandlerOnSignals(outHandler, errHandler, syscall.SIGQUIT)
+	return signals.RegisterStackTraceHandlerOnSignals(stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false

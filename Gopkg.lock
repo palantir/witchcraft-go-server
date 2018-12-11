@@ -68,7 +68,7 @@
 
 [[projects]]
   branch = "bm/stacktrace-handler"
-  digest = "1:8ccebfc13fe2b9c07d43afad4f5cb9f2ea753b70660b16a5dbc15e6a34e19799"
+  digest = "1:8d0b5638e8525248b73b42ceefb73d2aba120b715e85a1a576c96f1c1a553741"
   name = "github.com/palantir/pkg"
   packages = [
     "httpserver",
@@ -79,7 +79,7 @@
     "tlsconfig",
   ]
   pruneopts = "UT"
-  revision = "30980a0fbd0cbbddd557f9c407d72089b9afdb8c"
+  revision = "d724c5df54b97ca897b0cf735df9819d821a65ba"
 
 [[projects]]
   branch = "develop"
