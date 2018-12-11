@@ -38,7 +38,7 @@ func ThreadDumpV1FromGoroutines(goroutinesContent []byte) logging.ThreadDumpV1 {
 	return threads
 }
 
-var titleLinePattern = regexp.MustCompile(`^(goroutine (\d+)) \[([^]]+)]:$`)
+var titleLinePattern = regexp.MustCompile(`^(goroutine (\d+) \[([^]]+)]):$`)
 
 func unmarshalThreadDump(goroutine []byte) logging.ThreadInfoV1 {
 	lines := bytes.Split(bytes.TrimSpace(goroutine), []byte("\n"))
@@ -48,28 +48,22 @@ func unmarshalThreadDump(goroutine []byte) logging.ThreadInfoV1 {
 
 	info := logging.ThreadInfoV1{Params: make(map[string]interface{})}
 
-	// Unmarshal title (first) line
-	if matches := titleLinePattern.FindSubmatch(lines[0]); len(matches) >= 4 {
-		name := string(matches[1])
-		info.Name = &name
-
-		if idInt, err := strconv.ParseInt(string(matches[2]), 0, 64); err == nil {
-			id, err := conjuretype.NewSafeLong(idInt)
-			if err == nil {
-				info.Id = &id
-			}
-		}
-
-		info.Params["status"] = string(matches[3])
+	// The first line is of the form 'goroutine 14 [select]:'
+	titleLine := string(lines[0])
+	if matches := titleLinePattern.FindStringSubmatch(titleLine); len(matches) >= 4 {
+		info.Name = stringPtr(matches[1])
+		info.Id = stringToOptionalSafeLong(matches[2])
+		info.Params["status"] = matches[3]
 	}
 
-	// Go through stack frames two lines at a time
+	// Stack frames start with the 2nd line
 	stackLines := lines[1:]
+	// Go through stack frames two lines at a time
 	for i := 0; i < len(stackLines); i += 2 {
 		funcLine := stackLines[i]
 		fileLine := stackLines[i+1]
 
-		frame := logging.StackFrameV1{Params: map[string]interface{}{}}
+		frame := logging.StackFrameV1{Params: make(map[string]interface{})}
 
 		unmarshalFuncLine(funcLine, &frame)
 		unmarshalFileLine(fileLine, &frame)
@@ -111,4 +105,21 @@ func unmarshalFileLine(fileLine []byte, frame *logging.StackFrameV1) {
 	if err == nil {
 		frame.Line = &lineNum
 	}
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
+// stringToOptionalSafeLong returns nil on errors
+func stringToOptionalSafeLong(s string) *conjuretype.SafeLong {
+	i, err := strconv.ParseInt(s, 0, 64)
+	if err != nil {
+		return nil
+	}
+	long, err := conjuretype.NewSafeLong(i)
+	if err != nil {
+		return nil
+	}
+	return &long
 }
