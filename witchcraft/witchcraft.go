@@ -391,9 +391,6 @@ func (s *Server) Start() error {
 	// Run() function only terminates after server stops, so reset state at that point
 	defer s.stateManager.setState(ServerIdle)
 
-	unregisterStackTraceHandler := s.initStackTraceHandler()
-	defer unregisterStackTraceHandler()
-
 	// set provider for ECV key
 	if s.ecvKeyProvider == nil {
 		s.ecvKeyProvider = ECVKeyFromFile(ecvKeyPath)
@@ -458,6 +455,8 @@ func (s *Server) Start() error {
 		s.svcLogger.SetLevel(baseRuntimeCfg.LoggerConfig.Level)
 	})
 	defer unsubscribe()
+
+	s.initStackTraceHandler(ctx)
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -605,9 +604,9 @@ func (s *Server) initRuntimeConfig(ctx context.Context, ecvKey *encryptedconfigv
 		nil
 }
 
-func (s *Server) initStackTraceHandler() (unregister func()) {
+func (s *Server) initStackTraceHandler(ctx context.Context) {
 	if s.disableSigQuitHandler {
-		return func() {}
+		return
 	}
 
 	// if sigQuitHandlerWriter is nil, use os.Stdout as the default value
@@ -632,7 +631,7 @@ func (s *Server) initStackTraceHandler() (unregister func()) {
 		}
 	}
 
-	return signals.RegisterStackTraceHandlerOnSignals(stackTraceHandler, errHandler, syscall.SIGQUIT)
+	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false
