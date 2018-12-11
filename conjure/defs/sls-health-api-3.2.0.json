@@ -1,0 +1,136 @@
+{
+  "version" : 1,
+  "errors" : [ ],
+  "types" : [ {
+    "type" : "object",
+    "object" : {
+      "typeName" : {
+        "name" : "HealthStatus",
+        "package" : "com.palantir.sls.spec.health"
+      },
+      "fields" : [ {
+        "fieldName" : "checks",
+        "type" : {
+          "type" : "map",
+          "map" : {
+            "keyType" : {
+              "type" : "reference",
+              "reference" : {
+                "name" : "CheckType",
+                "package" : "com.palantir.sls.spec.health"
+              }
+            },
+            "valueType" : {
+              "type" : "reference",
+              "reference" : {
+                "name" : "HealthCheckResult",
+                "package" : "com.palantir.sls.spec.health"
+              }
+            }
+          }
+        }
+      } ]
+    }
+  }, {
+    "type" : "alias",
+    "alias" : {
+      "typeName" : {
+        "name" : "CheckType",
+        "package" : "com.palantir.sls.spec.health"
+      },
+      "alias" : {
+        "type" : "primitive",
+        "primitive" : "STRING"
+      }
+    }
+  }, {
+    "type" : "object",
+    "object" : {
+      "typeName" : {
+        "name" : "HealthCheckResult",
+        "package" : "com.palantir.sls.spec.health"
+      },
+      "fields" : [ {
+        "fieldName" : "type",
+        "type" : {
+          "type" : "reference",
+          "reference" : {
+            "name" : "CheckType",
+            "package" : "com.palantir.sls.spec.health"
+          }
+        },
+        "docs" : "A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).\n"
+      }, {
+        "fieldName" : "state",
+        "type" : {
+          "type" : "reference",
+          "reference" : {
+            "name" : "HealthState",
+            "package" : "com.palantir.sls.spec.health"
+          }
+        },
+        "docs" : "Health state of the check.\n"
+      }, {
+        "fieldName" : "message",
+        "type" : {
+          "type" : "optional",
+          "optional" : {
+            "itemType" : {
+              "type" : "primitive",
+              "primitive" : "STRING"
+            }
+          }
+        },
+        "docs" : "Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert.\n"
+      }, {
+        "fieldName" : "params",
+        "type" : {
+          "type" : "map",
+          "map" : {
+            "keyType" : {
+              "type" : "primitive",
+              "primitive" : "STRING"
+            },
+            "valueType" : {
+              "type" : "primitive",
+              "primitive" : "ANY"
+            }
+          }
+        },
+        "docs" : "Additional redacted information on the nature of the health check.\n"
+      } ],
+      "docs" : "Metadata describing the status of a service."
+    }
+  }, {
+    "type" : "enum",
+    "enum" : {
+      "typeName" : {
+        "name" : "HealthState",
+        "package" : "com.palantir.sls.spec.health"
+      },
+      "values" : [ {
+        "value" : "HEALTHY",
+        "docs" : "The service node is fully operational with no issues.\n"
+      }, {
+        "value" : "DEFERRING",
+        "docs" : "The service node is fully operational with no issues; however, it is requesting to defer shutdown or restart. A deferring node should not accept \"new\" jobs but should allow polling of existing jobs.\n"
+      }, {
+        "value" : "SUSPENDED",
+        "docs" : "The service node is no longer serving requests and is ready to be shut down. Nodes in a deferring state are expected to change to a suspended state once they have completed any pending work. A suspended node must also indicate in its readiness probe that it should not receive incoming requests.\n"
+      }, {
+        "value" : "REPAIRING",
+        "docs" : "The service node is operating in a degraded state, but is capable of automatically recovering. If any of the nodes in the service were to be restarted, it may result in correctness or consistency issues with the service. Ex: When a cassandra node decides it is not up-to-date and needs to repair, the node is operating in a degraded state. Restarting the node prior to the repair being complete might result in the service being unable to correctly respond to requests.\n"
+      }, {
+        "value" : "WARNING",
+        "docs" : "The service node is in a state that is trending towards an error. If no corrective action is taken, the health is expected to become an error.\n"
+      }, {
+        "value" : "ERROR",
+        "docs" : "The service node is operationally unhealthy.\n"
+      }, {
+        "value" : "TERMINAL",
+        "docs" : "The service node has entered an unrecoverable state. All nodes of the service should be stopped and no automated attempt to restart the node should be made. Ex: a service fails to migrate to a new schema and is left in an unrecoverable state.\n"
+      } ]
+    }
+  } ],
+  "services" : [ ]
+}
