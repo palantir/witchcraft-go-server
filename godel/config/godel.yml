@@ -3,6 +3,11 @@ plugins:
     - "https://palantir.bintray.com/releases/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz"
   plugins:
     - locator:
+        id: "com.palantir.godel-conjure-plugin:conjure-plugin:3.0.0"
+        checksums:
+          darwin-amd64: c65abd1d33e2c3dad19562d0974b4ac492efc0bfe74ec218aec1a5fe264a3df5
+          linux-amd64: 178893ee1c7ff0f195c11fc492a13dcdd20faa7e9c5238cbeb310f4656045bd9
+    - locator:
         id: "com.palantir.godel-dep-plugin:dep-plugin:1.1.0"
         checksums:
           darwin-amd64: 946b0def510a7e94b46bb635a67f00c05243505e2a2ef9b0b7dab45b0437be1f
