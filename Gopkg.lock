@@ -67,7 +67,7 @@
   revision = "a1d3024b37d8cdd6c19d748051f7228155f0a0d9"
 
 [[projects]]
-  branch = "bm/stacktrace-handler"
+  branch = "master"
   digest = "1:06c17d0943eb3a078ad3c2a394eec532ce22c61b17386fef091c33855f86d2b6"
   name = "github.com/palantir/pkg"
   packages = [
@@ -79,7 +79,7 @@
     "tlsconfig",
   ]
   pruneopts = "UT"
-  revision = "09b68444786f401f360fabb09deb3c282b82886f"
+  revision = "97c88835cd7ba5e284c4d94f1b63e0709a78bc01"
 
 [[projects]]
   branch = "develop"

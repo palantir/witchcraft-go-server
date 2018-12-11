@@ -27,7 +27,7 @@
 [[constraint]]
   name = "github.com/palantir/pkg"
 #  version = ">=0.8.0, <1.0.0"
-  branch = "bm/stacktrace-handler"
+  branch = "master"
 
 [[constraint]]
   name = "gopkg.in/fsnotify.v1"
