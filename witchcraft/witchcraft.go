@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -385,6 +386,22 @@ const (
 // Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
 // Errors are logged via s.svcLogger before being returned.
 func (s *Server) Start() (rErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok && rErr == nil {
+				rErr = err
+			} else {
+				rErr = werror.Error("panic recovered", werror.UnsafeParam("recovered", r))
+			}
+
+			if s.svcLogger == nil {
+				// If we have not yet initialized our loggers, use default configuration as best-effort.
+				s.initLoggers(false, wlog.InfoLevel)
+			}
+
+			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
+		}
+	}()
 	defer func() {
 		if rErr != nil {
 			if s.svcLogger == nil {

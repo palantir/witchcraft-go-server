@@ -30,24 +30,67 @@ import (
 
 // TestFatalErrorLogging verifies that the server logs errors before returning.
 func TestFatalErrorLogging(t *testing.T) {
-	logOutputBuffer := &bytes.Buffer{}
-	err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-			return nil, werror.Error("oops")
-		}).
-		WithInstallConfig(config.Install{UseConsoleLog: true}).
-		WithRuntimeConfig(config.Runtime{}).
-		WithLoggerStdoutWriter(logOutputBuffer).
-		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-		WithDisableGoRuntimeMetrics().
-		WithSelfSignedCertificate().
-		Start()
 
-	require.EqualError(t, err, "oops")
+	for _, test := range []struct {
+		Name      string
+		InitFn    witchcraft.InitFunc
+		VerifyLog func(t *testing.T, logOutput []byte)
+	}{
+		{
+			Name: "error returned by init function",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				var log logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(logOutput, &log))
+				assert.Equal(t, logging.LogLevelError, log.Level)
+				assert.Equal(t, "oops", log.Message)
+				assert.Equal(t, "v", log.Params["k"], "safe param not preserved")
+				assert.NotEmpty(t, log.Stacktrace)
+			},
+		},
+		{
+			Name: "panic init function with error",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				panic(werror.Error("oops", werror.SafeParam("k", "v")))
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				var log logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(logOutput, &log))
+				assert.Equal(t, logging.LogLevelError, log.Level)
+				assert.Equal(t, "panic recovered", log.Message)
+				assert.Equal(t, "v", log.Params["k"], "safe param not preserved")
+				assert.NotEmpty(t, log.Stacktrace)
+			},
+		},
+		{
+			Name: "panic init function with object",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				panic(map[string]interface{}{"k": "v"})
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				var log logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(logOutput, &log))
+				assert.Equal(t, logging.LogLevelError, log.Level)
+				assert.Equal(t, "panic recovered", log.Message)
+				assert.Equal(t, map[string]interface{}{"k": "v"}, log.UnsafeParams["recovered"])
+				assert.NotEmpty(t, log.Stacktrace)
+			},
+		},
+	} {
+		logOutputBuffer := &bytes.Buffer{}
+		err := witchcraft.NewServer().
+			WithInitFunc(test.InitFn).
+			WithInstallConfig(config.Install{UseConsoleLog: true}).
+			WithRuntimeConfig(config.Runtime{}).
+			WithLoggerStdoutWriter(logOutputBuffer).
+			WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+			WithDisableGoRuntimeMetrics().
+			WithSelfSignedCertificate().
+			Start()
 
-	var log logging.ServiceLogV1
-	require.NoError(t, json.Unmarshal(logOutputBuffer.Bytes(), &log))
-	assert.Equal(t, logging.LogLevelError, log.Level)
-	assert.Equal(t, "oops", log.Message)
-	assert.NotEmpty(t, log.Stacktrace)
+		require.Error(t, err)
+		test.VerifyLog(t, logOutputBuffer.Bytes())
+	}
 }
