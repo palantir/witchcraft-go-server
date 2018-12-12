@@ -30,7 +30,6 @@ import (
 
 // TestFatalErrorLogging verifies that the server logs errors before returning.
 func TestFatalErrorLogging(t *testing.T) {
-
 	for _, test := range []struct {
 		Name      string
 		InitFn    witchcraft.InitFunc
@@ -79,18 +78,20 @@ func TestFatalErrorLogging(t *testing.T) {
 			},
 		},
 	} {
-		logOutputBuffer := &bytes.Buffer{}
-		err := witchcraft.NewServer().
-			WithInitFunc(test.InitFn).
-			WithInstallConfig(config.Install{UseConsoleLog: true}).
-			WithRuntimeConfig(config.Runtime{}).
-			WithLoggerStdoutWriter(logOutputBuffer).
-			WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-			WithDisableGoRuntimeMetrics().
-			WithSelfSignedCertificate().
-			Start()
+		t.Run(test.Name, func(t *testing.T) {
+			logOutputBuffer := &bytes.Buffer{}
+			err := witchcraft.NewServer().
+				WithInitFunc(test.InitFn).
+				WithInstallConfig(config.Install{UseConsoleLog: true}).
+				WithRuntimeConfig(config.Runtime{}).
+				WithLoggerStdoutWriter(logOutputBuffer).
+				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+				WithDisableGoRuntimeMetrics().
+				WithSelfSignedCertificate().
+				Start()
 
-		require.Error(t, err)
-		test.VerifyLog(t, logOutputBuffer.Bytes())
+			require.Error(t, err)
+			test.VerifyLog(t, logOutputBuffer.Bytes())
+		})
 	}
 }
