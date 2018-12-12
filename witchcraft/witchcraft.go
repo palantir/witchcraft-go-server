@@ -382,7 +382,19 @@ const (
 	runtimeConfigPath = "var/conf/runtime.yml"
 )
 
-func (s *Server) Start() error {
+// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
+// Errors are logged via s.svcLogger before being returned.
+func (s *Server) Start() (rErr error) {
+	defer func() {
+		if rErr != nil {
+			if s.svcLogger == nil {
+				// If we have not yet initialized our loggers, use default configuration as best-effort.
+				s.initLoggers(false, wlog.InfoLevel)
+			}
+			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
+		}
+	}()
+
 	// Set state to "initializing". Fails if current state is not "idle" (ensures that this instance is not being run
 	// concurrently).
 	if err := s.stateManager.Start(); err != nil {
