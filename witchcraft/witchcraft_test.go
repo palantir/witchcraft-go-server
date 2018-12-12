@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestFatalErrorLogging verifies that the server logs errors before returning.
+// TestFatalErrorLogging verifies that the server logs errors and panics before returning.
 func TestFatalErrorLogging(t *testing.T) {
 	for _, test := range []struct {
 		Name      string
