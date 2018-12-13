@@ -54,7 +54,7 @@ type Resource interface {
 	Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 }
 
-func NewResource(resourceName string, router wrouter.Router) Resource {
+func New(resourceName string, router wrouter.Router) Resource {
 	return &resourceImpl{
 		resourceName: resourceName,
 		router:       router,

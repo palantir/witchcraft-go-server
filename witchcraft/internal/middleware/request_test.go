@@ -174,7 +174,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 			)),
 		)
 
-		authResource := wresource.NewResource("AuthResource", wRouter)
+		authResource := wresource.New("AuthResource", wRouter)
 		err := authResource.Get("userAuth", "/userAuth", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 		}))
