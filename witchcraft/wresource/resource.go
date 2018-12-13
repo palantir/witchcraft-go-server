@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wrouter
+package wresource
 
 import (
 	"net/http"
 
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-server/wrouter"
 )
 
 const (
@@ -32,28 +33,28 @@ const (
 type Resource interface {
 	// Register performs the same operation as the Router.Register, but registers the route using the provided
 	// resourceName as the resource name that will be used as the tag in the recorded metric.
-	Register(endpointName, method, path string, handler http.Handler, params ...RouteParam) error
+	Register(endpointName, method, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Get is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Get(endpointName, path string, handler http.Handler, params ...RouteParam) error
+	Get(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Head is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Head(endpointName, path string, handler http.Handler, params ...RouteParam) error
+	Head(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Post is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Post(endpointName, path string, handler http.Handler, params ...RouteParam) error
+	Post(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Put is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Put(endpointName, path string, handler http.Handler, params ...RouteParam) error
+	Put(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Patch is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Patch(endpointName, path string, handler http.Handler, params ...RouteParam) error
+	Patch(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Delete is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Delete(endpointName, path string, handler http.Handler, params ...RouteParam) error
+	Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 }
 
-func NewResource(resourceName string, router Router) Resource {
+func NewResource(resourceName string, router wrouter.Router) Resource {
 	return &resourceImpl{
 		resourceName: resourceName,
 		router:       router,
@@ -63,10 +64,10 @@ func NewResource(resourceName string, router Router) Resource {
 type resourceImpl struct {
 	// the name of the resource used for metric logging.
 	resourceName string
-	router       Router
+	router       wrouter.Router
 }
 
-func (r *resourceImpl) Register(endpointName, method, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Register(endpointName, method, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	var tags metrics.Tags
 	resourceTag, err := metrics.NewTag(ResourceTagName, r.resourceName)
 	if err != nil {
@@ -76,7 +77,7 @@ func (r *resourceImpl) Register(endpointName, method, path string, handler http.
 
 	methodTag, err := metrics.NewTag(MethodTagName, method)
 	if err != nil {
-		return werror.Wrap(err, "failed to create metric resourceTag")
+		return werror.Wrap(err, "failed to create metric methodTag")
 	}
 	tags = append(tags, methodTag)
 
@@ -93,26 +94,26 @@ func (r *resourceImpl) Register(endpointName, method, path string, handler http.
 	return r.router.Register(method, path, wrappedHandler, params...)
 }
 
-func (r *resourceImpl) Get(endpointName, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Get(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	return r.Register(endpointName, http.MethodGet, path, handler, params...)
 }
 
-func (r *resourceImpl) Head(endpointName, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Head(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	return r.Register(endpointName, http.MethodHead, path, handler, params...)
 }
 
-func (r *resourceImpl) Post(endpointName, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Post(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	return r.Register(endpointName, http.MethodPost, path, handler, params...)
 }
 
-func (r *resourceImpl) Put(endpointName, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Put(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	return r.Register(endpointName, http.MethodPut, path, handler, params...)
 }
 
-func (r *resourceImpl) Patch(endpointName, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Patch(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	return r.Register(endpointName, http.MethodPatch, path, handler, params...)
 }
 
-func (r *resourceImpl) Delete(endpointName, path string, handler http.Handler, params ...RouteParam) error {
+func (r *resourceImpl) Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	return r.Register(endpointName, http.MethodDelete, path, handler, params...)
 }
