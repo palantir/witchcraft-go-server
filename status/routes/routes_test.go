@@ -27,6 +27,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/conjure/sls/spec/health"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +42,7 @@ func TestAddStatusRoutes(t *testing.T) {
 
 	for i, tc := range []struct {
 		endpoint  string
-		routeFunc func(router wrouter.Router, source status.Source) error
+		routeFunc func(resource wresource.Resource, source status.Source) error
 		status    int
 		metadata  testMetadata
 	}{
@@ -66,7 +67,8 @@ func TestAddStatusRoutes(t *testing.T) {
 	} {
 		func() {
 			r := wrouter.New(whttprouter.New(), nil)
-			err := tc.routeFunc(r, statusFunc(func() (int, interface{}) {
+			resource := wresource.New("test", r)
+			err := tc.routeFunc(resource, statusFunc(func() (int, interface{}) {
 				return tc.status, tc.metadata
 			}))
 			require.NoError(t, err, "Case %d", i)
@@ -197,8 +199,9 @@ func TestAddHealthRoute(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			r := wrouter.New(whttprouter.New(), nil)
-			err := AddHealthRoutes(r, healthCheck{value: test.metadata}, refreshable.NewString(refreshable.NewDefaultRefreshable(test.sharedSecret)))
+			r := wrouter.New(whttprouter.New())
+			resource := wresource.New("test", r)
+			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.NewString(refreshable.NewDefaultRefreshable(test.sharedSecret)))
 			require.NoError(t, err)
 
 			server := httptest.NewServer(r)

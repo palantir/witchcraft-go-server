@@ -27,6 +27,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/status/routes"
 	"github.com/palantir/witchcraft-go-server/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -47,8 +48,10 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 		return werror.Wrap(err, "failed to register debugging routes")
 	}
 
+	statusResource := wresource.New("status", mgmtRouterWithContextPath)
+
 	// add health endpoints
-	if err := routes.AddHealthRoutes(mgmtRouterWithContextPath, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
+	if err := routes.AddHealthRoutes(statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
 		return in.(config.Runtime).HealthChecks.SharedSecret
 	}))); err != nil {
 		return werror.Wrap(err, "failed to register health routes")
@@ -58,7 +61,7 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	if s.livenessSource == nil {
 		s.livenessSource = &s.stateManager
 	}
-	if err := routes.AddLivenessRoutes(mgmtRouterWithContextPath, s.livenessSource); err != nil {
+	if err := routes.AddLivenessRoutes(statusResource, s.livenessSource); err != nil {
 		return werror.Wrap(err, "failed to register liveness routes")
 	}
 
@@ -66,7 +69,7 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	if s.readinessSource == nil {
 		s.readinessSource = &s.stateManager
 	}
-	if err := routes.AddReadinessRoutes(mgmtRouterWithContextPath, s.readinessSource); err != nil {
+	if err := routes.AddReadinessRoutes(statusResource, s.readinessSource); err != nil {
 		return werror.Wrap(err, "failed to register readiness routes")
 	}
 	return nil
@@ -117,26 +120,26 @@ func createRouter(routerImpl wrouter.RouterImpl, ctxPath string) wrouter.Router 
 }
 
 func addDebuggingRoutes(router wrouter.Router) error {
-	debugger := router.Subrouter("/debug")
-	if err := debugger.Register("GET", "/pprof/", http.HandlerFunc(netpprof.Index)); err != nil {
+	debugger := wresource.New("debug", router.Subrouter("/debug"))
+	if err := debugger.Get("pprofIndex", "/pprof/", http.HandlerFunc(netpprof.Index)); err != nil {
 		return err
 	}
-	if err := debugger.Register("GET", "/pprof/cmdline", http.HandlerFunc(netpprof.Cmdline)); err != nil {
+	if err := debugger.Get("pprofCmdLine", "/pprof/cmdline", http.HandlerFunc(netpprof.Cmdline)); err != nil {
 		return err
 	}
-	if err := debugger.Register("GET", "/pprof/profile", http.HandlerFunc(netpprof.Profile)); err != nil {
+	if err := debugger.Get("pprofCpuProfile", "/pprof/profile", http.HandlerFunc(netpprof.Profile)); err != nil {
 		return err
 	}
-	if err := debugger.Register("GET", "/pprof/symbol", http.HandlerFunc(netpprof.Symbol)); err != nil {
+	if err := debugger.Get("pprofSymbol", "/pprof/symbol", http.HandlerFunc(netpprof.Symbol)); err != nil {
 		return err
 	}
-	if err := debugger.Register("GET", "/pprof/trace", http.HandlerFunc(netpprof.Trace)); err != nil {
+	if err := debugger.Get("pprofTrace", "/pprof/trace", http.HandlerFunc(netpprof.Trace)); err != nil {
 		return err
 	}
-	return debugger.Register("GET", "/pprof/heap", http.HandlerFunc(heap))
+	return debugger.Get("pprofHeapProfile", "/pprof/heap", http.HandlerFunc(heap))
 }
 
-// heap responds with the pprof-formatted heap dump.
+// heap responds with the pprof-formatted heap profile.
 func heap(w http.ResponseWriter, _ *http.Request) {
 	// Set Content Type assuming WriteHeapProfile will work,
 	// because if it does it starts writing.
@@ -144,7 +147,7 @@ func heap(w http.ResponseWriter, _ *http.Request) {
 	if err := pprof.WriteHeapProfile(w); err != nil {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Could not dump heap: %s\n", err)
+		_, _ = fmt.Fprintf(w, "Could not dump heap: %s\n", err)
 		return
 	}
 }

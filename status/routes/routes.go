@@ -20,19 +20,19 @@ import (
 	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
 )
 
-func AddLivenessRoutes(router wrouter.Router, source status.Source) error {
-	return router.Get(status.LivenessEndpoint, handler(source))
+func AddLivenessRoutes(resource wresource.Resource, source status.Source) error {
+	return resource.Get("liveness", status.LivenessEndpoint, handler(source))
 }
 
-func AddReadinessRoutes(router wrouter.Router, source status.Source) error {
-	return router.Get(status.ReadinessEndpoint, handler(source))
+func AddReadinessRoutes(resource wresource.Resource, source status.Source) error {
+	return resource.Get("readiness", status.ReadinessEndpoint, handler(source))
 }
 
-func AddHealthRoutes(router wrouter.Router, source status.HealthCheckSource, sharedSecret refreshable.String) error {
-	return router.Get(status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret))
+func AddHealthRoutes(resource wresource.Resource, source status.HealthCheckSource, sharedSecret refreshable.String) error {
+	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret))
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response
@@ -42,7 +42,7 @@ func handler(source status.Source) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		respCode, metadata := source.Status()
 
-		// if metadata is nil, create an empty json object instead of returning 'null' which http-remoting rejects.
+		// isf metadata is nil, create an empty json object instead of returning 'null' which http-remoting rejects.
 		if metadata == nil {
 			metadata = struct{}{}
 		}
