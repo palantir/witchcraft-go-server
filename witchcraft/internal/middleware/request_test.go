@@ -31,6 +31,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/witchcraft/internal/middleware"
+	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -173,7 +174,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 			)),
 		)
 
-		authResource := wrouter.NewResource("AuthResource", wRouter)
+		authResource := wresource.NewResource("AuthResource", wRouter)
 		err := authResource.Get("userAuth", "/userAuth", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 		}))
