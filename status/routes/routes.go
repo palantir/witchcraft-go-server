@@ -42,7 +42,7 @@ func handler(source status.Source) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		respCode, metadata := source.Status()
 
-		// isf metadata is nil, create an empty json object instead of returning 'null' which http-remoting rejects.
+		// if metadata is nil, create an empty json object instead of returning 'null' which http-remoting rejects.
 		if metadata == nil {
 			metadata = struct{}{}
 		}
