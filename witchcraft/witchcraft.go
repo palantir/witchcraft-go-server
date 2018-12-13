@@ -385,6 +385,8 @@ const (
 
 // Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
 // Errors are logged via s.svcLogger before being returned.
+// Panics are recovered; in the case of a recovered panic, Start will log and return
+// a non-nil error containing the recovered object (overwriting any existing error).
 func (s *Server) Start() (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
