@@ -390,7 +390,7 @@ const (
 func (s *Server) Start() (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if err, ok := r.(error); ok && rErr == nil {
+			if err, ok := r.(error); ok {
 				rErr = err
 			} else {
 				rErr = werror.Error("panic recovered", werror.UnsafeParam("recovered", r))
