@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"reflect"
 	"runtime/debug"
 	"syscall"
@@ -638,11 +637,6 @@ func (s *Server) initRuntimeConfig(ctx context.Context, ecvKey *encryptedconfigv
 func (s *Server) initStackTraceHandler(ctx context.Context) {
 	if s.disableSigQuitHandler {
 		return
-	}
-
-	// if sigQuitHandlerWriter is nil, use os.Stdout as the default value
-	if s.sigQuitHandlerWriter == nil {
-		s.sigQuitHandlerWriter = os.Stdout
 	}
 
 	stackTraceHandler := func(stackTraceOutput []byte) error {
