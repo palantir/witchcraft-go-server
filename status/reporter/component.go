@@ -15,7 +15,7 @@
 package reporter
 
 import (
-	"github.com/palantir/witchcraft-go-server/conjure/sls/spec/health"
+	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/spec/health"
 )
 
 var _ HealthComponent = &healthComponent{}

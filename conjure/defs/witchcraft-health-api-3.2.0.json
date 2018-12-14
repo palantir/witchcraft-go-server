@@ -6,7 +6,7 @@
     "object" : {
       "typeName" : {
         "name" : "HealthStatus",
-        "package" : "com.palantir.sls.spec.health"
+        "package" : "com.palantir.witchcraft.spec.health"
       },
       "fields" : [ {
         "fieldName" : "checks",
@@ -17,14 +17,14 @@
               "type" : "reference",
               "reference" : {
                 "name" : "CheckType",
-                "package" : "com.palantir.sls.spec.health"
+                "package" : "com.palantir.witchcraft.spec.health"
               }
             },
             "valueType" : {
               "type" : "reference",
               "reference" : {
                 "name" : "HealthCheckResult",
-                "package" : "com.palantir.sls.spec.health"
+                "package" : "com.palantir.witchcraft.spec.health"
               }
             }
           }
@@ -36,7 +36,7 @@
     "alias" : {
       "typeName" : {
         "name" : "CheckType",
-        "package" : "com.palantir.sls.spec.health"
+        "package" : "com.palantir.witchcraft.spec.health"
       },
       "alias" : {
         "type" : "primitive",
@@ -48,7 +48,7 @@
     "object" : {
       "typeName" : {
         "name" : "HealthCheckResult",
-        "package" : "com.palantir.sls.spec.health"
+        "package" : "com.palantir.witchcraft.spec.health"
       },
       "fields" : [ {
         "fieldName" : "type",
@@ -56,7 +56,7 @@
           "type" : "reference",
           "reference" : {
             "name" : "CheckType",
-            "package" : "com.palantir.sls.spec.health"
+            "package" : "com.palantir.witchcraft.spec.health"
           }
         },
         "docs" : "A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).\n"
@@ -66,7 +66,7 @@
           "type" : "reference",
           "reference" : {
             "name" : "HealthState",
-            "package" : "com.palantir.sls.spec.health"
+            "package" : "com.palantir.witchcraft.spec.health"
           }
         },
         "docs" : "Health state of the check.\n"
@@ -106,7 +106,7 @@
     "enum" : {
       "typeName" : {
         "name" : "HealthState",
-        "package" : "com.palantir.sls.spec.health"
+        "package" : "com.palantir.witchcraft.spec.health"
       },
       "values" : [ {
         "value" : "HEALTHY",

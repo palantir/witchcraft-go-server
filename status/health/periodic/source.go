@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	conjurehealth "github.com/palantir/witchcraft-go-server/conjure/sls/spec/health"
+	conjurehealth "github.com/palantir/witchcraft-go-server/conjure/witchcraft/spec/health"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/status/health"
 )
