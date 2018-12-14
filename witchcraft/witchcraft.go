@@ -21,8 +21,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"reflect"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -382,7 +382,37 @@ const (
 	runtimeConfigPath = "var/conf/runtime.yml"
 )
 
-func (s *Server) Start() error {
+// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
+// Errors are logged via s.svcLogger before being returned.
+// Panics are recovered; in the case of a recovered panic, Start will log and return
+// a non-nil error containing the recovered object (overwriting any existing error).
+func (s *Server) Start() (rErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				rErr = err
+			} else {
+				rErr = werror.Error("panic recovered", werror.UnsafeParam("recovered", r))
+			}
+
+			if s.svcLogger == nil {
+				// If we have not yet initialized our loggers, use default configuration as best-effort.
+				s.initLoggers(false, wlog.InfoLevel)
+			}
+
+			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
+		}
+	}()
+	defer func() {
+		if rErr != nil {
+			if s.svcLogger == nil {
+				// If we have not yet initialized our loggers, use default configuration as best-effort.
+				s.initLoggers(false, wlog.InfoLevel)
+			}
+			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
+		}
+	}()
+
 	// Set state to "initializing". Fails if current state is not "idle" (ensures that this instance is not being run
 	// concurrently).
 	if err := s.stateManager.Start(); err != nil {
@@ -607,11 +637,6 @@ func (s *Server) initRuntimeConfig(ctx context.Context, ecvKey *encryptedconfigv
 func (s *Server) initStackTraceHandler(ctx context.Context) {
 	if s.disableSigQuitHandler {
 		return
-	}
-
-	// if sigQuitHandlerWriter is nil, use os.Stdout as the default value
-	if s.sigQuitHandlerWriter == nil {
-		s.sigQuitHandlerWriter = os.Stdout
 	}
 
 	stackTraceHandler := func(stackTraceOutput []byte) error {

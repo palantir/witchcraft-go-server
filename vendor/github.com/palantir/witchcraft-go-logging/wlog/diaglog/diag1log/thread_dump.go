@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/palantir/conjure-go/conjure/types/conjuretype"
 	"github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging"
-	"github.com/palantir/witchcraft-go-logging/internal/conjuretype"
 	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 )
 

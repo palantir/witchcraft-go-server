@@ -4,7 +4,8 @@ package logging
 
 import (
 	"encoding/json"
-	"github.com/palantir/witchcraft-go-logging/internal/conjuretype"
+
+	"github.com/palantir/conjure-go/conjure/types/conjuretype"
 )
 
 // Wraps a log entry with entity information.
@@ -18,7 +19,6 @@ type WrappedLogV1 struct {
 }
 
 // Definition of the service.1 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type ServiceLogV1 struct {
 	// "service.1"
 	Type string `json:"type" yaml:"type,omitempty" conjure-docs:"\"service.1\""`
@@ -117,7 +117,6 @@ func (o *ServiceLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // Definition of the request.2 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type RequestLogV2 struct {
 	Type string               `json:"type" yaml:"type,omitempty"`
 	Time conjuretype.DateTime `json:"time" yaml:"time,omitempty"`
@@ -204,7 +203,6 @@ func (o *RequestLogV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // Definition of the request.1 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type RequestLogV1 struct {
 	Type string               `json:"type" yaml:"type,omitempty"`
 	Time conjuretype.DateTime `json:"time" yaml:"time,omitempty"`
@@ -333,7 +331,6 @@ func (o *RequestLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // Definition of the trace.1 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type TraceLogV1 struct {
 	Type         string                 `json:"type" yaml:"type,omitempty"`
 	Time         conjuretype.DateTime   `json:"time" yaml:"time,omitempty"`
@@ -714,7 +711,6 @@ func (o *MetricLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // Definition of the beacon.1 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type BeaconLogV1 struct {
 	Type string               `json:"type" yaml:"type,omitempty"`
 	Time conjuretype.DateTime `json:"time" yaml:"time,omitempty"`
@@ -793,7 +789,6 @@ func (o *BeaconLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // Definition of the audit.2 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type AuditLogV2 struct {
 	// "audit.2"
 	Type string               `json:"type" yaml:"type,omitempty" conjure-docs:"\"audit.2\""`
@@ -888,7 +883,6 @@ func (o *AuditLogV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // Definition of the diagnostic.1 format.
-// For more information, refer to the [SLS logging specification](https://github.palantir.build/deployability/sls-spec/blob/develop/docs/logging.md).
 type DiagnosticLogV1 struct {
 	// "diagnostic.1"
 	Type string               `json:"type" yaml:"type,omitempty" conjure-docs:"\"diagnostic.1\""`

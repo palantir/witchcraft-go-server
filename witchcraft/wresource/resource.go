@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package witchcraft
+package wresource
 
 import (
 	"net/http"
@@ -54,7 +54,7 @@ type Resource interface {
 	Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 }
 
-func NewResource(resourceName string, router wrouter.Router) Resource {
+func New(resourceName string, router wrouter.Router) Resource {
 	return &resourceImpl{
 		resourceName: resourceName,
 		router:       router,
@@ -77,7 +77,7 @@ func (r *resourceImpl) Register(endpointName, method, path string, handler http.
 
 	methodTag, err := metrics.NewTag(MethodTagName, method)
 	if err != nil {
-		return werror.Wrap(err, "failed to create metric resourceTag")
+		return werror.Wrap(err, "failed to create metric methodTag")
 	}
 	tags = append(tags, methodTag)
 
