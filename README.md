@@ -175,7 +175,7 @@ the `WithDisableGoRuntimeMetrics` server method.
 ### SIGQUIT handling
 `witchcraft-server` sets up a SIGQUIT handler such that, if the program is terminated using a SIGQUIT signal
 (`kill -3`), a goroutine dump is written as a `diagnostic.1` log. This behavior can be disabled using
-`server.WithDisableSigQuitHandler`.  If `server.WithSigQuitHandlerWriter` is used, the stacks will be written in
+`server.WithDisableSigQuitHandler`.  If `server.WithSigQuitHandlerWriter` is used, the stacks will also be written in
 their unparsed form to the provided writer.
 
 Example server initialization
