@@ -18,5 +18,5 @@ exclude:
   - vendor
   paths:
   - godel
-  - conjure/sls
+  - conjure
   - witchcraft/internal/negroni

@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/conjure/sls/spec/health"
+	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/spec/health"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"

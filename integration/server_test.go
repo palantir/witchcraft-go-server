@@ -31,7 +31,7 @@ import (
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/tlsconfig"
 	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/conjure/sls/spec/health"
+	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/spec/health"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"
