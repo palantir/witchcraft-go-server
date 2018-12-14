@@ -174,9 +174,9 @@ the `WithDisableGoRuntimeMetrics` server method.
 
 ### SIGQUIT handling
 `witchcraft-server` sets up a SIGQUIT handler such that, if the program is terminated using a SIGQUIT signal
-(`kill -3`), a goroutine dump is written to STDOUT and a `diagnostic.1` thread dump entry is logged. The `io.Writer` to
-which the goroutine dump is written on SIGQUIT can be configured using `server.WithSigQuitHandlerWriter`.
-This behavior can be disabled using `server.WithDisableSigQuitHandler`.
+(`kill -3`), a goroutine dump is written as a `diagnostic.1` log. This behavior can be disabled using
+`server.WithDisableSigQuitHandler`.  If `server.WithSigQuitHandlerWriter` is used, the stacks will be written in
+their unparsed form to the provided writer.
 
 Example server initialization
 -----------------------------
