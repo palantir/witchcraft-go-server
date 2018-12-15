@@ -32,6 +32,10 @@
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
 
+[[constraint]]
+  name = "github.com/palantir/witchcraft-go-logging"
+  branch = "develop"
+
 [prune]
   go-tests = true
   unused-packages = true
