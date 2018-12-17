@@ -17,7 +17,7 @@ package marshalers
 import (
 	"fmt"
 
-	"github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

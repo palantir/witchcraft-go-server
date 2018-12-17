@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"

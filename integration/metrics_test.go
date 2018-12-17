@@ -27,7 +27,7 @@ import (
 
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/metrics"
-	"github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"
