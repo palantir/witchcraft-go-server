@@ -17,7 +17,6 @@ package witchcraft
 import (
 	"context"
 	"crypto/tls"
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging"
 	"io"
 	"io/ioutil"
 	"net"
@@ -30,6 +29,7 @@ import (
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"

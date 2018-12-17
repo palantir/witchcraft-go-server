@@ -34,7 +34,7 @@
 
 [[constraint]]
   name = "github.com/palantir/witchcraft-go-logging"
-  branch = "develop"
+  version = "v1.1.0"
 
 [prune]
   go-tests = true

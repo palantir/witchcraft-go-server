@@ -101,6 +101,30 @@
   revision = "adb1d93c5741a300abbcce7883ad61f825a4f1a7"
 
 [[projects]]
+  digest = "1:a0742846bd08209d412bacd2ff448f09470ca3fe8ad42f2e125b8854ca9ee8ab"
+  name = "github.com/palantir/witchcraft-go-logging"
+  packages = [
+    "conjure/witchcraft/spec/logging",
+    "internal/gopath",
+    "wlog",
+    "wlog-zap",
+    "wlog-zap/internal",
+    "wlog-zap/internal/marshalers",
+    "wlog/auditlog/audit2log",
+    "wlog/diaglog/diag1log",
+    "wlog/evtlog/evt2log",
+    "wlog/extractor",
+    "wlog/internal",
+    "wlog/metriclog/metric1log",
+    "wlog/reqlog/req2log",
+    "wlog/svclog/svc1log",
+    "wlog/trclog/trc1log",
+  ]
+  pruneopts = "UT"
+  revision = "165102cb2c1ff795c19969f03aa7a57b2a035a43"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "develop"
   digest = "1:07b16b5c4a9bbdcf39c2a35b0e87a22debddcd2445c6167e6313af945fef7822"
   name = "github.com/palantir/witchcraft-go-params"
@@ -242,7 +266,7 @@
     "github.com/palantir/pkg/signals",
     "github.com/palantir/pkg/tlsconfig",
     "github.com/palantir/witchcraft-go-error",
-    "github.com/palantir/witchcraft-go-logging/conjure/sls/spec/logging",
+    "github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging",
     "github.com/palantir/witchcraft-go-logging/wlog",
     "github.com/palantir/witchcraft-go-logging/wlog-zap",
     "github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log",
