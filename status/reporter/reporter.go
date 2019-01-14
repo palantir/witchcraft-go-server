@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/spec/health"
+	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
