@@ -6,52 +6,6 @@ import (
 	"encoding/json"
 )
 
-type HealthStatus struct {
-	Checks map[CheckType]HealthCheckResult `json:"checks" yaml:"checks,omitempty"`
-}
-
-func (o HealthStatus) MarshalJSON() ([]byte, error) {
-	if o.Checks == nil {
-		o.Checks = make(map[CheckType]HealthCheckResult, 0)
-	}
-	type HealthStatusAlias HealthStatus
-	return json.Marshal(HealthStatusAlias(o))
-}
-
-func (o *HealthStatus) UnmarshalJSON(data []byte) error {
-	type HealthStatusAlias HealthStatus
-	var rawHealthStatus HealthStatusAlias
-	if err := json.Unmarshal(data, &rawHealthStatus); err != nil {
-		return err
-	}
-	if rawHealthStatus.Checks == nil {
-		rawHealthStatus.Checks = make(map[CheckType]HealthCheckResult, 0)
-	}
-	*o = HealthStatus(rawHealthStatus)
-	return nil
-}
-
-func (o HealthStatus) MarshalYAML() (interface{}, error) {
-	if o.Checks == nil {
-		o.Checks = make(map[CheckType]HealthCheckResult, 0)
-	}
-	type HealthStatusAlias HealthStatus
-	return HealthStatusAlias(o), nil
-}
-
-func (o *HealthStatus) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type HealthStatusAlias HealthStatus
-	var rawHealthStatus HealthStatusAlias
-	if err := unmarshal(&rawHealthStatus); err != nil {
-		return err
-	}
-	if rawHealthStatus.Checks == nil {
-		rawHealthStatus.Checks = make(map[CheckType]HealthCheckResult, 0)
-	}
-	*o = HealthStatus(rawHealthStatus)
-	return nil
-}
-
 // Metadata describing the status of a service.
 type HealthCheckResult struct {
 	// A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).
@@ -103,5 +57,51 @@ func (o *HealthCheckResult) UnmarshalYAML(unmarshal func(interface{}) error) err
 		rawHealthCheckResult.Params = make(map[string]interface{}, 0)
 	}
 	*o = HealthCheckResult(rawHealthCheckResult)
+	return nil
+}
+
+type HealthStatus struct {
+	Checks map[CheckType]HealthCheckResult `json:"checks" yaml:"checks,omitempty"`
+}
+
+func (o HealthStatus) MarshalJSON() ([]byte, error) {
+	if o.Checks == nil {
+		o.Checks = make(map[CheckType]HealthCheckResult, 0)
+	}
+	type HealthStatusAlias HealthStatus
+	return json.Marshal(HealthStatusAlias(o))
+}
+
+func (o *HealthStatus) UnmarshalJSON(data []byte) error {
+	type HealthStatusAlias HealthStatus
+	var rawHealthStatus HealthStatusAlias
+	if err := json.Unmarshal(data, &rawHealthStatus); err != nil {
+		return err
+	}
+	if rawHealthStatus.Checks == nil {
+		rawHealthStatus.Checks = make(map[CheckType]HealthCheckResult, 0)
+	}
+	*o = HealthStatus(rawHealthStatus)
+	return nil
+}
+
+func (o HealthStatus) MarshalYAML() (interface{}, error) {
+	if o.Checks == nil {
+		o.Checks = make(map[CheckType]HealthCheckResult, 0)
+	}
+	type HealthStatusAlias HealthStatus
+	return HealthStatusAlias(o), nil
+}
+
+func (o *HealthStatus) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type HealthStatusAlias HealthStatus
+	var rawHealthStatus HealthStatusAlias
+	if err := unmarshal(&rawHealthStatus); err != nil {
+		return err
+	}
+	if rawHealthStatus.Checks == nil {
+		rawHealthStatus.Checks = make(map[CheckType]HealthCheckResult, 0)
+	}
+	*o = HealthStatus(rawHealthStatus)
 	return nil
 }

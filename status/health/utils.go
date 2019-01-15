@@ -15,7 +15,7 @@
 package health
 
 import (
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/spec/health"
+	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 )
 
 // UnhealthyHealthCheckResult returns an unhealthy health check result with type checkType and message message.
