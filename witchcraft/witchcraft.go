@@ -181,6 +181,11 @@ type InitInfo struct {
 	// refreshable is determined by the struct provided to the "WithRuntimeConfigType" function (the default is
 	// config.Runtime).
 	RuntimeConfig refreshable.Refreshable
+
+	// Server is a reference to the underlying Witchcraft server object. When the InitFunc is executed, the server
+	// is not yet started. This will most often be useful if launching a goroutine which requires access to the server
+	// reference later, e.g. to shutdown the server in some error condition.
+	Server *Server
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -508,6 +513,7 @@ func (s *Server) Start() (rErr error) {
 				},
 				InstallConfig: fullInstallCfg,
 				RuntimeConfig: refreshableRuntimeCfg,
+				Server:        s,
 			},
 		)
 		if err != nil {
