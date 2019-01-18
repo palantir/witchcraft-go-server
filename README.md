@@ -1,5 +1,7 @@
 witchcraft-go-server
 ====================
+[![](https://godoc.org/github.com/palantir/witchcraft-go-server?status.svg)](http://godoc.org/github.com/palantir/witchcraft-go-server)
+
 `withcraft-server-go` is a Go implementation of a Witchcraft server. It provides a way to quickly and easily create
 servers that work in the Witchcraft ecosystem.
 
