@@ -181,6 +181,11 @@ type InitInfo struct {
 	// refreshable is determined by the struct provided to the "WithRuntimeConfigType" function (the default is
 	// config.Runtime).
 	RuntimeConfig refreshable.Refreshable
+
+	// ShutdownServer gracefully closes the server, waiting for any in-flight requests to finish (or the context to be cancelled).
+	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
+	// requires access to shutdown the server in some error condition.
+	ShutdownServer func(context.Context) error
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -506,8 +511,9 @@ func (s *Server) Start() (rErr error) {
 					Router: newMultiRouterImpl(router, mgmtRouter),
 					Server: s,
 				},
-				InstallConfig: fullInstallCfg,
-				RuntimeConfig: refreshableRuntimeCfg,
+				InstallConfig:  fullInstallCfg,
+				RuntimeConfig:  refreshableRuntimeCfg,
+				ShutdownServer: s.Shutdown,
 			},
 		)
 		if err != nil {
