@@ -182,10 +182,10 @@ type InitInfo struct {
 	// config.Runtime).
 	RuntimeConfig refreshable.Refreshable
 
-	// Server is a reference to the underlying Witchcraft server object. When the InitFunc is executed, the server
-	// is not yet started. This will most often be useful if launching a goroutine which requires access to the server
-	// reference later, e.g. to shutdown the server in some error condition.
-	Server *Server
+	// ShutdownServer gracefully closes the server, waiting for any in-flight requests to finish (or the context to be cancelled).
+	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
+	// requires access to shutdown the server in some error condition.
+	ShutdownServer func(context.Context) error
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -511,9 +511,9 @@ func (s *Server) Start() (rErr error) {
 					Router: newMultiRouterImpl(router, mgmtRouter),
 					Server: s,
 				},
-				InstallConfig: fullInstallCfg,
-				RuntimeConfig: refreshableRuntimeCfg,
-				Server:        s,
+				InstallConfig:  fullInstallCfg,
+				RuntimeConfig:  refreshableRuntimeCfg,
+				ShutdownServer: s.Shutdown,
 			},
 		)
 		if err != nil {
