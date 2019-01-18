@@ -7,6 +7,112 @@ import (
 	"fmt"
 )
 
+// Union type containing log types that are logged to event.log.
+type UnionEventLog struct {
+	typ        string
+	eventLog   *EventLogV1
+	eventLogV2 *EventLogV2
+	beaconLog  *BeaconLogV1
+}
+
+type unionEventLogDeserializer struct {
+	Type       string       `json:"type" yaml:"type"`
+	EventLog   *EventLogV1  `json:"eventLog" yaml:"eventLog"`
+	EventLogV2 *EventLogV2  `json:"eventLogV2" yaml:"eventLogV2"`
+	BeaconLog  *BeaconLogV1 `json:"beaconLog" yaml:"beaconLog"`
+}
+
+func (u *unionEventLogDeserializer) toStruct() UnionEventLog {
+	return UnionEventLog{typ: u.Type, eventLog: u.EventLog, eventLogV2: u.EventLogV2, beaconLog: u.BeaconLog}
+}
+
+func (u *UnionEventLog) toSerializer() (interface{}, error) {
+	switch u.typ {
+	default:
+		return nil, fmt.Errorf("unknown type %s", u.typ)
+	case "eventLog":
+		return struct {
+			Type     string     `json:"type" yaml:"type"`
+			EventLog EventLogV1 `json:"eventLog" yaml:"eventLog"`
+		}{Type: "eventLog", EventLog: *u.eventLog}, nil
+	case "eventLogV2":
+		return struct {
+			Type       string     `json:"type" yaml:"type"`
+			EventLogV2 EventLogV2 `json:"eventLogV2" yaml:"eventLogV2"`
+		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
+	case "beaconLog":
+		return struct {
+			Type      string      `json:"type" yaml:"type"`
+			BeaconLog BeaconLogV1 `json:"beaconLog" yaml:"beaconLog"`
+		}{Type: "beaconLog", BeaconLog: *u.beaconLog}, nil
+	}
+}
+
+func (u UnionEventLog) MarshalJSON() ([]byte, error) {
+	ser, err := u.toSerializer()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(ser)
+}
+
+func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
+	var deser unionEventLogDeserializer
+	if err := json.Unmarshal(data, &deser); err != nil {
+		return err
+	}
+	*u = deser.toStruct()
+	return nil
+}
+
+func (u UnionEventLog) MarshalYAML() (interface{}, error) {
+	return u.toSerializer()
+}
+
+func (u *UnionEventLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var deser unionEventLogDeserializer
+	if err := unmarshal(&deser); err != nil {
+		return err
+	}
+	*u = deser.toStruct()
+	return nil
+}
+
+func (u *UnionEventLog) Accept(v UnionEventLogVisitor) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknown(u.typ)
+	case "eventLog":
+		return v.VisitEventLog(*u.eventLog)
+	case "eventLogV2":
+		return v.VisitEventLogV2(*u.eventLogV2)
+	case "beaconLog":
+		return v.VisitBeaconLog(*u.beaconLog)
+	}
+}
+
+type UnionEventLogVisitor interface {
+	VisitEventLog(v EventLogV1) error
+	VisitEventLogV2(v EventLogV2) error
+	VisitBeaconLog(v BeaconLogV1) error
+	VisitUnknown(typeName string) error
+}
+
+func NewUnionEventLogFromEventLog(v EventLogV1) UnionEventLog {
+	return UnionEventLog{typ: "eventLog", eventLog: &v}
+}
+
+func NewUnionEventLogFromEventLogV2(v EventLogV2) UnionEventLog {
+	return UnionEventLog{typ: "eventLogV2", eventLogV2: &v}
+}
+
+func NewUnionEventLogFromBeaconLog(v BeaconLogV1) UnionEventLog {
+	return UnionEventLog{typ: "beaconLog", beaconLog: &v}
+}
+
 type WrappedLogV1Payload struct {
 	typ             string
 	serviceLogV1    *ServiceLogV1
@@ -168,97 +274,6 @@ func NewWrappedLogV1PayloadFromDiagnosticLogV1(v DiagnosticLogV1) WrappedLogV1Pa
 	return WrappedLogV1Payload{typ: "diagnosticLogV1", diagnosticLogV1: &v}
 }
 
-type RequestLog struct {
-	typ string
-	v1  *RequestLogV1
-	v2  *RequestLogV2
-}
-
-type requestLogDeserializer struct {
-	Type string        `json:"type" yaml:"type"`
-	V1   *RequestLogV1 `json:"v1" yaml:"v1"`
-	V2   *RequestLogV2 `json:"v2" yaml:"v2"`
-}
-
-func (u *requestLogDeserializer) toStruct() RequestLog {
-	return RequestLog{typ: u.Type, v1: u.V1, v2: u.V2}
-}
-
-func (u *RequestLog) toSerializer() (interface{}, error) {
-	switch u.typ {
-	default:
-		return nil, fmt.Errorf("unknown type %s", u.typ)
-	case "v1":
-		return struct {
-			Type string       `json:"type" yaml:"type"`
-			V1   RequestLogV1 `json:"v1" yaml:"v1"`
-		}{Type: "v1", V1: *u.v1}, nil
-	case "v2":
-		return struct {
-			Type string       `json:"type" yaml:"type"`
-			V2   RequestLogV2 `json:"v2" yaml:"v2"`
-		}{Type: "v2", V2: *u.v2}, nil
-	}
-}
-
-func (u RequestLog) MarshalJSON() ([]byte, error) {
-	ser, err := u.toSerializer()
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(ser)
-}
-
-func (u *RequestLog) UnmarshalJSON(data []byte) error {
-	var deser requestLogDeserializer
-	if err := json.Unmarshal(data, &deser); err != nil {
-		return err
-	}
-	*u = deser.toStruct()
-	return nil
-}
-
-func (u RequestLog) MarshalYAML() (interface{}, error) {
-	return u.toSerializer()
-}
-
-func (u *RequestLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var deser requestLogDeserializer
-	if err := unmarshal(&deser); err != nil {
-		return err
-	}
-	*u = deser.toStruct()
-	return nil
-}
-
-func (u *RequestLog) Accept(v RequestLogVisitor) error {
-	switch u.typ {
-	default:
-		if u.typ == "" {
-			return fmt.Errorf("invalid value in union type")
-		}
-		return v.VisitUnknown(u.typ)
-	case "v1":
-		return v.VisitV1(*u.v1)
-	case "v2":
-		return v.VisitV2(*u.v2)
-	}
-}
-
-type RequestLogVisitor interface {
-	VisitV1(v RequestLogV1) error
-	VisitV2(v RequestLogV2) error
-	VisitUnknown(typeName string) error
-}
-
-func NewRequestLogFromV1(v RequestLogV1) RequestLog {
-	return RequestLog{typ: "v1", v1: &v}
-}
-
-func NewRequestLogFromV2(v RequestLogV2) RequestLog {
-	return RequestLog{typ: "v2", v2: &v}
-}
-
 type Diagnostic struct {
 	typ        string
 	generic    *GenericDiagnostic
@@ -350,48 +365,40 @@ func NewDiagnosticFromThreadDump(v ThreadDumpV1) Diagnostic {
 	return Diagnostic{typ: "threadDump", threadDump: &v}
 }
 
-// Union type containing log types that are logged to event.log.
-type UnionEventLog struct {
-	typ        string
-	eventLog   *EventLogV1
-	eventLogV2 *EventLogV2
-	beaconLog  *BeaconLogV1
+type RequestLog struct {
+	typ string
+	v1  *RequestLogV1
+	v2  *RequestLogV2
 }
 
-type unionEventLogDeserializer struct {
-	Type       string       `json:"type" yaml:"type"`
-	EventLog   *EventLogV1  `json:"eventLog" yaml:"eventLog"`
-	EventLogV2 *EventLogV2  `json:"eventLogV2" yaml:"eventLogV2"`
-	BeaconLog  *BeaconLogV1 `json:"beaconLog" yaml:"beaconLog"`
+type requestLogDeserializer struct {
+	Type string        `json:"type" yaml:"type"`
+	V1   *RequestLogV1 `json:"v1" yaml:"v1"`
+	V2   *RequestLogV2 `json:"v2" yaml:"v2"`
 }
 
-func (u *unionEventLogDeserializer) toStruct() UnionEventLog {
-	return UnionEventLog{typ: u.Type, eventLog: u.EventLog, eventLogV2: u.EventLogV2, beaconLog: u.BeaconLog}
+func (u *requestLogDeserializer) toStruct() RequestLog {
+	return RequestLog{typ: u.Type, v1: u.V1, v2: u.V2}
 }
 
-func (u *UnionEventLog) toSerializer() (interface{}, error) {
+func (u *RequestLog) toSerializer() (interface{}, error) {
 	switch u.typ {
 	default:
 		return nil, fmt.Errorf("unknown type %s", u.typ)
-	case "eventLog":
+	case "v1":
 		return struct {
-			Type     string     `json:"type" yaml:"type"`
-			EventLog EventLogV1 `json:"eventLog" yaml:"eventLog"`
-		}{Type: "eventLog", EventLog: *u.eventLog}, nil
-	case "eventLogV2":
+			Type string       `json:"type" yaml:"type"`
+			V1   RequestLogV1 `json:"v1" yaml:"v1"`
+		}{Type: "v1", V1: *u.v1}, nil
+	case "v2":
 		return struct {
-			Type       string     `json:"type" yaml:"type"`
-			EventLogV2 EventLogV2 `json:"eventLogV2" yaml:"eventLogV2"`
-		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
-	case "beaconLog":
-		return struct {
-			Type      string      `json:"type" yaml:"type"`
-			BeaconLog BeaconLogV1 `json:"beaconLog" yaml:"beaconLog"`
-		}{Type: "beaconLog", BeaconLog: *u.beaconLog}, nil
+			Type string       `json:"type" yaml:"type"`
+			V2   RequestLogV2 `json:"v2" yaml:"v2"`
+		}{Type: "v2", V2: *u.v2}, nil
 	}
 }
 
-func (u UnionEventLog) MarshalJSON() ([]byte, error) {
+func (u RequestLog) MarshalJSON() ([]byte, error) {
 	ser, err := u.toSerializer()
 	if err != nil {
 		return nil, err
@@ -399,8 +406,8 @@ func (u UnionEventLog) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ser)
 }
 
-func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
-	var deser unionEventLogDeserializer
+func (u *RequestLog) UnmarshalJSON(data []byte) error {
+	var deser requestLogDeserializer
 	if err := json.Unmarshal(data, &deser); err != nil {
 		return err
 	}
@@ -408,12 +415,12 @@ func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (u UnionEventLog) MarshalYAML() (interface{}, error) {
+func (u RequestLog) MarshalYAML() (interface{}, error) {
 	return u.toSerializer()
 }
 
-func (u *UnionEventLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var deser unionEventLogDeserializer
+func (u *RequestLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var deser requestLogDeserializer
 	if err := unmarshal(&deser); err != nil {
 		return err
 	}
@@ -421,37 +428,30 @@ func (u *UnionEventLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func (u *UnionEventLog) Accept(v UnionEventLogVisitor) error {
+func (u *RequestLog) Accept(v RequestLogVisitor) error {
 	switch u.typ {
 	default:
 		if u.typ == "" {
 			return fmt.Errorf("invalid value in union type")
 		}
 		return v.VisitUnknown(u.typ)
-	case "eventLog":
-		return v.VisitEventLog(*u.eventLog)
-	case "eventLogV2":
-		return v.VisitEventLogV2(*u.eventLogV2)
-	case "beaconLog":
-		return v.VisitBeaconLog(*u.beaconLog)
+	case "v1":
+		return v.VisitV1(*u.v1)
+	case "v2":
+		return v.VisitV2(*u.v2)
 	}
 }
 
-type UnionEventLogVisitor interface {
-	VisitEventLog(v EventLogV1) error
-	VisitEventLogV2(v EventLogV2) error
-	VisitBeaconLog(v BeaconLogV1) error
+type RequestLogVisitor interface {
+	VisitV1(v RequestLogV1) error
+	VisitV2(v RequestLogV2) error
 	VisitUnknown(typeName string) error
 }
 
-func NewUnionEventLogFromEventLog(v EventLogV1) UnionEventLog {
-	return UnionEventLog{typ: "eventLog", eventLog: &v}
+func NewRequestLogFromV1(v RequestLogV1) RequestLog {
+	return RequestLog{typ: "v1", v1: &v}
 }
 
-func NewUnionEventLogFromEventLogV2(v EventLogV2) UnionEventLog {
-	return UnionEventLog{typ: "eventLogV2", eventLogV2: &v}
-}
-
-func NewUnionEventLogFromBeaconLog(v BeaconLogV1) UnionEventLog {
-	return UnionEventLog{typ: "beaconLog", beaconLog: &v}
+func NewRequestLogFromV2(v RequestLogV2) RequestLog {
+	return RequestLog{typ: "v2", v2: &v}
 }

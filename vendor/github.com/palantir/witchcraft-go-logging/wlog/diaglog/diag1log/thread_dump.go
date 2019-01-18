@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/palantir/conjure-go/conjure/types/conjuretype"
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/spec/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 )
 
