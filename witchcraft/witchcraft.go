@@ -516,7 +516,6 @@ func (s *Server) Start() (rErr error) {
 		if err != nil {
 			return err
 		}
-		
 	}
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
