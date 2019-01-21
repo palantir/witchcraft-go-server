@@ -430,14 +430,9 @@ func (s *Server) Start() (rErr error) {
 	if s.ecvKeyProvider == nil {
 		s.ecvKeyProvider = ECVKeyFromFile(ecvKeyPath)
 	}
-	// load ECV key
-	ecvKey, err := s.ecvKeyProvider.Load()
-	if err != nil {
-		return werror.Wrap(err, "failed to load encrypted-config-value key")
-	}
 
 	// load install configuration
-	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig(ecvKey)
+	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig()
 	if err != nil {
 		return err
 	}
@@ -459,7 +454,7 @@ func (s *Server) Start() (rErr error) {
 	ctx = audit2log.WithLogger(ctx, s.auditLogger)
 
 	// load runtime configuration
-	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, err := s.initRuntimeConfig(ctx, ecvKey)
+	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, err := s.initRuntimeConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -562,7 +557,7 @@ type configurableRouterImpl struct {
 	*Server
 }
 
-func (s *Server) initInstallConfig(ecvKey *encryptedconfigvalue.KeyWithType) (config.Install, interface{}, error) {
+func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	if s.installConfigProvider == nil {
 		// if install config provider is not specified, use a file-based one
 		s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
@@ -574,8 +569,9 @@ func (s *Server) initInstallConfig(ecvKey *encryptedconfigvalue.KeyWithType) (co
 	if err != nil {
 		return config.Install{}, nil, werror.Wrap(err, "Failed to load install configuration bytes")
 	}
-	if ecvKey != nil {
-		cfgBytes = encryptedconfigvalue.DecryptAllEncryptedValueStringVars(cfgBytes, *ecvKey)
+	cfgBytes, err = s.decryptConfigBytes(cfgBytes)
+	if err != nil {
+		return config.Install{}, nil, werror.Wrap(err, "Failed to decrypt install configuration bytes")
 	}
 
 	var baseInstallCfg config.Install
@@ -594,7 +590,7 @@ func (s *Server) initInstallConfig(ecvKey *encryptedconfigvalue.KeyWithType) (co
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
 }
 
-func (s *Server) initRuntimeConfig(ctx context.Context, ecvKey *encryptedconfigvalue.KeyWithType) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, rErr error) {
+func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
@@ -607,32 +603,28 @@ func (s *Server) initRuntimeConfig(ctx context.Context, ecvKey *encryptedconfigv
 		return nil, nil, err
 	}
 
-	cfgBytesFn := func(cfgBytesVal interface{}) []byte {
-		cfgBytes := cfgBytesVal.([]byte)
-		// if no key is provided, return raw bytes
-		if ecvKey == nil {
-			return cfgBytes
+	runtimeConfigProvider = runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
+		cfgBytes, err := s.decryptConfigBytes(cfgBytesVal.([]byte))
+		if err != nil {
+			s.svcLogger.Warn("Failed to decrypt encrypted runtime configuration", svc1log.Stacktrace(err))
 		}
-		// decrypt all
-		return encryptedconfigvalue.DecryptAllEncryptedValueStringVars(cfgBytes, *ecvKey)
-	}
+		return cfgBytes
+	})
 
 	return newRefreshableBaseRuntimeConfig(runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
-			cfgBytes := cfgBytesFn(cfgBytesVal)
 			var runtimeCfg config.Runtime
-			if err := yaml.Unmarshal(cfgBytes, &runtimeCfg); err != nil {
+			if err := yaml.Unmarshal(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
 				s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
 			}
 			return runtimeCfg
 		})),
 		runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
-			cfgBytes := cfgBytesFn(cfgBytesVal)
 			runtimeConfigStruct := s.runtimeConfigStruct
 			if runtimeConfigStruct == nil {
 				runtimeConfigStruct = config.Runtime{}
 			}
 			runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-			if err := yaml.Unmarshal(cfgBytes, *&runtimeCfg); err != nil {
+			if err := yaml.Unmarshal(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
 				s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
 			}
 			return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
@@ -686,6 +678,24 @@ func (s *Server) Close() error {
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
 	})
+}
+
+func (s *Server) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
+	if !encryptedconfigvalue.ContainsEncryptedConfigValueStringVars(cfgBytes) {
+		// Nothing to do
+		return cfgBytes, nil
+	}
+	if s.ecvKeyProvider == nil {
+		return cfgBytes, werror.Error("No encryption key provider configured but config contains encrypted values")
+	}
+	ecvKey, err := s.ecvKeyProvider.Load()
+	if err != nil {
+		return cfgBytes, err
+	}
+	if ecvKey == nil {
+		return cfgBytes, werror.Error("No encryption key configured but config contains encrypted values")
+	}
+	return encryptedconfigvalue.DecryptAllEncryptedValueStringVars(cfgBytes, *ecvKey), nil
 }
 
 func stopServer(s *Server, stopper func(s *http.Server) error) error {
