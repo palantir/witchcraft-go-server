@@ -21,7 +21,11 @@ configuration (for example, in-memory providers).
 
 `witchcraft-server` also supports using `encrypted-config-value` to automatically decrypt encrypted configuration
 values. The default configuration expects a key file to be at `var/conf/encrypted-config-value.key`. It is possible to 
-use code to specify a different source for the key (or to specify that no key should be used). 
+use code to specify a different source for the key (or to specify that no key should be used). If the configuration
+does not contain encrypted values, any specified ECV key will not be read. If the install configuration contains
+encrypted values but the encryption key is missing or malformed, the server will fail to start. If the runtime config
+contains encrypted values but fails to decrypt them, a warning will be logged and the encrypted values passed to the
+server.
 
 `witchcraft-server` defines base configuration for its install and runtime configuration. Servers that want to provide
 their own install and/or runtime configuration should embed the base configuration structs within the definition of 

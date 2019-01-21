@@ -29,9 +29,11 @@ import (
 )
 
 func TestEncryptedConfig(t *testing.T) {
-	decryptedValue := "hello world"
-	encryptionKey := "AES:T6H7a4WvQS9ITcNIihyUIj30K4SIrD6dB39ENJQ7oAo="
-	encryptedValue := "${enc:eyJ0eXBlIjoiQUVTIiwibW9kZSI6IkdDTSIsImNpcGhlcnRleHQiOiJqcGl0bThQRStRekd2YlE9IiwiaXYiOiJrTHlBOEZBNzFnTDVpdkswIiwidGFnIjoicmxpcXY3amYwbWVnaGU1N0pyQ3ZzZz09In0=}"
+	var (
+		decryptedValue = "hello world"
+		encryptionKey  = "AES:T6H7a4WvQS9ITcNIihyUIj30K4SIrD6dB39ENJQ7oAo="
+		encryptedValue = "${enc:eyJ0eXBlIjoiQUVTIiwibW9kZSI6IkdDTSIsImNpcGhlcnRleHQiOiJqcGl0bThQRStRekd2YlE9IiwiaXYiOiJrTHlBOEZBNzFnTDVpdkswIiwidGFnIjoicmxpcXY3amYwbWVnaGU1N0pyQ3ZzZz09In0=}"
+	)
 
 	type message struct {
 		Message string `yaml:"message"`
