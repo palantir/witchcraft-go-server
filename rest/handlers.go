@@ -51,8 +51,8 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		status := h.status(err)
 		h.handleError(r.Context(), status, err)
 		var jsonErr interface{}
-		if um, ok := err.(json.Marshaler); ok {
-			jsonErr = um
+		if marshaler, ok := err.(json.Marshaler); ok {
+			jsonErr = marshaler
 		} else {
 			// Fall back to string encoding
 			jsonErr = err.Error()
