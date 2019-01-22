@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/palantir/witchcraft-go-error"
-	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
 	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +48,7 @@ func TestWriteJSONResponse_Error(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			server := httptest.NewServer(rest.NewJSONHandler(func(http.ResponseWriter, *http.Request) error {
 				return test.Err
-			}, rest.StatusCodeMapper, rest.ErrHandler))
+			}, rest.StatusCodeMapper, nil))
 			defer server.Close()
 
 			resp, err := server.Client().Get(server.URL)
