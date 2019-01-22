@@ -3,3 +3,4 @@
 *.iws
 .idea/
 /out/
+.DS_Store
