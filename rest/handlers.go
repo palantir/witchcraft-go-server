@@ -16,6 +16,7 @@ package rest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -49,7 +50,14 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.handleFn(w, r); err != nil {
 		status := h.status(err)
 		h.handleError(r.Context(), status, err)
-		WriteJSONResponse(w, err, status)
+		var jsonErr interface{}
+		if marshaler, ok := err.(json.Marshaler); ok {
+			jsonErr = marshaler
+		} else {
+			// Fall back to string encoding
+			jsonErr = err.Error()
+		}
+		WriteJSONResponse(w, jsonErr, status)
 	}
 }
 
