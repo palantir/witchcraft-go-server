@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/palantir/conjure-go/conjure/types/conjuretype"
+	"github.com/palantir/pkg/safelong"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 )
@@ -112,12 +112,12 @@ func stringPtr(s string) *string {
 }
 
 // stringToOptionalSafeLong returns nil on errors
-func stringToOptionalSafeLong(s string) *conjuretype.SafeLong {
+func stringToOptionalSafeLong(s string) *safelong.SafeLong {
 	i, err := strconv.ParseInt(s, 0, 64)
 	if err != nil {
 		return nil
 	}
-	long, err := conjuretype.NewSafeLong(i)
+	long, err := safelong.NewSafeLong(i)
 	if err != nil {
 		return nil
 	}
