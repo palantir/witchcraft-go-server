@@ -3,19 +3,20 @@
 package health
 
 import (
-	"encoding/json"
+	"github.com/palantir/pkg/safejson"
+	"github.com/palantir/pkg/safeyaml"
 )
 
 // Metadata describing the status of a service.
 type HealthCheckResult struct {
 	// A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).
-	Type CheckType `json:"type" yaml:"type,omitempty" conjure-docs:"A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).\n"`
+	Type CheckType `json:"type" conjure-docs:"A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).\n"`
 	// Health state of the check.
-	State HealthState `json:"state" yaml:"state,omitempty" conjure-docs:"Health state of the check.\n"`
+	State HealthState `json:"state" conjure-docs:"Health state of the check.\n"`
 	// Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert.
-	Message *string `json:"message" yaml:"message,omitempty" conjure-docs:"Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert.\n"`
+	Message *string `json:"message" conjure-docs:"Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert.\n"`
 	// Additional redacted information on the nature of the health check.
-	Params map[string]interface{} `json:"params" yaml:"params,omitempty" conjure-docs:"Additional redacted information on the nature of the health check.\n"`
+	Params map[string]interface{} `json:"params" conjure-docs:"Additional redacted information on the nature of the health check.\n"`
 }
 
 func (o HealthCheckResult) MarshalJSON() ([]byte, error) {
@@ -23,13 +24,13 @@ func (o HealthCheckResult) MarshalJSON() ([]byte, error) {
 		o.Params = make(map[string]interface{}, 0)
 	}
 	type HealthCheckResultAlias HealthCheckResult
-	return json.Marshal(HealthCheckResultAlias(o))
+	return safejson.Marshal(HealthCheckResultAlias(o))
 }
 
 func (o *HealthCheckResult) UnmarshalJSON(data []byte) error {
 	type HealthCheckResultAlias HealthCheckResult
 	var rawHealthCheckResult HealthCheckResultAlias
-	if err := json.Unmarshal(data, &rawHealthCheckResult); err != nil {
+	if err := safejson.Unmarshal(data, &rawHealthCheckResult); err != nil {
 		return err
 	}
 	if rawHealthCheckResult.Params == nil {
@@ -40,28 +41,23 @@ func (o *HealthCheckResult) UnmarshalJSON(data []byte) error {
 }
 
 func (o HealthCheckResult) MarshalYAML() (interface{}, error) {
-	if o.Params == nil {
-		o.Params = make(map[string]interface{}, 0)
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
 	}
-	type HealthCheckResultAlias HealthCheckResult
-	return HealthCheckResultAlias(o), nil
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
 func (o *HealthCheckResult) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type HealthCheckResultAlias HealthCheckResult
-	var rawHealthCheckResult HealthCheckResultAlias
-	if err := unmarshal(&rawHealthCheckResult); err != nil {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
 		return err
 	}
-	if rawHealthCheckResult.Params == nil {
-		rawHealthCheckResult.Params = make(map[string]interface{}, 0)
-	}
-	*o = HealthCheckResult(rawHealthCheckResult)
-	return nil
+	return safejson.Unmarshal(jsonBytes, *&o)
 }
 
 type HealthStatus struct {
-	Checks map[CheckType]HealthCheckResult `json:"checks" yaml:"checks,omitempty"`
+	Checks map[CheckType]HealthCheckResult `json:"checks"`
 }
 
 func (o HealthStatus) MarshalJSON() ([]byte, error) {
@@ -69,13 +65,13 @@ func (o HealthStatus) MarshalJSON() ([]byte, error) {
 		o.Checks = make(map[CheckType]HealthCheckResult, 0)
 	}
 	type HealthStatusAlias HealthStatus
-	return json.Marshal(HealthStatusAlias(o))
+	return safejson.Marshal(HealthStatusAlias(o))
 }
 
 func (o *HealthStatus) UnmarshalJSON(data []byte) error {
 	type HealthStatusAlias HealthStatus
 	var rawHealthStatus HealthStatusAlias
-	if err := json.Unmarshal(data, &rawHealthStatus); err != nil {
+	if err := safejson.Unmarshal(data, &rawHealthStatus); err != nil {
 		return err
 	}
 	if rawHealthStatus.Checks == nil {
@@ -86,22 +82,17 @@ func (o *HealthStatus) UnmarshalJSON(data []byte) error {
 }
 
 func (o HealthStatus) MarshalYAML() (interface{}, error) {
-	if o.Checks == nil {
-		o.Checks = make(map[CheckType]HealthCheckResult, 0)
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
 	}
-	type HealthStatusAlias HealthStatus
-	return HealthStatusAlias(o), nil
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
 func (o *HealthStatus) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type HealthStatusAlias HealthStatus
-	var rawHealthStatus HealthStatusAlias
-	if err := unmarshal(&rawHealthStatus); err != nil {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
 		return err
 	}
-	if rawHealthStatus.Checks == nil {
-		rawHealthStatus.Checks = make(map[CheckType]HealthCheckResult, 0)
-	}
-	*o = HealthStatus(rawHealthStatus)
-	return nil
+	return safejson.Unmarshal(jsonBytes, *&o)
 }

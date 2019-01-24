@@ -75,19 +75,21 @@
   revision = "a1d3024b37d8cdd6c19d748051f7228155f0a0d9"
 
 [[projects]]
-  digest = "1:06c17d0943eb3a078ad3c2a394eec532ce22c61b17386fef091c33855f86d2b6"
+  digest = "1:fcace5f686f8fb610dfc06a831bc7e077e5b1cb42dd7479d7d3215102942fe05"
   name = "github.com/palantir/pkg"
   packages = [
     "httpserver",
     "metrics",
     "objmatcher",
     "safejson",
+    "safeyaml",
     "signals",
     "tlsconfig",
+    "transform",
   ]
   pruneopts = "UT"
-  revision = "97c88835cd7ba5e284c4d94f1b63e0709a78bc01"
-  version = "0.8.1"
+  revision = "418f3ad7b9addf837f48d5f3b8c4325115abe88f"
+  version = "0.9.4"
 
 [[projects]]
   branch = "develop"
@@ -244,12 +246,12 @@
   version = "v2.1"
 
 [[projects]]
+  branch = "v2"
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
   revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
-  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -263,6 +265,7 @@
     "github.com/palantir/pkg/metrics",
     "github.com/palantir/pkg/objmatcher",
     "github.com/palantir/pkg/safejson",
+    "github.com/palantir/pkg/safeyaml",
     "github.com/palantir/pkg/signals",
     "github.com/palantir/pkg/tlsconfig",
     "github.com/palantir/witchcraft-go-error",
