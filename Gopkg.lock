@@ -56,14 +56,6 @@
   version = "v0.1.3"
 
 [[projects]]
-  digest = "1:3ca794cab21462befc91c1767333e3cb16240680b4067beee52a18c1e18e1c89"
-  name = "github.com/palantir/conjure-go"
-  packages = ["conjure/types/conjuretype"]
-  pruneopts = "UT"
-  revision = "fd40b72c7444aacb4cfe357b3cb285526d151ed1"
-  version = "2.0.0"
-
-[[projects]]
   branch = "master"
   digest = "1:5f63b17db593ff0c77eae269491688e3784c475cdef3d7f78e81b5496c482010"
   name = "github.com/palantir/go-encrypted-config-value"
@@ -75,13 +67,15 @@
   revision = "a1d3024b37d8cdd6c19d748051f7228155f0a0d9"
 
 [[projects]]
-  digest = "1:fcace5f686f8fb610dfc06a831bc7e077e5b1cb42dd7479d7d3215102942fe05"
+  digest = "1:41e97e63577ac83ee7bd077f085ff670f5f7f5443ab1bdedfef6a0df061da59c"
   name = "github.com/palantir/pkg"
   packages = [
+    "datetime",
     "httpserver",
     "metrics",
     "objmatcher",
     "safejson",
+    "safelong",
     "safeyaml",
     "signals",
     "tlsconfig",
@@ -103,7 +97,7 @@
   revision = "adb1d93c5741a300abbcce7883ad61f825a4f1a7"
 
 [[projects]]
-  digest = "1:7e5b7f500b604fd3cc6deb32ff80f8ba23c77c3471652b88ae894761a571675e"
+  digest = "1:196e4840e3485d100e0edf8da4de0c1d25f85de1e286049e0f0027a536f11ba5"
   name = "github.com/palantir/witchcraft-go-logging"
   packages = [
     "conjure/witchcraft/api/logging",
@@ -123,8 +117,8 @@
     "wlog/trclog/trc1log",
   ]
   pruneopts = "UT"
-  revision = "5439158560c5d91b69b312ef0a7e1c02813f7fb4"
-  version = "v1.2.0"
+  revision = "5cfa99e2cec58e9e11dcf2ebd72a0855c31fa17e"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "develop"

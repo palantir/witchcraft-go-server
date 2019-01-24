@@ -3,8 +3,10 @@
 package logging
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"github.com/palantir/pkg/safejson"
+	"github.com/palantir/pkg/safeyaml"
 )
 
 // Union type containing log types that are logged to event.log.
@@ -16,10 +18,10 @@ type UnionEventLog struct {
 }
 
 type unionEventLogDeserializer struct {
-	Type       string       `json:"type" yaml:"type"`
-	EventLog   *EventLogV1  `json:"eventLog" yaml:"eventLog"`
-	EventLogV2 *EventLogV2  `json:"eventLogV2" yaml:"eventLogV2"`
-	BeaconLog  *BeaconLogV1 `json:"beaconLog" yaml:"beaconLog"`
+	Type       string       `json:"type"`
+	EventLog   *EventLogV1  `json:"eventLog"`
+	EventLogV2 *EventLogV2  `json:"eventLogV2"`
+	BeaconLog  *BeaconLogV1 `json:"beaconLog"`
 }
 
 func (u *unionEventLogDeserializer) toStruct() UnionEventLog {
@@ -32,18 +34,18 @@ func (u *UnionEventLog) toSerializer() (interface{}, error) {
 		return nil, fmt.Errorf("unknown type %s", u.typ)
 	case "eventLog":
 		return struct {
-			Type     string     `json:"type" yaml:"type"`
-			EventLog EventLogV1 `json:"eventLog" yaml:"eventLog"`
+			Type     string     `json:"type"`
+			EventLog EventLogV1 `json:"eventLog"`
 		}{Type: "eventLog", EventLog: *u.eventLog}, nil
 	case "eventLogV2":
 		return struct {
-			Type       string     `json:"type" yaml:"type"`
-			EventLogV2 EventLogV2 `json:"eventLogV2" yaml:"eventLogV2"`
+			Type       string     `json:"type"`
+			EventLogV2 EventLogV2 `json:"eventLogV2"`
 		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
 	case "beaconLog":
 		return struct {
-			Type      string      `json:"type" yaml:"type"`
-			BeaconLog BeaconLogV1 `json:"beaconLog" yaml:"beaconLog"`
+			Type      string      `json:"type"`
+			BeaconLog BeaconLogV1 `json:"beaconLog"`
 		}{Type: "beaconLog", BeaconLog: *u.beaconLog}, nil
 	}
 }
@@ -53,12 +55,12 @@ func (u UnionEventLog) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(ser)
+	return safejson.Marshal(ser)
 }
 
 func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
 	var deser unionEventLogDeserializer
-	if err := json.Unmarshal(data, &deser); err != nil {
+	if err := safejson.Unmarshal(data, &deser); err != nil {
 		return err
 	}
 	*u = deser.toStruct()
@@ -66,16 +68,19 @@ func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
 }
 
 func (u UnionEventLog) MarshalYAML() (interface{}, error) {
-	return u.toSerializer()
+	jsonBytes, err := safejson.Marshal(u)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
 func (u *UnionEventLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var deser unionEventLogDeserializer
-	if err := unmarshal(&deser); err != nil {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
 		return err
 	}
-	*u = deser.toStruct()
-	return nil
+	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
 func (u *UnionEventLog) Accept(v UnionEventLogVisitor) error {
@@ -125,14 +130,14 @@ type WrappedLogV1Payload struct {
 }
 
 type wrappedLogV1PayloadDeserializer struct {
-	Type            string           `json:"type" yaml:"type"`
-	ServiceLogV1    *ServiceLogV1    `json:"serviceLogV1" yaml:"serviceLogV1"`
-	RequestLogV2    *RequestLogV2    `json:"requestLogV2" yaml:"requestLogV2"`
-	TraceLogV1      *TraceLogV1      `json:"traceLogV1" yaml:"traceLogV1"`
-	EventLogV2      *EventLogV2      `json:"eventLogV2" yaml:"eventLogV2"`
-	MetricLogV1     *MetricLogV1     `json:"metricLogV1" yaml:"metricLogV1"`
-	AuditLogV2      *AuditLogV2      `json:"auditLogV2" yaml:"auditLogV2"`
-	DiagnosticLogV1 *DiagnosticLogV1 `json:"diagnosticLogV1" yaml:"diagnosticLogV1"`
+	Type            string           `json:"type"`
+	ServiceLogV1    *ServiceLogV1    `json:"serviceLogV1"`
+	RequestLogV2    *RequestLogV2    `json:"requestLogV2"`
+	TraceLogV1      *TraceLogV1      `json:"traceLogV1"`
+	EventLogV2      *EventLogV2      `json:"eventLogV2"`
+	MetricLogV1     *MetricLogV1     `json:"metricLogV1"`
+	AuditLogV2      *AuditLogV2      `json:"auditLogV2"`
+	DiagnosticLogV1 *DiagnosticLogV1 `json:"diagnosticLogV1"`
 }
 
 func (u *wrappedLogV1PayloadDeserializer) toStruct() WrappedLogV1Payload {
@@ -145,38 +150,38 @@ func (u *WrappedLogV1Payload) toSerializer() (interface{}, error) {
 		return nil, fmt.Errorf("unknown type %s", u.typ)
 	case "serviceLogV1":
 		return struct {
-			Type         string       `json:"type" yaml:"type"`
-			ServiceLogV1 ServiceLogV1 `json:"serviceLogV1" yaml:"serviceLogV1"`
+			Type         string       `json:"type"`
+			ServiceLogV1 ServiceLogV1 `json:"serviceLogV1"`
 		}{Type: "serviceLogV1", ServiceLogV1: *u.serviceLogV1}, nil
 	case "requestLogV2":
 		return struct {
-			Type         string       `json:"type" yaml:"type"`
-			RequestLogV2 RequestLogV2 `json:"requestLogV2" yaml:"requestLogV2"`
+			Type         string       `json:"type"`
+			RequestLogV2 RequestLogV2 `json:"requestLogV2"`
 		}{Type: "requestLogV2", RequestLogV2: *u.requestLogV2}, nil
 	case "traceLogV1":
 		return struct {
-			Type       string     `json:"type" yaml:"type"`
-			TraceLogV1 TraceLogV1 `json:"traceLogV1" yaml:"traceLogV1"`
+			Type       string     `json:"type"`
+			TraceLogV1 TraceLogV1 `json:"traceLogV1"`
 		}{Type: "traceLogV1", TraceLogV1: *u.traceLogV1}, nil
 	case "eventLogV2":
 		return struct {
-			Type       string     `json:"type" yaml:"type"`
-			EventLogV2 EventLogV2 `json:"eventLogV2" yaml:"eventLogV2"`
+			Type       string     `json:"type"`
+			EventLogV2 EventLogV2 `json:"eventLogV2"`
 		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
 	case "metricLogV1":
 		return struct {
-			Type        string      `json:"type" yaml:"type"`
-			MetricLogV1 MetricLogV1 `json:"metricLogV1" yaml:"metricLogV1"`
+			Type        string      `json:"type"`
+			MetricLogV1 MetricLogV1 `json:"metricLogV1"`
 		}{Type: "metricLogV1", MetricLogV1: *u.metricLogV1}, nil
 	case "auditLogV2":
 		return struct {
-			Type       string     `json:"type" yaml:"type"`
-			AuditLogV2 AuditLogV2 `json:"auditLogV2" yaml:"auditLogV2"`
+			Type       string     `json:"type"`
+			AuditLogV2 AuditLogV2 `json:"auditLogV2"`
 		}{Type: "auditLogV2", AuditLogV2: *u.auditLogV2}, nil
 	case "diagnosticLogV1":
 		return struct {
-			Type            string          `json:"type" yaml:"type"`
-			DiagnosticLogV1 DiagnosticLogV1 `json:"diagnosticLogV1" yaml:"diagnosticLogV1"`
+			Type            string          `json:"type"`
+			DiagnosticLogV1 DiagnosticLogV1 `json:"diagnosticLogV1"`
 		}{Type: "diagnosticLogV1", DiagnosticLogV1: *u.diagnosticLogV1}, nil
 	}
 }
@@ -186,12 +191,12 @@ func (u WrappedLogV1Payload) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(ser)
+	return safejson.Marshal(ser)
 }
 
 func (u *WrappedLogV1Payload) UnmarshalJSON(data []byte) error {
 	var deser wrappedLogV1PayloadDeserializer
-	if err := json.Unmarshal(data, &deser); err != nil {
+	if err := safejson.Unmarshal(data, &deser); err != nil {
 		return err
 	}
 	*u = deser.toStruct()
@@ -199,16 +204,19 @@ func (u *WrappedLogV1Payload) UnmarshalJSON(data []byte) error {
 }
 
 func (u WrappedLogV1Payload) MarshalYAML() (interface{}, error) {
-	return u.toSerializer()
+	jsonBytes, err := safejson.Marshal(u)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
 func (u *WrappedLogV1Payload) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var deser wrappedLogV1PayloadDeserializer
-	if err := unmarshal(&deser); err != nil {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
 		return err
 	}
-	*u = deser.toStruct()
-	return nil
+	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
 func (u *WrappedLogV1Payload) Accept(v WrappedLogV1PayloadVisitor) error {
@@ -281,9 +289,9 @@ type Diagnostic struct {
 }
 
 type diagnosticDeserializer struct {
-	Type       string             `json:"type" yaml:"type"`
-	Generic    *GenericDiagnostic `json:"generic" yaml:"generic"`
-	ThreadDump *ThreadDumpV1      `json:"threadDump" yaml:"threadDump"`
+	Type       string             `json:"type"`
+	Generic    *GenericDiagnostic `json:"generic"`
+	ThreadDump *ThreadDumpV1      `json:"threadDump"`
 }
 
 func (u *diagnosticDeserializer) toStruct() Diagnostic {
@@ -296,13 +304,13 @@ func (u *Diagnostic) toSerializer() (interface{}, error) {
 		return nil, fmt.Errorf("unknown type %s", u.typ)
 	case "generic":
 		return struct {
-			Type    string            `json:"type" yaml:"type"`
-			Generic GenericDiagnostic `json:"generic" yaml:"generic"`
+			Type    string            `json:"type"`
+			Generic GenericDiagnostic `json:"generic"`
 		}{Type: "generic", Generic: *u.generic}, nil
 	case "threadDump":
 		return struct {
-			Type       string       `json:"type" yaml:"type"`
-			ThreadDump ThreadDumpV1 `json:"threadDump" yaml:"threadDump"`
+			Type       string       `json:"type"`
+			ThreadDump ThreadDumpV1 `json:"threadDump"`
 		}{Type: "threadDump", ThreadDump: *u.threadDump}, nil
 	}
 }
@@ -312,12 +320,12 @@ func (u Diagnostic) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(ser)
+	return safejson.Marshal(ser)
 }
 
 func (u *Diagnostic) UnmarshalJSON(data []byte) error {
 	var deser diagnosticDeserializer
-	if err := json.Unmarshal(data, &deser); err != nil {
+	if err := safejson.Unmarshal(data, &deser); err != nil {
 		return err
 	}
 	*u = deser.toStruct()
@@ -325,16 +333,19 @@ func (u *Diagnostic) UnmarshalJSON(data []byte) error {
 }
 
 func (u Diagnostic) MarshalYAML() (interface{}, error) {
-	return u.toSerializer()
+	jsonBytes, err := safejson.Marshal(u)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
 func (u *Diagnostic) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var deser diagnosticDeserializer
-	if err := unmarshal(&deser); err != nil {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
 		return err
 	}
-	*u = deser.toStruct()
-	return nil
+	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
 func (u *Diagnostic) Accept(v DiagnosticVisitor) error {
@@ -372,9 +383,9 @@ type RequestLog struct {
 }
 
 type requestLogDeserializer struct {
-	Type string        `json:"type" yaml:"type"`
-	V1   *RequestLogV1 `json:"v1" yaml:"v1"`
-	V2   *RequestLogV2 `json:"v2" yaml:"v2"`
+	Type string        `json:"type"`
+	V1   *RequestLogV1 `json:"v1"`
+	V2   *RequestLogV2 `json:"v2"`
 }
 
 func (u *requestLogDeserializer) toStruct() RequestLog {
@@ -387,13 +398,13 @@ func (u *RequestLog) toSerializer() (interface{}, error) {
 		return nil, fmt.Errorf("unknown type %s", u.typ)
 	case "v1":
 		return struct {
-			Type string       `json:"type" yaml:"type"`
-			V1   RequestLogV1 `json:"v1" yaml:"v1"`
+			Type string       `json:"type"`
+			V1   RequestLogV1 `json:"v1"`
 		}{Type: "v1", V1: *u.v1}, nil
 	case "v2":
 		return struct {
-			Type string       `json:"type" yaml:"type"`
-			V2   RequestLogV2 `json:"v2" yaml:"v2"`
+			Type string       `json:"type"`
+			V2   RequestLogV2 `json:"v2"`
 		}{Type: "v2", V2: *u.v2}, nil
 	}
 }
@@ -403,12 +414,12 @@ func (u RequestLog) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(ser)
+	return safejson.Marshal(ser)
 }
 
 func (u *RequestLog) UnmarshalJSON(data []byte) error {
 	var deser requestLogDeserializer
-	if err := json.Unmarshal(data, &deser); err != nil {
+	if err := safejson.Unmarshal(data, &deser); err != nil {
 		return err
 	}
 	*u = deser.toStruct()
@@ -416,16 +427,19 @@ func (u *RequestLog) UnmarshalJSON(data []byte) error {
 }
 
 func (u RequestLog) MarshalYAML() (interface{}, error) {
-	return u.toSerializer()
+	jsonBytes, err := safejson.Marshal(u)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
 func (u *RequestLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var deser requestLogDeserializer
-	if err := unmarshal(&deser); err != nil {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
 		return err
 	}
-	*u = deser.toStruct()
-	return nil
+	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
 func (u *RequestLog) Accept(v RequestLogVisitor) error {

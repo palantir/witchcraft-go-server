@@ -78,7 +78,7 @@ func TestEmitMetrics(t *testing.T) {
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
-			assert.Equal(t, map[string]interface{}{"count": float64(13)}, metricLog.Values)
+			assert.Equal(t, map[string]interface{}{"count": json.Number("13")}, metricLog.Values)
 			assert.Equal(t, map[string]string{"key": "val"}, metricLog.Tags)
 		case "server.response":
 			seenResponseTimer = true
