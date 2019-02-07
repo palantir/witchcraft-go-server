@@ -22,6 +22,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/rest"
+	"github.com/palantir/witchcraft-go-server/status/slo"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
@@ -41,11 +42,12 @@ type AppRuntimeConfig struct {
 }
 
 func main() {
+	slos := slo.NewSLOs()
 	if err := witchcraft.
 		NewServer().
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
 			// register endpoint that uses install configuration
-			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
+			if err := registerInstallNumEndpoint(slos, info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
 				return nil, err
 			}
 
@@ -53,7 +55,7 @@ func main() {
 			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
 				return in.(AppRuntimeConfig).MyNum
 			}))
-			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {
+			if err := registerRuntimeNumEndpoint(slos, info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
 
@@ -87,19 +89,23 @@ func main() {
 		WithRuntimeConfigType(AppRuntimeConfig{}).
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithHealth(slos).
 		Start(); err != nil {
 		panic(err)
 	}
 }
 
-func registerInstallNumEndpoint(router wrouter.Router, num int) error {
-	return router.Get("/installNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func registerInstallNumEndpoint(slos slo.ServiceLevelObjectives, router wrouter.Router, num int) error {
+	handlerFn := slos.Register("installNum", func(rw http.ResponseWriter, req *http.Request) {
 		rest.WriteJSONResponse(rw, num, http.StatusOK)
-	}))
+	}, time.Millisecond*100, time.Millisecond*200, time.Millisecond*300)
+
+	return router.Get("/installNum", handlerFn)
 }
 
-func registerRuntimeNumEndpoint(router wrouter.Router, numProvider refreshable.Int) error {
-	return router.Get("/runtimeNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func registerRuntimeNumEndpoint(slos slo.ServiceLevelObjectives, router wrouter.Router, numProvider refreshable.Int) error {
+	handlerFn := slos.Register("runtimeNum", func(rw http.ResponseWriter, req *http.Request) {
 		rest.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
-	}))
+	}, time.Millisecond*100, time.Millisecond*200, time.Millisecond*300)
+	return router.Get("/runtimeNum", handlerFn)
 }

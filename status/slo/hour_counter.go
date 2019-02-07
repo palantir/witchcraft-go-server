@@ -1,9 +1,24 @@
+// Copyright (c) 2019 Palantir Technologies. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package slo
 
 import (
-	"go.uber.org/atomic"
 	"sync"
 	"time"
+
+	"go.uber.org/atomic"
 )
 
 // HourCounter tracks the number of calls to `Mark` over the course of the last hour.
@@ -19,7 +34,7 @@ func NewHourCounter() *HourCounter {
 	for i := 0; i < 60; i++ {
 		h.minutes[i] = &MinuteCounter{
 			minuteIndex: i,
-			counter: atomic.NewInt64(0),
+			counter:     atomic.NewInt64(0),
 		}
 	}
 	return &h
@@ -30,7 +45,7 @@ func (h *HourCounter) Mark(t time.Time) {
 	h.minutes[t.Minute()].Mark(t)
 }
 
-// Returns the exact number of times `Mark` has been called in the last hour
+// HourCount returns the exact number of times `Mark` has been called in the last hour
 func (h *HourCounter) HourCount() int {
 	var total int64
 	for _, m := range h.minutes {
@@ -43,10 +58,10 @@ func (h *HourCounter) HourCount() int {
 // reset when `Mark` is called with a time.Time that is an hour or more in the future.
 type MinuteCounter struct {
 	validUntil time.Time
-	validLock sync.Mutex
+	validLock  sync.Mutex
 
 	minuteIndex int
-	counter *atomic.Int64
+	counter     *atomic.Int64
 }
 
 // Mark increments the counter for number of times called in the minute configured. If the time provided is after

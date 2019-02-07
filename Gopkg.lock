@@ -279,6 +279,7 @@
     "github.com/palantir/witchcraft-go-tracing/wzipkin",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
+    "go.uber.org/atomic",
     "gopkg.in/fsnotify.v1",
     "gopkg.in/natefinch/lumberjack.v2",
     "gopkg.in/yaml.v2",
