@@ -26,11 +26,13 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/status/routes"
 	"github.com/palantir/witchcraft-go-server/witchcraft/internal/middleware"
+	"github.com/palantir/witchcraft-go-server/witchcraft/prometheus"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router, rMgmtRouter wrouter.Router) {
@@ -75,8 +77,13 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, registry me
 
 	// add prometheus metrics endpoint
 	prometheusResource := wresource.New("prometheus", mgmtRouterWithContextPath.Subrouter("/prometheus"))
-	if err := routes.AddMetricsRoutes(prometheusResource, registry); err != nil {
-		return werror.Wrap(err, "failed to register metrics routes")
+	err := prometheusResource.Get("metrics", "/metrics",
+		promhttp.HandlerFor(prometheus.NewRegistryGatherer(registry),
+			promhttp.HandlerOpts{
+				MaxRequestsInFlight: 3,
+			}))
+	if err != nil {
+		return werror.Wrap(err, "failed to register prometheus routes")
 	}
 	return nil
 }

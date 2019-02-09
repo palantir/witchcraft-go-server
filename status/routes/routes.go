@@ -17,13 +17,10 @@ package routes
 import (
 	"net/http"
 
-	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/status"
-	"github.com/palantir/witchcraft-go-server/witchcraft/prometheus"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func AddLivenessRoutes(resource wresource.Resource, source status.Source) error {
@@ -36,14 +33,6 @@ func AddReadinessRoutes(resource wresource.Resource, source status.Source) error
 
 func AddHealthRoutes(resource wresource.Resource, source status.HealthCheckSource, sharedSecret refreshable.String) error {
 	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret))
-}
-
-func AddMetricsRoutes(resource wresource.Resource, registry metrics.RootRegistry) error {
-	return resource.Get("metrics", "/metrics",
-		promhttp.HandlerFor(prometheus.NewRegistryGatherer(registry),
-			promhttp.HandlerOpts{
-				MaxRequestsInFlight: 3,
-			}))
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response
