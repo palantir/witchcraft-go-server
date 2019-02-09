@@ -42,7 +42,7 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 	return routerWithContextPath, mgmtRouterWithContextPath
 }
 
-func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig) error {
+func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, registry metrics.RootRegistry, runtimeCfg refreshableBaseRuntimeConfig) error {
 	// add debugging endpoint to management router
 	if err := addDebuggingRoutes(mgmtRouterWithContextPath); err != nil {
 		return werror.Wrap(err, "failed to register debugging routes")
@@ -71,6 +71,12 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	}
 	if err := routes.AddReadinessRoutes(statusResource, s.readinessSource); err != nil {
 		return werror.Wrap(err, "failed to register readiness routes")
+	}
+
+	// add prometheus metrics endpoint
+	prometheusResource := wresource.New("prometheus", mgmtRouterWithContextPath.Subrouter("/prometheus"))
+	if err := routes.AddMetricsRoutes(prometheusResource, registry); err != nil {
+		return werror.Wrap(err, "failed to register metrics routes")
 	}
 	return nil
 }

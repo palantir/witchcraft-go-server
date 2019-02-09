@@ -521,7 +521,7 @@ func (s *Server) Start() (rErr error) {
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied.
-	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg); err != nil {
+	if err := s.addRoutes(mgmtRouter, metricsRegistry, baseRefreshableRuntimeCfg); err != nil {
 		return err
 	}
 
