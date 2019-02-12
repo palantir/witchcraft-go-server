@@ -45,7 +45,7 @@ const (
 	runtimeYML  = "var/conf/runtime.yml"
 )
 
-// createAndRunTestServer returns a running voodoo.Server that is initialized with simple default configuration in a
+// createAndRunTestServer returns a running witchcraft.Server that is initialized with simple default configuration in a
 // temporary directory. Returns the server, the path to the temporary directory, a channel that returns the error
 // returned by the server when it stops and a cleanup function that will remove the temporary directory.
 func createAndRunTestServer(t *testing.T, initFn witchcraft.InitFunc, logOutputBuffer io.Writer) (server *witchcraft.Server, port int, managementPort int, serverErr <-chan error, cleanup func()) {
