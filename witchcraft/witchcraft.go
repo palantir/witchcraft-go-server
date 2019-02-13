@@ -534,7 +534,9 @@ func (s *Server) Start() (rErr error) {
 		}
 
 		// start management server in its own goroutine
-		go mgmtStart()
+		go func() {
+			_ = mgmtStart()
+		}()
 		defer func() {
 			// nothing to be done if shutdown fails
 			_ = mgmtShutdown(ctx)
@@ -548,8 +550,7 @@ func (s *Server) Start() (rErr error) {
 
 	s.httpServer = httpServer
 	s.stateManager.setState(ServerRunning)
-	svrStart()
-	return nil
+	return svrStart()
 }
 
 type configurableRouterImpl struct {
