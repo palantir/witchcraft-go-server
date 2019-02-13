@@ -18,7 +18,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
@@ -93,5 +96,38 @@ func TestFatalErrorLogging(t *testing.T) {
 			require.Error(t, err)
 			test.VerifyLog(t, logOutputBuffer.Bytes())
 		})
+	}
+}
+
+func TestWhenPortInUse(t *testing.T) {
+
+	// create a listener to ensure a port is taken
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() {
+		_ = ln.Close()
+	}()
+
+	// try and start a Server on that port, expecting it to fail quickly with a non-nil error
+	host, portStr, err := net.SplitHostPort(ln.Addr().String())
+	require.NoError(t, err)
+	port, err := strconv.Atoi(portStr)
+	require.NoError(t, err)
+
+	server := witchcraft.NewServer().WithSelfSignedCertificate().WithInstallConfig(config.Install{
+		Server: config.Server{
+			Address: host,
+			Port: port,
+		},
+	}).WithRuntimeConfig(config.Install{})
+	errc := make(chan error)
+	go func() {
+		errc <- server.Start()
+	}()
+	select {
+	case serr := <-errc:
+		assert.NotNil(t, serr, "start returned a nil error when its port was already in use")
+	case <- time.Tick(2 * time.Second):
+		t.Errorf("server stayed up despite its port already being in use")
 	}
 }
