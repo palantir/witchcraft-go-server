@@ -76,8 +76,8 @@ func (h handler) handleError(ctx context.Context, statusCode int, err error) {
 	}
 }
 
-// StatusCodeMapper maps a provided error to a http status code. If the provided error is a Error, it will return
-// the Error's status code. Otherwise, it will return a http.StatusInternalServerError
+// StatusCodeMapper maps a provided error to an HTTP status code. If the provided error contains a status code added
+// using the StatusCode ErrorParam, returns that status code; otherwise, returns http.StatusInternalServerError.
 func StatusCodeMapper(err error) int {
 	safe, _ := werror.ParamsFromError(err)
 	statusCode, ok := safe[httpStatusCodeParamKey]
@@ -91,7 +91,8 @@ func StatusCodeMapper(err error) int {
 	return statusCodeInt
 }
 
-// ErrHandler is an ErrorHandler that creates a log in the request context's svc1log logger when an error is received.
+// ErrHandler is an ErrorHandler that creates a log in the provided context's svc1log logger when an error is received.
+// The log output is printed at the ERROR level if the status code is >= 500; otherwise, it is printed at INFO level.
 // This preserves request-scoped logging configuration added by wrouter.
 func ErrHandler(ctx context.Context, statusCode int, err error) {
 	logger := svc1log.FromContext(ctx)
