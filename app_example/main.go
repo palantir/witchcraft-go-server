@@ -42,10 +42,12 @@ type AppRuntimeConfig struct {
 }
 
 func main() {
-	slos := slo.NewSLOs()
+
 	if err := witchcraft.
 		NewServer().
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			slos := slo.NewSLOs()
+			info.Router.WithHealth(slos)
 			// register endpoint that uses install configuration
 			if err := registerInstallNumEndpoint(slos, info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
 				return nil, err
@@ -89,7 +91,6 @@ func main() {
 		WithRuntimeConfigType(AppRuntimeConfig{}).
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-		WithHealth(slos).
 		Start(); err != nil {
 		panic(err)
 	}
