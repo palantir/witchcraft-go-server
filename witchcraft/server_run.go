@@ -85,8 +85,7 @@ func newServerStartShutdownFns(
 			svcLogger.Info(fmt.Sprintf("%s was closed", serverName))
 			return nil
 		}
-		svcLogger.Error(fmt.Sprintf("%s failed", serverName), svc1log.Stacktrace(err))
-		return err
+		return werror.Wrap(err, "server was closed", werror.SafeParam("serverName", serverName))
 	}, httpServer.Shutdown, nil
 }
 
