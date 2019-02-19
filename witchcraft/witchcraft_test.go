@@ -100,7 +100,6 @@ func TestFatalErrorLogging(t *testing.T) {
 }
 
 func TestServer_Start_WithPortInUse(t *testing.T) {
-
 	// create a listener to ensure a port is taken
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -108,12 +107,80 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 		_ = ln.Close()
 	}()
 
-	// try and start a Server on that port, expecting it to fail quickly with a non-nil error
+	// try to start a server on the port that's in use
 	host, portStr, err := net.SplitHostPort(ln.Addr().String())
 	require.NoError(t, err)
 	port, err := strconv.Atoi(portStr)
 	require.NoError(t, err)
+	server, cleanup := newServer(host, port)
+	defer cleanup()
+	errc := make(chan error)
+	go func() {
+		errc <- server.Start()
+	}()
 
+	// ensure Start() quickly returns a non-nil error
+	select {
+	case serr := <-errc:
+		assert.NotNil(t, serr, "Start() returned a nil error when the server's port was already in use")
+	case <-time.After(2 * time.Second):
+		t.Errorf("server stayed up despite its port already being in use")
+	}
+}
+
+func TestServer_Start_WithStop(t *testing.T) {
+	// test the same behavior for both Shutdown() and Close() on a Server
+	for name, stop := range map[string]func(*witchcraft.Server, context.Context) error{
+		"Shutdown": (*witchcraft.Server).Shutdown,
+		"Close": func(server *witchcraft.Server, _ context.Context) error {
+			return server.Close()
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			testStop(t, stop)
+		})
+	}
+}
+
+func testStop(t *testing.T, stop func(*witchcraft.Server, context.Context) error) {
+	// create and start server
+	server, cleanup := newServer("127.0.0.1", 0)
+	defer cleanup()
+	errc := make(chan error)
+	go func() {
+		errc <- server.Start()
+	}()
+
+	// wait for server to come up
+	timeout := time.After(2 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for range ticker.C {
+		select {
+		case <-timeout:
+			assert.Fail(t, "timed out waiting for server to start")
+		default:
+		}
+		if server.Running() {
+			break
+		}
+	}
+
+	// stop the server
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	assert.NoError(t, stop(server, ctx), "error stopping server")
+
+	// ensure Start() quickly returns a nil error
+	select {
+	case startErr := <-errc:
+		assert.Nil(t, startErr, "Start() incorrectly returned a non-nil error when the server was intentionally stop")
+	case <-time.After(2 * time.Second):
+		assert.Fail(t, "timed out waiting for Start() to return an error")
+	}
+}
+
+func newServer(host string, port int) (*witchcraft.Server, func()) {
 	server := witchcraft.NewServer().
 		WithSelfSignedCertificate().
 		WithInstallConfig(config.Install{
@@ -124,47 +191,5 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 			UseConsoleLog: true,
 		}).
 		WithRuntimeConfig(config.Runtime{})
-	errc := make(chan error)
-	go func() {
-		errc <- server.Start()
-	}()
-	select {
-	case serr := <-errc:
-		assert.NotNil(t, serr, "start returned a nil error when its port was already in use")
-	case <-time.Tick(2 * time.Second):
-		t.Errorf("server stayed up despite its port already being in use")
-	}
-}
-
-func TestServer_Start_WithShutdown(t *testing.T) {
-	// test the same behavior for both Shutdown() and Close() on a Server
-	for name, shutdown := range map[string]func(*witchcraft.Server, context.Context) error{
-		"Shutdown": (*witchcraft.Server).Shutdown,
-		"Close": func(server *witchcraft.Server, _ context.Context) error {
-			return server.Close()
-		},
-	} {
-		server := witchcraft.NewServer().
-			WithSelfSignedCertificate().
-			WithInstallConfig(config.Install{
-				Server: config.Server{
-					Address: "127.0.0.1",
-					Port:    0,
-				},
-				UseConsoleLog: true,
-			}).
-			WithRuntimeConfig(config.Runtime{})
-		errc := make(chan error, 1)
-		go func() {
-			errc <- server.Start()
-		}()
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		for !server.Running() && ctx.Err() == nil {
-			time.Sleep(100 * time.Millisecond)
-		}
-		assert.NoError(t, ctx.Err(), "case %s: timed out waiting for server to start", name)
-		assert.NoError(t, shutdown(server, ctx), "error running %s", name)
-		assert.Nil(t, <-errc, "%s: Start() incorrectly returned a non-nil error when the server was gracefully shutdown", name)
-	}
+	return server, func() { _ = server.Close() }
 }
