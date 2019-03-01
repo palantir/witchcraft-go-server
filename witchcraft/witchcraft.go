@@ -134,6 +134,9 @@ type Server struct {
 	// default behavior is to sample every trace.
 	traceSampler func(id uint64) bool
 
+	// disableKeepAlives disables keep-alives.
+	disableKeepAlives bool
+
 	// request logger configuration
 
 	// idsExtractor specifies the extractor used to extract identifiers (such as UID, SID, TokenID) from requests for
@@ -365,6 +368,12 @@ func (s *Server) WithDisableSigQuitHandler() *Server {
 	return s
 }
 
+// WithDisableKeepAlives disables keep-alives on the server.
+func (s *Server) WithDisableKeepAlives() *Server {
+	s.disableKeepAlives = true
+	return s
+}
+
 // WithDisableGoRuntimeMetrics disables the server's enabled-by-default collection of runtime memory statistics.
 func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	s.disableGoRuntimeMetrics = true
@@ -551,6 +560,10 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	s.httpServer = httpServer
+	if s.disableKeepAlives {
+		s.httpServer.SetKeepAlivesEnabled(false)
+	}
+
 	s.stateManager.setState(ServerRunning)
 	return svrStart()
 }
