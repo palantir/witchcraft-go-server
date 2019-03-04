@@ -107,6 +107,7 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 		newTLSCertProvider(useSelfSignedServerCertificate, serverConfig.CertFile, serverConfig.KeyFile),
 		tlsconfig.ServerClientCAFiles(serverConfig.ClientCAFiles...),
 		tlsconfig.ServerClientAuthType(clientAuthType),
+		tlsconfig.ServerNextProtos("h2"),
 	)
 	if err != nil {
 		return nil, werror.Wrap(err, "failed to initialize TLS configuration for server")
