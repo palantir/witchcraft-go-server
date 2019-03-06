@@ -118,6 +118,10 @@ type Server struct {
 	// are unmarshaled. If nil, a default value of config.Runtime{} is used.
 	runtimeConfigStruct interface{}
 
+	// configUnmarshalFn is the function that is used to unmarshal install and runtime configuration. If nil,
+	// yaml.Unmarshal is used.
+	configUnmarshalFn func(data []byte, v interface{}) error
+
 	// provides the encrypted-config-value key that is used to decrypt encrypted values in configuration. If nil, a
 	// default provider that reads the key from the file at "var/conf/encrypted-config-value.key" is used.
 	ecvKeyProvider ECVKeyProvider
@@ -292,6 +296,26 @@ func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 	return s
 }
 
+// WithConfigUnmarshalFunc configures the server to use the provided function to unmarshal runtime and install
+// configuration. The most common use for customizing this behavior is if an application depends on libraries that set
+// configuration values based on struct tags. The default behavior of witchcraft uses yaml.Unmarshal as the unmarshal
+// function, so custom implementations should typically still delegate to that function unless the configuration is
+// known to be a non-YAML value.
+//
+// For example, assuming that there is a function structfields.SetToDefaults that sets default values based on struct
+// tags, the following would configure the server to use that function for its configuration:
+//
+//   s.WithConfigUnmarshalFunc(func(data []byte, v interface{}) error {
+//   	if err := structfields.SetToDefaults(v); err != nil {
+//   		return err
+//  	}
+//  	return yaml.Unmarshal(data, v)
+//   })
+func (s *Server) WithConfigUnmarshalFunc(configUnmarshalFn func(data []byte, v interface{}) error) *Server {
+	s.configUnmarshalFn = configUnmarshalFn
+	return s
+}
+
 // WithSelfSignedCertificate configures the server to use a dynamically generated self-signed certificate for its TLS
 // authentication. Because there is no way to verify the certificate used by the server, this option is typically only
 // used in tests or very specialized circumstances where the connection to the server can be verified/authenticated
@@ -455,6 +479,11 @@ func (s *Server) Start() (rErr error) {
 		s.ecvKeyProvider = ECVKeyFromFile(ecvKeyPath)
 	}
 
+	// if custom unmarshal function is not specified, use yaml.Unmarshal as the default
+	if s.configUnmarshalFn == nil {
+		s.configUnmarshalFn = yaml.Unmarshal
+	}
+
 	// load install configuration
 	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig()
 	if err != nil {
@@ -612,7 +641,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	}
 
 	var baseInstallCfg config.Install
-	if err := yaml.Unmarshal(cfgBytes, &baseInstallCfg); err != nil {
+	if err := s.configUnmarshalFn(cfgBytes, &baseInstallCfg); err != nil {
 		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install base configuration YAML")
 	}
 
@@ -621,7 +650,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 		installConfigStruct = config.Install{}
 	}
 	specificInstallCfg := reflect.New(reflect.TypeOf(installConfigStruct)).Interface()
-	if err := yaml.Unmarshal(cfgBytes, *&specificInstallCfg); err != nil {
+	if err := s.configUnmarshalFn(cfgBytes, *&specificInstallCfg); err != nil {
 		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
 	}
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
@@ -650,7 +679,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 
 	return newRefreshableBaseRuntimeConfig(runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
 			var runtimeCfg config.Runtime
-			if err := yaml.Unmarshal(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
+			if err := s.configUnmarshalFn(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
 				s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
 			}
 			return runtimeCfg
@@ -661,7 +690,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 				runtimeConfigStruct = config.Runtime{}
 			}
 			runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-			if err := yaml.Unmarshal(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
+			if err := s.configUnmarshalFn(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
 				s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
 			}
 			return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
