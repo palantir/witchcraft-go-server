@@ -43,6 +43,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"gopkg.in/yaml.v2"
@@ -97,6 +98,10 @@ type Server struct {
 
 	// specifies the sources that are used to determine the health of this service
 	healthCheckSources []status.HealthCheckSource
+
+	// provides the RouterImpl used by the server (and management server if it is separate). If nil, a default function
+	// that returns a new whttprouter is used.
+	routerImplProvider func() wrouter.RouterImpl
 
 	// called on server initialization before the server starts. Is provided with a context that is active for the
 	// duration of the server lifetime, the server router (which can be used to register endpoints), the unmarshaled
@@ -349,6 +354,13 @@ func (s *Server) WithMiddleware(middleware wrouter.RequestHandlerMiddleware) *Se
 	return s
 }
 
+// WithRouterImplProvider configures the server to use the specified routerImplProvider to provide router
+// implementations.
+func (s *Server) WithRouterImplProvider(routerImplProvider func() wrouter.RouterImpl) *Server {
+	s.routerImplProvider = routerImplProvider
+	return s
+}
+
 // WithTraceSampler configures the server's trace log tracer to use the specified traceSampler function to make a
 // determination on whether or not a trace should be sampled (if such a decision needs to be made).
 func (s *Server) WithTraceSampler(traceSampler func(id uint64) bool) *Server {
@@ -472,6 +484,12 @@ func (s *Server) Start() (rErr error) {
 	}
 	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {
 		s.svcLogger.SetLevel(loggerCfg.Level)
+	}
+
+	if s.routerImplProvider == nil {
+		s.routerImplProvider = func() wrouter.RouterImpl {
+			return whttprouter.New()
+		}
 	}
 
 	// initialize routers
