@@ -67,7 +67,15 @@
   revision = "a1d3024b37d8cdd6c19d748051f7228155f0a0d9"
 
 [[projects]]
-  digest = "1:41e97e63577ac83ee7bd077f085ff670f5f7f5443ab1bdedfef6a0df061da59c"
+  digest = "1:63f6125d6645fd85a40e6636a5686eb9a7713c52ddee19d902b52ac99f95d33c"
+  name = "github.com/palantir/go-metrics"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "073ec68383a8f2243d5761897332f1a8397856e1"
+  version = "1.0.0"
+
+[[projects]]
+  digest = "1:2c19058cc056908dd5a08b24b8f0d0582b4f98ff5b76f1c934573e854fc66450"
   name = "github.com/palantir/pkg"
   packages = [
     "datetime",
@@ -82,8 +90,8 @@
     "transform",
   ]
   pruneopts = "UT"
-  revision = "418f3ad7b9addf837f48d5f3b8c4325115abe88f"
-  version = "0.9.4"
+  revision = "7fd8d6e85a713f1ec5376c81b97c7ed1033c9816"
+  version = "0.10.0"
 
 [[projects]]
   branch = "develop"
@@ -155,14 +163,6 @@
   pruneopts = "UT"
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:d38f81081a389f1466ec98192cf9115a82158854d6f01e1c23e2e7554b97db71"
-  name = "github.com/rcrowley/go-metrics"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "3113b8401b8a98917cde58f8bbd42a1b1c03b1fd"
 
 [[projects]]
   digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
