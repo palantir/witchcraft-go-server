@@ -78,6 +78,8 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	rootRouter.AddRequestHandlerMiddleware(
 		// add middleware that recovers from panics
 		middleware.NewRequestPanicRecovery(),
+		// add middleware that injects metrics registry into request context
+		middleware.NewRequestContextMetricsRegistry(registry),
 		// add middleware that injects loggers into request context
 		middleware.NewRequestContextLoggers(
 			s.svcLogger,
