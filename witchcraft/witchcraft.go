@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
@@ -501,6 +502,7 @@ func (s *Server) Start() (rErr error) {
 		return err
 	}
 	defer metricsDeferFn()
+	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// add middleware
 	s.addMiddleware(router.RootRouter(), metricsRegistry, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, s.traceSampler))

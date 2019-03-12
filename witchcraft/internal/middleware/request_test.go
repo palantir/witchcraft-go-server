@@ -59,10 +59,13 @@ func TestCombinedMiddleware(t *testing.T) {
 	var reqOutput bytes.Buffer
 	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
 
+	metricsRegistry := metrics.NewRootMetricsRegistry()
+
 	// create router
 	r := wrouter.New(
 		whttprouter.New(),
 		wrouter.RootRouterParamAddRequestHandlerMiddleware(
+			middleware.NewRequestContextMetricsRegistry(metricsRegistry),
 			middleware.NewRequestContextLoggers(
 				svcLog,
 				nil,
@@ -88,6 +91,7 @@ func TestCombinedMiddleware(t *testing.T) {
 		assert.Equal(t, testReqIDs.TraceID, string(wtracing.TraceIDFromContext(ctx)))
 
 		svc1log.FromContext(ctx).Info("message")
+		metrics.FromContext(ctx).Counter("counter").Inc(1)
 	}))
 	require.NoError(t, err)
 
@@ -115,6 +119,14 @@ func TestCombinedMiddleware(t *testing.T) {
 
 	testLogParams(t, svcOutput.Bytes())
 	testLogParams(t, reqOutput.Bytes())
+
+	foundCounter := false
+	metricsRegistry.Each(func(name string, tags metrics.Tags, value metrics.MetricVal) {
+		if name == "counter" {
+			foundCounter = true
+		}
+	})
+	assert.True(t, foundCounter, "metrics registry did not record metric inside handler")
 }
 
 func TestRequestMetricRequestMeterMiddleware(t *testing.T) {

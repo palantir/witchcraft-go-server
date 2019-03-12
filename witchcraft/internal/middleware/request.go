@@ -69,6 +69,17 @@ func NewRequestContextLoggers(
 	}
 }
 
+// NewRequestContextMetricsRegistry is request middleware that sets the metrics registry on the request context.
+func NewRequestContextMetricsRegistry(metricsRegistry metrics.Registry) wrouter.RequestHandlerMiddleware {
+	return func(rw http.ResponseWriter, req *http.Request, next http.Handler) {
+		ctx := req.Context()
+		if metricsRegistry != nil {
+			ctx = metrics.WithRegistry(ctx, metricsRegistry)
+		}
+		next.ServeHTTP(rw, req.WithContext(ctx))
+	}
+}
+
 func NewRequestExtractIDs(
 	svcLogger svc1log.Logger,
 	trcLogger trc1log.Logger,
