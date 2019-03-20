@@ -25,11 +25,13 @@ import (
 
 	"github.com/nmiyake/pkg/dirs"
 	"github.com/palantir/pkg/httpserver"
+	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 type testRuntimeConfig struct {
@@ -148,4 +150,93 @@ exclamations: 4
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, cfg2, currCfg)
+}
+
+// TestRuntimeReloadWithNilLoggerConfig verifies that reloading runtime configuration with nil logger config works.
+func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
+	testDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(wd)
+		require.NoError(t, err)
+	}()
+
+	err = os.Chdir(testDir)
+	require.NoError(t, err)
+
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	err = os.MkdirAll("var/conf", 0755)
+	require.NoError(t, err)
+
+	runtimeConfigWithLoggingYML, err := yaml.Marshal(config.Runtime{
+		LoggerConfig: &config.LoggerConfig{
+			Level: wlog.DebugLevel,
+		},
+	})
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(runtimeYML, []byte(runtimeConfigWithLoggingYML), 0644)
+	require.NoError(t, err)
+
+	runtimeConfigUpdatedChan := make(chan struct{})
+
+	server := witchcraft.NewServer().
+		WithInstallConfig(config.Install{
+			ProductName:   productName,
+			UseConsoleLog: true,
+			Server: config.Server{
+				Address:     "localhost",
+				Port:        port,
+				ContextPath: basePath,
+			},
+		}).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
+			info.RuntimeConfig.Subscribe(func(cfgI interface{}) {
+				runtimeConfigUpdatedChan <- struct{}{}
+			})
+			return nil, nil
+		})
+
+	serverChan := make(chan error)
+	go func() {
+		serverChan <- server.Start()
+	}()
+
+	select {
+	case err := <-serverChan:
+		require.NoError(t, err)
+	default:
+	}
+
+	ready := <-waitForTestServerReady(port, path.Join(basePath, status.LivenessEndpoint), 5*time.Second)
+	if !ready {
+		errMsg := "timed out waiting for server to start"
+		select {
+		case err := <-serverChan:
+			errMsg = fmt.Sprintf("%s: %+v", errMsg, err)
+		}
+		require.Fail(t, errMsg)
+	}
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+
+	err = ioutil.WriteFile(runtimeYML, []byte(""), 0644)
+	require.NoError(t, err)
+
+	select {
+	case <-runtimeConfigUpdatedChan:
+		break
+	case <-time.After(5 * time.Second):
+		assert.Fail(t, "timed out waiting for runtime configuration to be updated")
+	}
 }
