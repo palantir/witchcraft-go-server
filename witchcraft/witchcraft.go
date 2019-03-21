@@ -514,7 +514,9 @@ func (s *Server) Start() (rErr error) {
 	// handle built-in runtime config changes
 	unsubscribe := baseRefreshableRuntimeCfg.Subscribe(func(in interface{}) {
 		baseRuntimeCfg := in.(config.Runtime)
-		s.svcLogger.SetLevel(baseRuntimeCfg.LoggerConfig.Level)
+		if loggerCfg := baseRuntimeCfg.LoggerConfig; loggerCfg != nil {
+			s.svcLogger.SetLevel(loggerCfg.Level)
+		}
 	})
 	defer unsubscribe()
 
