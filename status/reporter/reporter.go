@@ -94,6 +94,7 @@ func (r *healthReporter) GetHealthComponent(name string) (HealthComponent, bool)
 	return c, ok
 }
 
+// UnregisterHealthComponent - Removes a health component by name if already initialized.
 func (r *healthReporter) UnregisterHealthComponent(name string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
