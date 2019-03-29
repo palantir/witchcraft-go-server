@@ -103,14 +103,14 @@ func (r *healthReporter) UnregisterHealthComponent(name string) bool {
 	componentName := health.CheckType(name)
 
 	if _, present := r.healthComponents[componentName]; present {
+		delete(r.healthComponents, componentName)
 		changesMade = true
 	}
-	delete(r.healthComponents, componentName)
 
 	if _, present := r.currentStatus.Checks[componentName]; present {
+		delete(r.currentStatus.Checks, componentName)
 		changesMade = true
 	}
-	delete(r.currentStatus.Checks, componentName)
 
 	return changesMade
 }
