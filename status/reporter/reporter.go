@@ -32,7 +32,7 @@ type HealthReporter interface {
 	status.HealthCheckSource
 	InitializeHealthComponent(name string) (HealthComponent, error)
 	GetHealthComponent(name string) (HealthComponent, bool)
-	UnregisterHealthComponent(name string) error
+	UnregisterHealthComponent(name string) bool
 
 	setHealthCheck(component health.CheckType, status health.HealthCheckResult)
 	setHealthCheckAndComponentIfAbsent(componentName health.CheckType, component HealthComponent, status health.HealthCheckResult) bool
@@ -95,15 +95,24 @@ func (r *healthReporter) GetHealthComponent(name string) (HealthComponent, bool)
 }
 
 // UnregisterHealthComponent - Removes a health component by name if already initialized.
-func (r *healthReporter) UnregisterHealthComponent(name string) error {
+func (r *healthReporter) UnregisterHealthComponent(name string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	var changesMade bool
 	componentName := health.CheckType(name)
+
+	if _, present := r.healthComponents[componentName]; present {
+		changesMade = true
+	}
 	delete(r.healthComponents, componentName)
+
+	if _, present := r.currentStatus.Checks[componentName]; present {
+		changesMade = true
+	}
 	delete(r.currentStatus.Checks, componentName)
 
-	return nil
+	return changesMade
 }
 
 // HealthStatus returns a copy of the current HealthStatus, and cannot be used to modify the current state
