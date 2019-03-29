@@ -144,3 +144,20 @@ func TestSetIfNotExist(t *testing.T) {
 	}
 	assert.Fail(t, "Did get the correct number of total calls", total)
 }
+
+func TestUnregisterThenGet(t *testing.T) {
+	reporter := newHealthReporter()
+	component, err := reporter.InitializeHealthComponent(validComponent)
+	assert.NotNil(t, component)
+	assert.NoError(t, err)
+
+	assert.True(t, reporter.UnregisterHealthComponent(validComponent))
+
+	_, present := reporter.GetHealthComponent(validComponent)
+	assert.False(t, present)
+}
+
+func TestUnregisterOnUninitialized(t *testing.T) {
+	reporter := newHealthReporter()
+	assert.False(t, reporter.UnregisterHealthComponent(validComponent))
+}
