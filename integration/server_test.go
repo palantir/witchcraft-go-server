@@ -128,7 +128,7 @@ func TestServerShutdown(t *testing.T) {
 
 			// verify service log output
 			msgs := getLogFileMessages(t, logOutputBuffer.Bytes())
-			assert.Equal(t, []string{"Listening to https", "Listening to https", "example was closed", "example-management was closed"}, msgs)
+			assert.Equal(t, []string{"Listening to https", "Listening to https", "Shutting down server", "example was closed", "example-management was closed"}, msgs)
 		} else {
 			require.False(t, done, "Handler allowed to execute the whole way")
 		}
