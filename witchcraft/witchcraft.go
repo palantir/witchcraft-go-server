@@ -710,12 +710,14 @@ func (s *Server) State() ServerState {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Shutdown(ctx)
 	})
 }
 
 func (s *Server) Close() error {
+	s.svcLogger.Info("Closing server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
 	})
