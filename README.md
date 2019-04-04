@@ -184,6 +184,9 @@ the `WithDisableGoRuntimeMetrics` server method.
 `server.WithDisableSigQuitHandler`.  If `server.WithSigQuitHandlerWriter` is used, the stacks will also be written in
 their unparsed form to the provided writer.
 
+### Shutdown signal handling
+`witchcraft-server` attempts to drain active connections and gracefully shut down by calling `server.Shutdown` upon receiving a SIGTERM or SIGINT signal. This behavior can be disabled using `server.WithDisableShutdownSignalHandler`.
+
 Example server initialization
 -----------------------------
 
