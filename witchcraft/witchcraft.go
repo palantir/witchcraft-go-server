@@ -81,6 +81,9 @@ type Server struct {
 	// if true, disables the default behavior of emitting a goroutine dump on SIGQUIT signals.
 	disableSigQuitHandler bool
 
+	// if true, disables the default behavior of shutting down the server on SIGTERM and SIGINT signals.
+	disableShutdownSignalHandler bool
+
 	// provides the bytes for the install configuration for the server. If nil, a default configuration provider that
 	// reads the file at "var/conf/install.yml" is used.
 	installConfigProvider ConfigBytesProvider
@@ -380,6 +383,12 @@ func (s *Server) WithSigQuitHandlerWriter(w io.Writer) *Server {
 // WithDisableSigQuitHandler disables the server's enabled-by-default goroutine dump on SIGQUIT.
 func (s *Server) WithDisableSigQuitHandler() *Server {
 	s.disableSigQuitHandler = true
+	return s
+}
+
+// WithDisableShutdownSignalHandler disables the server's enabled-by-default shutdown on SIGTERM and SIGINT.
+func (s *Server) WithDisableShutdownSignalHandler() *Server {
+	s.disableShutdownSignalHandler = true
 	return s
 }
 
@@ -702,6 +711,10 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 }
 
 func (s *Server) initShutdownSignalHandler(ctx context.Context) {
+	if s.disableShutdownSignalHandler {
+		return
+	}
+
 	shutdownSignal := make(chan os.Signal, 1)
 	signal.Notify(shutdownSignal, syscall.SIGTERM, syscall.SIGINT)
 
