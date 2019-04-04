@@ -21,8 +21,11 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"reflect"
 	"runtime/debug"
+	"sync"
 	"syscall"
 	"time"
 
@@ -78,6 +81,9 @@ type Server struct {
 
 	// if true, disables the default behavior of emitting a goroutine dump on SIGQUIT signals.
 	disableSigQuitHandler bool
+
+	// if true, disables the default behavior of shutting down the server on SIGTERM and SIGINT signals.
+	disableShutdownSignalHandler bool
 
 	// provides the bytes for the install configuration for the server. If nil, a default configuration provider that
 	// reads the file at "var/conf/install.yml" is used.
@@ -167,6 +173,9 @@ type Server struct {
 
 	// the http.Server for the main server
 	httpServer *http.Server
+
+	// allows the server to wait until Close() or Shutdown() return prior to returning from Start()
+	shutdownFinished sync.WaitGroup
 }
 
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
@@ -381,6 +390,12 @@ func (s *Server) WithDisableSigQuitHandler() *Server {
 	return s
 }
 
+// WithDisableShutdownSignalHandler disables the server's enabled-by-default shutdown on SIGTERM and SIGINT.
+func (s *Server) WithDisableShutdownSignalHandler() *Server {
+	s.disableShutdownSignalHandler = true
+	return s
+}
+
 // WithDisableKeepAlives disables keep-alives on the server by calling SetKeepAlivesEnabled(false) on the http.Server
 // used by the server. Note that this setting is only applied to the main server -- if the management server is separate
 // from the main server, this setting is not applied to the management server. Refer to the documentation for
@@ -412,7 +427,7 @@ const (
 	runtimeConfigPath = "var/conf/runtime.yml"
 )
 
-// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
+// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() return.
 // Errors are logged via s.svcLogger before being returned.
 // Panics are recovered; in the case of a recovered panic, Start will log and return
 // a non-nil error containing the recovered object (overwriting any existing error).
@@ -525,6 +540,10 @@ func (s *Server) Start() (rErr error) {
 	defer unsubscribe()
 
 	s.initStackTraceHandler(ctx)
+	s.initShutdownSignalHandler(ctx)
+
+	// wait for s.Close() or s.Shutdown() to return if called
+	defer s.shutdownFinished.Wait()
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -702,6 +721,22 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
+func (s *Server) initShutdownSignalHandler(ctx context.Context) {
+	if s.disableShutdownSignalHandler {
+		return
+	}
+
+	shutdownSignal := make(chan os.Signal, 1)
+	signal.Notify(shutdownSignal, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		<-shutdownSignal
+		if err := s.Shutdown(ctx); err != nil {
+			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
+		}
+	}()
+}
+
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false
 // otherwise.
 func (s *Server) Running() bool {
@@ -714,12 +749,18 @@ func (s *Server) State() ServerState {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.shutdownFinished.Add(1)
+	defer s.shutdownFinished.Done()
+
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Shutdown(ctx)
 	})
 }
 
 func (s *Server) Close() error {
+	s.shutdownFinished.Add(1)
+	defer s.shutdownFinished.Done()
+
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
 	})
