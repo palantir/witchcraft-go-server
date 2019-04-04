@@ -142,6 +142,11 @@ func TestServer_Start_WithStop(t *testing.T) {
 			require.NoError(t, err)
 			return proc.Signal(syscall.SIGTERM)
 		},
+		"SIGINT": func(server *witchcraft.Server, _ context.Context) error {
+			proc, err := os.FindProcess(os.Getpid())
+			require.NoError(t, err)
+			return proc.Signal(syscall.SIGINT)
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			testStop(t, stop)

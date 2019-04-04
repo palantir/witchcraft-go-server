@@ -523,7 +523,7 @@ func (s *Server) Start() (rErr error) {
 	defer unsubscribe()
 
 	s.initStackTraceHandler(ctx)
-	s.initSigtermHandler(ctx)
+	s.initShutdownSignalHandler(ctx)
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -701,12 +701,12 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
-func (s *Server) initSigtermHandler(ctx context.Context) {
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGTERM)
+func (s *Server) initShutdownSignalHandler(ctx context.Context) {
+	shutdownSignal := make(chan os.Signal, 1)
+	signal.Notify(shutdownSignal, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		<-sigterm
+		<-shutdownSignal
 		if err := s.Shutdown(ctx); err != nil {
 			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
 		}
