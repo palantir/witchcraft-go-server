@@ -448,6 +448,8 @@ func (s *Server) Start() (rErr error) {
 	if err := s.stateManager.Start(); err != nil {
 		return err
 	}
+	// Run() function only terminates after server stops, so reset state at that point
+	defer s.stateManager.setState(ServerIdle)
 
 	// set provider for ECV key
 	if s.ecvKeyProvider == nil {
