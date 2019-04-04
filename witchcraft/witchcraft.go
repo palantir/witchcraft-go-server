@@ -21,6 +21,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"reflect"
 	"runtime/debug"
 	"syscall"
@@ -521,6 +523,7 @@ func (s *Server) Start() (rErr error) {
 	defer unsubscribe()
 
 	s.initStackTraceHandler(ctx)
+	s.initSigtermHandler(ctx)
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -696,6 +699,18 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 	}
 
 	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
+}
+
+func (s *Server) initSigtermHandler(ctx context.Context) {
+	sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, syscall.SIGTERM)
+
+	go func() {
+		<-sigterm
+		if err := s.Shutdown(ctx); err != nil {
+			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
+		}
+	}()
 }
 
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false

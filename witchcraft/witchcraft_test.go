@@ -19,7 +19,9 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"os"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -134,6 +136,11 @@ func TestServer_Start_WithStop(t *testing.T) {
 		"Shutdown": (*witchcraft.Server).Shutdown,
 		"Close": func(server *witchcraft.Server, _ context.Context) error {
 			return server.Close()
+		},
+		"SIGTERM": func(server *witchcraft.Server, _ context.Context) error {
+			proc, err := os.FindProcess(os.Getpid())
+			require.NoError(t, err)
+			return proc.Signal(syscall.SIGTERM)
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
