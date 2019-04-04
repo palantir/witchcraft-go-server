@@ -743,6 +743,7 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	if s.State() != ServerRunning {
 		return werror.Error("server is not running")
 	}
+	s.stateManager.setState(ServerIdle)
 	return stopper(s.httpServer)
 }
 
