@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"reflect"
 	"runtime/debug"
+	"sync"
 	"syscall"
 	"time"
 
@@ -172,6 +173,9 @@ type Server struct {
 
 	// the http.Server for the main server
 	httpServer *http.Server
+
+	// allows the server to wait until Close() or Shutdown() return prior to returning from Start()
+	shutdownFinished sync.WaitGroup
 }
 
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
@@ -423,7 +427,7 @@ const (
 	runtimeConfigPath = "var/conf/runtime.yml"
 )
 
-// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
+// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() return.
 // Errors are logged via s.svcLogger before being returned.
 // Panics are recovered; in the case of a recovered panic, Start will log and return
 // a non-nil error containing the recovered object (overwriting any existing error).
@@ -533,6 +537,9 @@ func (s *Server) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
+
+	// wait for s.Close() or s.Shutdown() to return if called
+	defer s.shutdownFinished.Wait()
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -738,12 +745,18 @@ func (s *Server) State() ServerState {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.shutdownFinished.Add(1)
+	defer s.shutdownFinished.Done()
+
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Shutdown(ctx)
 	})
 }
 
 func (s *Server) Close() error {
+	s.shutdownFinished.Add(1)
+	defer s.shutdownFinished.Done()
+
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
 	})
