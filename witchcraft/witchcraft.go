@@ -752,6 +752,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.shutdownFinished.Add(1)
 	defer s.shutdownFinished.Done()
 
+	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Shutdown(ctx)
 	})
@@ -761,6 +762,7 @@ func (s *Server) Close() error {
 	s.shutdownFinished.Add(1)
 	defer s.shutdownFinished.Done()
 
+	s.svcLogger.Info("Closing server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
 	})
