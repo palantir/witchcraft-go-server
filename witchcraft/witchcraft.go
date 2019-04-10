@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -829,8 +830,9 @@ func (s *Server) samplerForRate(sampleRate float64) wtracing.Sampler {
 		}
 		return func(id uint64) bool { return true }
 	}
+
+	boundary := uint64(sampleRate * float64(math.MaxUint64)) // does not overflow because we already checked bounds
 	return func(id uint64) bool {
-		mod := uint64(1 / sampleRate)
-		return id%mod == 0
+		return id < boundary
 	}
 }

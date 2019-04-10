@@ -24,68 +24,59 @@ import (
 func TestSamplerForRate(t *testing.T) {
 	for _, test := range []struct {
 		rate     float64
-		expected map[uint64]bool
+		expected [16]bool
 	}{
 		{
+			rate: -1,
+			expected: [16]bool{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+		},
+		{
 			rate: 0,
-			expected: map[uint64]bool{
-				0: false,
-				1: false,
-				2: false,
-			},
-		},
-		{
-			rate: 1,
-			expected: map[uint64]bool{
-				0: true,
-				1: true,
-				2: true,
-			},
-		},
-		{
-			rate: 0.25,
-			expected: map[uint64]bool{
-				0: true,
-				1: false,
-				2: false,
-				3: false,
-				4: true,
-				5: false,
-			},
+			expected: [16]bool{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
 		},
 		{
 			rate: 0.123,
-			expected: map[uint64]bool{
-				0: true,
-				1: false,
-				2: false,
-				3: false,
-				4: false,
-				5: false,
-			},
+			expected: [16]bool{true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+		},
+		{
+			rate: 0.25,
+			expected: [16]bool{true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
+		},
+		{
+			rate: 0.9,
+			expected: [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false},
+		},
+		{
+			rate: 1,
+			expected: [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true},
 		},
 		{
 			rate: 2,
-			expected: map[uint64]bool{
-				0: true,
-				1: true,
-				2: true,
-			},
-		},
-		{
-			rate: -1,
-			expected: map[uint64]bool{
-				0: false,
-				1: false,
-				2: false,
-			},
+			expected: [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true},
 		},
 	} {
 		t.Run(fmt.Sprint(test.rate), func(t *testing.T) {
 			sampler := (&Server{}).samplerForRate(test.rate)
-			for id, sampled := range test.expected {
-				t.Run(fmt.Sprint(id), func(t *testing.T) {
-					assert.Equal(t, sampled, sampler(id))
+			for i, id := range []uint64{
+				0x0000000000000000,
+				0x1111111111111111,
+				0x2222222222222222,
+				0x3333333333333333,
+				0x4444444444444444,
+				0x5555555555555555,
+				0x6666666666666666,
+				0x7777777777777777,
+				0x8888888888888888,
+				0x9999999999999999,
+				0xaaaaaaaaaaaaaaaa,
+				0xbbbbbbbbbbbbbbbb,
+				0xcccccccccccccccc,
+				0xdddddddddddddddd,
+				0xeeeeeeeeeeeeeeee,
+				0xffffffffffffffff,
+			} {
+				t.Run(fmt.Sprintf("%x", id), func(t *testing.T) {
+					assert.Equal(t, test.expected[i], sampler(id))
 				})
 			}
 		})
