@@ -524,10 +524,10 @@ func (s *Server) Start() (rErr error) {
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// add middleware
-	s.addMiddleware(router.RootRouter(), metricsRegistry, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, s.traceSampler))
+	s.addMiddleware(router.RootRouter(), metricsRegistry, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, baseInstallCfg.TraceSampleRate))
 	if mgmtRouter != router {
 		// add middleware to management router as well if it is distinct
-		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.ManagementPort, s.traceSampler))
+		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.ManagementPort, baseInstallCfg.TraceSampleRate))
 	}
 
 	// handle built-in runtime config changes
@@ -550,7 +550,7 @@ func (s *Server) Start() (rErr error) {
 		if s.trcLogger != nil {
 			traceReporter = s.trcLogger
 		}
-		tracer, err := wzipkin.NewTracer(traceReporter, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, s.traceSampler)...)
+		tracer, err := wzipkin.NewTracer(traceReporter, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, baseInstallCfg.TraceSampleRate)...)
 		if err != nil {
 			return err
 		}
@@ -794,7 +794,7 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	return stopper(s.httpServer)
 }
 
-func defaultTracerOptions(serviceName, address string, port int, traceSampler func(id uint64) bool) []wtracing.TracerOption {
+func (s *Server) defaultTracerOptions(serviceName, address string, port int, sampleRate *float64) []wtracing.TracerOption {
 	var options []wtracing.TracerOption
 	endpoint := &wtracing.Endpoint{
 		ServiceName: serviceName,
@@ -807,9 +807,34 @@ func defaultTracerOptions(serviceName, address string, port int, traceSampler fu
 			endpoint.IPv6 = parsedIP
 		}
 	}
+	if s.traceSampler == nil {
+
+	}
+
 	options = append(options, wtracing.WithLocalEndpoint(endpoint))
-	if traceSampler != nil {
-		options = append(options, wtracing.WithSampler(traceSampler))
+	if s.traceSampler != nil {
+		options = append(options, wtracing.WithSampler(s.traceSampler))
+	} else if sampleRate != nil {
+		options = append(options, wtracing.WithSampler(s.samplerForRate(*sampleRate)))
 	}
 	return options
+}
+
+func (s *Server) samplerForRate(sampleRate float64) wtracing.Sampler {
+	if sampleRate <= 0 {
+		if s.svcLogger != nil {
+			s.svcLogger.Info("Trace logging will be disabled due to trace-sample-rate <= 0")
+		}
+		return func(id uint64) bool { return false }
+	}
+	if sampleRate >= 1 {
+		if s.svcLogger != nil {
+			s.svcLogger.Info("Trace logging will sample all traces due to trace-sample-rate >= 1")
+		}
+		return func(id uint64) bool { return true }
+	}
+	return func(id uint64) bool {
+		mod := uint64(1 / sampleRate)
+		return id%mod == 0
+	}
 }
