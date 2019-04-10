@@ -111,7 +111,9 @@ the request specifies a `X-B3-Sampled` header, the value specified in that heade
 header is not present, whether or not the trace is sampled is determined by the sampling source configured for the 
 `witchcraft-server` (by default, all traces are sampled). If a trace is not sampled, `witchcraft-server` will not 
 generate any trace log output for it. However, the infrastructure will still perform all of the trace-related operations
-(such as creating child spans and setting span information on headers).
+(such as creating child spans and setting span information on headers). The install configuration field
+`trace-sample-rate` represents a float between 0 and 1 (inclusive) to control the proportion of traces sampled by
+default. If the `WithTraceSampler` server option is provided, it overrides this configuration.
 
 `witchcraft-server` also ensures that the context for every request has a trace ID. After the logging middleware 
 executes, the request is guaranteed to have a trace ID (either from the incoming request or from the newly generated 
