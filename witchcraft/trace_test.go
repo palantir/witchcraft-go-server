@@ -27,31 +27,31 @@ func TestSamplerForRate(t *testing.T) {
 		expected [16]bool
 	}{
 		{
-			rate: -1,
+			rate:     -1,
 			expected: [16]bool{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
 		},
 		{
-			rate: 0,
+			rate:     0,
 			expected: [16]bool{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
 		},
 		{
-			rate: 0.123,
+			rate:     0.123,
 			expected: [16]bool{true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
 		},
 		{
-			rate: 0.25,
+			rate:     0.25,
 			expected: [16]bool{true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
 		},
 		{
-			rate: 0.9,
+			rate:     0.9,
 			expected: [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false},
 		},
 		{
-			rate: 1,
+			rate:     1,
 			expected: [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true},
 		},
 		{
-			rate: 2,
+			rate:     2,
 			expected: [16]bool{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true},
 		},
 	} {
