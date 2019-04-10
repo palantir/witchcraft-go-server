@@ -807,10 +807,6 @@ func (s *Server) defaultTracerOptions(serviceName, address string, port int, sam
 			endpoint.IPv6 = parsedIP
 		}
 	}
-	if s.traceSampler == nil {
-
-	}
-
 	options = append(options, wtracing.WithLocalEndpoint(endpoint))
 	if s.traceSampler != nil {
 		options = append(options, wtracing.WithSampler(s.traceSampler))
