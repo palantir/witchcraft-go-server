@@ -56,6 +56,16 @@ configuration, then `witchcraft-server` starts a second management server on the
 endpoints on that port. This can be useful in scenarios where all of the traffic to the main endpoints require client
 certificates for TLS but the status endpoints need to be served without requiring client TLS certificates.
 
+### Debug Routes
+The following routes are registered on the management server (if enabled, otherwise the main server) to aid in debugging
+and telemetry collection:
+* `/debug/pprof`: Provides an HTML index of the other endpoints at this route.
+* `/debug/pprof/profile`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
+* `/debug/pprof/heap`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
+* `/debug/pprof/cmdline`: Returns the process's command line invocation as `text/plain`. See [pprof.Cmdline](https://golang.org/pkg/net/http/pprof/#Cmdline).
+* `/debug/pprof/symbol`: Looks up the program counters listed in the request, responding with a table mapping program counters to function names See [pprof.Symbol](https://golang.org/pkg/net/http/pprof/#Symbol).
+* `/debug/pprof/trace`: Returns the execution trace in binary form. See [pprof.Trace](https://golang.org/pkg/net/http/pprof/#Trace).
+
 ### Context path
 If `context-path` is specified in the install configuration, all of the routes registered on the server will be prefixed
 with the specified `context-path`.
