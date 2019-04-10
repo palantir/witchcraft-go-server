@@ -24,6 +24,7 @@ type Install struct {
 	ProductName          string        `yaml:"product-name,omitempty"`
 	Server               Server        `yaml:"server,omitempty"`
 	MetricsEmitFrequency time.Duration `yaml:"metrics-emit-frequency,omitempty"`
+	TraceSampleRate      *float64      `yaml:"trace-sample-rate,omitempty"`
 	UseConsoleLog        bool          `yaml:"use-console-log,omitempty"`
 }
 
