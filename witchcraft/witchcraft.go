@@ -147,14 +147,6 @@ type Server struct {
 	// default behavior is to sample every trace.
 	traceSampler func(id uint64) bool
 
-	// shutdownGracePeriod is the maximum time the server will wait for active connections to complete
-	// before closing them abruptly.
-	shutdownGracePeriod time.Duration
-
-	// disableShutdownSignals, if set, disables the enabled-by-default behavior of gracefully shutting down
-	// the server by catching SIGTERM and SIGINT.
-	disableShutdownSignals bool
-
 	// disableKeepAlives disables keep-alives.
 	disableKeepAlives bool
 
