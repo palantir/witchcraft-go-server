@@ -27,6 +27,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/status/reporter"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/ratelimit"
+	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,7 +43,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 		require.Equal(t, string(health.HealthStateRepairing), string(healthComponent.Status()), msg)
 	}
 
-	limiter := ratelimit.NewInFlightRequestLimitMiddleware(2, ratelimit.MatchMutating, healthComponent)
+	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.NewInt(refreshable.NewDefaultRefreshable(2)), ratelimit.MatchMutating, healthComponent)
 
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()
