@@ -100,7 +100,6 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 	return true
 }
 
-
 // increment subtracts 1 from the current counter. If the new value is under the Limit,
 // l.Health is set to HEALTHY (if not already in that state).
 func (l *limiter) decrement(ctx context.Context) {
