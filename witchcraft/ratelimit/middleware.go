@@ -15,6 +15,7 @@
 package ratelimit
 
 import (
+	"context"
 	"net/http"
 	"sync/atomic"
 
@@ -26,7 +27,7 @@ import (
 
 type MatchFunc func(req *http.Request, vals wrouter.RequestVals) bool
 
-var MatchReadonly MatchFunc = func(req *http.Request, vals wrouter.RequestVals) bool {
+var MatchReadOnly MatchFunc = func(req *http.Request, vals wrouter.RequestVals) bool {
 	return req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions
 }
 
@@ -34,19 +35,25 @@ var MatchMutating MatchFunc = func(req *http.Request, vals wrouter.RequestVals) 
 	return req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodDelete || req.Method == http.MethodPatch
 }
 
-// NewInflightLimitMiddleware returns a middleware which counts and limits the number of
-// inflight requests that match a the provided MatchFunc filter. If health is non-nil,
-// it will be set to REPAIRING when the middleware returns StatusTooManyRequests (429),
+// NewInFlightRequestLimitMiddleware returns a middleware which counts and limits the number of
+// inflight requests that match the provided MatchFunc filter. If MatchFunc is nil, it will
+// match all requests. When the number of active matched requests exceeds the limit, the middleware
+// returns StatusTooManyRequests (429).
+//
+// If healthcheck is non-nil, it will be set to REPAIRING when the middleware is throttling
+// and HEALTHY when the current counter falls below the limit. It is initialized to HEALTHY.
 //
 // TODO: We should set the Retry-After header based on how many requests we're rejecting.
 //		 Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
-func NewInflightLimitMiddleware(limit int64, matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
+func NewInFlightRequestLimitMiddleware(limit int64, matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
 	l := &limiter{
 		Limit:   limit,
 		Matches: matches,
 		Health:  healthcheck,
 	}
-	healthcheck.Healthy()
+	if healthcheck != nil {
+		healthcheck.Healthy()
+	}
 	return l.ServeHTTP
 }
 
@@ -58,29 +65,43 @@ type limiter struct {
 	current int64
 }
 
+const inFlightThrottledMessage = "Throttling due to too many inflight requests"
+
 func (l *limiter) ServeHTTP(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-	if l.Matches(req, reqVals) {
-		current := atomic.AddInt64(&l.current, 1)
-		defer atomic.AddInt64(&l.current, -1)
+	if l.Matches == nil || l.Matches(req, reqVals) {
+		throttled := l.increment(req.Context())
+		defer l.decrement(req.Context())
 
-		if current > l.Limit {
-			msg := "Throttling due to too many inflight requests"
-			if l.Health != nil && l.Health.Status() != health.HealthStateRepairing {
-				l.Health.SetHealth(health.HealthStateRepairing, &msg, nil)
-			}
-			svc1log.FromContext(req.Context()).Warn(msg,
-				svc1log.SafeParam("current", current),
-				svc1log.SafeParam("limit", l.Limit))
-
+		if throttled {
 			// Return early, triggering failover or exponential backoff.
-			http.Error(rw, msg, http.StatusTooManyRequests)
+			http.Error(rw, inFlightThrottledMessage, http.StatusTooManyRequests)
 			return
 		}
+	}
+	next(rw, req, reqVals)
+}
 
-		// Mark ourselves healthy!
+func (l *limiter) increment(ctx context.Context) bool {
+	current := atomic.AddInt64(&l.current, 1)
+	if current > l.Limit {
+		if l.Health != nil && l.Health.Status() != health.HealthStateRepairing {
+			msg := inFlightThrottledMessage
+			l.Health.SetHealth(health.HealthStateRepairing, &msg, nil)
+		}
+		svc1log.FromContext(ctx).Warn(inFlightThrottledMessage,
+			svc1log.SafeParam("current", current),
+			svc1log.SafeParam("limit", l.Limit))
+
+		return true
+	}
+	return false
+}
+
+func (l *limiter) decrement(ctx context.Context) {
+	current := atomic.AddInt64(&l.current, -1)
+	if current <= l.Limit {
 		if l.Health != nil && l.Health.Status() != health.HealthStateHealthy {
 			l.Health.Healthy()
 		}
 	}
-	next(rw, req, reqVals)
 }

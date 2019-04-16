@@ -38,11 +38,8 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	requireHealthy := func(msg string) {
 		require.Equal(t, string(health.HealthStateHealthy), string(healthComponent.Status()), msg)
 	}
-	requireRepairing := func(msg string) {
-		require.Equal(t, string(health.HealthStateRepairing), string(healthComponent.Status()), msg)
-	}
 
-	limiter := ratelimit.NewInflightLimitMiddleware(2, ratelimit.MatchMutating, healthComponent)
+	limiter := ratelimit.NewInFlightRequestLimitMiddleware(2, ratelimit.MatchMutating, healthComponent)
 
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()
@@ -81,11 +78,11 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 		getURL := fmt.Sprintf("https://localhost:%d/%s/get", port, basePath)
 		request, err := http.NewRequest(http.MethodGet, getURL, nil)
 		if err != nil {
-			panic(err)
+			assert.NoError(t, err)
 		}
 		resp, err := client.Do(request.WithContext(ctx))
 		if err != nil {
-			panic(err)
+			assert.NoError(t, err)
 		}
 		return resp
 	}
@@ -93,11 +90,11 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 		postURL := fmt.Sprintf("https://localhost:%d/%s/post", port, basePath)
 		request, err := http.NewRequest(http.MethodPost, postURL, nil)
 		if err != nil {
-			panic(err)
+			assert.NoError(t, err)
 		}
 		resp, err := client.Do(request.WithContext(ctx))
 		if err != nil {
-			panic(err)
+			assert.NoError(t, err)
 		}
 		return resp
 	}
@@ -115,12 +112,9 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 
 	resp3 := doPost()
 	require.Equal(t, http.StatusTooManyRequests, resp3.StatusCode, "expected third POST request to be rate limited")
-	requireRepairing("expected repairing after throttled response")
 
 	require.Equal(t, http.StatusOK, doGet().StatusCode, "expected get request to be successful")
 	require.Equal(t, http.StatusOK, doGet().StatusCode, "expected get request to be successful")
-
-	requireRepairing("expected unchanged health after unmatched response")
 
 	// free the waiting requests, which should return 200
 	closeWait()
