@@ -81,7 +81,7 @@ func (d *fileRefreshable) watchForChanges(ctx context.Context) error {
 				if event.Op == fsnotify.Write || event.Op == fsnotify.Create || event.Op == fsnotify.Rename {
 					fileBytes, err := ioutil.ReadFile(d.filePath)
 					if err != nil {
-						svc1log.FromContext(ctx).Warn("Failed to read file bytes to update refreshable")
+						svc1log.FromContext(ctx).Warn("Failed to read file bytes to update refreshable", svc1log.Stacktrace(err))
 						continue
 					}
 					loadedChecksum := sha256.Sum256(fileBytes)
