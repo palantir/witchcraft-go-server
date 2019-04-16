@@ -75,7 +75,7 @@
   version = "1.0.0"
 
 [[projects]]
-  digest = "1:2c19058cc056908dd5a08b24b8f0d0582b4f98ff5b76f1c934573e854fc66450"
+  digest = "1:75aa9f999a195c38150f8f96f473e78f962838b5232cf072c8989e7f07b009e4"
   name = "github.com/palantir/pkg"
   packages = [
     "datetime",
@@ -90,8 +90,8 @@
     "transform",
   ]
   pruneopts = "UT"
-  revision = "7fd8d6e85a713f1ec5376c81b97c7ed1033c9816"
-  version = "0.10.0"
+  revision = "332184900c68094416680529ecbe2592135374b6"
+  version = "0.10.2"
 
 [[projects]]
   branch = "develop"
