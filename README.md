@@ -56,6 +56,16 @@ configuration, then `witchcraft-server` starts a second management server on the
 endpoints on that port. This can be useful in scenarios where all of the traffic to the main endpoints require client
 certificates for TLS but the status endpoints need to be served without requiring client TLS certificates.
 
+### Debug Routes
+The following routes are registered on the management server (if enabled, otherwise the main server) to aid in debugging
+and telemetry collection:
+* `/debug/pprof`: Provides an HTML index of the other endpoints at this route.
+* `/debug/pprof/profile`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
+* `/debug/pprof/heap`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
+* `/debug/pprof/cmdline`: Returns the process's command line invocation as `text/plain`. See [pprof.Cmdline](https://golang.org/pkg/net/http/pprof/#Cmdline).
+* `/debug/pprof/symbol`: Looks up the program counters listed in the request, responding with a table mapping program counters to function names See [pprof.Symbol](https://golang.org/pkg/net/http/pprof/#Symbol).
+* `/debug/pprof/trace`: Returns the execution trace in binary form. See [pprof.Trace](https://golang.org/pkg/net/http/pprof/#Trace).
+
 ### Context path
 If `context-path` is specified in the install configuration, all of the routes registered on the server will be prefixed
 with the specified `context-path`.
@@ -111,7 +121,9 @@ the request specifies a `X-B3-Sampled` header, the value specified in that heade
 header is not present, whether or not the trace is sampled is determined by the sampling source configured for the 
 `witchcraft-server` (by default, all traces are sampled). If a trace is not sampled, `witchcraft-server` will not 
 generate any trace log output for it. However, the infrastructure will still perform all of the trace-related operations
-(such as creating child spans and setting span information on headers).
+(such as creating child spans and setting span information on headers). The install configuration field
+`trace-sample-rate` represents a float between 0 and 1 (inclusive) to control the proportion of traces sampled by
+default. If the `WithTraceSampler` server option is provided, it overrides this configuration.
 
 `witchcraft-server` also ensures that the context for every request has a trace ID. After the logging middleware 
 executes, the request is guaranteed to have a trace ID (either from the incoming request or from the newly generated 
@@ -183,6 +195,9 @@ the `WithDisableGoRuntimeMetrics` server method.
 (`kill -3`), a goroutine dump is written as a `diagnostic.1` log. This behavior can be disabled using
 `server.WithDisableSigQuitHandler`.  If `server.WithSigQuitHandlerWriter` is used, the stacks will also be written in
 their unparsed form to the provided writer.
+
+### Shutdown signal handling
+`witchcraft-server` attempts to drain active connections and gracefully shut down by calling `server.Shutdown` upon receiving a SIGTERM or SIGINT signal. This behavior can be disabled using `server.WithDisableShutdownSignalHandler`.
 
 Example server initialization
 -----------------------------

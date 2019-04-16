@@ -19,10 +19,14 @@ import (
 	"crypto/tls"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"reflect"
 	"runtime/debug"
+	"sync"
 	"syscall"
 	"time"
 
@@ -78,6 +82,9 @@ type Server struct {
 
 	// if true, disables the default behavior of emitting a goroutine dump on SIGQUIT signals.
 	disableSigQuitHandler bool
+
+	// if true, disables the default behavior of shutting down the server on SIGTERM and SIGINT signals.
+	disableShutdownSignalHandler bool
 
 	// provides the bytes for the install configuration for the server. If nil, a default configuration provider that
 	// reads the file at "var/conf/install.yml" is used.
@@ -167,6 +174,9 @@ type Server struct {
 
 	// the http.Server for the main server
 	httpServer *http.Server
+
+	// allows the server to wait until Close() or Shutdown() return prior to returning from Start()
+	shutdownFinished sync.WaitGroup
 }
 
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
@@ -381,6 +391,12 @@ func (s *Server) WithDisableSigQuitHandler() *Server {
 	return s
 }
 
+// WithDisableShutdownSignalHandler disables the server's enabled-by-default shutdown on SIGTERM and SIGINT.
+func (s *Server) WithDisableShutdownSignalHandler() *Server {
+	s.disableShutdownSignalHandler = true
+	return s
+}
+
 // WithDisableKeepAlives disables keep-alives on the server by calling SetKeepAlivesEnabled(false) on the http.Server
 // used by the server. Note that this setting is only applied to the main server -- if the management server is separate
 // from the main server, this setting is not applied to the management server. Refer to the documentation for
@@ -412,7 +428,7 @@ const (
 	runtimeConfigPath = "var/conf/runtime.yml"
 )
 
-// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() are called.
+// Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() return.
 // Errors are logged via s.svcLogger before being returned.
 // Panics are recovered; in the case of a recovered panic, Start will log and return
 // a non-nil error containing the recovered object (overwriting any existing error).
@@ -448,8 +464,12 @@ func (s *Server) Start() (rErr error) {
 	if err := s.stateManager.Start(); err != nil {
 		return err
 	}
-	// Run() function only terminates after server stops, so reset state at that point
-	defer s.stateManager.setState(ServerIdle)
+	// Reset state if server terminated without calling s.Close() or s.Shutdown()
+	defer func() {
+		if s.State() != ServerIdle {
+			s.stateManager.setState(ServerIdle)
+		}
+	}()
 
 	// set provider for ECV key
 	if s.ecvKeyProvider == nil {
@@ -505,10 +525,10 @@ func (s *Server) Start() (rErr error) {
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// add middleware
-	s.addMiddleware(router.RootRouter(), metricsRegistry, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, s.traceSampler))
+	s.addMiddleware(router.RootRouter(), metricsRegistry, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, baseInstallCfg.TraceSampleRate))
 	if mgmtRouter != router {
 		// add middleware to management router as well if it is distinct
-		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.ManagementPort, s.traceSampler))
+		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.ManagementPort, baseInstallCfg.TraceSampleRate))
 	}
 
 	// handle built-in runtime config changes
@@ -522,13 +542,17 @@ func (s *Server) Start() (rErr error) {
 	defer unsubscribe()
 
 	s.initStackTraceHandler(ctx)
+	s.initShutdownSignalHandler(ctx)
+
+	// wait for s.Close() or s.Shutdown() to return if called
+	defer s.shutdownFinished.Wait()
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
 			traceReporter = s.trcLogger
 		}
-		tracer, err := wzipkin.NewTracer(traceReporter, defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, s.traceSampler)...)
+		tracer, err := wzipkin.NewTracer(traceReporter, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, baseInstallCfg.TraceSampleRate)...)
 		if err != nil {
 			return err
 		}
@@ -699,6 +723,22 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
+func (s *Server) initShutdownSignalHandler(ctx context.Context) {
+	if s.disableShutdownSignalHandler {
+		return
+	}
+
+	shutdownSignal := make(chan os.Signal, 1)
+	signal.Notify(shutdownSignal, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		<-shutdownSignal
+		if err := s.Shutdown(ctx); err != nil {
+			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
+		}
+	}()
+}
+
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false
 // otherwise.
 func (s *Server) Running() bool {
@@ -711,12 +751,20 @@ func (s *Server) State() ServerState {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.shutdownFinished.Add(1)
+	defer s.shutdownFinished.Done()
+
+	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Shutdown(ctx)
 	})
 }
 
 func (s *Server) Close() error {
+	s.shutdownFinished.Add(1)
+	defer s.shutdownFinished.Done()
+
+	s.svcLogger.Info("Closing server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
 	})
@@ -744,10 +792,11 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	if s.State() != ServerRunning {
 		return werror.Error("server is not running")
 	}
+	s.stateManager.setState(ServerIdle)
 	return stopper(s.httpServer)
 }
 
-func defaultTracerOptions(serviceName, address string, port int, traceSampler func(id uint64) bool) []wtracing.TracerOption {
+func (s *Server) defaultTracerOptions(serviceName, address string, port int, sampleRate *float64) []wtracing.TracerOption {
 	var options []wtracing.TracerOption
 	endpoint := &wtracing.Endpoint{
 		ServiceName: serviceName,
@@ -761,8 +810,30 @@ func defaultTracerOptions(serviceName, address string, port int, traceSampler fu
 		}
 	}
 	options = append(options, wtracing.WithLocalEndpoint(endpoint))
-	if traceSampler != nil {
-		options = append(options, wtracing.WithSampler(traceSampler))
+	if s.traceSampler != nil {
+		options = append(options, wtracing.WithSampler(s.traceSampler))
+	} else if sampleRate != nil {
+		options = append(options, wtracing.WithSampler(s.samplerForRate(*sampleRate)))
 	}
 	return options
+}
+
+func (s *Server) samplerForRate(sampleRate float64) wtracing.Sampler {
+	if sampleRate <= 0 {
+		if s.svcLogger != nil {
+			s.svcLogger.Info("Trace logging will be disabled due to trace-sample-rate <= 0")
+		}
+		return func(id uint64) bool { return false }
+	}
+	if sampleRate >= 1 {
+		if s.svcLogger != nil {
+			s.svcLogger.Info("Trace logging will sample all traces due to trace-sample-rate >= 1")
+		}
+		return func(id uint64) bool { return true }
+	}
+
+	boundary := uint64(sampleRate * float64(math.MaxUint64)) // does not overflow because we already checked bounds
+	return func(id uint64) bool {
+		return id < boundary
+	}
 }

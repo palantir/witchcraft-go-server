@@ -170,10 +170,11 @@ func (r *rootRouter) Delete(path string, handler http.Handler, params ...RoutePa
 	return r.Register(http.MethodDelete, path, handler, params...)
 }
 
-func (r *rootRouter) Subrouter(path string) Router {
+func (r *rootRouter) Subrouter(path string, params ...RouteParam) Router {
 	return &subrouter{
 		rPath:   path,
 		rParent: r,
+		params:  params,
 	}
 }
 
