@@ -38,6 +38,9 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	requireHealthy := func(msg string) {
 		require.Equal(t, string(health.HealthStateHealthy), string(healthComponent.Status()), msg)
 	}
+	requireRepairing := func(msg string) {
+		require.Equal(t, string(health.HealthStateRepairing), string(healthComponent.Status()), msg)
+	}
 
 	limiter := ratelimit.NewInFlightRequestLimitMiddleware(2, ratelimit.MatchMutating, healthComponent)
 
@@ -112,9 +115,12 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 
 	resp3 := doPost()
 	require.Equal(t, http.StatusTooManyRequests, resp3.StatusCode, "expected third POST request to be rate limited")
+	requireRepairing("expected repairing after throttled response")
 
 	require.Equal(t, http.StatusOK, doGet().StatusCode, "expected get request to be successful")
 	require.Equal(t, http.StatusOK, doGet().StatusCode, "expected get request to be successful")
+
+	requireRepairing("expected unchanged health after unmatched response")
 
 	// free the waiting requests, which should return 200
 	closeWait()

@@ -65,7 +65,7 @@ type limiter struct {
 	current int64
 }
 
-const inFlightThrottledMessage = "Throttling due to too many inflight requests"
+const inFlightThrottledMessage = "Throttling due to too many in-flight requests"
 
 func (l *limiter) ServeHTTP(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 	if l.Matches == nil || l.Matches(req, reqVals) {
@@ -81,27 +81,31 @@ func (l *limiter) ServeHTTP(rw http.ResponseWriter, req *http.Request, reqVals w
 	next(rw, req, reqVals)
 }
 
-func (l *limiter) increment(ctx context.Context) bool {
+// increment adds 1 to the current counter. If the new value is over the Limit,
+// increment returns 'true' to indicate the request should be rejected/throttled and
+// l.Health is set to REPAIRING (if not already in that state).
+func (l *limiter) increment(ctx context.Context) (throttled bool) {
 	current := atomic.AddInt64(&l.current, 1)
-	if current > l.Limit {
-		if l.Health != nil && l.Health.Status() != health.HealthStateRepairing {
-			msg := inFlightThrottledMessage
-			l.Health.SetHealth(health.HealthStateRepairing, &msg, nil)
-		}
-		svc1log.FromContext(ctx).Warn(inFlightThrottledMessage,
-			svc1log.SafeParam("current", current),
-			svc1log.SafeParam("limit", l.Limit))
-
-		return true
+	if current <= l.Limit {
+		return false
 	}
-	return false
+	if l.Health != nil && l.Health.Status() != health.HealthStateRepairing {
+		msg := inFlightThrottledMessage
+		l.Health.SetHealth(health.HealthStateRepairing, &msg, nil)
+	}
+	svc1log.FromContext(ctx).Warn(inFlightThrottledMessage,
+		svc1log.SafeParam("current", current),
+		svc1log.SafeParam("limit", l.Limit))
+
+	return true
 }
 
+
+// increment subtracts 1 from the current counter. If the new value is under the Limit,
+// l.Health is set to HEALTHY (if not already in that state).
 func (l *limiter) decrement(ctx context.Context) {
 	current := atomic.AddInt64(&l.current, -1)
-	if current <= l.Limit {
-		if l.Health != nil && l.Health.Status() != health.HealthStateHealthy {
-			l.Health.Healthy()
-		}
+	if current < l.Limit && l.Health != nil && l.Health.Status() != health.HealthStateHealthy {
+		l.Health.Healthy()
 	}
 }
