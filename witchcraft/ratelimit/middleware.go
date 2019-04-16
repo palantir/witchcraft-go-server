@@ -22,6 +22,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status/reporter"
+	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 )
 
@@ -43,9 +44,11 @@ var MatchMutating MatchFunc = func(req *http.Request, vals wrouter.RequestVals) 
 // If healthcheck is non-nil, it will be set to REPAIRING when the middleware is throttling
 // and HEALTHY when the current counter falls below the limit. It is initialized to HEALTHY.
 //
+// If limit is ever negative it will be treated as a 0, i.e. all requests will be throttled.
+//
 // TODO: We should set the Retry-After header based on how many requests we're rejecting.
 //		 Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
-func NewInFlightRequestLimitMiddleware(limit int64, matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
+func NewInFlightRequestLimitMiddleware(limit refreshable.Int, matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
 	l := &limiter{
 		Limit:   limit,
 		Matches: matches,
@@ -58,7 +61,7 @@ func NewInFlightRequestLimitMiddleware(limit int64, matches MatchFunc, healthche
 }
 
 type limiter struct {
-	Limit   int64
+	Limit   refreshable.Int
 	Matches MatchFunc
 	Health  reporter.HealthComponent
 
@@ -86,7 +89,8 @@ func (l *limiter) ServeHTTP(rw http.ResponseWriter, req *http.Request, reqVals w
 // l.Health is set to REPAIRING (if not already in that state).
 func (l *limiter) increment(ctx context.Context) (throttled bool) {
 	current := atomic.AddInt64(&l.current, 1)
-	if current <= l.Limit {
+	limit := l.limit()
+	if current <= limit {
 		return false
 	}
 	if l.Health != nil && l.Health.Status() != health.HealthStateRepairing {
@@ -95,7 +99,7 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 	}
 	svc1log.FromContext(ctx).Warn(inFlightThrottledMessage,
 		svc1log.SafeParam("current", current),
-		svc1log.SafeParam("limit", l.Limit))
+		svc1log.SafeParam("limit", limit))
 
 	return true
 }
@@ -104,7 +108,16 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 // l.Health is set to HEALTHY (if not already in that state).
 func (l *limiter) decrement(ctx context.Context) {
 	current := atomic.AddInt64(&l.current, -1)
-	if current < l.Limit && l.Health != nil && l.Health.Status() != health.HealthStateHealthy {
+	if current < l.limit() && l.Health != nil && l.Health.Status() != health.HealthStateHealthy {
 		l.Health.Healthy()
 	}
+}
+
+// limit returns the current value of l.limit, or zero if the limit is negative.
+func (l *limiter) limit() int64 {
+	current := l.Limit.CurrentInt()
+	if current < 0 {
+		current = 0
+	}
+	return int64(current)
 }
