@@ -136,9 +136,9 @@ func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
-	reqMiddleware(w, req, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(rw, "ok")
-	}))
+	reqMiddleware(w, req, wrouter.RequestVals{}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+		_, _ = fmt.Fprint(rw, "ok")
+	})
 
 	m := make(map[string]interface{})
 	r.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
@@ -179,7 +179,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 
 		wRouter := wrouter.New(
 			whttprouter.New(),
-			wrouter.RootRouterParamAddRequestHandlerMiddleware(middleware.NewRequestMetricRequestMeter(r)),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRequestMetricRequestMeter(r)),
 			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRouteRequestLog(
 				req2log.New(ioutil.Discard),
 				nil,

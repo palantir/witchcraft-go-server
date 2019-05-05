@@ -26,7 +26,7 @@
 
 [[constraint]]
   name = "github.com/palantir/pkg"
-  version = ">=0.10.2, <1.0.0"
+  version = ">=0.10.3, <1.0.0"
 
 [[constraint]]
   name = "gopkg.in/fsnotify.v1"
@@ -34,7 +34,7 @@
 
 [[constraint]]
   name = "github.com/palantir/witchcraft-go-logging"
-  version = "v1.3.0"
+  version = "v1.3.4"
 
 [prune]
   go-tests = true

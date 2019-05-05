@@ -92,18 +92,25 @@ func unmarshalFuncLine(funcLine []byte, frame *logging.StackFrameV1) {
 
 func unmarshalFileLine(fileLine []byte, frame *logging.StackFrameV1) {
 	segments := strings.Split(string(bytes.TrimSpace(fileLine)), " +")
-	frame.Address = &segments[1]
+
+	if len(segments) > 1 {
+		frame.Address = &segments[1]
+	}
 
 	sepIdx := strings.LastIndex(segments[0], ":")
-	absPath := segments[0][:sepIdx]
 
-	file := gopath.TrimPrefix(absPath)
-	frame.File = &file
+	if sepIdx > -1 {
+		absPath := segments[0][:sepIdx]
+		file := gopath.TrimPrefix(absPath)
+		frame.File = &file
+	}
 
-	lineNumStr := segments[0][sepIdx+1:]
-	lineNum, err := strconv.Atoi(lineNumStr)
-	if err == nil {
-		frame.Line = &lineNum
+	if sepIdx+1 < len(segments[0]) {
+		lineNumStr := segments[0][sepIdx+1:]
+		lineNum, err := strconv.Atoi(lineNumStr)
+		if err == nil {
+			frame.Line = &lineNum
+		}
 	}
 }
 

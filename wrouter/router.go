@@ -17,6 +17,8 @@ package wrouter
 import (
 	"net/http"
 	"time"
+
+	"github.com/palantir/pkg/metrics"
 )
 
 type Router interface {
@@ -78,6 +80,7 @@ type RequestVals struct {
 	Spec          RouteSpec
 	PathParamVals map[string]string
 	ParamPerms    RouteParamPerms
+	MetricTags    metrics.Tags
 }
 
 type ResponseVals struct {
