@@ -38,19 +38,19 @@ type Resource interface {
 	// Get is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
 	Get(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
-	// Head is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
+	// Head is a shorthand for Register(endpointName, http.MethodHead, handler, params...)
 	Head(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
-	// Post is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
+	// Post is a shorthand for Register(endpointName, http.MethodPost, handler, params...)
 	Post(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
-	// Put is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
+	// Put is a shorthand for Register(endpointName, http.MethodPut, handler, params...)
 	Put(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
-	// Patch is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
+	// Patch is a shorthand for Register(endpointName, http.MethodPatch, handler, params...)
 	Patch(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
-	// Delete is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
+	// Delete is a shorthand for Register(endpointName, http.MethodDelete, handler, params...)
 	Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 }
 
