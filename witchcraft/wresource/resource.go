@@ -87,11 +87,7 @@ func (r *resourceImpl) Register(endpointName, method, path string, handler http.
 	}
 	tags = append(tags, endpointTag)
 
-	// wrap the provided handler in a handler that adds the resource and endpoint tags to the context
-	wrappedHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		handler.ServeHTTP(rw, req.WithContext(metrics.AddTags(req.Context(), tags...)))
-	})
-	return r.router.Register(method, path, wrappedHandler, params...)
+	return r.router.Register(method, path, handler, append(params, wrouter.MetricTags(tags))...)
 }
 
 func (r *resourceImpl) Get(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
