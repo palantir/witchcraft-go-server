@@ -131,9 +131,7 @@ func MetricTags(tags metrics.Tags) RouteParam {
 func toMetricTags(params []RouteParam) metrics.Tags {
 	var tags metrics.Tags
 	for _, param := range params {
-		if t := param.metricTags(); len(t) > 0 {
-			tags = append(tags, t...)
-		}
+		tags = append(tags, param.metricTags()...)
 	}
 	return tags
 }
