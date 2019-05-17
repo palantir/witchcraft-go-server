@@ -16,11 +16,14 @@ package refreshable
 
 import (
 	"reflect"
+	"sync"
 
 	"github.com/palantir/witchcraft-go-error"
 )
 
 type DefaultRefreshable struct {
+	sync.Mutex
+
 	typ         reflect.Type
 	subscribers []*func(interface{})
 	current     interface{}
@@ -34,6 +37,9 @@ func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
 }
 
 func (d *DefaultRefreshable) Update(val interface{}) error {
+	d.Lock()
+	defer d.Unlock()
+
 	if valType := reflect.TypeOf(val); valType != d.typ {
 		return werror.Error("value of Refreshable must is not the correct type",
 			werror.SafeParam("refreshableType", d.typ),
@@ -51,10 +57,15 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 }
 
 func (d *DefaultRefreshable) Current() interface{} {
+	d.Lock()
+	defer d.Unlock()
 	return d.current
 }
 
 func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
+	d.Lock()
+	defer d.Unlock()
+
 	consumerFnPtr := &consumer
 	d.subscribers = append(d.subscribers, consumerFnPtr)
 	return func() {
@@ -63,6 +74,9 @@ func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe 
 }
 
 func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
+	d.Lock()
+	defer d.Unlock()
+
 	matchIdx := -1
 	for idx, currSub := range d.subscribers {
 		if currSub == consumerFnPtr {
