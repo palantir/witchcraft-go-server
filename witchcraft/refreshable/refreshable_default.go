@@ -22,7 +22,7 @@ import (
 )
 
 type DefaultRefreshable struct {
-	sync.Mutex
+	sync.RWMutex
 
 	typ         reflect.Type
 	subscribers []*func(interface{})
@@ -57,8 +57,8 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 }
 
 func (d *DefaultRefreshable) Current() interface{} {
-	d.Lock()
-	defer d.Unlock()
+	d.RLock()
+	defer d.RUnlock()
 	return d.current
 }
 
