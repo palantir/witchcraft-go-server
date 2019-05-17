@@ -22,6 +22,8 @@ import (
 
 	"github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
+	wparams "github.com/palantir/witchcraft-go-params"
 	"gopkg.in/fsnotify.v1"
 )
 
@@ -67,8 +69,7 @@ func (d *fileRefreshable) watchForChanges(ctx context.Context) error {
 			werror.SafeParam("fileDir", fileDir))
 	}
 
-	go func() {
-		ctx := svc1log.WithLoggerParams(ctx, svc1log.SafeParam("filePath", d.filePath))
+	go wapp.RunWithRecoveryLogging(wparams.ContextWithSafeParam(ctx, "filePath", d.filePath), func(ctx context.Context) {
 		for {
 			select {
 			case event := <-watcher.Events:
@@ -99,7 +100,7 @@ func (d *fileRefreshable) watchForChanges(ctx context.Context) error {
 				return
 			}
 		}
-	}()
+	})
 	return nil
 }
 
