@@ -44,6 +44,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
@@ -593,14 +594,15 @@ func (s *Server) Start() (rErr error) {
 		}
 
 		// start management server in its own goroutine
-		go func() {
+		go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 			if err := mgmtStart(); err != nil {
 				svc1log.FromContext(ctx).Error("management server failed", svc1log.Stacktrace(err))
 			}
-		}()
+		})
 		defer func() {
-			// nothing to be done if shutdown fails
-			_ = mgmtShutdown(ctx)
+			if err := mgmtShutdown(ctx); err != nil {
+				svc1log.FromContext(ctx).Error("management server failed to shutdown", svc1log.Stacktrace(err))
+			}
 		}()
 	}
 
@@ -731,12 +733,12 @@ func (s *Server) initShutdownSignalHandler(ctx context.Context) {
 	shutdownSignal := make(chan os.Signal, 1)
 	signal.Notify(shutdownSignal, syscall.SIGTERM, syscall.SIGINT)
 
-	go func() {
+	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 		<-shutdownSignal
 		if err := s.Shutdown(ctx); err != nil {
 			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
 		}
-	}()
+	})
 }
 
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false
