@@ -23,10 +23,10 @@ import (
 )
 
 type DefaultRefreshable struct {
-	typ         reflect.Type
-	current     *atomic.Value
+	typ     reflect.Type
+	current *atomic.Value
 
-	sync.Mutex // protects subscribers
+	sync.Mutex  // protects subscribers
 	subscribers []*func(interface{})
 }
 
