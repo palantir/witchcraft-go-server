@@ -26,7 +26,7 @@ type DefaultRefreshable struct {
 	typ         reflect.Type
 	current     *atomic.Value
 
-	sync.RWMutex // protects subscribers
+	sync.Mutex // protects subscribers
 	subscribers []*func(interface{})
 }
 
