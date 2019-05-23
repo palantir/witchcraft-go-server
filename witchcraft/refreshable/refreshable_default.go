@@ -17,21 +17,25 @@ package refreshable
 import (
 	"reflect"
 	"sync"
+	"sync/atomic"
 
 	"github.com/palantir/witchcraft-go-error"
 )
 
 type DefaultRefreshable struct {
-	sync.RWMutex
+	typ     reflect.Type
+	current *atomic.Value
 
-	typ         reflect.Type
+	sync.Mutex  // protects subscribers
 	subscribers []*func(interface{})
-	current     interface{}
 }
 
 func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
+	current := atomic.Value{}
+	current.Store(val)
+
 	return &DefaultRefreshable{
-		current: val,
+		current: &current,
 		typ:     reflect.TypeOf(val),
 	}
 }
@@ -46,10 +50,11 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 			werror.SafeParam("providedType", valType))
 	}
 
-	if reflect.DeepEqual(d.current, val) {
+	if reflect.DeepEqual(d.current.Load(), val) {
 		return nil
 	}
-	d.current = val
+	d.current.Store(val)
+
 	for _, sub := range d.subscribers {
 		(*sub)(val)
 	}
@@ -57,9 +62,7 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 }
 
 func (d *DefaultRefreshable) Current() interface{} {
-	d.RLock()
-	defer d.RUnlock()
-	return d.current
+	return d.current.Load()
 }
 
 func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
