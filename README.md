@@ -84,7 +84,7 @@ traffic itself is still encrypted.
 `witchcraft-server` is configured with service, event, metric, request and trace loggers from the 
 `witchcraft-go-logging` project and emits structured JSON logs using [`zap`](https://github.com/uber-go/zap) as the
 logger implementation. The default behavior emits logs to the `var/log` directory (`var/log/service.log`, 
-`var/log/request.log`, etc.) unless the server is run in a Docker container or a container created via Palantir's internal infrastructure, in which case the logs are always emitted 
+`var/log/request.log`, etc.) unless the server is run in a Docker container or a container that has an environment variable called "$CONTAINER" set, in which case the logs are always emitted 
 to `stdout`. The `use-console-log` property in the install configuration can also be set to "true" to always output logs 
 to `stdout`. The runtime configuration supports configuring the log output level for service logs.
 
