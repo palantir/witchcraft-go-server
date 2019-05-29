@@ -77,9 +77,14 @@ func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io
 	}
 }
 
-// logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.
+// logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail container, false otherwise.
 func logToStdoutBasedOnEnv() bool {
-	return isDocker() && !isJail()
+	return isRunningInContainer() && !isJail()
+}
+
+func isRunningInContainer() bool {
+	_, ok := os.LookupEnv("CONTAINER")
+	return ok || isDocker()
 }
 
 func isDocker() bool {
