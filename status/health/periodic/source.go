@@ -25,8 +25,10 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
+type CheckFunc func(ctx context.Context) (state health.HealthState, params map[string]interface{})
+
 type Source struct {
-	Checks map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{})
+	Checks map[health.CheckType]CheckFunc
 }
 
 type checkState struct {
@@ -55,10 +57,10 @@ func NewHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryI
 	return FromHealthCheckSource(ctx, gracePeriod, retryInterval, newDefaultHealthCheckSource(checkType, poll))
 }
 
-// FromHealthCheckSource creates a health check source that calls source.Check every retryInterval in a goroutine. The goroutine
-// is cancelled if ctx is cancelled. If gracePeriod elapses without Check returning HEALTHY, the returned health check
-// source will give a health status of error. checkType is the key to be used in the health result returned by the
-// health check source.
+// FromHealthCheckSource creates a health check source that calls the the provided Source.Checks functions every
+// retryInterval in a goroutine. The goroutine is cancelled if ctx is cancelled. For each check, if gracePeriod elapses
+// without CheckFunc returning HEALTHY, the returned health check source's HealthStatus will return a HealthCheckResult
+// of error.
 func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, source Source) status.HealthCheckSource {
 	checker := &healthCheckSource{
 		gracePeriod:   gracePeriod,
@@ -75,28 +77,28 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 
 	results := make([]health.HealthCheckResult, 0, len(h.source.Checks))
 	for checkType := range h.source.Checks {
-		var result health.HealthCheckResult
 		checkState, ok := h.checkStates[checkType]
 		if !ok {
-			result = health.HealthCheckResult{
+			results = append(results, health.HealthCheckResult{
 				Type:    checkType,
 				State:   health.HealthStateRepairing,
 				Message: stringPtr("Check has not yet run"),
-			}
-		} else {
-			switch {
-			case time.Since(checkState.lastSuccessTime) <= h.gracePeriod:
-				result = *checkState.lastSuccess
-			case time.Since(checkState.lastResultTime) <= h.gracePeriod:
-				result = *checkState.lastResult
-				result.Message = stringPtr(fmt.Sprintf("No successful checks during %s grace period", h.gracePeriod.String()))
-			default:
-				result = *checkState.lastResult
-				result.Message = stringPtr(fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String()))
-				// Mark REPAIRING if we were healthy before expiration.
-				if result.State == health.HealthStateHealthy {
-					result.State = health.HealthStateRepairing
-				}
+			})
+			continue
+		}
+		var result health.HealthCheckResult
+		switch {
+		case time.Since(checkState.lastSuccessTime) <= h.gracePeriod:
+			result = *checkState.lastSuccess
+		case time.Since(checkState.lastResultTime) <= h.gracePeriod:
+			result = *checkState.lastResult
+			result.Message = stringPtr(fmt.Sprintf("No successful checks during %s grace period", h.gracePeriod.String()))
+		default:
+			result = *checkState.lastResult
+			result.Message = stringPtr(fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String()))
+			// Mark REPAIRING if we were healthy before expiration.
+			if result.State == health.HealthStateHealthy {
+				result.State = health.HealthStateRepairing
 			}
 		}
 		results = append(results, result)
@@ -169,7 +171,7 @@ func toHealthStatus(results []health.HealthCheckResult) health.HealthStatus {
 
 func newDefaultHealthCheckSource(checkType health.CheckType, poll func() error) Source {
 	return Source{
-		Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+		Checks: map[health.CheckType]CheckFunc{
 			checkType: func(ctx context.Context) (state health.HealthState, params map[string]interface{}) {
 				err := poll()
 				if err != nil {
