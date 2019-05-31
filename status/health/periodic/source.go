@@ -25,8 +25,15 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
-type Source interface {
-	Check(ctx context.Context) (state health.HealthState, params map[string]interface{})
+type Source struct {
+	Checks map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{})
+}
+
+type checkState struct {
+	lastResult      *health.HealthCheckResult
+	lastResultTime  time.Time
+	lastSuccess     *health.HealthCheckResult
+	lastSuccessTime time.Time
 }
 
 type healthCheckSource struct {
@@ -34,14 +41,10 @@ type healthCheckSource struct {
 	source        Source
 	gracePeriod   time.Duration
 	retryInterval time.Duration
-	checkType     health.CheckType
 
 	// mutable
-	mutex           sync.RWMutex
-	lastResult      *health.HealthCheckResult
-	lastResultTime  time.Time
-	lastSuccess     *health.HealthCheckResult
-	lastSuccessTime time.Time
+	mutex       sync.RWMutex
+	checkStates map[health.CheckType]*checkState
 }
 
 // NewHealthCheckSource creates a health check source that calls poll every retryInterval in a goroutine. The goroutine
@@ -49,18 +52,17 @@ type healthCheckSource struct {
 // source will give a health status of error. checkType is the key to be used in the health result returned by the
 // health check source.
 func NewHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, checkType health.CheckType, poll func() error) status.HealthCheckSource {
-	return FromHealthCheckSource(ctx, gracePeriod, retryInterval, checkType, &defaultHealthCheckSource{poll: poll})
+	return FromHealthCheckSource(ctx, gracePeriod, retryInterval, newDefaultHealthCheckSource(checkType, poll))
 }
 
 // FromHealthCheckSource creates a health check source that calls source.Check every retryInterval in a goroutine. The goroutine
 // is cancelled if ctx is cancelled. If gracePeriod elapses without Check returning HEALTHY, the returned health check
 // source will give a health status of error. checkType is the key to be used in the health result returned by the
 // health check source.
-func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, checkType health.CheckType, source Source) status.HealthCheckSource {
+func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, source Source) status.HealthCheckSource {
 	checker := &healthCheckSource{
 		gracePeriod:   gracePeriod,
 		retryInterval: retryInterval,
-		checkType:     checkType,
 		source:        source,
 	}
 	go wapp.RunWithRecoveryLogging(ctx, checker.runPoll)
@@ -71,30 +73,36 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
-	if h.lastResult == nil {
-		return toHealthStatus(health.HealthCheckResult{
-			Type:    h.checkType,
-			State:   health.HealthStateRepairing,
-			Message: stringPtr("Check has not yet run"),
-		})
+	results := make([]health.HealthCheckResult, 0, len(h.source.Checks))
+	for checkType := range h.source.Checks {
+		var result health.HealthCheckResult
+		checkState, ok := h.checkStates[checkType]
+		if !ok {
+			result = health.HealthCheckResult{
+				Type:    checkType,
+				State:   health.HealthStateRepairing,
+				Message: stringPtr("Check has not yet run"),
+			}
+		} else {
+			switch {
+			case time.Since(checkState.lastSuccessTime) <= h.gracePeriod:
+				result = *checkState.lastSuccess
+			case time.Since(checkState.lastResultTime) <= h.gracePeriod:
+				result = *checkState.lastResult
+				result.Message = stringPtr(fmt.Sprintf("No successful checks during %s grace period", h.gracePeriod.String()))
+			default:
+				result = *checkState.lastResult
+				result.Message = stringPtr(fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String()))
+				// Mark REPAIRING if we were healthy before expiration.
+				if result.State == health.HealthStateHealthy {
+					result.State = health.HealthStateRepairing
+				}
+			}
+		}
+		results = append(results, result)
 	}
 
-	var result health.HealthCheckResult
-	switch {
-	case time.Since(h.lastSuccessTime) <= h.gracePeriod:
-		result = *h.lastSuccess
-	case time.Since(h.lastResultTime) <= h.gracePeriod:
-		result = *h.lastResult
-		result.Message = stringPtr(fmt.Sprintf("No successful checks during %s grace period", h.gracePeriod.String()))
-	default:
-		result = *h.lastResult
-		result.Message = stringPtr(fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String()))
-		// Mark REPAIRING if we were healthy before expiration.
-		if result.State == health.HealthStateHealthy {
-			result.State = health.HealthStateRepairing
-		}
-	}
-	return toHealthStatus(result)
+	return toHealthStatus(results)
 }
 
 func (h *healthCheckSource) runPoll(ctx context.Context) {
@@ -116,44 +124,61 @@ func (h *healthCheckSource) runPoll(ctx context.Context) {
 }
 
 func (h *healthCheckSource) doPoll(ctx context.Context) {
-	// Run check
-	state, params := h.source.Check(ctx)
-	t := time.Now()
-	result := &health.HealthCheckResult{
-		Type:   h.checkType,
-		State:  state,
-		Params: params,
+	type resultWithTime struct {
+		time   time.Time
+		result *health.HealthCheckResult
 	}
+
+	// Run checks
+	resultsWithTimes := make([]resultWithTime, 0, len(h.source.Checks))
+	for checkType, check := range h.source.Checks {
+		state, params := check(ctx)
+		resultsWithTimes = append(resultsWithTimes, resultWithTime{
+			time: time.Now(),
+			result: &health.HealthCheckResult{
+				Type:   checkType,
+				State:  state,
+				Params: params,
+			},
+		})
+	}
+
 	// Update cached state
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-
-	h.lastResult = result
-	h.lastResultTime = t
-	if state == health.HealthStateHealthy {
-		h.lastSuccess = result
-		h.lastSuccessTime = t
+	for _, resultWithTime := range resultsWithTimes {
+		state := h.checkStates[resultWithTime.result.Type]
+		state.lastResult = resultWithTime.result
+		state.lastResultTime = resultWithTime.time
+		if resultWithTime.result.State == health.HealthStateHealthy {
+			state.lastSuccess = resultWithTime.result
+			state.lastSuccessTime = resultWithTime.time
+		}
 	}
 }
 
-func toHealthStatus(result health.HealthCheckResult) health.HealthStatus {
+func toHealthStatus(results []health.HealthCheckResult) health.HealthStatus {
+	checks := make(map[health.CheckType]health.HealthCheckResult, len(results))
+	for _, result := range results {
+		checks[result.Type] = result
+	}
 	return health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			result.Type: result,
+		Checks: checks,
+	}
+}
+
+func newDefaultHealthCheckSource(checkType health.CheckType, poll func() error) Source {
+	return Source{
+		Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+			checkType: func(ctx context.Context) (state health.HealthState, params map[string]interface{}) {
+				err := poll()
+				if err != nil {
+					return health.HealthStateError, map[string]interface{}{"error": err.Error()}
+				}
+				return health.HealthStateHealthy, nil
+			},
 		},
 	}
-}
-
-type defaultHealthCheckSource struct {
-	poll func() error
-}
-
-func (d *defaultHealthCheckSource) Check(_ context.Context) (state health.HealthState, params map[string]interface{}) {
-	err := d.poll()
-	if err != nil {
-		return health.HealthStateError, map[string]interface{}{"error": err.Error()}
-	}
-	return health.HealthStateHealthy, nil
 }
 
 func stringPtr(s string) *string {
