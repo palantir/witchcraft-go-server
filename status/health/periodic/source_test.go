@@ -38,7 +38,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "Last result successful",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType: nil,
 					},
 				},
@@ -71,7 +71,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "Last success within grace period",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType: nil,
 					},
 				},
@@ -104,7 +104,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "Last success outside grace period",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType: nil,
 					},
 				},
@@ -138,7 +138,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "No runs within grace period, last was success",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType: nil,
 					},
 				},
@@ -172,7 +172,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "No runs within grace period, last was error",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType: nil,
 					},
 				},
@@ -206,7 +206,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "Never started",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType: nil,
 					},
 				},
@@ -226,7 +226,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "Two checks, one last result successful, one last success outside grace period",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType:      nil,
 						otherCheckType: nil,
 					},
@@ -277,7 +277,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			Name: "Two checks, neither started",
 			State: &healthCheckSource{
 				source: Source{
-					Checks: map[health.CheckType]func(ctx context.Context) (state health.HealthState, params map[string]interface{}){
+					Checks: map[health.CheckType]CheckFunc{
 						checkType:      nil,
 						otherCheckType: nil,
 					},
