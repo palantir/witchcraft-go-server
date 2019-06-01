@@ -189,7 +189,6 @@ func wrap(baseStringPtr *string, prependStr string) string {
 	if baseStringPtr == nil {
 		return prependStr
 	}
-	//
 	return prependStr + ": " + *baseStringPtr
 }
 
