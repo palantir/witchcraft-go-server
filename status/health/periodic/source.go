@@ -25,7 +25,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
-type CheckFunc func(ctx context.Context) (state health.HealthState, params map[string]interface{})
+type CheckFunc func(ctx context.Context) *health.HealthCheckResult
 
 type Source struct {
 	Checks map[health.CheckType]CheckFunc
@@ -92,10 +92,10 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 			result = *checkState.lastSuccess
 		case time.Since(checkState.lastResultTime) <= h.gracePeriod:
 			result = *checkState.lastResult
-			result.Message = stringPtr(fmt.Sprintf("No successful checks during %s grace period", h.gracePeriod.String()))
+			result.Message = stringPtr(wrap(result.Message, fmt.Sprintf("No successful checks during %s grace period", h.gracePeriod.String())))
 		default:
 			result = *checkState.lastResult
-			result.Message = stringPtr(fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String()))
+			result.Message = stringPtr(wrap(result.Message, fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String())))
 			// Mark REPAIRING if we were healthy before expiration.
 			if result.State == health.HealthStateHealthy {
 				result.State = health.HealthStateRepairing
@@ -133,15 +133,10 @@ func (h *healthCheckSource) doPoll(ctx context.Context) {
 
 	// Run checks
 	resultsWithTimes := make([]resultWithTime, 0, len(h.source.Checks))
-	for checkType, check := range h.source.Checks {
-		state, params := check(ctx)
+	for _, check := range h.source.Checks {
 		resultsWithTimes = append(resultsWithTimes, resultWithTime{
-			time: time.Now(),
-			result: &health.HealthCheckResult{
-				Type:   checkType,
-				State:  state,
-				Params: params,
-			},
+			time:   time.Now(),
+			result: check(ctx),
 		})
 	}
 
@@ -172,15 +167,29 @@ func toHealthStatus(results []health.HealthCheckResult) health.HealthStatus {
 func newDefaultHealthCheckSource(checkType health.CheckType, poll func() error) Source {
 	return Source{
 		Checks: map[health.CheckType]CheckFunc{
-			checkType: func(ctx context.Context) (state health.HealthState, params map[string]interface{}) {
+			checkType: func(ctx context.Context) *health.HealthCheckResult {
 				err := poll()
 				if err != nil {
-					return health.HealthStateError, map[string]interface{}{"error": err.Error()}
+					return &health.HealthCheckResult{
+						Type:    checkType,
+						State:   health.HealthStateError,
+						Message: stringPtr(err.Error()),
+					}
 				}
-				return health.HealthStateHealthy, nil
+				return &health.HealthCheckResult{
+					Type:  checkType,
+					State: health.HealthStateHealthy,
+				}
 			},
 		},
 	}
+}
+
+func wrap(baseStringPtr *string, prependStr string) string {
+	if baseStringPtr == nil {
+		return prependStr
+	}
+	return prependStr + ": " + *baseStringPtr
 }
 
 func stringPtr(s string) *string {
