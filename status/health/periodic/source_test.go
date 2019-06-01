@@ -203,6 +203,41 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 			},
 		},
 		{
+			Name: "No runs within grace period, last was error, with a message",
+			State: &healthCheckSource{
+				source: Source{
+					Checks: map[health.CheckType]CheckFunc{
+						checkType: nil,
+					},
+				},
+				gracePeriod: time.Minute,
+				checkStates: map[health.CheckType]*checkState{
+					checkType: {
+						lastResult: &health.HealthCheckResult{
+							Type:    checkType,
+							State:   health.HealthStateError,
+							Message: stringPtr("something went wrong"),
+						},
+						lastResultTime: time.Now().Add(-3 * time.Minute),
+						lastSuccess: &health.HealthCheckResult{
+							Type:  checkType,
+							State: health.HealthStateHealthy,
+						},
+						lastSuccessTime: time.Now().Add(-5 * time.Minute),
+					},
+				},
+			},
+			Expected: health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					checkType: {
+						Type:    checkType,
+						State:   health.HealthStateError,
+						Message: stringPtr("No completed checks during 1m0s grace period: something went wrong"),
+					},
+				},
+			},
+		},
+		{
 			Name: "Never started",
 			State: &healthCheckSource{
 				source: Source{
