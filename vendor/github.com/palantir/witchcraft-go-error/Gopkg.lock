@@ -8,10 +8,10 @@
   version = "v1.1.1"
 
 [[projects]]
-  branch = "develop"
   name = "github.com/palantir/witchcraft-go-params"
   packages = ["."]
-  revision = "169dfa093927392e08fde093fee47226d251a11d"
+  revision = "d5c8ded2ab5588d1a81f306247162cb54d2504d7"
+  version = "1.0.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -25,8 +25,8 @@
     "assert",
     "require",
   ]
-  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
-  version = "v1.2.2"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [solve-meta]
   analyzer-name = "dep"

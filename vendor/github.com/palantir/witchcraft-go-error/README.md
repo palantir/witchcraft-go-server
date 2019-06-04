@@ -1,5 +1,7 @@
 witchcraft-go-error
 ===================
+[![](https://godoc.org/github.com/palantir/witchcraft-go-error?status.svg)](http://godoc.org/github.com/palantir/witchcraft-go-error)
+
 `witchcraft-error-go` defines the `werror` package, which provides an implementation of the `error` interface that
 stores safe and unsafe parameters and has the ability to specify another error as a cause.
 

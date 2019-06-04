@@ -94,18 +94,18 @@
   version = "0.10.3"
 
 [[projects]]
-  branch = "develop"
-  digest = "1:89b7c2365c6b481a9e1c83a203c817d117376f48330811a977d84ec198281c8b"
+  digest = "1:5728d88b803739d853e607869383fee9699b1521153d3f8a76a0fce179263098"
   name = "github.com/palantir/witchcraft-go-error"
   packages = [
     ".",
     "internal/errors",
   ]
   pruneopts = "UT"
-  revision = "adb1d93c5741a300abbcce7883ad61f825a4f1a7"
+  revision = "c915c4fc8543324aa5d13086e2dc70ce08d71cd5"
+  version = "1.1.0"
 
 [[projects]]
-  digest = "1:8ae520235078c24bde57a30a4a6128f1a0c25a0f01a9ae87a74b8a71e38275e1"
+  digest = "1:bead6c4e0c1ea33d115fa9b455d3724f3bf150c162f8507744a5a5eddf7afccd"
   name = "github.com/palantir/witchcraft-go-logging"
   packages = [
     "conjure/witchcraft/api/logging",
@@ -126,8 +126,8 @@
     "wlog/wapp",
   ]
   pruneopts = "UT"
-  revision = "87637ec4e3f2afa1a1f926860b128af41e79bfa4"
-  version = "v1.3.5"
+  revision = "0d8e0cf31f8a4e645f21ede3ee95e690fb077bbd"
+  version = "1.4.0"
 
 [[projects]]
   branch = "develop"

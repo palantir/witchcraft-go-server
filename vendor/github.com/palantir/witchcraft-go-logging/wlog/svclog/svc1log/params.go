@@ -15,7 +15,6 @@
 package svc1log
 
 import (
-	"fmt"
 	"path"
 	"runtime"
 	"strconv"
@@ -177,17 +176,7 @@ func Stacktrace(err error) Param {
 		if err == nil {
 			return
 		}
-
-		// set the value of the error
-		errStr := err.Error()
-		if fancy, ok := err.(fmt.Formatter); ok {
-			verbose := fmt.Sprintf("%+v", fancy)
-			if verbose != errStr {
-				// this is a rich error type, like those produced by github.com/pkg/errors
-				errStr = verbose
-			}
-		}
-		entry.StringValue(StacktraceKey, errStr)
+		entry.StringValue(StacktraceKey, werror.GenerateErrorString(err, false))
 
 		// add all safe and unsafe parameters stored in error
 		safeParams, unsafeParams := werror.ParamsFromError(err)
