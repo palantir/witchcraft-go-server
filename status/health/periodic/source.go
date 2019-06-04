@@ -63,9 +63,10 @@ func NewHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryI
 // of error.
 func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, source Source) status.HealthCheckSource {
 	checker := &healthCheckSource{
+		source:        source,
 		gracePeriod:   gracePeriod,
 		retryInterval: retryInterval,
-		source:        source,
+		checkStates:   map[health.CheckType]*checkState{},
 	}
 	go wapp.RunWithRecoveryLogging(ctx, checker.runPoll)
 	return checker
@@ -127,8 +128,8 @@ func (h *healthCheckSource) runPoll(ctx context.Context) {
 
 func (h *healthCheckSource) doPoll(ctx context.Context) {
 	type resultWithTime struct {
-		time   time.Time
 		result *health.HealthCheckResult
+		time   time.Time
 	}
 
 	// Run checks
@@ -144,13 +145,15 @@ func (h *healthCheckSource) doPoll(ctx context.Context) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	for _, resultWithTime := range resultsWithTimes {
-		state := h.checkStates[resultWithTime.result.Type]
-		state.lastResult = resultWithTime.result
-		state.lastResultTime = resultWithTime.time
-		if resultWithTime.result.State == health.HealthStateHealthy {
-			state.lastSuccess = resultWithTime.result
-			state.lastSuccessTime = resultWithTime.time
+		newState := &checkState{
+			lastResult:     resultWithTime.result,
+			lastResultTime: resultWithTime.time,
 		}
+		if resultWithTime.result.State == health.HealthStateHealthy {
+			newState.lastSuccess = resultWithTime.result
+			newState.lastSuccessTime = resultWithTime.time
+		}
+		h.checkStates[resultWithTime.result.Type] = newState
 	}
 }
 

@@ -24,11 +24,13 @@ import (
 	"net/http"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status"
+	"github.com/palantir/witchcraft-go-server/status/health/periodic"
 	"github.com/palantir/witchcraft-go-server/status/reporter"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"
@@ -200,6 +202,81 @@ func TestHealthReporter(t *testing.T) {
 	}
 }
 
+// TestPeriodicHealthSource tests that basic periodic healthcheck wiring works properly. Unit testing covers the grace
+// period logic - this test covers the plumbing.
+func TestPeriodicHealthSource(t *testing.T) {
+	inputSource := periodic.Source{
+		Checks: map[health.CheckType]periodic.CheckFunc{
+			"HEALTHY_CHECK": func(ctx context.Context) *health.HealthCheckResult {
+				return &health.HealthCheckResult{
+					Type:  "HEALTHY_CHECK",
+					State: health.HealthStateHealthy,
+				}
+			},
+			"ERROR_CHECK": func(ctx context.Context) *health.HealthCheckResult {
+				return &health.HealthCheckResult{
+					Type:    "ERROR_CHECK",
+					State:   health.HealthStateError,
+					Message: stringPtr("something went wrong"),
+					Params:  map[string]interface{}{"foo": "bar"},
+				}
+			},
+		},
+	}
+	expectedStatus := health.HealthStatus{Checks: map[health.CheckType]health.HealthCheckResult{
+		"HEALTHY_CHECK": {
+			Type:    "HEALTHY_CHECK",
+			State:   health.HealthStateHealthy,
+			Message: nil,
+			Params:  make(map[string]interface{}),
+		},
+		"ERROR_CHECK": {
+			Type:    "ERROR_CHECK",
+			State:   health.HealthStateError,
+			Message: stringPtr("No successful checks during 1m0s grace period: something went wrong"),
+			Params:  map[string]interface{}{"foo": "bar"},
+		},
+		health.CheckType("SERVER_STATUS"): {
+			Type:    health.CheckType("SERVER_STATUS"),
+			State:   health.HealthStateHealthy,
+			Message: nil,
+			Params:  make(map[string]interface{}),
+		},
+	}}
+	periodicHealthCheckSource := periodic.FromHealthCheckSource(context.Background(), time.Second*60, time.Millisecond*1, inputSource)
+
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(periodicHealthCheckSource)
+	})
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	// Wait for checks to run at least once
+	time.Sleep(5 * time.Millisecond)
+
+	resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
+	require.NoError(t, err)
+
+	bytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var healthResults health.HealthStatus
+	err = json.Unmarshal(bytes, &healthResults)
+	require.NoError(t, err)
+	assert.Equal(t, expectedStatus, healthResults)
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
 // TestHealthSharedSecret verifies that a non-empty health check shared secret is required by the endpoint when configured.
 // If the secret is not provided or is incorrect, the endpoint returns 401 Unauthorized.
 func TestHealthSharedSecret(t *testing.T) {
@@ -279,4 +356,8 @@ func (cwt healthCheckWithType) HealthStatus(_ context.Context) health.HealthStat
 			},
 		},
 	}
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
