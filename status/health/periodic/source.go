@@ -110,13 +110,8 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 
 func (h *healthCheckSource) runPoll(ctx context.Context) {
 	ticker := time.NewTicker(h.retryInterval)
+	defer ticker.Stop()
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
 		select {
 		case <-ctx.Done():
 			return
