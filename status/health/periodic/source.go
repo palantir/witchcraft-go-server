@@ -110,17 +110,20 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 
 func (h *healthCheckSource) runPoll(ctx context.Context) {
 	ticker := time.NewTicker(h.retryInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-		}
-
-		select {
-		case <-ctx.Done():
-			return
 		case <-ticker.C:
+			// ensure that doPoll is not called if context is cancelled (without this, if ctx.Done() and ticker.C fire
+			// at the same time and the ticker.C case is selected at the top-level, doPoll may be called even though the
+			// context is done).
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 			h.doPoll(ctx)
 		}
 	}
