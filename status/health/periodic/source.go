@@ -138,9 +138,11 @@ func (h *healthCheckSource) doPoll(ctx context.Context) {
 	// Run checks
 	resultsWithTimes := make([]resultWithTime, 0, len(h.source.Checks))
 	for _, check := range h.source.Checks {
+		// run check before assigning to assure that the "time.Now()" value reflects when check was completed (rather than when it was started)
+		checkVal := check(ctx)
 		resultsWithTimes = append(resultsWithTimes, resultWithTime{
 			time:   time.Now(),
-			result: check(ctx),
+			result: checkVal,
 		})
 	}
 
