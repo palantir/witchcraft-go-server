@@ -364,12 +364,6 @@ func TestFromHealthCheckSource(t *testing.T) {
 	// health check waits on this channel on its third run (after it has sent on doneChan)
 	pauseChan := make(chan struct{})
 
-	// configure source with the following properties:
-	//   * check runs every 10 milliseconds
-	//   * grace period is 100 milliseconds
-	//   * first run of health check returns healthy state
-	//   * second run of health check returns error state
-	//   * on third run of health check, pauses indefinitely (reads from channel that is not sent on again)
 	source := FromHealthCheckSource(ctx, gracePeriod, retryInterval, Source{
 		Checks: map[health.CheckType]CheckFunc{
 			checkType: func(ctx context.Context) (rVal *health.HealthCheckResult) {
