@@ -354,15 +354,20 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 //   * Wait until grace period has elapsed (t=230ms)
 //   * TEST: health status should be unhealthy due to no check within grace period (checking at roughly t=230ms, so there is no check that occurred within the grace period)
 func TestFromHealthCheckSource(t *testing.T) {
-	ctx := context.Background()
-	gracePeriod := 100 * time.Millisecond
-	retryInterval := 10 * time.Millisecond
-
-	counter := 0
 	// health check sends on this channel on its third run (after it has returned healthy and then error)
 	doneChan := make(chan struct{})
+	defer close(doneChan)
+
 	// health check waits on this channel on its third run (after it has sent on doneChan)
 	pauseChan := make(chan struct{})
+	defer close(pauseChan)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	gracePeriod := 100 * time.Millisecond
+	retryInterval := 10 * time.Millisecond
+	counter := 0
 
 	source := FromHealthCheckSource(ctx, gracePeriod, retryInterval, Source{
 		Checks: map[health.CheckType]CheckFunc{
@@ -410,7 +415,7 @@ func TestFromHealthCheckSource(t *testing.T) {
 				case 3:
 					// signal that health can be checked
 					doneChan <- struct{}{}
-					// pause (do not return)
+					// pause (do not return until test has completed)
 					<-pauseChan
 				}
 				return nil
