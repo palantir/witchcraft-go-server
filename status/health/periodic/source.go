@@ -152,6 +152,12 @@ func (h *healthCheckSource) doPoll(ctx context.Context) {
 			lastResult:     resultWithTime.result,
 			lastResultTime: resultWithTime.time,
 		}
+		// populate last success state from previous state (if present)
+		if previousState, ok := h.checkStates[resultWithTime.result.Type]; ok {
+			newState.lastSuccess = previousState.lastSuccess
+			newState.lastSuccessTime = previousState.lastSuccessTime
+		}
+		// if current result is successful, update success state
 		if resultWithTime.result.State == health.HealthStateHealthy {
 			newState.lastSuccess = resultWithTime.result
 			newState.lastSuccessTime = resultWithTime.time

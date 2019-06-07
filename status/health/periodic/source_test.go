@@ -341,3 +341,75 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestFromHealthCheckSource(t *testing.T) {
+	ctx := context.Background()
+	gracePeriod := 100 * time.Millisecond
+	var gracePeriodTimer *time.Timer
+	retryInterval := 10 * time.Millisecond
+
+	counter := 0
+	doneChan := make(chan struct{})
+
+	// configure source with the following properties:
+	//   * check runs every 10 milliseconds
+	//   * grace period is 100 milliseconds
+	//   * first health check returns healthy state
+	//   * all subsequent checks return error state
+	//   * sends on "doneChan" after health check has returned at least twice
+	source := FromHealthCheckSource(ctx, gracePeriod, retryInterval, Source{
+		Checks: map[health.CheckType]CheckFunc{
+			checkType: func(ctx context.Context) *health.HealthCheckResult {
+				defer func() {
+					counter++
+				}()
+
+				switch counter {
+				// return healthy state if counter is 0
+				case 0:
+					return &health.HealthCheckResult{
+						Type:    checkType,
+						State:   health.HealthStateHealthy,
+						Message: stringPtr("Healthy state"),
+					}
+				// send on done channel after function has returned error state at least once
+				case 2:
+					// start grace period timer: when timer fires, last success will be outside of grace period
+					gracePeriodTimer = time.NewTimer(gracePeriod)
+					doneChan <- struct{}{}
+				}
+
+				return &health.HealthCheckResult{
+					Type:    checkType,
+					State:   health.HealthStateError,
+					Message: stringPtr("Error state"),
+				}
+			},
+		},
+	})
+
+	// wait until health check has returned healthy and then unhealthy
+	<-doneChan
+	status := source.HealthStatus(ctx)
+
+	// health check should be healthy: even though health source returned error state most recently, it returned
+	// healthy state within the grace period
+	assert.Equal(t, map[health.CheckType]health.HealthCheckResult{
+		checkType: {
+			Type:    checkType,
+			State:   health.HealthStateHealthy,
+			Message: stringPtr("Healthy state"),
+		},
+	}, status.Checks)
+
+	// health check should be unhealthy: last time health source returned healthy was more than grace period
+	<-gracePeriodTimer.C
+	status = source.HealthStatus(ctx)
+	assert.Equal(t, map[health.CheckType]health.HealthCheckResult{
+		checkType: {
+			Type:    checkType,
+			State:   health.HealthStateError,
+			Message: stringPtr("No successful checks during 100ms grace period: Error state"),
+		},
+	}, status.Checks)
+}
