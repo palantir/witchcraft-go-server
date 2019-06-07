@@ -352,7 +352,7 @@ func TestHealthCheckSource_HealthStatus(t *testing.T) {
 //   * Third check returns unhealthy (t=130ms, counter=2)
 //   * TEST: health status should be unhealthy due to no success within grace period (checking at roughly t=130ms, so there was a check that occurred within the grace period, but no successful check within the grace period)
 //   * Wait until grace period has elapsed (t=230ms)
-//   * TEST: health status should be unhealthy due to no check within grace period (checking at roughly t=220ms, so there is no check that occurred within the grace period)
+//   * TEST: health status should be unhealthy due to no check within grace period (checking at roughly t=230ms, so there is no check that occurred within the grace period)
 func TestFromHealthCheckSource(t *testing.T) {
 	ctx := context.Background()
 	gracePeriod := 100 * time.Millisecond
