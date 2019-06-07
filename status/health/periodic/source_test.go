@@ -397,7 +397,7 @@ func TestFromHealthCheckSource(t *testing.T) {
 							"counter": counter,
 						},
 					}
-				// on third run, send on doneChane and read from pauseChan
+				// on third run, send on doneChan and read from pauseChan
 				case 2:
 					// signal that health can be checked
 					doneChan <- struct{}{}
