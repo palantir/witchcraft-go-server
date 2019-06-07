@@ -364,16 +364,16 @@ func TestFromHealthCheckSource(t *testing.T) {
 					counter++
 				}()
 
-				if counter == 0 {
+				switch counter {
+				// return healthy state if counter is 0
+				case 0:
 					return &health.HealthCheckResult{
 						Type:    checkType,
 						State:   health.HealthStateHealthy,
 						Message: stringPtr("Healthy state"),
 					}
-				}
-
 				// send on done channel after function has returned error state at least once
-				if counter == 2 {
+				case 2:
 					// start grace period timer: when timer fires, last success will be outside of grace period
 					gracePeriodTimer = time.NewTimer(gracePeriod)
 					doneChan <- struct{}{}
