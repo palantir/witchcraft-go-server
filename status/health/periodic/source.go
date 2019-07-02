@@ -43,7 +43,7 @@ type healthCheckSource struct {
 	source        Source
 	gracePeriod   time.Duration
 	retryInterval time.Duration
-	initialPoll bool
+	initialPoll   bool
 
 	// mutable
 	mutex       sync.RWMutex

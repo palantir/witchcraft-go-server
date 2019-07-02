@@ -6,7 +6,7 @@ type Option interface {
 
 type optionFn func(source *healthCheckSource)
 
-func(fn optionFn) apply(source *healthCheckSource) {
+func (fn optionFn) apply(source *healthCheckSource) {
 	fn(source)
 }
 
