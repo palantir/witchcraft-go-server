@@ -24,6 +24,8 @@ func (fn optionFn) apply(source *healthCheckSource) {
 	fn(source)
 }
 
+// WithInitialPoll configures the health check source to poll immediately instead of waiting for the duration of
+// the check's specified retry interval.
 func WithInitialPoll() Option {
 	return optionFn(func(source *healthCheckSource) {
 		source.initialPoll = true
