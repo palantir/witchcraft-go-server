@@ -157,6 +157,20 @@ func TestUnregisterThenGet(t *testing.T) {
 	assert.False(t, present)
 }
 
+func TestUnregisterThenGetComponentStatus(t *testing.T) {
+	reporter := newHealthReporter()
+	component, err := reporter.InitializeHealthComponent(validComponent)
+	assert.NotNil(t, component)
+	assert.NoError(t, err)
+
+	assert.True(t, reporter.UnregisterHealthComponent(validComponent))
+
+	_, present := reporter.GetHealthComponent(validComponent)
+	assert.False(t, present)
+
+	assert.NotPanics(t, func() {component.Status()})
+}
+
 func TestUnregisterOnUninitialized(t *testing.T) {
 	reporter := newHealthReporter()
 	assert.False(t, reporter.UnregisterHealthComponent(validComponent))
