@@ -104,7 +104,7 @@ func TestUnregisterThenGetComponentStatus(t *testing.T) {
 	_, present := reporter.GetHealthComponent(validComponent)
 	assert.False(t, present)
 
-	assert.NotPanics(t, func() {component.Status()})
+	assert.NotPanics(t, func() { component.Status() })
 }
 
 func TestUnregisterOnUninitialized(t *testing.T) {
