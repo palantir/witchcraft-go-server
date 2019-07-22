@@ -70,10 +70,18 @@ func (r *healthComponent) Status() health.HealthState {
 
 // Returns the entire HealthCheckResult for the component
 func (r *healthComponent) GetHealthCheck() health.HealthCheckResult {
+	var message string
+	params := make(map[string]interface{}, len(r.params))
+
+	message = *r.message
+	for key, value := range r.params {
+		params[key] = value
+	}
+
 	return health.HealthCheckResult{
 		Type:    r.name,
 		State:   r.state,
-		Message: r.message,
-		Params:  r.params,
+		Message: &message,
+		Params:  params,
 	}
 }

@@ -85,3 +85,21 @@ func TestNonCompliantName(t *testing.T) {
 	_, err := healthReporter.InitializeHealthComponent(invalidComponent)
 	assert.Error(t, err)
 }
+
+func TestGetHealthCheckCopy(t *testing.T) {
+	component, _ := setup(t)
+	originalMessage := "originalMessage"
+	component.SetHealth(HealthyState, &originalMessage, map[string]interface{}{"originalParamKey": "originalParamValue"})
+	componentResult := component.GetHealthCheck()
+
+	message := "modifiedMessage"
+	componentResult.Type = "modifiedType"
+	componentResult.State = ErrorState
+	*componentResult.Message = message
+	componentResult.Params["modifiedParamKey"] = "modifiedParamValue"
+
+	assert.NotEqual(t, component.(*healthComponent).name, componentResult.Type)
+	assert.NotEqual(t, component.(*healthComponent).state, componentResult.State)
+	assert.NotEqual(t, component.(*healthComponent).message, componentResult.Message)
+	assert.NotEqual(t, component.(*healthComponent).params, componentResult.Params)
+}
