@@ -15,6 +15,7 @@
 package reporter
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -49,18 +50,20 @@ func TestWarningSetting(t *testing.T) {
 	component, healthReporter := setup(t)
 	component.Warning("warning message")
 	assert.Equal(t, WarningState, component.Status())
-	status, found := healthReporter.getHealthCheck(validComponent)
+	status := healthReporter.HealthStatus(context.TODO())
+	componentStatus, found := status.Checks[validComponent]
 	assert.True(t, found)
-	assert.Equal(t, "warning message", *status.Message)
+	assert.Equal(t, "warning message", *componentStatus.Message)
 }
 
 func TestErrorSetting(t *testing.T) {
 	component, healthReporter := setup(t)
 	component.Error(errors.New("err"))
 	assert.Equal(t, ErrorState, component.Status())
-	status, found := healthReporter.getHealthCheck(validComponent)
+	status := healthReporter.HealthStatus(context.TODO())
+	componentStatus, found := status.Checks[validComponent]
 	assert.True(t, found)
-	assert.Equal(t, "err", *status.Message)
+	assert.Equal(t, "err", *componentStatus.Message)
 }
 
 func TestSetHealthAndGetHealthResult(t *testing.T) {

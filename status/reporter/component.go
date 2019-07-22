@@ -38,8 +38,10 @@ const (
 )
 
 type healthComponent struct {
-	name     health.CheckType
-	reporter HealthReporter
+	name    health.CheckType
+	state   health.HealthState
+	message *string
+	params  map[string]interface{}
 }
 
 func (r *healthComponent) Healthy() {
@@ -56,26 +58,22 @@ func (r *healthComponent) Error(err error) {
 }
 
 func (r *healthComponent) SetHealth(healthState health.HealthState, message *string, params map[string]interface{}) {
-	r.reporter.setHealthCheck(r.name, health.HealthCheckResult{
-		Type:    r.name,
-		State:   healthState,
-		Message: message,
-		Params:  params,
-	})
+	r.state = healthState
+	r.message = message
+	r.params = params
 }
 
 // Returns the health status for the health component
 func (r *healthComponent) Status() health.HealthState {
-	return r.GetHealthCheck().State
+	return r.state
 }
 
 // Returns the entire HealthCheckResult for the component
 func (r *healthComponent) GetHealthCheck() health.HealthCheckResult {
-	result, found := r.reporter.getHealthCheck(r.name)
-	if !found {
-		// This should never happen so long as the reporter controls the instantiation of components
-		// and registers them into the Checks map during instantiation.
-		panic("This component was never registered with its HealthReporter")
+	return health.HealthCheckResult{
+		Type:    r.name,
+		State:   r.state,
+		Message: r.message,
+		Params:  r.params,
 	}
-	return result
 }
