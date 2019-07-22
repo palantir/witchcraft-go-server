@@ -73,7 +73,9 @@ func (r *healthComponent) GetHealthCheck() health.HealthCheckResult {
 	var message string
 	params := make(map[string]interface{}, len(r.params))
 
-	message = *r.message
+	if r.message != nil {
+		message = *r.message
+	}
 	for key, value := range r.params {
 		params[key] = value
 	}
