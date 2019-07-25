@@ -27,7 +27,6 @@ import (
 	"github.com/nmiyake/pkg/dirs"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
@@ -72,7 +71,8 @@ func TestUseLoggerFileWriterProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	cachingWriterProvider := witchcraft.NewCachingFileWriterProvider(witchcraft.DefaultFileWriterProvider())
-	svc1Logger := svc1log.New(witchcraft.CreateLogWriter("var/log/service.log", false, os.Stdout, cachingWriterProvider), wlog.DebugLevel)
+
+	svc1Logger := witchcraft.NewLoggerCreator(false, os.Stdout, cachingWriterProvider).Service1Logger(wlog.DebugLevel)
 	svc1Logger.Info("Test output from before server start")
 
 	port, err := httpserver.AvailablePort()
