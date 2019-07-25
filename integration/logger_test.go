@@ -41,12 +41,19 @@ import (
 // expects a witchcraft.Server that is constructed later to use the same io.Writer for its logger (to ensure that the
 // file properly handles writes from different sources).
 func TestUseLoggerFileWriterProvider(t *testing.T) {
-	if _, err := os.Stat("/.dockerenv"); err == nil {
-		err := os.Rename("/.dockerenv", "/.dockerenv-backup")
-		require.NoError(t, err, "failed to rename /.dockerenv")
+	// WORKAROUND: this test depends on the logger destination being a file, but if it's run in a Docker container (that
+	// is, if "/.dockerenv" exists), the server logic forces output to the console instead. So, if this path exists,
+	// temporarily rename it during the duration of the test run so that output goes to a file.
+	const (
+		dockerEnvPath = "/.dockerenv"
+		dockerEnvBackupPath = dockerEnvPath + "-backup"
+	)
+	if _, err := os.Stat(dockerEnvPath); err == nil {
+		err := os.Rename(dockerEnvPath, dockerEnvBackupPath)
+		require.NoError(t, err, "failed to rename %s to %s", dockerEnvPath, dockerEnvBackupPath)
 		defer func() {
-			err := os.Rename("/.dockerenv-backup", "/.dockerenv")
-			require.NoError(t, err, "failed to rename /.dockerenv")
+			err := os.Rename(dockerEnvBackupPath, dockerEnvPath)
+			require.NoError(t, err, "failed to rename %s to %s", dockerEnvBackupPath, dockerEnvPath)
 		}()
 	}
 
