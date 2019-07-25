@@ -41,6 +41,15 @@ import (
 // expects a witchcraft.Server that is constructed later to use the same io.Writer for its logger (to ensure that the
 // file properly handles writes from different sources).
 func TestUseLoggerFileWriterProvider(t *testing.T) {
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		err := os.Rename("/.dockerenv", "/.dockerenv-backup")
+		require.NoError(t, err, "failed to rename /.dockerenv")
+		defer func() {
+			err := os.Rename("/.dockerenv-backup", "/.dockerenv")
+			require.NoError(t, err, "failed to rename /.dockerenv")
+		}()
+	}
+
 	testDir, cleanup, err := dirs.TempDir("", "")
 	require.NoError(t, err)
 	defer cleanup()
