@@ -164,6 +164,10 @@ type Server struct {
 	// they should write to Stdout. If nil, os.Stdout is used by default.
 	loggerStdoutWriter io.Writer
 
+	// loggerFileWriterProvider specifies the FileWriterProvider that is used to create the io.Writer used to write log
+	// files at the specified path. If nil, uses DefaultFileWriterProvider.
+	loggerFileWriterProvider FileWriterProvider
+
 	// loggers
 	svcLogger    svc1log.Logger
 	evtLogger    evt2log.Logger
@@ -418,6 +422,14 @@ func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 // in-memory buffer rather than Stdout for tests).
 func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 	s.loggerStdoutWriter = loggerStdoutWriter
+	return s
+}
+
+// WithLoggerFileWriterProvider configures the server to use the provided FileWriterProvider to obtain the writer used
+// by loggers to write to a specific file path. This is typically only done in cases were logging may occur outside the
+// server and the caller wants to ensure that file-based logging uses the same backing writer.
+func (s *Server) WithLoggerFileWriterProvider(loggerFileWriterProvider FileWriterProvider) *Server {
+	s.loggerFileWriterProvider = loggerFileWriterProvider
 	return s
 }
 
