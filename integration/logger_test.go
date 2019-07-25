@@ -45,7 +45,7 @@ func TestUseLoggerFileWriterProvider(t *testing.T) {
 	// is, if "/.dockerenv" exists), the server logic forces output to the console instead. So, if this path exists,
 	// temporarily rename it during the duration of the test run so that output goes to a file.
 	const (
-		dockerEnvPath = "/.dockerenv"
+		dockerEnvPath       = "/.dockerenv"
 		dockerEnvBackupPath = dockerEnvPath + "-backup"
 	)
 	if _, err := os.Stat(dockerEnvPath); err == nil {
