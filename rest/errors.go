@@ -15,7 +15,7 @@
 package rest
 
 import (
-	"github.com/palantir/witchcraft-go-error"
+	werror "github.com/palantir/witchcraft-go-error"
 )
 
 const (
