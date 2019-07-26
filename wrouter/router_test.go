@@ -20,6 +20,7 @@ import (
 	"net/http/httptest"
 	"sort"
 	"testing"
+
 	// underscore import to use zap implementation
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
 	"github.com/palantir/witchcraft-go-server/wrouter"

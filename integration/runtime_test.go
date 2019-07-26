@@ -181,7 +181,7 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(runtimeYML, []byte(runtimeConfigWithLoggingYML), 0644)
+	err = ioutil.WriteFile(runtimeYML, runtimeConfigWithLoggingYML, 0644)
 	require.NoError(t, err)
 
 	runtimeConfigUpdatedChan := make(chan struct{})
