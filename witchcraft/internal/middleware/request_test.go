@@ -26,7 +26,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/objmatcher"
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	"github.com/palantir/witchcraft-go-logging/wlog-zap"
+	wlogzap "github.com/palantir/witchcraft-go-logging/wlog-zap"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
