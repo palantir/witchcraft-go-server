@@ -33,14 +33,9 @@ type HealthReporter interface {
 	InitializeHealthComponent(name string) (HealthComponent, error)
 	GetHealthComponent(name string) (HealthComponent, bool)
 	UnregisterHealthComponent(name string) bool
-
-	setHealthCheck(component health.CheckType, status health.HealthCheckResult)
-	setHealthCheckAndComponentIfAbsent(componentName health.CheckType, component HealthComponent, status health.HealthCheckResult) bool
-	getHealthCheck(component health.CheckType) (health.HealthCheckResult, bool)
 }
 
 type healthReporter struct {
-	currentStatus    health.HealthStatus
 	mutex            sync.RWMutex
 	healthComponents map[health.CheckType]HealthComponent
 }
@@ -53,9 +48,6 @@ func NewHealthReporter() HealthReporter {
 
 func newHealthReporter() *healthReporter {
 	return &healthReporter{
-		currentStatus: health.HealthStatus{
-			Checks: make(map[health.CheckType]health.HealthCheckResult),
-		},
 		healthComponents: make(map[health.CheckType]HealthComponent),
 	}
 }
@@ -72,18 +64,19 @@ func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent
 			werror.SafeParam("validPattern", slsHealthNameRegex))
 	}
 	componentName := health.CheckType(name)
-	status := health.HealthCheckResult{
-		Type:  componentName,
-		State: StartingState,
-	}
 	healthComponent := &healthComponent{
-		name:     componentName,
-		reporter: r,
+		name:  componentName,
+		state: StartingState,
 	}
-	if r.setHealthCheckAndComponentIfAbsent(componentName, healthComponent, status) {
-		return healthComponent, nil
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if _, ok := r.healthComponents[componentName]; ok {
+		return nil, werror.Error("Health component name already exists", werror.SafeParam("name", name))
 	}
-	return nil, werror.Error("Health component name already exists", werror.SafeParam("name", name))
+
+	r.healthComponents[componentName] = healthComponent
+	return healthComponent, nil
 }
 
 // GetHealthComponent - Gets an initialized health component by name.
@@ -107,43 +100,24 @@ func (r *healthReporter) UnregisterHealthComponent(name string) bool {
 		changesMade = true
 	}
 
-	if _, present := r.currentStatus.Checks[componentName]; present {
-		delete(r.currentStatus.Checks, componentName)
-		changesMade = true
-	}
-
 	return changesMade
 }
 
 // HealthStatus returns a copy of the current HealthStatus, and cannot be used to modify the current state
 func (r *healthReporter) HealthStatus(ctx context.Context) health.HealthStatus {
-	checks := make(map[health.CheckType]health.HealthCheckResult, len(r.currentStatus.Checks))
-	for key, value := range r.currentStatus.Checks {
-		checks[key] = value
+	checks := make(map[health.CheckType]health.HealthCheckResult, len(r.healthComponents))
+	for checkType, component := range r.healthComponents {
+		checks[checkType] = component.GetHealthCheck()
 	}
 	return health.HealthStatus{Checks: checks}
 }
 
-func (r *healthReporter) setHealthCheckAndComponentIfAbsent(componentName health.CheckType, component HealthComponent, status health.HealthCheckResult) bool {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	if _, found := r.currentStatus.Checks[componentName]; found {
-		return false
-	}
-	r.currentStatus.Checks[componentName] = status
-	r.healthComponents[componentName] = component
-	return true
-}
-
-func (r *healthReporter) setHealthCheck(component health.CheckType, status health.HealthCheckResult) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	r.currentStatus.Checks[component] = status
-}
-
-func (r *healthReporter) getHealthCheck(component health.CheckType) (health.HealthCheckResult, bool) {
+func (r *healthReporter) getHealthCheck(check health.CheckType) (health.HealthCheckResult, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	check, found := r.currentStatus.Checks[component]
-	return check, found
+	component, found := r.healthComponents[check]
+	if !found {
+		return health.HealthCheckResult{}, false
+	}
+	return component.GetHealthCheck(), found
 }
