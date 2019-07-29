@@ -15,6 +15,8 @@
 package reporter
 
 import (
+	"sync"
+
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 )
 
@@ -38,6 +40,8 @@ const (
 )
 
 type healthComponent struct {
+	sync.Mutex
+
 	name    health.CheckType
 	state   health.HealthState
 	message *string
@@ -58,6 +62,9 @@ func (r *healthComponent) Error(err error) {
 }
 
 func (r *healthComponent) SetHealth(healthState health.HealthState, message *string, params map[string]interface{}) {
+	r.Lock()
+	defer r.Unlock()
+
 	r.state = healthState
 	r.message = message
 	r.params = params
@@ -70,6 +77,9 @@ func (r *healthComponent) Status() health.HealthState {
 
 // Returns the entire HealthCheckResult for the component
 func (r *healthComponent) GetHealthCheck() health.HealthCheckResult {
+	r.Lock()
+	defer r.Unlock()
+
 	var message *string
 	params := make(map[string]interface{}, len(r.params))
 
