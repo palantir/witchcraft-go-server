@@ -40,7 +40,7 @@ const (
 )
 
 type healthComponent struct {
-	sync.Mutex
+	sync.RWMutex
 
 	name    health.CheckType
 	state   health.HealthState
@@ -72,6 +72,9 @@ func (r *healthComponent) SetHealth(healthState health.HealthState, message *str
 
 // Returns the health status for the health component
 func (r *healthComponent) Status() health.HealthState {
+	r.RLock()
+	defer r.RUnlock()
+
 	return r.state
 }
 
