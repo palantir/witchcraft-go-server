@@ -8,8 +8,8 @@ owner-repo: &owner-repo
 version: 2.1
 
 orbs:
-  go: palantir/go@0.0.11
-  godel: palantir/godel@0.0.8
+  go: palantir/go@0.0.12
+  godel: palantir/godel@0.0.11
 
 workflows:
   version: 2
