@@ -63,22 +63,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		metricsEmitFreq = freq
 	}
 
-	// start uptime metric
-	uptimeTimer := metricsRegistry.Timer("server.uptime")
-
-	// start goroutine that updates the uptime metric
-	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		t := time.NewTicker(5.0 * time.Second)
-		defer t.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-t.C:
-				uptimeTimer.Update(time.Since(initTime) / time.Millisecond)
-			}
-		}
-	})
+	initServerUptimeMetric(ctx, metricsRegistry)
 
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
@@ -122,4 +107,20 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		// emit all metrics a final time on termination
 		metricsRegistry.Each(emitFn)
 	}, nil
+}
+
+func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {
+	// start goroutine that updates the uptime metric
+	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
+		t := time.NewTicker(5.0 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+			}
+		}
+	})
 }

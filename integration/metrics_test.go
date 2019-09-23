@@ -66,6 +66,9 @@ func TestEmitMetrics(t *testing.T) {
 	// Allow the metric emitter to do its thing.
 	time.Sleep(150 * time.Millisecond)
 
+	// Allow the uptime metric to tick.
+	time.Sleep(5.0 * time.Second)
+
 	parts := strings.Split(logOutputBuffer.String(), "\n")
 	var metricLogs []logging.MetricLogV1
 	for _, curr := range parts {
@@ -76,7 +79,7 @@ func TestEmitMetrics(t *testing.T) {
 		}
 	}
 
-	var seenMyCounter, seenResponseTimer, seenResponseSize, seenRequestSize, seenResponseError bool
+	var seenMyCounter, seenResponseTimer, seenUptime, seenResponseSize, seenRequestSize, seenResponseError bool
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
 		case "my-counter":
@@ -137,6 +140,10 @@ func TestEmitMetrics(t *testing.T) {
 			assert.Nil(t, metricLog.Values["5m"])
 			assert.Nil(t, metricLog.Values["15m"])
 			assert.Nil(t, metricLog.Values["mean"])
+		case "server.uptime":
+			seenUptime = true
+			assert.Equal(t, "gauge", metricLog.MetricType, "server.uptime metric had incorrect type")
+			assert.NotZero(t, metricLog.Values["value"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
@@ -146,6 +153,7 @@ func TestEmitMetrics(t *testing.T) {
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
 	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
+	assert.True(t, seenUptime, "server.uptime metric was not emitted")
 
 	select {
 	case err := <-serverErr:
