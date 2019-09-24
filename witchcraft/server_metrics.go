@@ -63,10 +63,10 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		metricsEmitFreq = freq
 	}
 
-	initServerUptimeMetric(ctx, metricsRegistry)
-
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
+		initServerUptimeMetric(ctx, metricsRegistry)
+
 		if ok := metrics.CaptureRuntimeMemStatsWithContext(ctx, metricsRegistry, metricsEmitFreq); !ok {
 			return nil, nil, werror.Error("metricsRegistry does not support capturing runtime memory statistics")
 		}
@@ -110,6 +110,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 }
 
 func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {
+	metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+
 	// start goroutine that updates the uptime metric
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 		t := time.NewTicker(5.0 * time.Second)
