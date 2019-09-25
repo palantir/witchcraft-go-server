@@ -41,13 +41,13 @@ func NewSlidingWindowManager(windowSize time.Duration) SlidingWindowManager {
 }
 
 func (s *SlidingWindowManager) pruneOldErrors() {
-	var upToDateStatusEntries []errorEntry
+	var upToDateErrorEntries []errorEntry
 	for _, entry := range s.errors {
 		if time.Now().Sub(entry.time) <= s.windowSize {
-			upToDateStatusEntries = append(upToDateStatusEntries, entry)
+			upToDateErrorEntries = append(upToDateErrorEntries, entry)
 		}
 	}
-	s.errors = upToDateStatusEntries
+	s.errors = upToDateErrorEntries
 }
 
 // SubmitError prunes all out-of-date errors out of memory and adds a new one.
