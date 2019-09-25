@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	health_util "github.com/palantir/witchcraft-go-server/status/health"
+	whealth "github.com/palantir/witchcraft-go-server/status/health"
 )
 
 // UnhealthyIfAtLeastOneError builds an ErrorsToCheckFn that returns the first non-nil error as an unhealthy check.
@@ -27,25 +27,25 @@ func UnhealthyIfAtLeastOneError(checkType health.CheckType) ErrorsToCheckFn {
 	return func(ctx context.Context, errors []error) health.HealthCheckResult {
 		for _, err := range errors {
 			if err != nil {
-				return health_util.UnhealthyHealthCheckResult(checkType, err.Error())
+				return whealth.UnhealthyHealthCheckResult(checkType, err.Error())
 			}
 		}
-		return health_util.HealthyHealthCheckResult(checkType)
+		return whealth.HealthyHealthCheckResult(checkType)
 	}
 }
 
-// HealthyIfNotAllErrors builds an ErrorsToCheckFn that returns unhealthy if there are only non-nil errors.
+// HealthyIfNotAllErrors builds an ErrorsToCheckFn that returns, if there are only non-nil errors, the first non-nil error as an unhealthy check.
 // If there are no errors, returns healthy.
 func HealthyIfNotAllErrors(checkType health.CheckType) ErrorsToCheckFn {
 	return func(ctx context.Context, errors []error) health.HealthCheckResult {
 		if len(errors) == 0 {
-			return health_util.HealthyHealthCheckResult(checkType)
+			return whealth.HealthyHealthCheckResult(checkType)
 		}
 		for _, err := range errors {
 			if err == nil {
-				return health_util.HealthyHealthCheckResult(checkType)
+				return whealth.HealthyHealthCheckResult(checkType)
 			}
 		}
-		return health_util.UnhealthyHealthCheckResult(checkType, errors[0].Error())
+		return whealth.UnhealthyHealthCheckResult(checkType, errors[0].Error())
 	}
 }

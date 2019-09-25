@@ -25,12 +25,12 @@ import (
 type ErrorsToCheckFn func(ctx context.Context, errors []error) health.HealthCheckResult
 
 type healthCheckSource struct {
-	slidingWindowManager *SlidingWindowManager
+	slidingWindowManager *TimeWindowedErrorStorer
 	errorsToCheckFn      ErrorsToCheckFn
 }
 
-// NewHealthCheck creates a HealthCheckSource that polls a SlidingWindowManager and returns a HealthStatus created using an ErrorsToCheckFn.
-func NewHealthCheck(slidingWindowManager *SlidingWindowManager, errorsToCheckFn ErrorsToCheckFn) status.HealthCheckSource {
+// NewHealthCheck creates a HealthCheckSource that polls a TimeWindowedErrorStorer and returns a HealthStatus created using an ErrorsToCheckFn.
+func NewHealthCheck(slidingWindowManager *TimeWindowedErrorStorer, errorsToCheckFn ErrorsToCheckFn) status.HealthCheckSource {
 	return &healthCheckSource{
 		slidingWindowManager: slidingWindowManager,
 		errorsToCheckFn:      errorsToCheckFn,

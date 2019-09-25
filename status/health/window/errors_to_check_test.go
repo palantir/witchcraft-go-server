@@ -20,7 +20,7 @@ import (
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	health_util "github.com/palantir/witchcraft-go-server/status/health"
+	whealth "github.com/palantir/witchcraft-go-server/status/health"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func TestUnhealthyIfAtLeastOneError(t *testing.T) {
 		{
 			name:          "healthy when there are no errors",
 			errors:        nil,
-			expectedCheck: health_util.HealthyHealthCheckResult(checkType),
+			expectedCheck: whealth.HealthyHealthCheckResult(checkType),
 		},
 		{
 			name: "healthy when there are only nil errors",
@@ -46,7 +46,7 @@ func TestUnhealthyIfAtLeastOneError(t *testing.T) {
 				nil,
 				nil,
 			},
-			expectedCheck: health_util.HealthyHealthCheckResult(checkType),
+			expectedCheck: whealth.HealthyHealthCheckResult(checkType),
 		},
 		{
 			name: "unhealthy when there is at least one error",
@@ -57,7 +57,7 @@ func TestUnhealthyIfAtLeastOneError(t *testing.T) {
 				werror.Error("error #2"),
 				nil,
 			},
-			expectedCheck: health_util.UnhealthyHealthCheckResult(checkType, "error #1"),
+			expectedCheck: whealth.UnhealthyHealthCheckResult(checkType, "error #1"),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestHealthyIfNotAllErrors(t *testing.T) {
 		{
 			name:          "healthy when there are no errors",
 			errors:        nil,
-			expectedCheck: health_util.HealthyHealthCheckResult(checkType),
+			expectedCheck: whealth.HealthyHealthCheckResult(checkType),
 		},
 		{
 			name: "healthy when there are only nil errors",
@@ -85,7 +85,7 @@ func TestHealthyIfNotAllErrors(t *testing.T) {
 				nil,
 				nil,
 			},
-			expectedCheck: health_util.HealthyHealthCheckResult(checkType),
+			expectedCheck: whealth.HealthyHealthCheckResult(checkType),
 		},
 		{
 			name: "healthy when there is at least one non nil error",
@@ -96,7 +96,7 @@ func TestHealthyIfNotAllErrors(t *testing.T) {
 				werror.Error("error #2"),
 				nil,
 			},
-			expectedCheck: health_util.HealthyHealthCheckResult(checkType),
+			expectedCheck: whealth.HealthyHealthCheckResult(checkType),
 		},
 		{
 			name: "unhealthy when there are only non nil errors",
@@ -104,7 +104,7 @@ func TestHealthyIfNotAllErrors(t *testing.T) {
 				werror.Error("error #1"),
 				werror.Error("error #2"),
 			},
-			expectedCheck: health_util.UnhealthyHealthCheckResult(checkType, "error #1"),
+			expectedCheck: whealth.UnhealthyHealthCheckResult(checkType, "error #1"),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

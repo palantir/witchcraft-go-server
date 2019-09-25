@@ -17,6 +17,8 @@ package window
 import (
 	"sync"
 	"time"
+
+	werror "github.com/palantir/witchcraft-go-error"
 )
 
 type errorEntry struct {
@@ -24,52 +26,58 @@ type errorEntry struct {
 	err  error
 }
 
-// SlidingWindowManager is a thread safe struct where you can submit errors
-// and poll for all errors submitted within the last windowSize period.
+// TimeWindowedErrorStorer is a thread-safe struct that stores submitted errors
+// and supports polling for all errors submitted within the last windowSize period.
 // It includes nil error submissions.
-type SlidingWindowManager struct {
+// When any operation is made, all out-of-date errors are pruned out of memory.
+type TimeWindowedErrorStorer struct {
 	errors      []errorEntry
 	errorsMutex sync.Mutex
 	windowSize  time.Duration
 }
 
-// NewSlidingWindowManager creates a new SlidingWindowManager with the provided windowSize.
-func NewSlidingWindowManager(windowSize time.Duration) SlidingWindowManager {
-	return SlidingWindowManager{
-		windowSize: windowSize,
+// NewSlidingWindowManager creates a new TimeWindowedErrorStorer with the provided windowSize.
+func NewSlidingWindowManager(windowSize time.Duration) (TimeWindowedErrorStorer, error) {
+	if windowSize <= 0 {
+		return TimeWindowedErrorStorer{}, werror.Error("attempted to create a sliding window with non positive size")
 	}
+	return TimeWindowedErrorStorer{
+		windowSize: windowSize,
+	}, nil
 }
 
-func (s *SlidingWindowManager) pruneOldErrors() {
+func (t *TimeWindowedErrorStorer) pruneOldErrors() {
 	var upToDateErrorEntries []errorEntry
-	for _, entry := range s.errors {
-		if time.Now().Sub(entry.time) <= s.windowSize {
+	for _, entry := range t.errors {
+		if time.Now().Sub(entry.time) <= t.windowSize {
 			upToDateErrorEntries = append(upToDateErrorEntries, entry)
 		}
 	}
-	s.errors = upToDateErrorEntries
+	t.errors = upToDateErrorEntries
 }
 
-// SubmitError prunes all out-of-date errors out of memory and adds a new one.
-func (s *SlidingWindowManager) SubmitError(err error) {
-	s.errorsMutex.Lock()
-	defer s.errorsMutex.Unlock()
+// SubmitError prunes all out-of-date errors out of memory and then adds a new one.
+func (t *TimeWindowedErrorStorer) SubmitError(err error) {
+	submissionTime := time.Now()
 
-	s.pruneOldErrors()
-	s.errors = append(s.errors, errorEntry{
-		time: time.Now(),
+	t.errorsMutex.Lock()
+	defer t.errorsMutex.Unlock()
+
+	t.pruneOldErrors()
+	t.errors = append(t.errors, errorEntry{
+		time: submissionTime,
 		err:  err,
 	})
 }
 
-// GetErrors prunes all out-of-date errors out of memory and returns all up-to-date errors.
-func (s *SlidingWindowManager) GetErrors() []error {
-	s.errorsMutex.Lock()
-	defer s.errorsMutex.Unlock()
+// GetErrors prunes all out-of-date errors out of memory and then returns all up-to-date errors.
+func (t *TimeWindowedErrorStorer) GetErrors() []error {
+	t.errorsMutex.Lock()
+	defer t.errorsMutex.Unlock()
 
-	s.pruneOldErrors()
+	t.pruneOldErrors()
 	var result []error
-	for _, entry := range s.errors {
+	for _, entry := range t.errors {
 		result = append(result, entry.err)
 	}
 	return result
