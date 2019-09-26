@@ -168,38 +168,3 @@ func (m *MultiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 		},
 	}
 }
-
-// MultiKeyHealthyIfNotAllErrors builds an EventsToCheckFn that returns unhealthy
-// if there is at least one key with only errors.
-// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all unhealthy keys.
-// If there are no events, returns healthy.
-// Payload is considered to be of type keyErrorPair and panics if it is not.
-func MultiKeyHealthyIfNotAllErrors(checkType health.CheckType, messageInCaseOfError string) EventsToCheckFn {
-	return func(ctx context.Context, events []Event) health.HealthCheckResult {
-		params := make(map[string]interface{})
-		hasSuccess := make(map[string]struct{})
-		for _, event := range events {
-			keyErrorPair := event.Payload.(keyErrorPair)
-			if _, keyHasSuccess := hasSuccess[keyErrorPair.key]; keyHasSuccess {
-				continue
-			}
-			if keyErrorPair.err == nil {
-				delete(params, keyErrorPair.key)
-				hasSuccess[keyErrorPair.key] = struct{}{}
-				continue
-			}
-			if _, alreadyHasError := params[keyErrorPair.key]; !alreadyHasError {
-				params[keyErrorPair.key] = keyErrorPair.err
-			}
-		}
-		if len(params) > 0 {
-			return health.HealthCheckResult{
-				Type:    checkType,
-				State:   health.HealthStateError,
-				Message: &messageInCaseOfError,
-				Params:  params,
-			}
-		}
-		return whealth.HealthyHealthCheckResult(checkType)
-	}
-}
