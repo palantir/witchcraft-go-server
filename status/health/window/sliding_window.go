@@ -21,63 +21,62 @@ import (
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
-type errorEntry struct {
-	time time.Time
-	err  error
+// Event is a struct that keeps a generic payload describing an event and a timestamp for when the event happened.
+type Event struct {
+	// Time is the time the event was submitted.
+	Time time.Time
+	// Payload is any generic information about this event.
+	Payload interface{}
 }
 
-// TimeWindowedErrorStorer is a thread-safe struct that stores submitted errors
-// and supports polling for all errors submitted within the last windowSize period.
-// It includes nil error submissions.
-// When any operation is made, all out-of-date errors are pruned out of memory.
-type TimeWindowedErrorStorer struct {
-	errors      []errorEntry
-	errorsMutex sync.Mutex
+// TimeWindowedEventStorer is a thread-safe struct that stores submitted events
+// and supports polling for all events submitted within the last windowSize period.
+// When any operation is made, all out-of-date events are pruned out of memory.
+type TimeWindowedEventStorer struct {
+	events      []Event
+	eventsMutex sync.Mutex
 	windowSize  time.Duration
 }
 
-// NewSlidingWindowManager creates a new TimeWindowedErrorStorer with the provided windowSize.
-func NewSlidingWindowManager(windowSize time.Duration) (TimeWindowedErrorStorer, error) {
+// NewTimeWindowedEventStorer creates a new TimeWindowedEventStorer with the provided windowSize.
+func NewTimeWindowedEventStorer(windowSize time.Duration) (TimeWindowedEventStorer, error) {
 	if windowSize <= 0 {
-		return TimeWindowedErrorStorer{}, werror.Error("attempted to create a sliding window with non positive size")
+		return TimeWindowedEventStorer{}, werror.Error("attempted to create a sliding window with non positive size")
 	}
-	return TimeWindowedErrorStorer{
+	return TimeWindowedEventStorer{
 		windowSize: windowSize,
 	}, nil
 }
 
-func (t *TimeWindowedErrorStorer) pruneOldErrors() {
+func (t *TimeWindowedEventStorer) pruneOldEvents() {
 	currentTime := time.Now()
-	for i, entry := range t.errors {
-		if currentTime.Sub(entry.time) > t.windowSize {
-			t.errors = t.errors[i+1:]
-		} else {
+	newStartIndex := 0
+	for index, entry := range t.events {
+		if currentTime.Sub(entry.Time) <= t.windowSize {
 			break
 		}
+		newStartIndex = index + 1
 	}
+	t.events = t.events[newStartIndex:]
 }
 
-// SubmitError prunes all out-of-date errors out of memory and then adds a new one.
-func (t *TimeWindowedErrorStorer) SubmitError(err error) {
-	t.errorsMutex.Lock()
-	defer t.errorsMutex.Unlock()
+// SubmitEvent prunes all out-of-date events out of memory and then adds a new one.
+func (t *TimeWindowedEventStorer) SubmitEvent(payload interface{}) {
+	t.eventsMutex.Lock()
+	defer t.eventsMutex.Unlock()
 
-	t.pruneOldErrors()
-	t.errors = append(t.errors, errorEntry{
-		time: time.Now(),
-		err:  err,
+	t.pruneOldEvents()
+	t.events = append(t.events, Event{
+		Time:    time.Now(),
+		Payload: payload,
 	})
 }
 
-// GetErrors prunes all out-of-date errors out of memory and then returns all up-to-date errors.
-func (t *TimeWindowedErrorStorer) GetErrors() []error {
-	t.errorsMutex.Lock()
-	defer t.errorsMutex.Unlock()
+// GetEventsInWindow prunes all out-of-date events out of memory and then returns all up-to-date events.
+func (t *TimeWindowedEventStorer) GetEventsInWindow() []Event {
+	t.eventsMutex.Lock()
+	defer t.eventsMutex.Unlock()
 
-	t.pruneOldErrors()
-	var result []error
-	for _, entry := range t.errors {
-		result = append(result, entry.err)
-	}
-	return result
+	t.pruneOldEvents()
+	return t.events
 }

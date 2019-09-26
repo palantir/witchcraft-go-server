@@ -18,47 +18,55 @@ import (
 	"testing"
 	"time"
 
-	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSlidingWindowManager_NoErrors(t *testing.T) {
-	manager := NewSlidingWindowManager(time.Millisecond)
-	errors := manager.GetErrors()
+func TestTimeWindowedEventStorer_ErrorOnCreate(t *testing.T) {
+	_, err := NewTimeWindowedEventStorer(0)
+	assert.Error(t, err)
+}
+
+func TestTimeWindowedEventStorer_NoEvents(t *testing.T) {
+	manager, err := NewTimeWindowedEventStorer(time.Millisecond)
+	assert.NoError(t, err)
+	errors := manager.GetEventsInWindow()
 	assert.Nil(t, errors)
 }
 
-func TestSlidingWindowManager_AllErrorsUpToDate(t *testing.T) {
-	manager := NewSlidingWindowManager(time.Second)
-	manager.SubmitError(werror.Error("error #1"))
-	manager.SubmitError(werror.Error("error #2"))
-	manager.SubmitError(werror.Error("error #3"))
-	errors := manager.GetErrors()
-	assert.EqualValues(t, len(errors), 3)
-	assert.EqualValues(t, werror.Error("error #1").Error(), errors[0].Error())
-	assert.EqualValues(t, werror.Error("error #2").Error(), errors[1].Error())
-	assert.EqualValues(t, werror.Error("error #3").Error(), errors[2].Error())
+func TestTimeWindowedEventStorer_AllEventsUpToDate(t *testing.T) {
+	manager, err := NewTimeWindowedEventStorer(time.Second)
+	assert.NoError(t, err)
+	manager.SubmitEvent("payload #1")
+	manager.SubmitEvent("payload #2")
+	manager.SubmitEvent("payload #3")
+	events := manager.GetEventsInWindow()
+	assert.EqualValues(t, len(events), 3)
+	assert.EqualValues(t, "payload #1", events[0].Payload)
+	assert.EqualValues(t, "payload #2", events[1].Payload)
+	assert.EqualValues(t, "payload #3", events[2].Payload)
 }
 
-func TestSlidingWindowManager_AllErrorsOutOfDate(t *testing.T) {
-	manager := NewSlidingWindowManager(time.Millisecond)
-	manager.SubmitError(werror.Error("error #1"))
-	manager.SubmitError(werror.Error("error #2"))
-	manager.SubmitError(werror.Error("error #3"))
-	<-time.After(2 * time.Millisecond)
-	errors := manager.GetErrors()
-	assert.Nil(t, errors)
+func TestTimeWindowedEventStorer_AllEventsOutOfDate(t *testing.T) {
+	manager, err := NewTimeWindowedEventStorer(50 * time.Millisecond)
+	assert.NoError(t, err)
+	manager.SubmitEvent("payload #1")
+	manager.SubmitEvent("payload #2")
+	manager.SubmitEvent("payload #3")
+	<-time.After(100 * time.Millisecond)
+	events := manager.GetEventsInWindow()
+	assert.Empty(t, events)
 }
 
-func TestSlidingWindowManager_SomeErrorsOutOfDate(t *testing.T) {
-	manager := NewSlidingWindowManager(500 * time.Millisecond)
-	manager.SubmitError(werror.Error("error #1"))
-	manager.SubmitError(werror.Error("error #2"))
+func TestTimeWindowedEventStorer_SomeEventsOutOfDate(t *testing.T) {
+	manager, err := NewTimeWindowedEventStorer(500 * time.Millisecond)
+	assert.NoError(t, err)
+	manager.SubmitEvent("payload #1")
+	manager.SubmitEvent("payload #2")
 	<-time.After(time.Second)
-	manager.SubmitError(werror.Error("error #3"))
-	manager.SubmitError(werror.Error("error #4"))
-	errors := manager.GetErrors()
-	assert.EqualValues(t, len(errors), 2)
-	assert.EqualValues(t, werror.Error("error #3").Error(), errors[0].Error())
-	assert.EqualValues(t, werror.Error("error #4").Error(), errors[1].Error())
+	manager.SubmitEvent("payload #3")
+	manager.SubmitEvent("payload #4")
+	events := manager.GetEventsInWindow()
+	assert.EqualValues(t, len(events), 2)
+	assert.EqualValues(t, "payload #3", events[0].Payload)
+	assert.EqualValues(t, "payload #4", events[1].Payload)
 }

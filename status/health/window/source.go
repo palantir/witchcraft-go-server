@@ -21,24 +21,24 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
-// ErrorsToCheckFn is a function that constructs a HealthCheckResult from a set of errors.
-type ErrorsToCheckFn func(ctx context.Context, errors []error) health.HealthCheckResult
+// EventsToCheckFn is a function that constructs a HealthCheckResult from a set of events.
+type EventsToCheckFn func(ctx context.Context, events []Event) health.HealthCheckResult
 
 type healthCheckSource struct {
-	slidingWindowManager *TimeWindowedErrorStorer
-	errorsToCheckFn      ErrorsToCheckFn
+	slidingWindowManager *TimeWindowedEventStorer
+	eventsToCheckFn      EventsToCheckFn
 }
 
-// NewHealthCheck creates a HealthCheckSource that polls a TimeWindowedErrorStorer and returns a HealthStatus created using an ErrorsToCheckFn.
-func NewHealthCheck(slidingWindowManager *TimeWindowedErrorStorer, errorsToCheckFn ErrorsToCheckFn) status.HealthCheckSource {
+// NewHealthCheck creates a HealthCheckSource that polls a TimeWindowedEventStorer and returns a HealthStatus created using an EventsToCheckFn.
+func NewHealthCheck(timeWindowedEventStorer *TimeWindowedEventStorer, errorsToCheckFn EventsToCheckFn) status.HealthCheckSource {
 	return &healthCheckSource{
-		slidingWindowManager: slidingWindowManager,
-		errorsToCheckFn:      errorsToCheckFn,
+		slidingWindowManager: timeWindowedEventStorer,
+		eventsToCheckFn:      errorsToCheckFn,
 	}
 }
 
 func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
-	checkResult := h.errorsToCheckFn(ctx, h.slidingWindowManager.GetErrors())
+	checkResult := h.eventsToCheckFn(ctx, h.slidingWindowManager.GetEventsInWindow())
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			checkResult.Type: checkResult,
