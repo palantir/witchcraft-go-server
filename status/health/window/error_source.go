@@ -33,7 +33,7 @@ type UnhealthyIfAtLeastOneErrorSource struct {
 
 var _ status.HealthCheckSource = &UnhealthyIfAtLeastOneErrorSource{}
 
-// NewMultiKeyUnhealthyIfAtLeastOneErrorSource creates an UnhealthyIfAtLeastOneErrorSource
+// NewUnhealthyIfAtLeastOneErrorSource creates an UnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType.
 func NewUnhealthyIfAtLeastOneErrorSource(windowSize time.Duration, checkType health.CheckType) (*UnhealthyIfAtLeastOneErrorSource, error) {
 	timeWindowedEventStorer, err := NewTimeWindowedEventStorer(windowSize)
