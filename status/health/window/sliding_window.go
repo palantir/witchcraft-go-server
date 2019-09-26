@@ -60,7 +60,7 @@ func (t *TimeWindowedEventStorer) pruneOldEvents() {
 	t.events = t.events[newStartIndex:]
 }
 
-// SubmitEvent prunes all out-of-date events out of memory and then adds a new one.
+// SubmitError prunes all out-of-date events out of memory and then adds a new one.
 func (t *TimeWindowedEventStorer) SubmitEvent(payload interface{}) {
 	t.eventsMutex.Lock()
 	defer t.eventsMutex.Unlock()

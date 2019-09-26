@@ -392,7 +392,7 @@ func TestFromHealthCheckSource(t *testing.T) {
 					return &health.HealthCheckResult{
 						Type:    checkType,
 						State:   health.HealthStateError,
-						Message: stringPtr("Error state"),
+						Message: stringPtr("error state"),
 						Params: map[string]interface{}{
 							"counter": counter,
 						},
@@ -407,7 +407,7 @@ func TestFromHealthCheckSource(t *testing.T) {
 					return &health.HealthCheckResult{
 						Type:    checkType,
 						State:   health.HealthStateError,
-						Message: stringPtr("Error state"),
+						Message: stringPtr("error state"),
 						Params: map[string]interface{}{
 							"counter": counter,
 						},
@@ -451,7 +451,7 @@ func TestFromHealthCheckSource(t *testing.T) {
 		checkType: {
 			Type:    checkType,
 			State:   health.HealthStateError,
-			Message: stringPtr("No successful checks during 100ms grace period: Error state"),
+			Message: stringPtr("No successful checks during 100ms grace period: error state"),
 			Params: map[string]interface{}{
 				"counter": 2,
 			},
@@ -467,7 +467,7 @@ func TestFromHealthCheckSource(t *testing.T) {
 		checkType: {
 			Type:    checkType,
 			State:   health.HealthStateError,
-			Message: stringPtr("No completed checks during 100ms grace period: Error state"),
+			Message: stringPtr("No completed checks during 100ms grace period: error state"),
 			Params: map[string]interface{}{
 				"counter": 2,
 			},
