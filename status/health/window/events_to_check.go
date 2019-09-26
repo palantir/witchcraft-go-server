@@ -63,7 +63,7 @@ type KeyErrorPair struct {
 
 // MultiKeyUnhealthyIfAtLeastOneError builds an EventsToCheckFn that returns unhealthy
 // if there is a non-nil error for at least one key.
-// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all keys with errors.
+// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all unhealthy keys.
 // If there are no events, returns healthy.
 // Payload is considered to be of type KeyErrorPair and panics if it is not.
 func MultiKeyUnhealthyIfAtLeastOneError(checkType health.CheckType, messageInCaseOfError string) EventsToCheckFn {
@@ -92,7 +92,7 @@ func MultiKeyUnhealthyIfAtLeastOneError(checkType health.CheckType, messageInCas
 
 // MultiKeyHealthyIfNotAllErrors builds an EventsToCheckFn that returns unhealthy
 // if there is at least one key with only errors.
-// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all keys with errors.
+// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all unhealthy keys.
 // If there are no events, returns healthy.
 // Payload is considered to be of type KeyErrorPair and panics if it is not.
 func MultiKeyHealthyIfNotAllErrors(checkType health.CheckType, messageInCaseOfError string) EventsToCheckFn {
