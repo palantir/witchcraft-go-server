@@ -53,12 +53,12 @@ func TestUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			name: "unhealthy when there is at least one err",
 			errors: []error{
 				nil,
-				werror.Error("err #1"),
+				werror.Error("Error #1"),
 				nil,
-				werror.Error("err #2"),
+				werror.Error("Error #2"),
 				nil,
 			},
-			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "err #1"),
+			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #1"),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -102,9 +102,9 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 			name: "healthy when there is at least one non nil err",
 			errors: []error{
 				nil,
-				werror.Error("err #1"),
+				werror.Error("Error #1"),
 				nil,
-				werror.Error("err #2"),
+				werror.Error("Error #2"),
 				nil,
 			},
 			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
@@ -112,10 +112,10 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 		{
 			name: "unhealthy when there are only non nil events",
 			errors: []error{
-				werror.Error("err #1"),
-				werror.Error("err #2"),
+				werror.Error("Error #1"),
+				werror.Error("Error #2"),
 			},
-			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "err #1"),
+			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #1"),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
