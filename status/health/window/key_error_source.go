@@ -51,7 +51,7 @@ func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(windowSize time.Duration, check
 		return nil, err
 	}
 	return &MultiKeyUnhealthyIfAtLeastOneErrorSource{
-		timeWindowedEventStorer: &timeWindowedEventStorer,
+		timeWindowedEventStorer: timeWindowedEventStorer,
 		checkType:               checkType,
 		messageInCaseOfError:    messageInCaseOfError,
 	}, nil
@@ -117,7 +117,7 @@ func NewMultiKeyHealthyIfNotAllErrorsSource(windowSize time.Duration, checkType 
 		return nil, err
 	}
 	return &MultiKeyHealthyIfNotAllErrorsSource{
-		timeWindowedEventStorer: &timeWindowedEventStorer,
+		timeWindowedEventStorer: timeWindowedEventStorer,
 		checkType:               checkType,
 		messageInCaseOfError:    messageInCaseOfError,
 	}, nil

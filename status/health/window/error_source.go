@@ -41,7 +41,7 @@ func NewUnhealthyIfAtLeastOneErrorSource(windowSize time.Duration, checkType hea
 		return nil, err
 	}
 	return &UnhealthyIfAtLeastOneErrorSource{
-		timeWindowedEventStorer: &timeWindowedEventStorer,
+		timeWindowedEventStorer: timeWindowedEventStorer,
 		checkType:               checkType,
 	}, nil
 }
@@ -88,7 +88,7 @@ func NewHealthyIfNotAllErrorsSource(windowSize time.Duration, checkType health.C
 		return nil, err
 	}
 	return &HealthyIfNotAllErrorsSource{
-		timeWindowedEventStorer: &timeWindowedEventStorer,
+		timeWindowedEventStorer: timeWindowedEventStorer,
 		checkType:               checkType,
 	}, nil
 }

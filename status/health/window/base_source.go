@@ -42,7 +42,7 @@ func NewBaseHealthCheckSource(windowSize time.Duration, errorsToCheckFn EventsTo
 		return nil, err
 	}
 	return &BaseHealthCheckSource{
-		timeWindowedEventStorer: &timeWindowedEventStorer,
+		timeWindowedEventStorer: timeWindowedEventStorer,
 		eventsToCheckFn:         errorsToCheckFn,
 	}, nil
 }

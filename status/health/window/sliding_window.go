@@ -39,11 +39,11 @@ type TimeWindowedEventStorer struct {
 }
 
 // NewTimeWindowedEventStorer creates a new TimeWindowedEventStorer with the provided windowSize.
-func NewTimeWindowedEventStorer(windowSize time.Duration) (TimeWindowedEventStorer, error) {
+func NewTimeWindowedEventStorer(windowSize time.Duration) (*TimeWindowedEventStorer, error) {
 	if windowSize <= 0 {
-		return TimeWindowedEventStorer{}, werror.Error("attempted to create a sliding window with non positive size")
+		return nil, werror.Error("attempted to create a sliding window with non positive size")
 	}
-	return TimeWindowedEventStorer{
+	return &TimeWindowedEventStorer{
 		windowSize: windowSize,
 	}, nil
 }
