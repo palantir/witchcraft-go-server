@@ -16,13 +16,13 @@ package window
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	whealth "github.com/palantir/witchcraft-go-server/status/health"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,7 +66,7 @@ func TestUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			source, err := NewUnhealthyIfAtLeastOneErrorSource(time.Hour, testCheckType)
 			require.NoError(t, err)
 			for _, err := range testCase.errors {
-				source.SubmitError(err)
+				source.Submit(err)
 			}
 			actualStatus := source.HealthStatus(context.Background())
 			expectedStatus := health.HealthStatus{
@@ -123,7 +123,7 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 			source, err := NewHealthyIfNotAllErrorsSource(time.Hour, testCheckType)
 			require.NoError(t, err)
 			for _, err := range testCase.errors {
-				source.SubmitError(err)
+				source.Submit(err)
 			}
 			actualStatus := source.HealthStatus(context.Background())
 			expectedStatus := health.HealthStatus{

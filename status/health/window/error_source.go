@@ -48,7 +48,7 @@ func NewUnhealthyIfAtLeastOneErrorSource(windowSize time.Duration, checkType hea
 }
 
 // Submit submits an error to the TimeWindowedStore.
-func (u *UnhealthyIfAtLeastOneErrorSource) SubmitError(err error) {
+func (u *UnhealthyIfAtLeastOneErrorSource) Submit(err error) {
 	u.timeWindowedStore.Submit(err)
 }
 
@@ -96,7 +96,7 @@ func NewHealthyIfNotAllErrorsSource(windowSize time.Duration, checkType health.C
 }
 
 // Submit submits an error to the TimeWindowedStore.
-func (h *HealthyIfNotAllErrorsSource) SubmitError(err error) {
+func (h *HealthyIfNotAllErrorsSource) Submit(err error) {
 	h.timeWindowedStore.Submit(err)
 }
 
