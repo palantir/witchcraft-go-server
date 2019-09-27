@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2019 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@ package window
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	whealth "github.com/palantir/witchcraft-go-server/status/health"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,7 +89,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(testCheckType, time.Hour, messageInCaseOfError)
+			source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(testCheckType, messageInCaseOfError, time.Hour)
 			require.NoError(t, err)
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.Submit(keyErrorPair.key, keyErrorPair.err)
@@ -181,7 +181,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := NewMultiKeyHealthyIfNotAllErrorsSource(testCheckType, time.Hour, messageInCaseOfError)
+			source, err := NewMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour)
 			require.NoError(t, err)
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.Submit(keyErrorPair.key, keyErrorPair.err)

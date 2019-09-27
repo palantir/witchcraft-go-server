@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2019 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ var _ status.HealthCheckSource = &MultiKeyUnhealthyIfAtLeastOneErrorSource{}
 // NewMultiKeyUnhealthyIfAtLeastOneErrorSource creates an MultiKeyUnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
-func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration, messageInCaseOfError string) (*MultiKeyUnhealthyIfAtLeastOneErrorSource, error) {
+func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (*MultiKeyUnhealthyIfAtLeastOneErrorSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ var _ status.HealthCheckSource = &MultiKeyHealthyIfNotAllErrorsSource{}
 // NewMultiKeyHealthyIfNotAllErrorsSource creates an MultiKeyUnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
-func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration, messageInCaseOfError string) (*MultiKeyHealthyIfNotAllErrorsSource, error) {
+func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (*MultiKeyHealthyIfNotAllErrorsSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
