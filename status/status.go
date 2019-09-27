@@ -90,8 +90,8 @@ func NewHealthCheckHandler(checkSource HealthCheckSource, sharedSecret refreshab
 	})
 	return &healthHandlerImpl{
 		healthCheckSharedSecret: sharedSecret,
-		check:          checkSource,
-		previousHealth: previousHealth,
+		check:                   checkSource,
+		previousHealth:          previousHealth,
 	}
 }
 

@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-error"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/stretchr/testify/assert"
 )
 

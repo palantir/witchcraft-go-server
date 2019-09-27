@@ -33,7 +33,7 @@ import (
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/signals"
-	"github.com/palantir/witchcraft-go-error"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
@@ -53,6 +53,7 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"gopkg.in/yaml.v2"
+
 	// Use zap as logger implementation: witchcraft-based applications are opinionated about the logging implementation used
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
 )

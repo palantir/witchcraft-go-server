@@ -15,6 +15,7 @@
 package reporter
 
 import (
+	"context"
 	"testing"
 
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
@@ -23,61 +24,38 @@ import (
 
 const testCheckType = health.CheckType("TEST")
 
-func TestSetHealthy(t *testing.T) {
-	reporter := newHealthReporter()
-	reporter.setHealthCheck(testCheckType, health.HealthCheckResult{
-		Type:  testCheckType,
-		State: health.HealthStateHealthy,
-	})
-
-	assert.Equal(t, reporter.currentStatus.Checks[testCheckType].State, health.HealthStateHealthy)
-}
-
-func TestSetError(t *testing.T) {
-	reporter := newHealthReporter()
-	reporter.setHealthCheck(testCheckType, health.HealthCheckResult{
-		Type:  testCheckType,
-		State: health.HealthStateError,
-	})
-
-	assert.Equal(t, reporter.currentStatus.Checks[testCheckType].State, health.HealthStateError)
-}
-
 func TestGetHealthy(t *testing.T) {
 	reporter := newHealthReporter()
-	reporter.currentStatus = health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			testCheckType: {
-				Type:  testCheckType,
-				State: health.HealthStateHealthy,
-			},
+	reporter.healthComponents = map[health.CheckType]HealthComponent{
+		testCheckType: &healthComponent{
+			name:  testCheckType,
+			state: health.HealthStateHealthy,
 		},
 	}
 
 	status, found := reporter.getHealthCheck(testCheckType)
 	assert.True(t, found)
-	assert.Equal(t, status.State, health.HealthStateHealthy)
+	assert.Equal(t, status.State, HealthyState)
 }
 
 func TestGetError(t *testing.T) {
 	reporter := newHealthReporter()
-	reporter.currentStatus = health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			testCheckType: {
-				Type:  testCheckType,
-				State: health.HealthStateError,
-			},
+	reporter.healthComponents = map[health.CheckType]HealthComponent{
+		testCheckType: &healthComponent{
+			name:  testCheckType,
+			state: ErrorState,
 		},
 	}
 
 	status, found := reporter.getHealthCheck(testCheckType)
 	assert.True(t, found)
-	assert.Equal(t, status.State, health.HealthStateError)
+	assert.Equal(t, status.State, ErrorState)
 }
 
 func TestGetNotFound(t *testing.T) {
 	reporter := NewHealthReporter()
-	_, found := reporter.getHealthCheck(testCheckType)
+	status := reporter.HealthStatus(context.TODO())
+	_, found := status.Checks[testCheckType]
 	assert.False(t, found)
 }
 
@@ -103,48 +81,6 @@ func TestInitializeThenGet(t *testing.T) {
 	assert.Equal(t, fromGet, component)
 }
 
-// Test that setHealthCheckAndComponentIfAbsent is idempotent
-func TestSetIfNotExist(t *testing.T) {
-	reporter := newHealthReporter()
-	iterations := 10
-	testNames := []string{"a", "b", "c", "d", "e", "f", "g"}
-	returnChan := make(chan bool, iterations*len(testNames))
-	for _, n := range testNames {
-		checkType := health.CheckType(n)
-		status := health.HealthCheckResult{
-			Type:  checkType,
-			State: StartingState,
-		}
-		component := &healthComponent{
-			checkType,
-			reporter,
-		}
-		for i := 0; i < iterations; i++ {
-			go func() {
-				returnChan <- reporter.setHealthCheckAndComponentIfAbsent(checkType, component, status)
-			}()
-		}
-	}
-	sets := 0
-	total := 0
-	for r := range returnChan {
-		if r {
-			sets++
-		}
-		total++
-		if total == iterations*len(testNames) {
-			assert.Equal(t, len(testNames), sets)
-			for _, n := range testNames {
-				status, found := reporter.getHealthCheck(health.CheckType(n))
-				assert.True(t, found)
-				assert.Equal(t, StartingState, status.State)
-			}
-			return
-		}
-	}
-	assert.Fail(t, "Did get the correct number of total calls", total)
-}
-
 func TestUnregisterThenGet(t *testing.T) {
 	reporter := newHealthReporter()
 	component, err := reporter.InitializeHealthComponent(validComponent)
@@ -155,6 +91,20 @@ func TestUnregisterThenGet(t *testing.T) {
 
 	_, present := reporter.GetHealthComponent(validComponent)
 	assert.False(t, present)
+}
+
+func TestUnregisterThenGetComponentStatus(t *testing.T) {
+	reporter := newHealthReporter()
+	component, err := reporter.InitializeHealthComponent(validComponent)
+	assert.NotNil(t, component)
+	assert.NoError(t, err)
+
+	assert.True(t, reporter.UnregisterHealthComponent(validComponent))
+
+	_, present := reporter.GetHealthComponent(validComponent)
+	assert.False(t, present)
+
+	assert.NotPanics(t, func() { component.Status() })
 }
 
 func TestUnregisterOnUninitialized(t *testing.T) {

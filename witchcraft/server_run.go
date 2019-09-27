@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/palantir/pkg/tlsconfig"
-	"github.com/palantir/witchcraft-go-error"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/config"
 )
