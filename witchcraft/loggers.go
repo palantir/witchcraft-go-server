@@ -124,7 +124,7 @@ func (p *cachingFileWriterProvider) FileWriter(logOutputPath string) io.Writer {
 // The following is an example usage:
 //
 //   cachingWriterProvider := witchcraft.NewCachingFileWriterProvider(witchcraft.DefaultFileWriterProvider())
-//	 svc1Logger := svc1log.New(witchcraft.CreateLogWriter("var/log/service.log", false, os.Stdout, cachingWriterProvider), wlog.DebugLevel)
+//   svc1Logger := svc1log.New(witchcraft.CreateLogWriter("var/log/service.log", false, os.Stdout, cachingWriterProvider), wlog.DebugLevel)
 //   server := witchcraft.NewServer().
 //	 	 WithLoggerFileWriterProvider(cachingWriterProvider).
 //		 ...
