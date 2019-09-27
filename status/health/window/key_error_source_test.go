@@ -62,8 +62,8 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 				State:   health.HealthStateError,
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
-					"1": werror.Error("Error #1 for key 1"),
-					"2": werror.Error("Error #1 for key 2"),
+					"1": "Error #1 for key 1",
+					"2": "Error #1 for key 2",
 				},
 			},
 		},
@@ -80,9 +80,9 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 				State:   health.HealthStateError,
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
-					"1": werror.Error("Error #1 for key 1"),
-					"2": werror.Error("Error #1 for key 2"),
-					"3": werror.Error("Error #1 for key 3"),
+					"1": "Error #1 for key 1",
+					"2": "Error #1 for key 2",
+					"3": "Error #1 for key 3",
 				},
 			},
 		},
@@ -93,19 +93,13 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.SubmitError(keyErrorPair.key, keyErrorPair.err)
 			}
-			actualStatus := source.HealthStatus(context.Background())
-			assert.EqualValues(t, 1, len(actualStatus.Checks))
-			actualCheck, checkTypeOk := actualStatus.Checks[testCheckType]
-			assert.True(t, checkTypeOk)
-			assert.Equal(t, testCase.expectedCheck.Type, actualCheck.Type)
-			assert.Equal(t, testCase.expectedCheck.State, actualCheck.State)
-			assert.Equal(t, testCase.expectedCheck.Message, actualCheck.Message)
-			assert.Equal(t, len(testCase.expectedCheck.Params), len(actualCheck.Params))
-			for key, expectedValue := range testCase.expectedCheck.Params {
-				actualValue, hasKey := actualCheck.Params[key]
-				assert.True(t, hasKey)
-				assert.Equal(t, expectedValue.(error).Error(), actualValue.(error).Error())
+			expectedStatus := health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					testCheckType: testCase.expectedCheck,
+				},
 			}
+			actualStatus := source.HealthStatus(context.Background())
+			assert.Equal(t, expectedStatus, actualStatus)
 		})
 	}
 }
@@ -160,8 +154,8 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 				State:   health.HealthStateError,
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
-					"1": werror.Error("Error #1 for key 1"),
-					"2": werror.Error("Error #1 for key 2"),
+					"1": "Error #1 for key 1",
+					"2": "Error #1 for key 2",
 				},
 			},
 		},
@@ -178,9 +172,9 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 				State:   health.HealthStateError,
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
-					"1": werror.Error("Error #1 for key 1"),
-					"2": werror.Error("Error #1 for key 2"),
-					"3": werror.Error("Error #1 for key 3"),
+					"1": "Error #1 for key 1",
+					"2": "Error #1 for key 2",
+					"3": "Error #1 for key 3",
 				},
 			},
 		},
@@ -191,19 +185,13 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.SubmitError(keyErrorPair.key, keyErrorPair.err)
 			}
-			actualStatus := source.HealthStatus(context.Background())
-			assert.EqualValues(t, 1, len(actualStatus.Checks))
-			actualCheck, checkTypeOk := actualStatus.Checks[testCheckType]
-			assert.True(t, checkTypeOk)
-			assert.Equal(t, testCase.expectedCheck.Type, actualCheck.Type)
-			assert.Equal(t, testCase.expectedCheck.State, actualCheck.State)
-			assert.Equal(t, testCase.expectedCheck.Message, actualCheck.Message)
-			assert.Equal(t, len(testCase.expectedCheck.Params), len(actualCheck.Params))
-			for key, expectedValue := range testCase.expectedCheck.Params {
-				actualValue, hasKey := actualCheck.Params[key]
-				assert.True(t, hasKey)
-				assert.Equal(t, expectedValue.(error).Error(), actualValue.(error).Error())
+			expectedStatus := health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					testCheckType: testCase.expectedCheck,
+				},
 			}
+			actualStatus := source.HealthStatus(context.Background())
+			assert.Equal(t, expectedStatus, actualStatus)
 		})
 	}
 }

@@ -33,7 +33,7 @@ type keyErrorPair struct {
 
 // MultiKeyUnhealthyIfAtLeastOneErrorSource is a HealthCheckSource that polls a TimeWindowedEventStorer.
 // It returns unhealthy if there is a non-nil error for at least one key.
-// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all unhealthy keys.
+// The Params field of the HealthCheckResult is the first error message for each key mapped by the key for all unhealthy keys.
 // If there are no events, returns healthy.
 type MultiKeyUnhealthyIfAtLeastOneErrorSource struct {
 	timeWindowedEventStorer *TimeWindowedEventStorer
@@ -74,7 +74,7 @@ func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) eventsToCheck() health.Health
 			continue
 		}
 		if _, alreadyHasError := params[keyErrorPair.key]; !alreadyHasError {
-			params[keyErrorPair.key] = keyErrorPair.err
+			params[keyErrorPair.key] = keyErrorPair.err.Error()
 		}
 	}
 	if len(params) > 0 {
@@ -99,7 +99,7 @@ func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Cont
 
 // MultiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that polls a TimeWindowedEventStorer.
 // It returns unhealthy if there is at least one key with only non-nil errors.
-// The Params field of the HealthCheckResult is the first error for each key mapped by the key for all unhealthy keys.
+// The Params field of the HealthCheckResult is the first error message for each key mapped by the key for all unhealthy keys.
 // If there are no events, returns healthy.
 type MultiKeyHealthyIfNotAllErrorsSource struct {
 	timeWindowedEventStorer *TimeWindowedEventStorer
@@ -146,7 +146,7 @@ func (m *MultiKeyHealthyIfNotAllErrorsSource) eventsToCheck() health.HealthCheck
 			continue
 		}
 		if _, alreadyHasError := params[keyErrorPair.key]; !alreadyHasError {
-			params[keyErrorPair.key] = keyErrorPair.err
+			params[keyErrorPair.key] = keyErrorPair.err.Error()
 		}
 	}
 	if len(params) > 0 {
