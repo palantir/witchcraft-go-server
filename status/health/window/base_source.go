@@ -52,12 +52,12 @@ func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCh
 	}, nil
 }
 
-// Submit submits an item to the TimeWindowedStore.
+// Submit submits an item.
 func (b *BaseHealthCheckSource) Submit(item interface{}) {
 	b.timeWindowedStore.Submit(item)
 }
 
-// HealthStatus polls the TimeWindowedStore and creates a HealthStatus using the ItemsToCheckFn.
+// HealthStatus polls the items inside the window and creates a HealthStatus using the ItemsToCheckFn.
 func (b *BaseHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	checkResult := b.itemsToCheckFn(ctx, b.timeWindowedStore.ItemsInWindow())
 	return health.HealthStatus{
