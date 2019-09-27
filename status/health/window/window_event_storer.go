@@ -21,62 +21,69 @@ import (
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
-// Event is a struct that keeps a generic payload describing an event and a timestamp for when the event happened.
-type Event struct {
-	// Time is the time the event was submitted.
+// ItemWithTimestamp is a struct that keeps a generic payload describing an item and a timestamp for when the submission.
+type ItemWithTimestamp struct {
+	// Time is the submission time.
 	Time time.Time
-	// Payload is any generic information about this event.
+	// Payload is any generic information about this item.
 	Payload interface{}
 }
 
-// TimeWindowedEventStorer is a thread-safe struct that stores submitted events
-// and supports polling for all events submitted within the last windowSize period.
-// When any operation is made, all out-of-date events are pruned out of memory.
-type TimeWindowedEventStorer struct {
-	events      []Event
-	eventsMutex sync.Mutex
-	windowSize  time.Duration
+// TimeWindowedStore is a thread-safe struct that stores submitted items
+// and supports polling for all items submitted within the last windowSize period.
+// When any operation is made, all out-of-date items are pruned out of memory.
+type TimeWindowedStore struct {
+	items      []ItemWithTimestamp
+	itemsMutex sync.Mutex
+	windowSize time.Duration
 }
 
-// NewTimeWindowedEventStorer creates a new TimeWindowedEventStorer with the provided windowSize.
-func NewTimeWindowedEventStorer(windowSize time.Duration) (*TimeWindowedEventStorer, error) {
+// NewTimeWindowedEventStorer creates a new TimeWindowedStore with the provided windowSize.
+// windowSize must be a positive value, otherwise returns error.
+func NewTimeWindowedEventStorer(windowSize time.Duration) (*TimeWindowedStore, error) {
 	if windowSize <= 0 {
-		return nil, werror.Error("attempted to create a sliding window with non positive size")
+		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
-	return &TimeWindowedEventStorer{
+	return &TimeWindowedStore{
 		windowSize: windowSize,
 	}, nil
 }
 
-func (t *TimeWindowedEventStorer) pruneOldEvents() {
+// GetWindowSize returns the windowSize.
+func (t *TimeWindowedStore) GetWindowSize() time.Duration {
+	return t.windowSize
+}
+
+func (t *TimeWindowedStore) pruneExpiredEntries() {
 	currentTime := time.Now()
 	newStartIndex := 0
-	for index, entry := range t.events {
+	for index, entry := range t.items {
 		if currentTime.Sub(entry.Time) <= t.windowSize {
 			break
 		}
 		newStartIndex = index + 1
 	}
-	t.events = t.events[newStartIndex:]
+	t.items = t.items[newStartIndex:]
 }
 
-// SubmitEvent prunes all out-of-date events out of memory and then adds a new one.
-func (t *TimeWindowedEventStorer) SubmitEvent(payload interface{}) {
-	t.eventsMutex.Lock()
-	defer t.eventsMutex.Unlock()
+// Submit prunes all out-of-date items out of memory and then adds a new one.
+func (t *TimeWindowedStore) Submit(payload interface{}) {
+	t.itemsMutex.Lock()
+	defer t.itemsMutex.Unlock()
 
-	t.pruneOldEvents()
-	t.events = append(t.events, Event{
+	t.pruneExpiredEntries()
+	t.items = append(t.items, ItemWithTimestamp{
 		Time:    time.Now(),
 		Payload: payload,
 	})
 }
 
-// GetEventsInWindow prunes all out-of-date events out of memory and then returns all up-to-date events.
-func (t *TimeWindowedEventStorer) GetEventsInWindow() []Event {
-	t.eventsMutex.Lock()
-	defer t.eventsMutex.Unlock()
+// GetItemsInWindow prunes all out-of-date items out of memory and then returns all up-to-date items.
+// The returned slice is the one used internally and must not be modified.
+func (t *TimeWindowedStore) GetItemsInWindow() []ItemWithTimestamp {
+	t.itemsMutex.Lock()
+	defer t.itemsMutex.Unlock()
 
-	t.pruneOldEvents()
-	return t.events
+	t.pruneExpiredEntries()
+	return t.items
 }
