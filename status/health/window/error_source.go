@@ -36,7 +36,7 @@ var _ status.HealthCheckSource = &UnhealthyIfAtLeastOneErrorSource{}
 // NewUnhealthyIfAtLeastOneErrorSource creates an UnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
-func NewUnhealthyIfAtLeastOneErrorSource(windowSize time.Duration, checkType health.CheckType) (*UnhealthyIfAtLeastOneErrorSource, error) {
+func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (*UnhealthyIfAtLeastOneErrorSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func NewUnhealthyIfAtLeastOneErrorSource(windowSize time.Duration, checkType hea
 	}, nil
 }
 
-// Submit submits an error to the TimeWindowedStore.
+// Submit submits an error.
 func (u *UnhealthyIfAtLeastOneErrorSource) Submit(err error) {
 	u.timeWindowedStore.Submit(err)
 }
@@ -62,7 +62,7 @@ func (u *UnhealthyIfAtLeastOneErrorSource) itemsToCheck() health.HealthCheckResu
 	return whealth.HealthyHealthCheckResult(u.checkType)
 }
 
-// HealthStatus polls the TimeWindowedStore and creates the HealthStatus.
+// HealthStatus polls the items inside the window and creates the HealthStatus.
 func (u *UnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -84,7 +84,7 @@ var _ status.HealthCheckSource = &HealthyIfNotAllErrorsSource{}
 // NewHealthyIfNotAllErrorsSource creates an HealthyIfNotAllErrorsSource
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
-func NewHealthyIfNotAllErrorsSource(windowSize time.Duration, checkType health.CheckType) (*HealthyIfNotAllErrorsSource, error) {
+func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (*HealthyIfNotAllErrorsSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func NewHealthyIfNotAllErrorsSource(windowSize time.Duration, checkType health.C
 	}, nil
 }
 
-// Submit submits an error to the TimeWindowedStore.
+// Submit submits an error.
 func (h *HealthyIfNotAllErrorsSource) Submit(err error) {
 	h.timeWindowedStore.Submit(err)
 }
@@ -113,7 +113,7 @@ func (h *HealthyIfNotAllErrorsSource) itemsToCheck() health.HealthCheckResult {
 	return whealth.UnhealthyHealthCheckResult(h.checkType, items[0].Item.(error).Error())
 }
 
-// HealthStatus polls the TimeWindowedStore and creates the HealthStatus.
+// HealthStatus polls the items inside the window and creates the HealthStatus.
 func (h *HealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
