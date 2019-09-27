@@ -44,7 +44,7 @@ func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCh
 		return nil, err
 	}
 	if itemsToCheckFn == nil {
-		return nil, werror.Error("itemsToCheckFn is nil")
+		return nil, werror.Error("itemsToCheckFn cannot be nil")
 	}
 	return &BaseHealthCheckSource{
 		timeWindowedStore: timeWindowedStore,
