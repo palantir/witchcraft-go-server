@@ -65,14 +65,14 @@ func (t *TimeWindowedStore) pruneExpiredEntries() {
 }
 
 // Submit prunes all out-of-date items out of memory and then adds a new one.
-func (t *TimeWindowedStore) Submit(payload interface{}) {
+func (t *TimeWindowedStore) Submit(item interface{}) {
 	t.itemsMutex.Lock()
 	defer t.itemsMutex.Unlock()
 
 	t.pruneExpiredEntries()
 	t.items = append(t.items, ItemWithTimestamp{
 		Time: time.Now(),
-		Item: payload,
+		Item: item,
 	})
 }
 
