@@ -39,12 +39,12 @@ var _ status.HealthCheckSource = &BaseHealthCheckSource{}
 // with a sliding window of size windowSize and uses the itemsToCheckFn.
 // windowSize must be a positive value and itemsToCheckFn must not be nil, otherwise returns error.
 func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) (*BaseHealthCheckSource, error) {
-	if itemsToCheckFn == nil {
-		return nil, werror.Error("itemsToCheckFn is nil")
-	}
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
+	}
+	if itemsToCheckFn == nil {
+		return nil, werror.Error("itemsToCheckFn is nil")
 	}
 	return &BaseHealthCheckSource{
 		timeWindowedStore: timeWindowedStore,
