@@ -21,12 +21,10 @@ import (
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
-// ItemWithTimestamp is a struct that keeps a generic payload describing an item and a timestamp for when the submission.
+// ItemWithTimestamp is a struct that stores an item and the time it was submitted.
 type ItemWithTimestamp struct {
-	// Time is the submission time.
 	Time time.Time
-	// Payload is any generic information about this item.
-	Payload interface{}
+	Item interface{}
 }
 
 // TimeWindowedStore is a thread-safe struct that stores submitted items
@@ -38,9 +36,9 @@ type TimeWindowedStore struct {
 	windowSize time.Duration
 }
 
-// NewTimeWindowedEventStorer creates a new TimeWindowedStore with the provided windowSize.
+// NewTimeWindowedStore creates a new TimeWindowedStore with the provided windowSize.
 // windowSize must be a positive value, otherwise returns error.
-func NewTimeWindowedEventStorer(windowSize time.Duration) (*TimeWindowedStore, error) {
+func NewTimeWindowedStore(windowSize time.Duration) (*TimeWindowedStore, error) {
 	if windowSize <= 0 {
 		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
@@ -73,8 +71,8 @@ func (t *TimeWindowedStore) Submit(payload interface{}) {
 
 	t.pruneExpiredEntries()
 	t.items = append(t.items, ItemWithTimestamp{
-		Time:    time.Now(),
-		Payload: payload,
+		Time: time.Now(),
+		Item: payload,
 	})
 }
 
