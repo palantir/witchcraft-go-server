@@ -55,11 +55,11 @@ func (t *TimeWindowedStore) GetWindowSize() time.Duration {
 func (t *TimeWindowedStore) pruneExpiredEntries() {
 	currentTime := time.Now()
 	newStartIndex := 0
-	for index, entry := range t.items {
+	for _, entry := range t.items {
 		if currentTime.Sub(entry.Time) <= t.windowSize {
 			break
 		}
-		newStartIndex = index + 1
+		newStartIndex++
 	}
 	t.items = t.items[newStartIndex:]
 }
@@ -76,9 +76,9 @@ func (t *TimeWindowedStore) Submit(item interface{}) {
 	})
 }
 
-// GetItemsInWindow prunes all out-of-date items out of memory and then returns all up-to-date items.
+// ItemsInWindow prunes all out-of-date items out of memory and then returns all up-to-date items.
 // The returned slice is the one used internally and must not be modified.
-func (t *TimeWindowedStore) GetItemsInWindow() []ItemWithTimestamp {
+func (t *TimeWindowedStore) ItemsInWindow() []ItemWithTimestamp {
 	t.itemsMutex.Lock()
 	defer t.itemsMutex.Unlock()
 

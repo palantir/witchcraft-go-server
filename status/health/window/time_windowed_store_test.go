@@ -25,13 +25,13 @@ import (
 func TestTimeWindowedStore_ErrorOnCreate(t *testing.T) {
 	_, err := NewTimeWindowedStore(0)
 	// This should error as 0 is not a valid windowSize.
-	require.Error(t, err)
+	assert.Error(t, err)
 }
 
 func TestTimeWindowedStore_NoItems(t *testing.T) {
 	store, err := NewTimeWindowedStore(time.Millisecond)
 	require.NoError(t, err)
-	items := store.GetItemsInWindow()
+	items := store.ItemsInWindow()
 	assert.Nil(t, items)
 }
 
@@ -41,7 +41,7 @@ func TestTimeWindowedStore_AllItemsUpToDate(t *testing.T) {
 	store.Submit("item #1")
 	store.Submit("item #2")
 	store.Submit("item #3")
-	items := store.GetItemsInWindow()
+	items := store.ItemsInWindow()
 	assert.Equal(t, len(items), 3)
 	assert.Equal(t, "item #1", items[0].Item)
 	assert.Equal(t, "item #2", items[1].Item)
@@ -55,7 +55,7 @@ func TestTimeWindowedStore_AllItemsOutOfDate(t *testing.T) {
 	store.Submit("item #2")
 	store.Submit("item #3")
 	<-time.After(100 * time.Millisecond)
-	items := store.GetItemsInWindow()
+	items := store.ItemsInWindow()
 	assert.Empty(t, items)
 }
 
@@ -67,7 +67,7 @@ func TestTimeWindowedStore_SomeItemsOutOfDate(t *testing.T) {
 	<-time.After(100 * time.Millisecond)
 	store.Submit("item #3")
 	store.Submit("item #4")
-	items := store.GetItemsInWindow()
+	items := store.ItemsInWindow()
 	assert.Equal(t, len(items), 2)
 	assert.Equal(t, "item #3", items[0].Item)
 	assert.Equal(t, "item #4", items[1].Item)
