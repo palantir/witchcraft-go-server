@@ -41,10 +41,10 @@ func TestTimeWindowedEventStorer_AllEventsUpToDate(t *testing.T) {
 	manager.Submit("payload #2")
 	manager.Submit("payload #3")
 	items := manager.GetItemsInWindow()
-	require.EqualValues(t, len(items), 3)
-	require.EqualValues(t, "payload #1", items[0].Payload)
-	require.EqualValues(t, "payload #2", items[1].Payload)
-	require.EqualValues(t, "payload #3", items[2].Payload)
+	require.Equal(t, len(items), 3)
+	require.Equal(t, "payload #1", items[0].Payload)
+	require.Equal(t, "payload #2", items[1].Payload)
+	require.Equal(t, "payload #3", items[2].Payload)
 }
 
 func TestTimeWindowedEventStorer_AllEventsOutOfDate(t *testing.T) {
@@ -67,7 +67,7 @@ func TestTimeWindowedEventStorer_SomeEventsOutOfDate(t *testing.T) {
 	manager.Submit("payload #3")
 	manager.Submit("payload #4")
 	items := manager.GetItemsInWindow()
-	require.EqualValues(t, len(items), 2)
-	require.EqualValues(t, "payload #3", items[0].Payload)
-	require.EqualValues(t, "payload #4", items[1].Payload)
+	require.Equal(t, len(items), 2)
+	require.Equal(t, "payload #3", items[0].Payload)
+	require.Equal(t, "payload #4", items[1].Payload)
 }
