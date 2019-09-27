@@ -18,6 +18,7 @@ import (
 	"context"
 	"time"
 
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status"
 )
@@ -38,6 +39,9 @@ var _ status.HealthCheckSource = &BaseHealthCheckSource{}
 // with a sliding window of size windowSize and uses the itemsToCheckFn.
 // windowSize must be a positive value, otherwise returns error.
 func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) (*BaseHealthCheckSource, error) {
+	if itemsToCheckFn == nil {
+		return nil, werror.Error("itemsToCheckFn is nil")
+	}
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
