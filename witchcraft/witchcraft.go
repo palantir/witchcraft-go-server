@@ -560,7 +560,7 @@ func (s *Server) Start() (rErr error) {
 		}
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
-		svc1log.FromContext(ctx).Info("Invoking server init func.")
+		svc1log.FromContext(ctx).Debug("Invoking server init func.")
 		cleanupFn, err := s.initFn(
 			ctx,
 			InitInfo{
