@@ -66,9 +66,6 @@ func TestEmitMetrics(t *testing.T) {
 	// Allow the metric emitter to do its thing.
 	time.Sleep(150 * time.Millisecond)
 
-	// Allow the uptime metric to tick.
-	time.Sleep(5.0 * time.Second)
-
 	parts := strings.Split(logOutputBuffer.String(), "\n")
 	var metricLogs []logging.MetricLogV1
 	for _, curr := range parts {
