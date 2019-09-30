@@ -43,6 +43,16 @@ type MultiKeyUnhealthyIfAtLeastOneErrorSource struct {
 
 var _ status.HealthCheckSource = &MultiKeyUnhealthyIfAtLeastOneErrorSource{}
 
+// MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource returns the result of calling NewMultiKeyUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
+// Should only be used in instances where the inputs are statically defined and known to be valid.
+func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) *MultiKeyUnhealthyIfAtLeastOneErrorSource {
+	source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType, messageInCaseOfError, windowSize)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
+
 // NewMultiKeyUnhealthyIfAtLeastOneErrorSource creates an MultiKeyUnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
@@ -109,6 +119,16 @@ type MultiKeyHealthyIfNotAllErrorsSource struct {
 }
 
 var _ status.HealthCheckSource = &MultiKeyHealthyIfNotAllErrorsSource{}
+
+// MustNewMultiKeyHealthyIfNotAllErrorsSource returns the result of calling NewMultiKeyHealthyIfNotAllErrorsSource, but panics if it returns an error.
+// Should only be used in instances where the inputs are statically defined and known to be valid.
+func MustNewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) *MultiKeyHealthyIfNotAllErrorsSource {
+	source, err := NewMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
 
 // NewMultiKeyHealthyIfNotAllErrorsSource creates an MultiKeyUnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.

@@ -33,6 +33,16 @@ type UnhealthyIfAtLeastOneErrorSource struct {
 
 var _ status.HealthCheckSource = &UnhealthyIfAtLeastOneErrorSource{}
 
+// MustNewUnhealthyIfAtLeastOneErrorSource returns the result of calling NewUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
+// Should only be used in instances where the inputs are statically defined and known to be valid.
+func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) *UnhealthyIfAtLeastOneErrorSource {
+	source, err := NewUnhealthyIfAtLeastOneErrorSource(checkType, windowSize)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
+
 // NewUnhealthyIfAtLeastOneErrorSource creates an UnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
@@ -80,6 +90,16 @@ type HealthyIfNotAllErrorsSource struct {
 }
 
 var _ status.HealthCheckSource = &HealthyIfNotAllErrorsSource{}
+
+// MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
+// Should only be used in instances where the inputs are statically defined and known to be valid.
+func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) *HealthyIfNotAllErrorsSource {
+	source, err := NewHealthyIfNotAllErrorsSource(checkType, windowSize)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
 
 // NewHealthyIfNotAllErrorsSource creates an HealthyIfNotAllErrorsSource
 // with a sliding window of size windowSize and uses the checkType.
