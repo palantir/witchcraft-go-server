@@ -25,8 +25,8 @@ import (
 )
 
 // HealthCheckSource is a thread-safe HealthCheckSource based on heartbeats.
-// Heartbeats are submitted manually using the Heartbeat or the HeartbeatIfSuccess functions.
 // This is used to monitor if some process is continuously running by receiving heartbeats (pings) with timeouts.
+// Heartbeats are submitted manually using the Heartbeat or the HeartbeatIfSuccess functions.
 // If no heartbeats are observed within the last heartbeatTimeout time frame, returns unhealthy. Otherwise, returns healthy.
 // A startup grace period can also be specified, where the check will return repairing if no heartbeats
 // were observed but the source was created within the last startupTimeout time frame.
