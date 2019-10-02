@@ -25,7 +25,8 @@ import (
 )
 
 // HealthCheckSource is a thread-safe HealthCheckSource based on heartbeats.
-// This is used to monitor if something is continuously running by receiving heartbeats (pings) with timeouts.
+// Heartbeats are submitted manually using the Heartbeat or the HeartbeatIfSuccess functions.
+// This is used to monitor if some process is continuously running by receiving heartbeats (pings) with timeouts.
 // If no heartbeats are observed within the last heartbeatTimeout time frame, returns unhealthy. Otherwise, returns healthy.
 // A startup grace period can also be specified, where the check will return repairing if no heartbeats
 // were observed but the source was created within the last startupTimeout time frame.
@@ -97,7 +98,7 @@ func NewHealthCheckSource(checkType health.CheckType, heartbeatTimeout time.Dura
 // If it was, returns healthy. If not, returns unhealthy.
 // If there were no heartbeats submitted, checks if the source started within the last startupTimeout time frame.
 // If it was, returns repairing. If not, returns unhealthy.
-func (h *HealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (h *HealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus {
 	h.heartbeatMutex.RLock()
 	defer h.heartbeatMutex.RUnlock()
 	curTime := time.Now()
