@@ -90,7 +90,7 @@ func TestGetTracingOptions(t *testing.T) {
 	install := config.Install{
 		ProductName: "product",
 	}
-	port := 10
+	const port = 10
 	for _, test := range []struct {
 		name       string
 		sampler    wtracing.Sampler
