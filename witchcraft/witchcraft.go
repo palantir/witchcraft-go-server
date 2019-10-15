@@ -852,7 +852,7 @@ func getSamplingTraceOption(configuredSampler wtracing.Sampler, fallbackSampler 
 	if configuredSampler != nil {
 		return wtracing.WithSampler(configuredSampler)
 	} else if sampleRate != nil {
-		wtracing.WithSampler(traceSamplerFromSampleRate(*sampleRate))
+		return wtracing.WithSampler(traceSamplerFromSampleRate(*sampleRate))
 	}
 	return wtracing.WithSampler(fallbackSampler)
 }

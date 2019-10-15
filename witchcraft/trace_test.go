@@ -16,6 +16,9 @@ package witchcraft
 
 import (
 	"fmt"
+	"github.com/palantir/witchcraft-go-server/config"
+	"github.com/palantir/witchcraft-go-tracing/wtracing"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,4 +84,69 @@ func TestSamplerForRate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetTracingOptions(t *testing.T) {
+	install := config.Install{
+		ProductName:               "product",
+		Server:                    config.Server{
+			Address:        "address",
+		},
+	}
+	// configuredSampler wtracing.Sampler, install config.Install, fallbackSampler wtracing.Sampler, port int, sampleRate *float64
+	for _, test := range []struct {
+		name string
+		sampler wtracing.Sampler
+		fallBack wtracing.Sampler
+		sampleRate *float64
+		idsToTry map[uint64]bool
+	}{
+		{
+			name: "sample set",
+			sampler: func(id uint64) bool {return id == 50},
+			idsToTry: map[uint64]bool {
+				1: false,
+				50: true,
+				math.MaxUint64: false,
+			},
+		},
+		{
+			name: "fall back set",
+			fallBack: func(id uint64) bool {return id == 50},
+			idsToTry: map[uint64]bool {
+				1: false,
+				50: true,
+				math.MaxUint64: false,
+			},
+		},
+		{
+			name: "rate set",
+			idsToTry: map[uint64]bool {
+				1:                  true,
+				scaleMaxUint64(.3): true,
+				scaleMaxUint64(.7): false,
+				math.MaxUint64:     false,
+			},
+			sampleRate: asFloat(.5),
+		},
+	} {
+		t.Run(fmt.Sprint(test.name), func(t *testing.T) {
+			impl := wtracing.FromTracerOptions(getTracingOptions(test.sampler, install, test.fallBack, 10, test.sampleRate)...)
+			assert.Equal(t, wtracing.Endpoint{
+				ServiceName: "product",
+				Port:        10,
+			}, *impl.LocalEndpoint)
+			for id, expected := range test.idsToTry {
+				assert.Equal(t, impl.Sampler(id), expected)
+			}
+		})
+	}
+}
+
+func scaleMaxUint64(f float64) uint64{
+	return uint64(math.MaxUint64 * f)
+}
+
+func asFloat(f float64) *float64 {
+	return &f
 }
