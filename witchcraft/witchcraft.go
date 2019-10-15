@@ -387,7 +387,7 @@ func (s *Server) WithTraceSampler(traceSampler wtracing.Sampler) *Server {
 	return s
 }
 
-// WithTraceSamplerRate is convenience for creating an application traceSampler based off a sample rate
+// WithTraceSamplerRate is a convenience function for creating an application traceSampler based off a sample rate
 func (s *Server) WithTraceSamplerRate(sampleRate float64) *Server {
 	return s.WithTraceSampler(traceSamplerFromSampleRate(sampleRate))
 }
@@ -399,7 +399,7 @@ func (s *Server) WithManagementTraceSampler(traceSampler wtracing.Sampler) *Serv
 	return s
 }
 
-// WithManagementTraceSamplerRate is convenience for creating a management traceSampler based off a sample rate
+// WithManagementTraceSamplerRate is a convenience function for creating a management traceSampler based off a sample rate
 func (s *Server) WithManagementTraceSamplerRate(sampleRate float64) *Server {
 	return s.WithManagementTraceSampler(traceSamplerFromSampleRate(sampleRate))
 }
