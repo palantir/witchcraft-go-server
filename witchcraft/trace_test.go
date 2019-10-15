@@ -16,11 +16,11 @@ package witchcraft
 
 import (
 	"fmt"
-	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"math"
 	"testing"
 
+	"github.com/palantir/witchcraft-go-server/config"
+	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,40 +88,37 @@ func TestSamplerForRate(t *testing.T) {
 
 func TestGetTracingOptions(t *testing.T) {
 	install := config.Install{
-		ProductName:               "product",
-		Server:                    config.Server{
-			Address:        "address",
-		},
+		ProductName: "product",
 	}
-	// configuredSampler wtracing.Sampler, install config.Install, fallbackSampler wtracing.Sampler, port int, sampleRate *float64
+	port := 10
 	for _, test := range []struct {
-		name string
-		sampler wtracing.Sampler
-		fallBack wtracing.Sampler
+		name       string
+		sampler    wtracing.Sampler
+		fallBack   wtracing.Sampler
 		sampleRate *float64
-		idsToTry map[uint64]bool
+		idsToTry   map[uint64]bool
 	}{
 		{
-			name: "sample set",
-			sampler: func(id uint64) bool {return id == 50},
-			idsToTry: map[uint64]bool {
-				1: false,
-				50: true,
+			name:    "sample set",
+			sampler: func(id uint64) bool { return id == 50 },
+			idsToTry: map[uint64]bool{
+				1:              false,
+				50:             true,
 				math.MaxUint64: false,
 			},
 		},
 		{
-			name: "fall back set",
-			fallBack: func(id uint64) bool {return id == 50},
-			idsToTry: map[uint64]bool {
-				1: false,
-				50: true,
+			name:     "fall back set",
+			fallBack: func(id uint64) bool { return id == 50 },
+			idsToTry: map[uint64]bool{
+				1:              false,
+				50:             true,
 				math.MaxUint64: false,
 			},
 		},
 		{
 			name: "rate set",
-			idsToTry: map[uint64]bool {
+			idsToTry: map[uint64]bool{
 				1:                  true,
 				scaleMaxUint64(.3): true,
 				scaleMaxUint64(.7): false,
@@ -131,7 +128,7 @@ func TestGetTracingOptions(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprint(test.name), func(t *testing.T) {
-			impl := wtracing.FromTracerOptions(getTracingOptions(test.sampler, install, test.fallBack, 10, test.sampleRate)...)
+			impl := wtracing.FromTracerOptions(getTracingOptions(test.sampler, install, test.fallBack, port, test.sampleRate)...)
 			assert.Equal(t, wtracing.Endpoint{
 				ServiceName: "product",
 				Port:        10,
@@ -143,7 +140,7 @@ func TestGetTracingOptions(t *testing.T) {
 	}
 }
 
-func scaleMaxUint64(f float64) uint64{
+func scaleMaxUint64(f float64) uint64 {
 	return uint64(math.MaxUint64 * f)
 }
 
