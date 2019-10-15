@@ -145,9 +145,15 @@ type Server struct {
 	// be the package from which "Start" was called.
 	svcLogOrigin *string
 
-	// traceSampler is the function that is used to determine whether or not a trace should be sampled. If nil, the
-	// default behavior is to sample every trace.
-	traceSampler func(id uint64) bool
+	// applicationTraceSampler is the function that is used to determine whether or not a trace should be sampled.
+	// This applies to routes registered under the application port and the context passed to the initialize function
+	// If nil, the default behavior is to sample every trace.
+	applicationTraceSampler wtracing.Sampler
+
+	// managementTraceSampler is the function that is used to determine whether or not a trace should be sampled.
+	// This applies to routes registered under the management port
+	// If nil, the default behavior is to sample no traces.
+	managementTraceSampler wtracing.Sampler
 
 	// disableKeepAlives disables keep-alives.
 	disableKeepAlives bool
@@ -374,11 +380,28 @@ func (s *Server) WithRouterImplProvider(routerImplProvider func() wrouter.Router
 	return s
 }
 
-// WithTraceSampler configures the server's trace log tracer to use the specified traceSampler function to make a
+// WithTraceSampler configures the server's application trace log tracer to use the specified traceSampler function to make a
 // determination on whether or not a trace should be sampled (if such a decision needs to be made).
-func (s *Server) WithTraceSampler(traceSampler func(id uint64) bool) *Server {
-	s.traceSampler = traceSampler
+func (s *Server) WithTraceSampler(traceSampler wtracing.Sampler) *Server {
+	s.applicationTraceSampler = traceSampler
 	return s
+}
+
+// WithTraceSamplerRate is a convenience function for creating an application traceSampler based off a sample rate
+func (s *Server) WithTraceSamplerRate(sampleRate float64) *Server {
+	return s.WithTraceSampler(traceSamplerFromSampleRate(sampleRate))
+}
+
+// WithManagementTraceSampler configures the server's management trace log tracer to use the specified traceSampler function to make a
+// determination on whether or not a trace should be sampled (if such a decision needs to be made).
+func (s *Server) WithManagementTraceSampler(traceSampler wtracing.Sampler) *Server {
+	s.managementTraceSampler = traceSampler
+	return s
+}
+
+// WithManagementTraceSamplerRate is a convenience function for creating a management traceSampler based off a sample rate
+func (s *Server) WithManagementTraceSamplerRate(sampleRate float64) *Server {
+	return s.WithManagementTraceSampler(traceSamplerFromSampleRate(sampleRate))
 }
 
 // WithSigQuitHandlerWriter sets the output for the goroutine dump on SIGQUIT.
@@ -527,10 +550,10 @@ func (s *Server) Start() (rErr error) {
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// add middleware
-	s.addMiddleware(router.RootRouter(), metricsRegistry, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, baseInstallCfg.TraceSampleRate))
+	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg))
 	if mgmtRouter != router {
 		// add middleware to management router as well if it is distinct
-		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.ManagementPort, baseInstallCfg.TraceSampleRate))
+		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.getManagementTracingOptions(baseInstallCfg))
 	}
 
 	// handle built-in runtime config changes
@@ -554,7 +577,7 @@ func (s *Server) Start() (rErr error) {
 		if s.trcLogger != nil {
 			traceReporter = s.trcLogger
 		}
-		tracer, err := wzipkin.NewTracer(traceReporter, s.defaultTracerOptions(baseInstallCfg.ProductName, baseInstallCfg.Server.Address, baseInstallCfg.Server.Port, baseInstallCfg.TraceSampleRate)...)
+		tracer, err := wzipkin.NewTracer(traceReporter, s.getApplicationTracingOptions(baseInstallCfg)...)
 		if err != nil {
 			return err
 		}
@@ -799,44 +822,54 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	return stopper(s.httpServer)
 }
 
-func (s *Server) defaultTracerOptions(serviceName, address string, port int, sampleRate *float64) []wtracing.TracerOption {
-	var options []wtracing.TracerOption
+func (s *Server) getApplicationTracingOptions(install config.Install) []wtracing.TracerOption {
+	return getTracingOptions(s.applicationTraceSampler, install, alwaysSample, install.Server.Port, install.TraceSampleRate)
+}
+
+func (s *Server) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
+	return getTracingOptions(s.managementTraceSampler, install, neverSample, install.Server.ManagementPort, install.ManagementTraceSampleRate)
+}
+
+func getTracingOptions(configuredSampler wtracing.Sampler, install config.Install, fallbackSampler wtracing.Sampler, port int, sampleRate *float64) []wtracing.TracerOption {
 	endpoint := &wtracing.Endpoint{
-		ServiceName: serviceName,
+		ServiceName: install.ProductName,
 		Port:        uint16(port),
 	}
-	if parsedIP := net.ParseIP(address); len(parsedIP) > 0 {
+	if parsedIP := net.ParseIP(install.Server.Address); len(parsedIP) > 0 {
 		if parsedIP.To4() != nil {
 			endpoint.IPv4 = parsedIP
 		} else {
 			endpoint.IPv6 = parsedIP
 		}
 	}
-	options = append(options, wtracing.WithLocalEndpoint(endpoint))
-	if s.traceSampler != nil {
-		options = append(options, wtracing.WithSampler(s.traceSampler))
-	} else if sampleRate != nil {
-		options = append(options, wtracing.WithSampler(s.samplerForRate(*sampleRate)))
+	return []wtracing.TracerOption{
+		wtracing.WithLocalEndpoint(endpoint),
+		getSamplingTraceOption(configuredSampler, fallbackSampler, sampleRate),
 	}
-	return options
 }
 
-func (s *Server) samplerForRate(sampleRate float64) wtracing.Sampler {
+func getSamplingTraceOption(configuredSampler wtracing.Sampler, fallbackSampler wtracing.Sampler, sampleRate *float64) wtracing.TracerOption {
+	if configuredSampler != nil {
+		return wtracing.WithSampler(configuredSampler)
+	} else if sampleRate != nil {
+		wtracing.WithSampler(traceSamplerFromSampleRate(*sampleRate))
+	}
+	return wtracing.WithSampler(fallbackSampler)
+}
+
+func traceSamplerFromSampleRate(sampleRate float64) wtracing.Sampler {
 	if sampleRate <= 0 {
-		if s.svcLogger != nil {
-			s.svcLogger.Info("Trace logging will be disabled due to trace-sample-rate <= 0")
-		}
-		return func(id uint64) bool { return false }
+		return neverSample
 	}
 	if sampleRate >= 1 {
-		if s.svcLogger != nil {
-			s.svcLogger.Info("Trace logging will sample all traces due to trace-sample-rate >= 1")
-		}
-		return func(id uint64) bool { return true }
+		return alwaysSample
 	}
-
 	boundary := uint64(sampleRate * float64(math.MaxUint64)) // does not overflow because we already checked bounds
 	return func(id uint64) bool {
 		return id < boundary
 	}
 }
+
+func neverSample(id uint64) bool { return false }
+
+func alwaysSample(id uint64) bool { return true }
