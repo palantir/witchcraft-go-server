@@ -56,7 +56,7 @@ func TestSamplerForRate(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprint(test.rate), func(t *testing.T) {
-			sampler := (&Server{}).samplerForRate(test.rate)
+			sampler := traceSamplerFromSampleRate(test.rate)
 			for i, id := range []uint64{
 				0x0000000000000000,
 				0x1111111111111111,
