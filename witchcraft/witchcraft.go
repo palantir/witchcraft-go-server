@@ -441,8 +441,8 @@ func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	return s
 }
 
-// WithMetricsEmissionFunc sets the servers metrics visitor which is used to emit metrics from the servers registry.
-func (s *Server) WithMetricEmissionFunc(visitorProvider MetricsVisitorProvider) *Server {
+// WithMetricVisitorProvider sets the servers metrics visitor which is used to emit metrics from the servers registry.
+func (s *Server) WithMetricVisitorProvider(visitorProvider MetricsVisitorProvider) *Server {
 	s.metricsVisitor = visitorProvider(s)
 	return s
 }
