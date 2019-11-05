@@ -34,8 +34,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestEmitMetrics verifies that metrics are printed periodically by a Witchcraft server.
-// We verify both custom metrics set in the InitFunc (with tags) and server.response metrics from the metrics middleware.
+// TestEmitMetrics verifies that metrics are printed periodically by a Witchcraft server and that the emitted values
+// respect the default blacklist. We verify both custom metrics set in the InitFunc (with tags) and server.response
+// metrics from the metrics middleware.
 func TestEmitMetrics(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
@@ -52,6 +53,92 @@ func TestEmitMetrics(t *testing.T) {
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		return createTestServer(t, initFn, installCfg, logOutputBuffer)
+	})
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	// Make POST that will 404 to trigger request size and error rate metrics
+	_, err = testServerClient().Post(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, "error"), "application/json", strings.NewReader("{}"))
+	require.NoError(t, err)
+
+	// Allow the metric emitter to do its thing.
+	time.Sleep(150 * time.Millisecond)
+
+	parts := strings.Split(logOutputBuffer.String(), "\n")
+	var metricLogs []logging.MetricLogV1
+	for _, curr := range parts {
+		if strings.Contains(curr, `"metric.1"`) {
+			var currLog logging.MetricLogV1
+			require.NoError(t, json.Unmarshal([]byte(curr), &currLog))
+			metricLogs = append(metricLogs, currLog)
+		}
+	}
+
+	var seenMyCounter, seenResponseTimer, seenResponseSize, seenRequestSize, seenResponseError bool
+	for _, metricLog := range metricLogs {
+		switch metricLog.MetricName {
+		case "my-counter":
+			seenMyCounter = true
+			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
+			assert.Equal(t, map[string]interface{}{"count": json.Number("13")}, metricLog.Values)
+			assert.Equal(t, map[string]string{"key": "val"}, metricLog.Tags)
+		case "server.response":
+			seenResponseTimer = true
+			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotZero(t, metricLog.Values["count"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.NotZero(t, metricLog.Values["max"])
+			assert.Nil(t, metricLog.Values["min"])
+		case "server.request.size":
+			seenRequestSize = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotZero(t, metricLog.Values["count"])
+		case "server.response.size":
+			seenResponseSize = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotZero(t, metricLog.Values["count"])
+		case "server.response.error":
+			seenResponseError = true
+			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotZero(t, metricLog.Values["count"])
+		default:
+			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
+		}
+	}
+	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
+	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
+	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
+	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
+	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
+// TestEmitMetricsEmptyBlacklist verifies that metrics are printed periodically by a Witchcraft server and that, if the
+// blacklist is empty, all values are emitted. We verify both custom metrics set in the InitFunc (with tags) and
+// server.response metrics from the metrics middleware.
+func TestEmitMetricsEmptyBlacklist(t *testing.T) {
+	logOutputBuffer := &bytes.Buffer{}
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	// ensure that registry used in this test is unique/does not have any past metrics registered on it
+	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
+		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
+		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.WriteHeader(500)
+		}))
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlacklist(map[string]map[string]struct{}{})
 	})
 	defer func() {
 		require.NoError(t, server.Close())
