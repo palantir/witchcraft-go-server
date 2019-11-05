@@ -24,7 +24,15 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 )
 
-func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
+type MetricsVisitorProvider func(s *Server) metrics.MetricVisitor
+
+func DefaultMetricEmitter(s *Server) metrics.MetricVisitor {
+	return func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
+		s.metricLogger.Metric(metricID, metricVal.Type(), metric1log.Values(metricVal.Values()), metric1log.Tags(tags.ToMap()))
+	}
+}
+
+func (s *Server) initMetrics(ctx context.Context, installCfg config.Install, visitor metrics.MetricVisitor) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
 	metricsRegistry := metrics.DefaultMetricsRegistry
 	metricsEmitFreq := defaultMetricEmitFrequency
 	if freq := installCfg.MetricsEmitFrequency; freq > 0 {
@@ -38,17 +46,13 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		}
 	}
 
-	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
-		s.metricLogger.Metric(metricID, metricVal.Type(), metric1log.Values(metricVal.Values()), metric1log.Tags(tags.ToMap()))
-	}
-
 	// start goroutine that logs metrics at the given frequency
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		metrics.RunEmittingRegistry(ctx, metricsRegistry, metricsEmitFreq, emitFn)
+		metrics.RunEmittingRegistry(ctx, metricsRegistry, metricsEmitFreq, visitor)
 	})
 
 	return metricsRegistry, func() {
 		// emit all metrics a final time on termination
-		metricsRegistry.Each(emitFn)
+		metricsRegistry.Each(visitor)
 	}, nil
 }

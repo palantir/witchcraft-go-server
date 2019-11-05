@@ -137,6 +137,10 @@ type Server struct {
 	// seconds if an interval is not specified in configuration).
 	disableGoRuntimeMetrics bool
 
+	// if set, the server will use the provided visitor to run for emitting metrics from the servers metrics registry.
+	// If unset, a default metric visitor will be used which simply emits all the values for the metric type.
+	metricsVisitor metrics.MetricVisitor
+
 	// specifies the TLS client authentication mode used by the server. If not specified, the default value is
 	// tls.NoClientCert.
 	clientAuth tls.ClientAuthType
@@ -437,6 +441,12 @@ func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	return s
 }
 
+// WithMetricsEmissionFunc sets the servers metrics visitor which is used to emit metrics from the servers registry.
+func (s *Server) WithMetricEmissionFunc(visitorProvider MetricsVisitorProvider) *Server {
+	s.metricsVisitor = visitorProvider(s)
+	return s
+}
+
 // WithLoggerStdoutWriter configures the writer that loggers will write to IF they are configured to write to STDOUT.
 // This configuration is typically only used in specialized scenarios (for example, to write logger output to an
 // in-memory buffer rather than Stdout for tests).
@@ -542,7 +552,10 @@ func (s *Server) Start() (rErr error) {
 	router, mgmtRouter := s.initRouters(baseInstallCfg)
 
 	// initialize metrics
-	metricsRegistry, metricsDeferFn, err := s.initMetrics(ctx, baseInstallCfg)
+	if s.metricsVisitor == nil {
+		s.metricsVisitor = DefaultMetricEmitter(s)
+	}
+	metricsRegistry, metricsDeferFn, err := s.initMetrics(ctx, baseInstallCfg, s.metricsVisitor)
 	if err != nil {
 		return err
 	}
