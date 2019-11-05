@@ -39,7 +39,19 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}
 
 	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
-		s.metricLogger.Metric(metricID, metricVal.Type(), metric1log.Values(metricVal.Values()), metric1log.Tags(tags.ToMap()))
+		valuesToUse := metricVal.Values()
+		metricType := metricVal.Type()
+		if metricTypeValueBlacklist, ok := s.metricTypeValuesBlacklist[metricType]; ok {
+			// remove blacklisted keys
+			for blacklistedKey := range metricTypeValueBlacklist {
+				delete(valuesToUse, blacklistedKey)
+			}
+		}
+		if len(valuesToUse) == 0 {
+			// do not record metric if it does not have any values
+			return
+		}
+		s.metricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tags.ToMap()))
 	}
 
 	// start goroutine that logs metrics at the given frequency
