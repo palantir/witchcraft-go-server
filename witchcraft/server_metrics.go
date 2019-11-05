@@ -24,6 +24,33 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 )
 
+func defaultMetricTypeValuesBlacklist() map[string]map[string]struct{} {
+	return map[string]map[string]struct{}{
+		"histogram": {
+			"min":    {},
+			"mean":   {},
+			"stddev": {},
+			"p50":    {},
+		},
+		"meter": {
+			"1m":   {},
+			"5m":   {},
+			"15m":  {},
+			"mean": {},
+		},
+		"timer": {
+			"1m":       {},
+			"5m":       {},
+			"15m":      {},
+			"meanRate": {},
+			"min":      {},
+			"mean":     {},
+			"stddev":   {},
+			"p50":      {},
+		},
+	}
+}
+
 func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
 	metricsRegistry := metrics.DefaultMetricsRegistry
 	metricsEmitFreq := defaultMetricEmitFrequency
@@ -38,10 +65,15 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		}
 	}
 
+	metricTypeValuesBlacklist := s.metricTypeValuesBlacklist
+	if metricTypeValuesBlacklist == nil {
+		metricTypeValuesBlacklist = defaultMetricTypeValuesBlacklist()
+	}
+
 	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
 		valuesToUse := metricVal.Values()
 		metricType := metricVal.Type()
-		if metricTypeValueBlacklist, ok := s.metricTypeValuesBlacklist[metricType]; ok {
+		if metricTypeValueBlacklist, ok := metricTypeValuesBlacklist[metricType]; ok {
 			// remove blacklisted keys
 			for blacklistedKey := range metricTypeValueBlacklist {
 				delete(valuesToUse, blacklistedKey)

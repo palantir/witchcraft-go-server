@@ -139,7 +139,7 @@ type Server struct {
 
 	// metricTypeValuesBlacklist specifies the values for a metric type that should be omitted from metric output. For
 	// example, if the map is set to {"timer":{"5m":{}}}, then the value for "5m" will be omitted from all timer metric
-	// output.
+	// output. If nil, the default value is the map returned by defaultMetricTypeValuesBlacklist().
 	metricTypeValuesBlacklist map[string]map[string]struct{}
 
 	// specifies the TLS client authentication mode used by the server. If not specified, the default value is
