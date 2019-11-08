@@ -440,7 +440,10 @@ func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	return s
 }
 
-// WithMetricsBlacklist sets the metric blacklist to the provided set of metrics. The provided input is copied.
+// WithMetricsBlacklist sets the metric blacklist to the provided set of metrics. The provided metrics should be the
+// name of the metric (for example, "server.response.size"). The blacklist only supports blacklisting at the metric
+// level: blacklisting an individual metric value (such as "server.response.size.count") will not have any effect. The
+// provided input is copied.
 func (s *Server) WithMetricsBlacklist(blacklist map[string]struct{}) *Server {
 	metricsBlacklist := make(map[string]struct{})
 	for k, v := range blacklist {
