@@ -87,22 +87,48 @@ func TestEmitMetrics(t *testing.T) {
 		case "server.response":
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
-			assert.Nil(t, metricLog.Values["mean"])
-			assert.NotZero(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.Nil(t, metricLog.Values["1m"])
+			assert.Nil(t, metricLog.Values["5m"])
+			assert.Nil(t, metricLog.Values["15m"])
+			assert.Nil(t, metricLog.Values["meanRate"])
 			assert.Nil(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
 		case "server.request.size":
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.Nil(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
 		case "server.response.size":
 			seenResponseSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.Nil(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
 		case "server.response.error":
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.Nil(t, metricLog.Values["1m"])
+			assert.Nil(t, metricLog.Values["5m"])
+			assert.Nil(t, metricLog.Values["15m"])
+			assert.Nil(t, metricLog.Values["mean"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
@@ -173,22 +199,48 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		case "server.response":
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
-			assert.NotZero(t, metricLog.Values["mean"])
-			assert.NotZero(t, metricLog.Values["max"])
-			assert.NotZero(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["1m"])
+			assert.NotNil(t, metricLog.Values["5m"])
+			assert.NotNil(t, metricLog.Values["15m"])
+			assert.NotNil(t, metricLog.Values["meanRate"])
+			assert.NotNil(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["mean"])
+			assert.NotNil(t, metricLog.Values["stddev"])
+			assert.NotNil(t, metricLog.Values["p50"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
 		case "server.request.size":
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["mean"])
+			assert.NotNil(t, metricLog.Values["stddev"])
+			assert.NotNil(t, metricLog.Values["p50"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
 		case "server.response.size":
 			seenResponseSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["mean"])
+			assert.NotNil(t, metricLog.Values["stddev"])
+			assert.NotNil(t, metricLog.Values["p50"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
 		case "server.response.error":
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["1m"])
+			assert.NotNil(t, metricLog.Values["5m"])
+			assert.NotNil(t, metricLog.Values["15m"])
+			assert.NotNil(t, metricLog.Values["mean"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
@@ -260,10 +312,10 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		case "server.response":
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
-			assert.NotZero(t, metricLog.Values["mean"])
-			assert.NotZero(t, metricLog.Values["max"])
-			assert.NotZero(t, metricLog.Values["min"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["mean"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["min"])
 		case "server.request.size":
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
@@ -277,7 +329,7 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		case "server.response.error":
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.NotZero(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["count"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
