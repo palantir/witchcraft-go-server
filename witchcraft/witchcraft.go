@@ -137,6 +137,11 @@ type Server struct {
 	// seconds if an interval is not specified in configuration).
 	disableGoRuntimeMetrics bool
 
+	// metricTypeValuesBlacklist specifies the values for a metric type that should be omitted from metric output. For
+	// example, if the map is set to {"timer":{"5m":{}}}, then the value for "5m" will be omitted from all timer metric
+	// output. If nil, the default value is the map returned by defaultMetricTypeValuesBlacklist().
+	metricTypeValuesBlacklist map[string]map[string]struct{}
+
 	// specifies the TLS client authentication mode used by the server. If not specified, the default value is
 	// tls.NoClientCert.
 	clientAuth tls.ClientAuthType
@@ -434,6 +439,21 @@ func (s *Server) WithDisableKeepAlives() *Server {
 // WithDisableGoRuntimeMetrics disables the server's enabled-by-default collection of runtime memory statistics.
 func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	s.disableGoRuntimeMetrics = true
+	return s
+}
+
+// WithMetricTypeValuesBlacklist sets the value of the metric type value blacklist to be the same as the provided value
+// (the content is copied).
+func (s *Server) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]struct{}) *Server {
+	newBlacklist := make(map[string]map[string]struct{}, len(blacklist))
+	for k, v := range blacklist {
+		newVal := make(map[string]struct{}, len(v))
+		for kk := range v {
+			newVal[kk] = struct{}{}
+		}
+		newBlacklist[k] = newVal
+	}
+	s.metricTypeValuesBlacklist = newBlacklist
 	return s
 }
 
