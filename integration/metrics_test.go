@@ -414,9 +414,6 @@ func TestMetricsBlacklist(t *testing.T) {
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
 			assert.NotZero(t, metricLog.Values["count"])
-			assert.NotZero(t, metricLog.Values["mean"])
-			assert.NotZero(t, metricLog.Values["max"])
-			assert.NotZero(t, metricLog.Values["min"])
 		case "server.request.size":
 			assert.Fail(t, "server.request.size metric should not be emitted")
 		case "server.response.size":
