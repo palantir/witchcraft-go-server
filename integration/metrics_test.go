@@ -88,43 +88,51 @@ func TestEmitMetrics(t *testing.T) {
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
 			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+
+			// keys are part of the default blacklist and should thus be nil
 			assert.Nil(t, metricLog.Values["1m"])
 			assert.Nil(t, metricLog.Values["5m"])
 			assert.Nil(t, metricLog.Values["15m"])
 			assert.Nil(t, metricLog.Values["meanRate"])
 			assert.Nil(t, metricLog.Values["min"])
-			assert.NotNil(t, metricLog.Values["max"])
 			assert.Nil(t, metricLog.Values["mean"])
 			assert.Nil(t, metricLog.Values["stddev"])
 			assert.Nil(t, metricLog.Values["p50"])
-			assert.NotNil(t, metricLog.Values["p95"])
-			assert.NotNil(t, metricLog.Values["p99"])
 		case "server.request.size":
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.Nil(t, metricLog.Values["min"])
 			assert.NotNil(t, metricLog.Values["max"])
-			assert.Nil(t, metricLog.Values["mean"])
-			assert.Nil(t, metricLog.Values["stddev"])
-			assert.Nil(t, metricLog.Values["p50"])
 			assert.NotNil(t, metricLog.Values["p95"])
 			assert.NotNil(t, metricLog.Values["p99"])
 			assert.NotNil(t, metricLog.Values["count"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["min"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
 		case "server.response.size":
 			seenResponseSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			assert.Nil(t, metricLog.Values["min"])
 			assert.NotNil(t, metricLog.Values["max"])
-			assert.Nil(t, metricLog.Values["mean"])
-			assert.Nil(t, metricLog.Values["stddev"])
-			assert.Nil(t, metricLog.Values["p50"])
 			assert.NotNil(t, metricLog.Values["p95"])
 			assert.NotNil(t, metricLog.Values["p99"])
 			assert.NotNil(t, metricLog.Values["count"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["min"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
 		case "server.response.error":
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
 			assert.NotNil(t, metricLog.Values["count"])
+
+			// keys are part of the default blacklist and should thus be nil
 			assert.Nil(t, metricLog.Values["1m"])
 			assert.Nil(t, metricLog.Values["5m"])
 			assert.Nil(t, metricLog.Values["15m"])
@@ -199,6 +207,8 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		case "server.response":
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
+
+			// blacklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["count"])
 			assert.NotNil(t, metricLog.Values["1m"])
 			assert.NotNil(t, metricLog.Values["5m"])
@@ -214,6 +224,8 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		case "server.request.size":
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
+
+			// blacklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["min"])
 			assert.NotNil(t, metricLog.Values["max"])
 			assert.NotNil(t, metricLog.Values["mean"])
@@ -225,6 +237,8 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		case "server.response.size":
 			seenResponseSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
+
+			// blacklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["min"])
 			assert.NotNil(t, metricLog.Values["max"])
 			assert.NotNil(t, metricLog.Values["mean"])
@@ -236,6 +250,8 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		case "server.response.error":
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
+
+			// blacklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["count"])
 			assert.NotNil(t, metricLog.Values["1m"])
 			assert.NotNil(t, metricLog.Values["5m"])
