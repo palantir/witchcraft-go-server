@@ -35,11 +35,14 @@ import (
 )
 
 // TestEmitMetrics verifies that metrics are printed periodically by a Witchcraft server.
-// We verify both custom metrics set in the InitFunc (with tags) and server.reponse metrics from the metrics middleware.
+// We verify both custom metrics set in the InitFunc (with tags) and server.response metrics from the metrics middleware.
 func TestEmitMetrics(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
+
+	// ensure that registry used in this test is unique/does not have any past metrics registered on it
+	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
 		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
 		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
