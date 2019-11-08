@@ -137,6 +137,9 @@ type Server struct {
 	// seconds if an interval is not specified in configuration).
 	disableGoRuntimeMetrics bool
 
+	// metricsBlacklist specifies the set of metrics that should not be emitted by the metric logger.
+	metricsBlacklist map[string]struct{}
+
 	// metricTypeValuesBlacklist specifies the values for a metric type that should be omitted from metric output. For
 	// example, if the map is set to {"timer":{"5m":{}}}, then the value for "5m" will be omitted from all timer metric
 	// output. If nil, the default value is the map returned by defaultMetricTypeValuesBlacklist().
@@ -439,6 +442,19 @@ func (s *Server) WithDisableKeepAlives() *Server {
 // WithDisableGoRuntimeMetrics disables the server's enabled-by-default collection of runtime memory statistics.
 func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	s.disableGoRuntimeMetrics = true
+	return s
+}
+
+// WithMetricsBlacklist sets the metric blacklist to the provided set of metrics. The provided metrics should be the
+// name of the metric (for example, "server.response.size"). The blacklist only supports blacklisting at the metric
+// level: blacklisting an individual metric value (such as "server.response.size.count") will not have any effect. The
+// provided input is copied.
+func (s *Server) WithMetricsBlacklist(blacklist map[string]struct{}) *Server {
+	metricsBlacklist := make(map[string]struct{})
+	for k, v := range blacklist {
+		metricsBlacklist[k] = v
+	}
+	s.metricsBlacklist = metricsBlacklist
 	return s
 }
 

@@ -71,6 +71,11 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}
 
 	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
+		if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
+			// skip emitting metric if it is blacklisted
+			return
+		}
+
 		valuesToUse := metricVal.Values()
 		metricType := metricVal.Type()
 		if metricTypeValueBlacklist, ok := metricTypeValuesBlacklist[metricType]; ok {
