@@ -23,6 +23,8 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
+
+
 // ItemsToCheckFn is a function that constructs a HealthCheckResult from a set of items.
 type ItemsToCheckFn func(ctx context.Context, items []ItemWithTimestamp) health.HealthCheckResult
 
