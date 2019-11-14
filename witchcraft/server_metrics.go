@@ -51,8 +51,7 @@ func defaultMetricTypeValuesBlacklist() map[string]map[string]struct{} {
 	}
 }
 
-func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
-	metricsRegistry := metrics.DefaultMetricsRegistry
+func (s *Server) initMetrics(ctx context.Context, metricsRegistry metrics.RootRegistry, installCfg config.Install) (rDeferFn func(), rErr error) {
 	metricsEmitFreq := defaultMetricEmitFrequency
 	if freq := installCfg.MetricsEmitFrequency; freq > 0 {
 		metricsEmitFreq = freq
@@ -61,7 +60,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
 		if ok := metrics.CaptureRuntimeMemStatsWithContext(ctx, metricsRegistry, metricsEmitFreq); !ok {
-			return nil, nil, werror.Error("metricsRegistry does not support capturing runtime memory statistics")
+			return nil, werror.Error("metricsRegistry does not support capturing runtime memory statistics")
 		}
 	}
 
@@ -96,7 +95,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		metrics.RunEmittingRegistry(ctx, metricsRegistry, metricsEmitFreq, emitFn)
 	})
 
-	return metricsRegistry, func() {
+	return func() {
 		// emit all metrics a final time on termination
 		metricsRegistry.Each(emitFn)
 	}, nil

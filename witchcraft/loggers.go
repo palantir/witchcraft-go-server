@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
@@ -31,7 +32,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
+func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
 	if s.svcLogOrigin == nil {
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
 		origin := svc1log.CallerPkg(2, 0)
@@ -50,12 +51,12 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
 		return newDefaultLogOutput(logOutputPath, useConsoleLog, loggerStdoutWriter)
 	}
 
-	s.svcLogger = svc1log.New(logOutputFn("service"), logLevel, svc1LogParams...)
-	s.evtLogger = evt2log.New(logOutputFn("event"))
+	s.svcLogger = newInstrumentedSvc1Logger(svc1log.New(logOutputFn("service"), logLevel, svc1LogParams...), registry)
+	s.evtLogger = newInstrumentedEvt2Logger(evt2log.New(logOutputFn("event")), registry)
 	s.metricLogger = metric1log.New(logOutputFn("metrics"))
 	s.trcLogger = trc1log.New(logOutputFn("trace"))
 	s.auditLogger = audit2log.New(logOutputFn("audit"))
-	s.diagLogger = diag1log.New(logOutputFn("diagnostic"))
+	s.diagLogger = newInstrumentedDiag1Logger(diag1log.New(logOutputFn("diagnostic")), registry)
 	s.reqLogger = req2log.New(logOutputFn("request"),
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),

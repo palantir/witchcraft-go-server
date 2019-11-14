@@ -547,8 +547,11 @@ func (s *Server) Start() (rErr error) {
 		s.idsExtractor = extractor.NewDefaultIDsExtractor()
 	}
 
+	// create root metrics registry
+	metricsRegistry := metrics.DefaultMetricsRegistry
+
 	// initialize loggers
-	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel)
+	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
@@ -578,7 +581,7 @@ func (s *Server) Start() (rErr error) {
 	router, mgmtRouter := s.initRouters(baseInstallCfg)
 
 	// initialize metrics
-	metricsRegistry, metricsDeferFn, err := s.initMetrics(ctx, baseInstallCfg)
+	metricsDeferFn, err := s.initMetrics(ctx, metricsRegistry, baseInstallCfg)
 	if err != nil {
 		return err
 	}
