@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,8 @@ func TestEncryptedConfig(t *testing.T) {
 	)
 
 	type message struct {
-		Message string `yaml:"message"`
+		config.Runtime `yaml:",inline"`
+		Message        string `yaml:"message"`
 	}
 
 	for _, test := range []struct {
