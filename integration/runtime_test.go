@@ -240,3 +240,129 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 		assert.Fail(t, "timed out waiting for runtime configuration to be updated")
 	}
 }
+
+// TestRuntimeReloadWithInvalidConfig verifies that reloading runtime configuration with invalid config produces an
+// unhealthy health check and uses the last known valid config.
+func TestRuntimeReloadWithInvalidConfig(t *testing.T) {
+	testDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(wd)
+		require.NoError(t, err)
+	}()
+
+	err = os.Chdir(testDir)
+	require.NoError(t, err)
+
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	err = os.MkdirAll("var/conf", 0755)
+	require.NoError(t, err)
+
+	const validCfg1YML = `
+logging:
+  level: debug
+exclamations: 3
+`
+	validCfg1 := testRuntimeConfig{
+		Runtime: config.Runtime{
+			LoggerConfig: &config.LoggerConfig{
+				Level: wlog.DebugLevel,
+			},
+		},
+		Exclamations: 3,
+	}
+	const invalidYML = `
+invalid-key: invalid-value
+`
+	const validCfg2YML = `
+logging:
+  level: info
+exclamations: 4
+`
+	validCfg2 := testRuntimeConfig{
+		Runtime: config.Runtime{
+			LoggerConfig: &config.LoggerConfig{
+				Level: wlog.InfoLevel,
+			},
+		},
+		Exclamations: 4,
+	}
+
+	err = ioutil.WriteFile(runtimeYML, []byte(validCfg1YML), 0644)
+	require.NoError(t, err)
+
+	var currCfg testRuntimeConfig
+
+	server := witchcraft.NewServer().
+		WithRuntimeConfigType(testRuntimeConfig{}).
+		WithInstallConfig(config.Install{
+			ProductName:   productName,
+			UseConsoleLog: true,
+			Server: config.Server{
+				Address:     "localhost",
+				Port:        port,
+				ContextPath: basePath,
+			},
+		}).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
+			setCfg := func(cfgI interface{}) {
+				cfg, ok := cfgI.(testRuntimeConfig)
+				if !ok {
+					panic(fmt.Errorf("unable to cast runtime config of type %T to testRuntimeConfig", cfgI))
+				}
+				currCfg = cfg
+			}
+			setCfg(info.RuntimeConfig.Current())
+			info.RuntimeConfig.Subscribe(setCfg)
+			return nil, nil
+		})
+
+	serverChan := make(chan error)
+	go func() {
+		serverChan <- server.Start()
+	}()
+
+	select {
+	case err := <-serverChan:
+		require.NoError(t, err)
+	default:
+	}
+
+	ready := <-waitForTestServerReady(port, path.Join(basePath, status.LivenessEndpoint), 5*time.Second)
+	if !ready {
+		errMsg := "timed out waiting for server to start"
+		select {
+		case err := <-serverChan:
+			errMsg = fmt.Sprintf("%s: %+v", errMsg, err)
+		}
+		require.Fail(t, errMsg)
+	}
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+
+	// Assert our configuration was set to the initial values
+	assert.Equal(t, validCfg1, currCfg)
+
+	// Assert that introducing invalid config does not change the stored config
+	invalidRuntimeConfig := "invalid-key: \"invalid-value\""
+	err = ioutil.WriteFile(runtimeYML, []byte(invalidRuntimeConfig), 0644)
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, validCfg1, currCfg)
+
+	// Update config to a valid, but different config and assert that our subscription overwrites the value
+	err = ioutil.WriteFile(runtimeYML, []byte(validCfg2YML), 0644)
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, validCfg2, currCfg)
+}
