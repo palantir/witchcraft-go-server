@@ -44,8 +44,6 @@ type baseHealthCheckSource struct {
 	itemsToCheckFn    ItemsToCheckFn
 }
 
-var _ status.HealthCheckSource = &baseHealthCheckSource{}
-
 // MustNewBaseHealthCheckSource returns the result of calling NewBaseHealthCheckSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) BaseHealthCheckSource {

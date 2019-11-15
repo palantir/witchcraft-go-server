@@ -50,8 +50,6 @@ type multiKeyUnhealthyIfAtLeastOneErrorSource struct {
 	messageInCaseOfError string
 }
 
-var _ status.HealthCheckSource = &multiKeyUnhealthyIfAtLeastOneErrorSource{}
-
 // MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource returns the result of calling NewMultiKeyUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {

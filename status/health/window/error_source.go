@@ -42,8 +42,6 @@ type unhealthyIfAtLeastOneErrorSource struct {
 	checkType         health.CheckType
 }
 
-var _ status.HealthCheckSource = &unhealthyIfAtLeastOneErrorSource{}
-
 // MustNewUnhealthyIfAtLeastOneErrorSource returns the result of calling NewUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
@@ -99,8 +97,6 @@ type healthyIfNotAllErrorsSource struct {
 	timeWindowedStore *TimeWindowedStore
 	checkType         health.CheckType
 }
-
-var _ status.HealthCheckSource = &healthyIfNotAllErrorsSource{}
 
 // MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
