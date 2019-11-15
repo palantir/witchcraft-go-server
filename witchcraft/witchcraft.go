@@ -487,7 +487,7 @@ const (
 	ecvKeyPath                   = "var/conf/encrypted-config-value.key"
 	installConfigPath            = "var/conf/install.yml"
 	runtimeConfigPath            = "var/conf/runtime.yml"
-	runtimeConfigReloadCheckType = "RUNTIME_CONFIG_RELOAD"
+	runtimeConfigReloadCheckType = "CONFIG_RELOAD"
 )
 
 // Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() return.
@@ -742,7 +742,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return cfgBytes
 	})
 
-	validatedRuntimeConfig, validationHealthCheckSource, err := refreshable.NewValidatingRefreshable(
+	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(
 		runtimeConfigProvider,
 		runtimeConfigReloadCheckType,
 		func(cfgBytesVal interface{}) error {
@@ -777,7 +777,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
 	})
 
-	return baseRuntimeConfig, runtimeConfig, validationHealthCheckSource, nil
+	return baseRuntimeConfig, runtimeConfig, validatedRuntimeConfig, nil
 }
 
 func (s *Server) initStackTraceHandler(ctx context.Context) {

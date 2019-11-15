@@ -20,20 +20,21 @@ import (
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/status"
 	whealth "github.com/palantir/witchcraft-go-server/status/health"
 )
 
-type validatingRefreshable struct {
+type ValidatingRefreshable struct {
 	validatedRefreshable Refreshable
 	lastValidateErr      *atomic.Value
 	healthCheckType      health.CheckType
 }
 
-func (v *validatingRefreshable) HealthStatus(ctx context.Context) health.HealthStatus {
+func (v *ValidatingRefreshable) HealthStatus(ctx context.Context) health.HealthStatus {
 	healthCheckResult := whealth.HealthyHealthCheckResult(v.healthCheckType)
-	if v.lastValidateErr != nil {
-		healthCheckResult = whealth.UnhealthyHealthCheckResult(v.healthCheckType, v.lastValidateErr.Load().(error).Error())
+
+	err := v.lastValidateErr.Load()
+	if err != nil {
+		healthCheckResult = whealth.UnhealthyHealthCheckResult(v.healthCheckType, err.(error).Error())
 	}
 
 	return health.HealthStatus{
@@ -43,32 +44,34 @@ func (v *validatingRefreshable) HealthStatus(ctx context.Context) health.HealthS
 	}
 }
 
-func (v *validatingRefreshable) Current() interface{} {
+func (v *ValidatingRefreshable) Current() interface{} {
 	return v.validatedRefreshable.Current()
 }
 
-func (v *validatingRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
+func (v *ValidatingRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
 	return v.validatedRefreshable.Subscribe(consumer)
 }
 
-func (v *validatingRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
+func (v *ValidatingRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
 	return v.validatedRefreshable.Map(mapFn)
 }
 
 // NewValidatingRefreshable returns a new Refreshable whose current value is the latest value that passes the provided
 // validatingFn successfully. This refreshable is also a HealthCheckSource that will be unhealthy whenever there are
 // updates that have failed validation.
-func NewValidatingRefreshable(origRefreshable Refreshable, healthCheckType health.CheckType, validatingFn func(interface{}) error) (Refreshable, status.HealthCheckSource, error) {
+func NewValidatingRefreshable(origRefreshable Refreshable, healthCheckType health.CheckType, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
 	currentVal := origRefreshable.Current()
 	if err := validatingFn(currentVal); err != nil {
-		return nil, nil, werror.Wrap(err, "failed to create validating Refreshable because initial value could not be validated")
+		return nil, werror.Wrap(err, "failed to create validating Refreshable because initial value could not be validated")
 	}
 
 	validatedRefreshable := NewDefaultRefreshable(currentVal)
 
-	v := validatingRefreshable{
+	var lastValidateErr atomic.Value
+	v := ValidatingRefreshable{
 		healthCheckType:      healthCheckType,
 		validatedRefreshable: validatedRefreshable,
+		lastValidateErr:      &lastValidateErr,
 	}
 
 	_ = origRefreshable.Subscribe(func(i interface{}) {
@@ -84,5 +87,5 @@ func NewValidatingRefreshable(origRefreshable Refreshable, healthCheckType healt
 
 		v.lastValidateErr.Store(nil)
 	})
-	return &v, &v, nil
+	return &v, nil
 }
