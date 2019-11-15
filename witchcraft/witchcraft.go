@@ -484,9 +484,10 @@ func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 const (
 	defaultMetricEmitFrequency = time.Second * 60
 
-	ecvKeyPath        = "var/conf/encrypted-config-value.key"
-	installConfigPath = "var/conf/install.yml"
-	runtimeConfigPath = "var/conf/runtime.yml"
+	ecvKeyPath                   = "var/conf/encrypted-config-value.key"
+	installConfigPath            = "var/conf/install.yml"
+	runtimeConfigPath            = "var/conf/runtime.yml"
+	runtimeConfigReloadCheckType = "RUNTIME_CONFIG_RELOAD"
 )
 
 // Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() return.
@@ -560,10 +561,12 @@ func (s *Server) Start() (rErr error) {
 	ctx = audit2log.WithLogger(ctx, s.auditLogger)
 
 	// load runtime configuration
-	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, err := s.initRuntimeConfig(ctx)
+	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
 	if err != nil {
 		return err
 	}
+	s.healthCheckSources = append(s.healthCheckSources, configReloadHealthCheckSource)
+
 	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {
 		s.svcLogger.SetLevel(loggerCfg.Level)
 	}
@@ -718,7 +721,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
 }
 
-func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, rErr error) {
+func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, hcSrc status.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
@@ -728,7 +731,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 
 	runtimeConfigProvider, err := s.runtimeConfigProvider(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	runtimeConfigProvider = runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
@@ -739,25 +742,42 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return cfgBytes
 	})
 
-	return newRefreshableBaseRuntimeConfig(runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
-			var runtimeCfg config.Runtime
-			if err := yaml.Unmarshal(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
-				s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
-			}
-			return runtimeCfg
-		})),
-		runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
+	validatedRuntimeConfig, validationHealthCheckSource, err := refreshable.NewValidatingRefreshable(
+		runtimeConfigProvider,
+		runtimeConfigReloadCheckType,
+		func(cfgBytesVal interface{}) error {
 			runtimeConfigStruct := s.runtimeConfigStruct
 			if runtimeConfigStruct == nil {
 				runtimeConfigStruct = config.Runtime{}
 			}
 			runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-			if err := yaml.Unmarshal(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
-				s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
-			}
-			return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
-		}),
-		nil
+			return yaml.UnmarshalStrict(cfgBytesVal.([]byte), *&runtimeCfg)
+		})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
+		var runtimeCfg config.Runtime
+		if err := yaml.Unmarshal(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
+			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
+		}
+		return runtimeCfg
+	}))
+
+	runtimeConfig := validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
+		runtimeConfigStruct := s.runtimeConfigStruct
+		if runtimeConfigStruct == nil {
+			runtimeConfigStruct = config.Runtime{}
+		}
+		runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
+		if err := yaml.Unmarshal(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
+			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
+		}
+		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
+	})
+
+	return baseRuntimeConfig, runtimeConfig, validationHealthCheckSource, nil
 }
 
 func (s *Server) initStackTraceHandler(ctx context.Context) {
