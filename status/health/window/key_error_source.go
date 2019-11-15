@@ -23,6 +23,15 @@ import (
 	whealth "github.com/palantir/witchcraft-go-server/status/health"
 )
 
+type KeyedErrorSubmitter interface {
+	Submit(key string, err error)
+}
+
+type KeyedErrorHealthCheckSource interface {
+	KeyedErrorSubmitter
+	status.HealthCheckSource
+}
+
 // keyErrorPair is a struct that keeps a key as a string and an err.
 type keyErrorPair struct {
 	// key is an identifier for a resource.
@@ -31,21 +40,19 @@ type keyErrorPair struct {
 	err error
 }
 
-// MultiKeyUnhealthyIfAtLeastOneErrorSource is a HealthCheckSource that polls a TimeWindowedStore.
+// multiKeyUnhealthyIfAtLeastOneErrorSource is a HealthCheckSource that polls a TimeWindowedStore.
 // It returns unhealthy if there is a non-nil error for at least one key.
 // The Params field of the HealthCheckResult is the first error message for each key mapped by the key for all unhealthy keys.
 // If there are no items, returns healthy.
-type MultiKeyUnhealthyIfAtLeastOneErrorSource struct {
+type multiKeyUnhealthyIfAtLeastOneErrorSource struct {
 	timeWindowedStore    *TimeWindowedStore
 	checkType            health.CheckType
 	messageInCaseOfError string
 }
 
-var _ status.HealthCheckSource = &MultiKeyUnhealthyIfAtLeastOneErrorSource{}
-
 // MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource returns the result of calling NewMultiKeyUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) *MultiKeyUnhealthyIfAtLeastOneErrorSource {
+func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
 	source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType, messageInCaseOfError, windowSize)
 	if err != nil {
 		panic(err)
@@ -53,15 +60,15 @@ func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType,
 	return source
 }
 
-// NewMultiKeyUnhealthyIfAtLeastOneErrorSource creates an MultiKeyUnhealthyIfAtLeastOneErrorSource
+// NewMultiKeyUnhealthyIfAtLeastOneErrorSource creates an multiKeyUnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
-func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (*MultiKeyUnhealthyIfAtLeastOneErrorSource, error) {
+func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
 	}
-	return &MultiKeyUnhealthyIfAtLeastOneErrorSource{
+	return &multiKeyUnhealthyIfAtLeastOneErrorSource{
 		timeWindowedStore:    timeWindowedStore,
 		checkType:            checkType,
 		messageInCaseOfError: messageInCaseOfError,
@@ -69,14 +76,14 @@ func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, mes
 }
 
 // Submit submits an item as a key error pair.
-func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) Submit(key string, err error) {
+func (m *multiKeyUnhealthyIfAtLeastOneErrorSource) Submit(key string, err error) {
 	m.timeWindowedStore.Submit(keyErrorPair{
 		key: key,
 		err: err,
 	})
 }
 
-func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) itemsToCheck() health.HealthCheckResult {
+func (m *multiKeyUnhealthyIfAtLeastOneErrorSource) itemsToCheck() health.HealthCheckResult {
 	items := m.timeWindowedStore.ItemsInWindow()
 	params := make(map[string]interface{})
 	for _, item := range items {
@@ -100,7 +107,7 @@ func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) itemsToCheck() health.HealthC
 }
 
 // HealthStatus polls the items inside the window and creates the HealthStatus.
-func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (m *multiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			m.checkType: m.itemsToCheck(),
@@ -108,21 +115,21 @@ func (m *MultiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Cont
 	}
 }
 
-// MultiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that polls a TimeWindowedStore.
+// multiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that polls a TimeWindowedStore.
 // It returns unhealthy if there is at least one key with only non-nil errors.
 // The Params field of the HealthCheckResult is the first error message for each key mapped by the key for all unhealthy keys.
 // If there are no items, returns healthy.
-type MultiKeyHealthyIfNotAllErrorsSource struct {
+type multiKeyHealthyIfNotAllErrorsSource struct {
 	timeWindowedStore    *TimeWindowedStore
 	checkType            health.CheckType
 	messageInCaseOfError string
 }
 
-var _ status.HealthCheckSource = &MultiKeyHealthyIfNotAllErrorsSource{}
+var _ status.HealthCheckSource = &multiKeyHealthyIfNotAllErrorsSource{}
 
 // MustNewMultiKeyHealthyIfNotAllErrorsSource returns the result of calling NewMultiKeyHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) *MultiKeyHealthyIfNotAllErrorsSource {
+func MustNewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
 	source, err := NewMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize)
 	if err != nil {
 		panic(err)
@@ -130,15 +137,15 @@ func MustNewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, mess
 	return source
 }
 
-// NewMultiKeyHealthyIfNotAllErrorsSource creates an MultiKeyUnhealthyIfAtLeastOneErrorSource
+// NewMultiKeyHealthyIfNotAllErrorsSource creates an multiKeyUnhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
-func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (*MultiKeyHealthyIfNotAllErrorsSource, error) {
+func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
 	}
-	return &MultiKeyHealthyIfNotAllErrorsSource{
+	return &multiKeyHealthyIfNotAllErrorsSource{
 		timeWindowedStore:    timeWindowedStore,
 		checkType:            checkType,
 		messageInCaseOfError: messageInCaseOfError,
@@ -146,14 +153,14 @@ func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageI
 }
 
 // Submit submits an item as a key error pair.
-func (m *MultiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
+func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 	m.timeWindowedStore.Submit(keyErrorPair{
 		key: key,
 		err: err,
 	})
 }
 
-func (m *MultiKeyHealthyIfNotAllErrorsSource) itemsToCheck() health.HealthCheckResult {
+func (m *multiKeyHealthyIfNotAllErrorsSource) itemsToCheck() health.HealthCheckResult {
 	items := m.timeWindowedStore.ItemsInWindow()
 	params := make(map[string]interface{})
 	hasSuccess := make(map[string]struct{})
@@ -183,7 +190,7 @@ func (m *MultiKeyHealthyIfNotAllErrorsSource) itemsToCheck() health.HealthCheckR
 }
 
 // HealthStatus polls the items inside the window and creates the HealthStatus.
-func (m *MultiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			m.checkType: m.itemsToCheck(),

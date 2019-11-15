@@ -23,21 +23,30 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
+// ItemSubmitter allows components of code whose functionality dictates health status to just consume this single-method interface.
+type ItemSubmitter interface {
+	Submit(interface{})
+}
+
+// BaseHealthCheckSource determines health status based on user-submitted items.
+type BaseHealthCheckSource interface {
+	ItemSubmitter
+	status.HealthCheckSource
+}
+
 // ItemsToCheckFn is a function that constructs a HealthCheckResult from a set of items.
 type ItemsToCheckFn func(ctx context.Context, items []ItemWithTimestamp) health.HealthCheckResult
 
-// BaseHealthCheckSource is a HealthCheckSource that polls a TimeWindowedStore.
+// baseHealthCheckSource is a HealthCheckSource that polls a TimeWindowedStore.
 // It returns a HealthStatus created using an ItemsToCheckFn.
-type BaseHealthCheckSource struct {
+type baseHealthCheckSource struct {
 	timeWindowedStore *TimeWindowedStore
 	itemsToCheckFn    ItemsToCheckFn
 }
 
-var _ status.HealthCheckSource = &BaseHealthCheckSource{}
-
 // MustNewBaseHealthCheckSource returns the result of calling NewBaseHealthCheckSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) *BaseHealthCheckSource {
+func MustNewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) BaseHealthCheckSource {
 	source, err := NewBaseHealthCheckSource(windowSize, itemsToCheckFn)
 	if err != nil {
 		panic(err)
@@ -45,10 +54,10 @@ func MustNewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn Items
 	return source
 }
 
-// NewBaseHealthCheckSource creates a BaseHealthCheckSource
+// NewBaseHealthCheckSource creates a baseHealthCheckSource
 // with a sliding window of size windowSize and uses the itemsToCheckFn.
 // windowSize must be a positive value and itemsToCheckFn must not be nil, otherwise returns error.
-func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) (*BaseHealthCheckSource, error) {
+func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) (BaseHealthCheckSource, error) {
 	timeWindowedStore, err := NewTimeWindowedStore(windowSize)
 	if err != nil {
 		return nil, err
@@ -56,19 +65,19 @@ func NewBaseHealthCheckSource(windowSize time.Duration, itemsToCheckFn ItemsToCh
 	if itemsToCheckFn == nil {
 		return nil, werror.Error("itemsToCheckFn cannot be nil")
 	}
-	return &BaseHealthCheckSource{
+	return &baseHealthCheckSource{
 		timeWindowedStore: timeWindowedStore,
 		itemsToCheckFn:    itemsToCheckFn,
 	}, nil
 }
 
 // Submit submits an item.
-func (b *BaseHealthCheckSource) Submit(item interface{}) {
+func (b *baseHealthCheckSource) Submit(item interface{}) {
 	b.timeWindowedStore.Submit(item)
 }
 
 // HealthStatus polls the items inside the window and creates a HealthStatus using the ItemsToCheckFn.
-func (b *BaseHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (b *baseHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	checkResult := b.itemsToCheckFn(ctx, b.timeWindowedStore.ItemsInWindow())
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
