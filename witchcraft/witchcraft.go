@@ -715,7 +715,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 		installConfigStruct = config.Install{}
 	}
 	specificInstallCfg := reflect.New(reflect.TypeOf(installConfigStruct)).Interface()
-	if err := yaml.Unmarshal(cfgBytes, *&specificInstallCfg); err != nil {
+	if err := yaml.UnmarshalStrict(cfgBytes, *&specificInstallCfg); err != nil {
 		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
 	}
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
@@ -771,7 +771,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 			runtimeConfigStruct = config.Runtime{}
 		}
 		runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-		if err := yaml.Unmarshal(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
+		if err := yaml.UnmarshalStrict(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
 			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
 		}
 		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
