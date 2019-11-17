@@ -15,32 +15,21 @@
 package refreshable
 
 import (
-	"context"
 	"sync/atomic"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	whealth "github.com/palantir/witchcraft-go-server/status/health"
 )
 
 type ValidatingRefreshable struct {
+	Refreshable
+
 	validatedRefreshable Refreshable
 	lastValidateErr      *atomic.Value
-	healthCheckType      health.CheckType
 }
 
-func (v *ValidatingRefreshable) HealthStatus(ctx context.Context) health.HealthStatus {
-	healthCheckResult := whealth.HealthyHealthCheckResult(v.healthCheckType)
-
-	if err := v.lastValidateErr.Load(); err != nil {
-		healthCheckResult = whealth.UnhealthyHealthCheckResult(v.healthCheckType, err.(error).Error())
-	}
-
-	return health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			v.healthCheckType: healthCheckResult,
-		},
-	}
+// this is needed to be able to store the absence of an error in an atomic.Value
+type errorWrapper struct {
+	err error
 }
 
 func (v *ValidatingRefreshable) Current() interface{} {
@@ -55,12 +44,14 @@ func (v *ValidatingRefreshable) Map(mapFn func(interface{}) interface{}) Refresh
 	return v.validatedRefreshable.Map(mapFn)
 }
 
+func (v *ValidatingRefreshable) LastValidateErr() error {
+	return v.lastValidateErr.Load().(errorWrapper).err
+}
+
 // NewValidatingRefreshable returns a new Refreshable whose current value is the latest value that passes the provided
-// validatingFn successfully. This refreshable is also a HealthCheckSource that will be unhealthy whenever there are
-// updates that have failed validation.
-// This returns an error if the current value of the passed in Refreshable does not pass the validatingFn or if the
-// provided validatingFn or Refreshable are nil.
-func NewValidatingRefreshable(origRefreshable Refreshable, healthCheckType health.CheckType, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
+// validatingFn successfully. This returns an error if the current value of the passed in Refreshable does not pass the
+// validatingFn or if the validatingFn or Refreshable are nil.
+func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
 	if validatingFn == nil {
 		return nil, werror.Error("failed to create validating Refreshable because the validating function was nil")
 	}
@@ -77,24 +68,24 @@ func NewValidatingRefreshable(origRefreshable Refreshable, healthCheckType healt
 	validatedRefreshable := NewDefaultRefreshable(currentVal)
 
 	var lastValidateErr atomic.Value
+	lastValidateErr.Store(errorWrapper{})
 	v := ValidatingRefreshable{
-		healthCheckType:      healthCheckType,
 		validatedRefreshable: validatedRefreshable,
 		lastValidateErr:      &lastValidateErr,
 	}
 
 	_ = origRefreshable.Subscribe(func(i interface{}) {
 		if err := validatingFn(i); err != nil {
-			v.lastValidateErr.Store(err)
+			v.lastValidateErr.Store(errorWrapper{err})
 			return
 		}
 
 		if err := validatedRefreshable.Update(i); err != nil {
-			v.lastValidateErr.Store(err)
+			v.lastValidateErr.Store(errorWrapper{err})
 			return
 		}
 
-		v.lastValidateErr.Store(nil)
+		v.lastValidateErr.Store(errorWrapper{})
 	})
 	return &v, nil
 }
