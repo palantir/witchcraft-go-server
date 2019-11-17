@@ -32,8 +32,7 @@ type ValidatingRefreshable struct {
 func (v *ValidatingRefreshable) HealthStatus(ctx context.Context) health.HealthStatus {
 	healthCheckResult := whealth.HealthyHealthCheckResult(v.healthCheckType)
 
-	err := v.lastValidateErr.Load()
-	if err != nil {
+	if err := v.lastValidateErr.Load(); err != nil {
 		healthCheckResult = whealth.UnhealthyHealthCheckResult(v.healthCheckType, err.(error).Error())
 	}
 
@@ -59,7 +58,17 @@ func (v *ValidatingRefreshable) Map(mapFn func(interface{}) interface{}) Refresh
 // NewValidatingRefreshable returns a new Refreshable whose current value is the latest value that passes the provided
 // validatingFn successfully. This refreshable is also a HealthCheckSource that will be unhealthy whenever there are
 // updates that have failed validation.
+// This returns an error if the current value of the passed in Refreshable does not pass the validatingFn or if the
+// provided validatingFn or Refreshable are nil.
 func NewValidatingRefreshable(origRefreshable Refreshable, healthCheckType health.CheckType, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
+	if validatingFn == nil {
+		return nil, werror.Error("failed to create validating Refreshable because the validating function was nil")
+	}
+
+	if origRefreshable == nil {
+		return nil, werror.Error("failed to create validating Refreshable because the passed in Refreshable was nil")
+	}
+
 	currentVal := origRefreshable.Current()
 	if err := validatingFn(currentVal); err != nil {
 		return nil, werror.Wrap(err, "failed to create validating Refreshable because initial value could not be validated")
