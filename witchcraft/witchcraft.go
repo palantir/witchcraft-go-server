@@ -47,6 +47,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
+	refreshablehealth "github.com/palantir/witchcraft-go-server/status/health/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
@@ -715,7 +716,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 		installConfigStruct = config.Install{}
 	}
 	specificInstallCfg := reflect.New(reflect.TypeOf(installConfigStruct)).Interface()
-	if err := yaml.Unmarshal(cfgBytes, *&specificInstallCfg); err != nil {
+	if err := yaml.UnmarshalStrict(cfgBytes, *&specificInstallCfg); err != nil {
 		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
 	}
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
@@ -744,7 +745,6 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 
 	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(
 		runtimeConfigProvider,
-		runtimeConfigReloadCheckType,
 		func(cfgBytesVal interface{}) error {
 			runtimeConfigStruct := s.runtimeConfigStruct
 			if runtimeConfigStruct == nil {
@@ -756,6 +756,10 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	validatingRefreshableHealthCheckSource := refreshablehealth.NewValidatingRefreshableHealthCheckSource(
+		runtimeConfigReloadCheckType,
+		*validatedRuntimeConfig)
 
 	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
 		var runtimeCfg config.Runtime
@@ -771,13 +775,15 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 			runtimeConfigStruct = config.Runtime{}
 		}
 		runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-		if err := yaml.Unmarshal(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
-			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
+		if err := yaml.UnmarshalStrict(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
+			// this should not happen unless there is a bug in Witchcraft because strict unmarshalling has already
+			// been validated at this stage
+			panic("Failed to unmarshal runtime configuration")
 		}
 		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
 	})
 
-	return baseRuntimeConfig, runtimeConfig, validatedRuntimeConfig, nil
+	return baseRuntimeConfig, runtimeConfig, validatingRefreshableHealthCheckSource, nil
 }
 
 func (s *Server) initStackTraceHandler(ctx context.Context) {

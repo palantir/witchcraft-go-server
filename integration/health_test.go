@@ -427,7 +427,7 @@ invalid-key: invalid-value
 				Type:    health.CheckType("CONFIG_RELOAD"),
 				State:   health.HealthStateError,
 				Params:  make(map[string]interface{}),
-				Message: stringPtr("yaml: unmarshal errors:\n  line 2: field invalid-key not found in type config.Runtime"),
+				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
