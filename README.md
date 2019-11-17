@@ -1,3 +1,7 @@
+<p align="right">
+<a href="https://autorelease.general.dmz.palantir.tech/palantir/witchcraft-go-server"><img src="https://img.shields.io/badge/Perform%20an-Autorelease-success.svg" alt="Autorelease"></a>
+</p>
+
 witchcraft-go-server
 ====================
 [![](https://godoc.org/github.com/palantir/witchcraft-go-server?status.svg)](http://godoc.org/github.com/palantir/witchcraft-go-server)
