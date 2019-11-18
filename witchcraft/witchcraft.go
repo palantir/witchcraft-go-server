@@ -772,7 +772,9 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		}
 		runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
 		if err := yaml.UnmarshalStrict(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
-			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
+			// this should not happen unless there is a bug in Witchcraft because strict unmarshalling has already
+			// been validated at this stage
+			panic("Failed to unmarshal runtime configuration")
 		}
 		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
 	})

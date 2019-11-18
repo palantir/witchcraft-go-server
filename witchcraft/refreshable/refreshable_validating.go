@@ -20,10 +20,14 @@ import (
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/status"
 	whealth "github.com/palantir/witchcraft-go-server/status/health"
 )
 
 type ValidatingRefreshable struct {
+	Refreshable
+	status.HealthCheckSource
+
 	validatedRefreshable Refreshable
 	lastValidateErr      *atomic.Value
 	healthCheckType      health.CheckType
