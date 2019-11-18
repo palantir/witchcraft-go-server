@@ -47,6 +47,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
+	refreshablehealth "github.com/palantir/witchcraft-go-server/status/health/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
@@ -744,7 +745,6 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 
 	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(
 		runtimeConfigProvider,
-		runtimeConfigReloadCheckType,
 		func(cfgBytesVal interface{}) error {
 			runtimeConfigStruct := s.runtimeConfigStruct
 			if runtimeConfigStruct == nil {
@@ -756,6 +756,10 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	validatingRefreshableHealthCheckSource := refreshablehealth.NewValidatingRefreshableHealthCheckSource(
+		runtimeConfigReloadCheckType,
+		*validatedRuntimeConfig)
 
 	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
 		var runtimeCfg config.Runtime
@@ -779,7 +783,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
 	})
 
-	return baseRuntimeConfig, runtimeConfig, validatedRuntimeConfig, nil
+	return baseRuntimeConfig, runtimeConfig, validatingRefreshableHealthCheckSource, nil
 }
 
 func (s *Server) initStackTraceHandler(ctx context.Context) {
