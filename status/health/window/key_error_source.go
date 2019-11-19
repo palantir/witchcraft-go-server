@@ -30,7 +30,7 @@ type KeyedErrorSubmitter interface {
 	Submit(key string, err error)
 }
 
-// ErrorHealthCheckSource is a health check source with statuses determined by submitted key error pairs.
+// KeyedErrorHealthCheckSource is a health check source with statuses determined by submitted key error pairs.
 type KeyedErrorHealthCheckSource interface {
 	KeyedErrorSubmitter
 	status.HealthCheckSource
