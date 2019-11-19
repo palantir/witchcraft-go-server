@@ -59,7 +59,7 @@ func TestUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 				werror.Error("Error #2"),
 				nil,
 			},
-			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #1"),
+			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #2"),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 				werror.Error("Error #1"),
 				werror.Error("Error #2"),
 			},
-			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #1"),
+			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #2"),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

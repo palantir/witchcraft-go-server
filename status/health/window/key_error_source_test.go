@@ -82,7 +82,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
-					"2": "Error #1 for key 2",
+					"2": "Error #2 for key 2",
 					"3": "Error #1 for key 3",
 				},
 			},
@@ -156,7 +156,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
-					"2": "Error #1 for key 2",
+					"2": "Error #2 for key 2",
 				},
 			},
 		},
@@ -174,7 +174,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
-					"2": "Error #1 for key 2",
+					"2": "Error #2 for key 2",
 					"3": "Error #1 for key 3",
 				},
 			},
