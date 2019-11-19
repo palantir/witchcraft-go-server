@@ -60,42 +60,42 @@ func TestTimedKeyStore(t *testing.T) {
 	store := NewTimedKeyStore()
 	assertStoreContent(t, store, []string{}, "store initially empty")
 
-	store.Remove("a")
+	store.Delete("a")
 	assertStoreContent(t, store, []string{}, "removed unexisting key from empty store")
 
-	store.Add("a")
+	store.Put("a")
 	assertStoreContent(t, store, []string{"a"}, "added a single key a")
 
-	store.Remove("a")
+	store.Delete("a")
 	assertStoreContent(t, store, []string{}, "removed a single key a")
 
-	store.Add("b")
+	store.Put("b")
 	assertStoreContent(t, store, []string{"b"}, "added a single key b")
 
-	store.Add("c")
+	store.Put("c")
 	assertStoreContent(t, store, []string{"b", "c"}, "added a second key c")
 
-	store.Add("b")
+	store.Put("b")
 	assertStoreContent(t, store, []string{"c", "b"}, "updated key b")
 
-	store.Remove("d")
+	store.Delete("d")
 	assertStoreContent(t, store, []string{"c", "b"}, "removed unexisting key from non empty store")
 
-	store.Add("e")
+	store.Put("e")
 	assertStoreContent(t, store, []string{"c", "b", "e"}, "added a third key e")
 
-	store.Remove("b")
+	store.Delete("b")
 	assertStoreContent(t, store, []string{"c", "e"}, "removed key b from the middle of the list")
 
-	store.Add("d")
+	store.Put("d")
 	assertStoreContent(t, store, []string{"c", "e", "d"}, "added a new key d")
 
-	store.Remove("d")
+	store.Delete("d")
 	assertStoreContent(t, store, []string{"c", "e"}, "removed newest key d")
 
-	store.Remove("c")
+	store.Delete("c")
 	assertStoreContent(t, store, []string{"e"}, "removed oldest key c")
 
-	store.Remove("e")
+	store.Delete("e")
 	assertStoreContent(t, store, []string{}, "removed the last key e")
 }

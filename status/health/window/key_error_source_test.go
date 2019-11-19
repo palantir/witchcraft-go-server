@@ -26,6 +26,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type keyErrorPair struct {
+	key string
+	err error
+}
+
 func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 	messageInCaseOfError := "message in case of error"
 	for _, testCase := range []struct {

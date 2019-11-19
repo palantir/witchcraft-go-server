@@ -40,12 +40,12 @@ func (t TimedKeys) Keys() []string {
 // Each key is unique within the store. Adding an already present key will cause the time of the key to be updated to
 // the current time. The position within the list will be updated accordingly.
 type TimedKeyStore interface {
-	// Add adds a new TimedKey to the end of the list with the timestamp set to the current time.
+	// Put adds a new TimedKey to the end of the list with the timestamp set to the current time.
 	// Adding an already present key will cause the current TimedKey to be updated to the current and to be sent to the end of the list.
-	Add(key string)
-	// Remove removes a TimedKey from the list. If the key doesn't exist, it is a no op.
+	Put(key string)
+	// Delete removes a TimedKey from the list. If the key doesn't exist, it is a no op.
 	// The second return value returns whether or not the key existed within the store.
-	Remove(key string) bool
+	Delete(key string) bool
 	// Get returns the TimedKey associated with the provided key if it exists. Returns empty struct otherwise.
 	// The second return value returns whether or not the key exists within the store.
 	Get(key string) (TimedKey, bool)
@@ -91,8 +91,8 @@ func NewTimedKeyStore() TimedKeyStore {
 	}
 }
 
-func (t *timedKeyStore) Add(key string) {
-	_ = t.Remove(key)
+func (t *timedKeyStore) Put(key string) {
+	_ = t.Delete(key)
 	timedKey := TimedKey{
 		Key:  key,
 		Time: time.Now(),
@@ -107,7 +107,7 @@ func (t *timedKeyStore) Add(key string) {
 	t.nodeByKey[key] = node
 }
 
-func (t *timedKeyStore) Remove(key string) bool {
+func (t *timedKeyStore) Delete(key string) bool {
 	node, exists := t.nodeByKey[key]
 	if !exists {
 		return false

@@ -135,7 +135,7 @@ func (h *healthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.H
 	curTime := time.Now()
 	if !h.lastSuccessTime.IsZero() && curTime.Sub(h.lastSuccessTime) < h.windowSize {
 		healthCheckResult = whealth.HealthyHealthCheckResult(h.checkType)
-	} else if h.lastError != nil && !h.lastErrorTime.IsZero() && curTime.Sub(h.lastErrorTime) < h.windowSize {
+	} else if !h.lastErrorTime.IsZero() && curTime.Sub(h.lastErrorTime) < h.windowSize {
 		healthCheckResult = whealth.UnhealthyHealthCheckResult(h.checkType, h.lastError.Error())
 	} else {
 		healthCheckResult = whealth.HealthyHealthCheckResult(h.checkType)

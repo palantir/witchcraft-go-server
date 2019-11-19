@@ -25,21 +25,15 @@ import (
 	whealth "github.com/palantir/witchcraft-go-server/status/health"
 )
 
+// KeyedErrorSubmitter allows components whose functionality dictates a portion of health status to only consume this interface.
 type KeyedErrorSubmitter interface {
 	Submit(key string, err error)
 }
 
+// ErrorHealthCheckSource is a health check source with statuses determined by submitted key error pairs.
 type KeyedErrorHealthCheckSource interface {
 	KeyedErrorSubmitter
 	status.HealthCheckSource
-}
-
-// keyErrorPair is a struct that keeps a key as a string and an err.
-type keyErrorPair struct {
-	// key is an identifier for a resource.
-	key string
-	// err is the result of some operation for a resource.
-	err error
 }
 
 // multiKeyUnhealthyIfAtLeastOneErrorSource is a HealthCheckSource that keeps the latest errors
@@ -141,10 +135,12 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 	m.pruneOldKeys(m.successStore, nil)
 
 	if err == nil {
-		m.successStore.Add(key)
+		m.successStore.Put(key)
+		delete(m.lastError, key)
+		m.errorStore.Delete(key)
 	} else {
 		m.lastError[key] = err
-		m.errorStore.Add(key)
+		m.errorStore.Put(key)
 	}
 }
 
@@ -195,7 +191,7 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) pruneOldKeys(store TimedKeyStore, 
 			return
 		}
 
-		store.Remove(oldest.Key)
+		store.Delete(oldest.Key)
 		if errors != nil {
 			delete(errors, oldest.Key)
 		}
