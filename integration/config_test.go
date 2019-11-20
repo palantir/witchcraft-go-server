@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,13 @@ func TestEncryptedConfig(t *testing.T) {
 	)
 
 	type message struct {
-		Message string `yaml:"message"`
+		config.Runtime `yaml:",inline"`
+		Message        string `yaml:"message"`
+	}
+
+	type messageInstall struct {
+		config.Install `yaml:",inline"`
+		Message        string `yaml:"message"`
 	}
 
 	for _, test := range []struct {
@@ -54,7 +61,7 @@ func TestEncryptedConfig(t *testing.T) {
 			InstallConfig: fmt.Sprintf("message: %s\nuse-console-log: true\n", encryptedValue),
 			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", encryptedValue),
 			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*message).Message; msg != decryptedValue {
+				if msg := info.InstallConfig.(*messageInstall).Message; msg != decryptedValue {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
 				if msg := info.RuntimeConfig.Current().(*message).Message; msg != decryptedValue {
@@ -72,7 +79,7 @@ func TestEncryptedConfig(t *testing.T) {
 			InstallConfig: "message: hello install\nuse-console-log: true\n",
 			RuntimeConfig: "message: hello runtime\nlogging:\n  level: warn\n",
 			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*message).Message; msg != "hello install" {
+				if msg := info.InstallConfig.(*messageInstall).Message; msg != "hello install" {
 					return fmt.Errorf("expected %q got %q", "hello install", msg)
 				}
 				if msg := info.RuntimeConfig.Current().(*message).Message; msg != "hello runtime" {
@@ -90,7 +97,7 @@ func TestEncryptedConfig(t *testing.T) {
 			InstallConfig: "message: hello install\nuse-console-log: true\n",
 			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", encryptedValue),
 			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*message).Message; msg != "hello install" {
+				if msg := info.InstallConfig.(*messageInstall).Message; msg != "hello install" {
 					return fmt.Errorf("expected %q got %q", "hello install", msg)
 				}
 				if msg := info.RuntimeConfig.Current().(*message).Message; msg != encryptedValue {
@@ -123,7 +130,7 @@ func TestEncryptedConfig(t *testing.T) {
 			server := witchcraft.NewServer().
 				WithECVKeyFromFile(ecvKeyFile).
 				WithInstallConfigFromFile(installFile).
-				WithInstallConfigType(&message{}).
+				WithInstallConfigType(&messageInstall{}).
 				WithRuntimeConfigFromFile(runtimeFile).
 				WithRuntimeConfigType(&message{}).
 				WithLoggerStdoutWriter(logOutputBuffer).

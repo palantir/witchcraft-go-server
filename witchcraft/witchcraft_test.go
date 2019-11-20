@@ -92,6 +92,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 				WithDisableGoRuntimeMetrics().
+				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
 				WithSelfSignedCertificate().
 				Start()
 

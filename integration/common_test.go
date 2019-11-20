@@ -97,7 +97,7 @@ func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn
 	require.NoError(t, err)
 	err = ioutil.WriteFile(installYML, installCfgYML, 0644)
 	require.NoError(t, err)
-	err = ioutil.WriteFile(runtimeYML, []byte(`number: 1`), 0644)
+	err = ioutil.WriteFile(runtimeYML, []byte(`logging:\n  level: info`), 0644)
 	require.NoError(t, err)
 
 	server = createServer(t, initFn, installCfg, logOutputBuffer)

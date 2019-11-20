@@ -33,6 +33,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/status/health/periodic"
 	"github.com/palantir/witchcraft-go-server/status/reporter"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
+	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,6 +73,11 @@ func TestAddHealthCheckSources(t *testing.T) {
 				State:   health.HealthStateHealthy,
 				Message: nil,
 				Params:  make(map[string]interface{}),
+			},
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.HealthStateHealthy,
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:    health.CheckType("SERVER_STATUS"),
@@ -187,6 +193,11 @@ func TestHealthReporter(t *testing.T) {
 				Message: &errString,
 				Params:  make(map[string]interface{}),
 			},
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.HealthStateHealthy,
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  reporter.HealthyState,
@@ -235,6 +246,11 @@ func TestPeriodicHealthSource(t *testing.T) {
 			State:   health.HealthStateError,
 			Message: stringPtr("No successful checks during 1m0s grace period: something went wrong"),
 			Params:  map[string]interface{}{"foo": "bar"},
+		},
+		health.CheckType("CONFIG_RELOAD"): {
+			Type:   health.CheckType("CONFIG_RELOAD"),
+			State:  health.HealthStateHealthy,
+			Params: make(map[string]interface{}),
 		},
 		health.CheckType("SERVER_STATUS"): {
 			Type:    health.CheckType("SERVER_STATUS"),
@@ -314,6 +330,11 @@ func TestHealthSharedSecret(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.HealthStateHealthy,
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  reporter.HealthyState,
@@ -327,6 +348,94 @@ func TestHealthSharedSecret(t *testing.T) {
 	resp, err = client.Do(request)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
+// TestRuntimeConfigReloadHealth verifies that an invalid runtime config produces an error health check.
+func TestRuntimeConfigReloadHealth(t *testing.T) {
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	validCfgYML := `logging:
+  level: info
+`
+	invalidCfgYML := `
+invalid-key: invalid-value
+`
+	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).
+			WithRuntimeConfigProvider(runtimeConfigRefreshable).
+			WithDisableGoRuntimeMetrics()
+	})
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	client := testServerClient()
+	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
+	require.NoError(t, err)
+	resp, err := client.Do(request)
+	require.NoError(t, err)
+
+	bytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var healthResults health.HealthStatus
+	err = json.Unmarshal(bytes, &healthResults)
+	require.NoError(t, err)
+	assert.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.HealthStateHealthy,
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  reporter.HealthyState,
+				Params: make(map[string]interface{}),
+			},
+		},
+	}, healthResults)
+
+	// write invalid runtime config and observe health check go unhealthy
+	err = runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
+	require.NoError(t, err)
+	time.Sleep(500 * time.Millisecond)
+
+	request, err = http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
+	require.NoError(t, err)
+	resp, err = client.Do(request)
+	require.NoError(t, err)
+
+	bytes, err = ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	err = json.Unmarshal(bytes, &healthResults)
+	require.NoError(t, err)
+	assert.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:    health.CheckType("CONFIG_RELOAD"),
+				State:   health.HealthStateError,
+				Params:  make(map[string]interface{}),
+				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  reporter.HealthyState,
+				Params: make(map[string]interface{}),
+			},
+		},
+	}, healthResults)
 
 	select {
 	case err := <-serverErr:
