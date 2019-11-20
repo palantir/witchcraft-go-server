@@ -623,6 +623,7 @@ func (s *Server) Start() (rErr error) {
 		}
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
+		svc1log.FromContext(ctx).Debug("Running server initialization function.")
 		cleanupFn, err := s.initFn(
 			ctx,
 			InitInfo{
