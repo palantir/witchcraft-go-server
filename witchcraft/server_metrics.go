@@ -16,6 +16,7 @@ package witchcraft
 
 import (
 	"context"
+	"time"
 
 	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
@@ -51,12 +52,18 @@ func defaultMetricTypeValuesBlacklist() map[string]map[string]struct{} {
 	}
 }
 
+var (
+	initTime = time.Now()
+)
+
 func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
 	metricsRegistry := metrics.DefaultMetricsRegistry
 	metricsEmitFreq := defaultMetricEmitFrequency
 	if freq := installCfg.MetricsEmitFrequency; freq > 0 {
 		metricsEmitFreq = freq
 	}
+
+	initServerUptimeMetric(ctx, metricsRegistry)
 
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
@@ -100,4 +107,22 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		// emit all metrics a final time on termination
 		metricsRegistry.Each(emitFn)
 	}, nil
+}
+
+func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {
+	metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+
+	// start goroutine that updates the uptime metric
+	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
+		t := time.NewTicker(5.0 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+			}
+		}
+	})
 }
