@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    - Add uptime metric
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/111
