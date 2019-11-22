@@ -74,7 +74,7 @@ func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 		lastValidateErr:      &lastValidateErr,
 	}
 
-	_ = origRefreshable.Subscribe(func(i interface{}) {
+	updateValueFn := func(i interface{}) {
 		if err := validatingFn(i); err != nil {
 			v.lastValidateErr.Store(errorWrapper{err})
 			return
@@ -86,6 +86,13 @@ func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 		}
 
 		v.lastValidateErr.Store(errorWrapper{})
-	})
+	}
+
+	_ = origRefreshable.Subscribe(updateValueFn)
+
+	// manually update value after performing subscription. This ensures that, if the current value changed between when
+	// it was fetched earlier in the function and when the subscription was performed, it is properly captured.
+	updateValueFn(origRefreshable.Current())
+
 	return &v, nil
 }
