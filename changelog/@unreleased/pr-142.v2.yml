@@ -1,0 +1,9 @@
+type: feature
+feature:
+  description: |-
+    Add configuration to set unmarshal mode to strict
+
+    When configuration is set to true, configuration unmarshal is
+    done in "strict" mode, which treats unknown keys as errors.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/142
