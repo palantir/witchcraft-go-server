@@ -356,8 +356,9 @@ func TestHealthSharedSecret(t *testing.T) {
 	}
 }
 
-// TestRuntimeConfigReloadHealth verifies that an invalid runtime config produces an error health check.
-func TestRuntimeConfigReloadHealth(t *testing.T) {
+// TestRuntimeConfigReloadHealth verifies that runtime configuration that is invalid when strict unmarshal mode is true
+// does not produces an error health check if strict unmarshal mode is not specified (since default value is false).
+func TestRuntimeConfigReloadHealthWithStrictUnmarshalFalse(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
 
@@ -372,6 +373,95 @@ invalid-key: invalid-value
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
 			WithDisableGoRuntimeMetrics()
+	})
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	client := testServerClient()
+	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
+	require.NoError(t, err)
+	resp, err := client.Do(request)
+	require.NoError(t, err)
+
+	bytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var healthResults health.HealthStatus
+	err = json.Unmarshal(bytes, &healthResults)
+	require.NoError(t, err)
+	assert.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.HealthStateHealthy,
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  reporter.HealthyState,
+				Params: make(map[string]interface{}),
+			},
+		},
+	}, healthResults)
+
+	// write invalid runtime config and observe health check go unhealthy
+	err = runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
+	require.NoError(t, err)
+	time.Sleep(500 * time.Millisecond)
+
+	request, err = http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
+	require.NoError(t, err)
+	resp, err = client.Do(request)
+	require.NoError(t, err)
+
+	bytes, err = ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	err = json.Unmarshal(bytes, &healthResults)
+	require.NoError(t, err)
+	assert.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.HealthStateHealthy,
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  reporter.HealthyState,
+				Params: make(map[string]interface{}),
+			},
+		},
+	}, healthResults)
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
+// TestRuntimeConfigReloadHealth verifies that runtime configuration that is invalid when strict unmarshal mode is true
+// produces an error health check.
+func TestRuntimeConfigReloadHealthWithStrictUnmarshalTrue(t *testing.T) {
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	validCfgYML := `logging:
+  level: info
+`
+	invalidCfgYML := `
+invalid-key: invalid-value
+`
+	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).
+			WithRuntimeConfigProvider(runtimeConfigRefreshable).
+			WithDisableGoRuntimeMetrics().
+			WithStrictUnmarshalConfig()
 	})
 
 	defer func() {
