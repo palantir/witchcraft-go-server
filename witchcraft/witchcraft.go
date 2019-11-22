@@ -167,9 +167,9 @@ type Server struct {
 	// disableKeepAlives disables keep-alives.
 	disableKeepAlives bool
 
-	// if true, strict YAML unmarshaling is used when unmarshaling install and runtime configuration. This means that
-	// unknown keys will be treated as errors rather than being ignored.
-	strictUnmarshalConfig bool
+	// configYAMLUnmarshalFn is the function used to unmarshal YAML configuration. By default, this is yaml.Unmarshal.
+	// If WithStrictUnmarshalConfig is called, this is set to yaml.UnmarshalStrict.
+	configYAMLUnmarshalFn func(in []byte, out interface{}) (err error)
 
 	// request logger configuration
 
@@ -445,8 +445,8 @@ func (s *Server) WithDisableKeepAlives() *Server {
 }
 
 // WithStrictUnmarshalConfig configures the server to use the provided strict unmarshal configuration.
-func (s *Server) WithStrictUnmarshalConfig(strictUnmarshalConfig bool) *Server {
-	s.strictUnmarshalConfig = strictUnmarshalConfig
+func (s *Server) WithStrictUnmarshalConfig() *Server {
+	s.configYAMLUnmarshalFn = yaml.UnmarshalStrict
 	return s
 }
 
@@ -548,6 +548,11 @@ func (s *Server) Start() (rErr error) {
 	// set provider for ECV key
 	if s.ecvKeyProvider == nil {
 		s.ecvKeyProvider = ECVKeyFromFile(ecvKeyPath)
+	}
+
+	// if config unmarshal function is not set, default to yaml.Unmarshal
+	if s.configYAMLUnmarshalFn == nil {
+		s.configYAMLUnmarshalFn = yaml.Unmarshal
 	}
 
 	// load install configuration
@@ -729,11 +734,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	}
 	specificInstallCfg := reflect.New(reflect.TypeOf(installConfigStruct)).Interface()
 
-	unmarshalYAMLFn := yaml.Unmarshal
-	if s.strictUnmarshalConfig {
-		unmarshalYAMLFn = yaml.UnmarshalStrict
-	}
-	if err := unmarshalYAMLFn(cfgBytes, *&specificInstallCfg); err != nil {
+	if err := s.configYAMLUnmarshalFn(cfgBytes, *&specificInstallCfg); err != nil {
 		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
 	}
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
@@ -760,11 +761,6 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return cfgBytes
 	})
 
-	unmarshalYAMLFn := yaml.Unmarshal
-	if s.strictUnmarshalConfig {
-		unmarshalYAMLFn = yaml.UnmarshalStrict
-	}
-
 	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(
 		runtimeConfigProvider,
 		func(cfgBytesVal interface{}) error {
@@ -773,7 +769,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 				runtimeConfigStruct = config.Runtime{}
 			}
 			runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-			return unmarshalYAMLFn(cfgBytesVal.([]byte), *&runtimeCfg)
+			return s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), *&runtimeCfg)
 		})
 	if err != nil {
 		return nil, nil, nil, err
@@ -785,7 +781,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 
 	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
 		var runtimeCfg config.Runtime
-		if err := yaml.Unmarshal(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
+		if err := s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
 			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
 		}
 		return runtimeCfg
@@ -797,7 +793,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 			runtimeConfigStruct = config.Runtime{}
 		}
 		runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-		if err := unmarshalYAMLFn(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
+		if err := s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
 			// this should not happen unless there is a bug in Witchcraft because configuration has already been
 			// processed by unmarshalYAMLFn without issue at this stage
 			panic("Failed to unmarshal runtime configuration")

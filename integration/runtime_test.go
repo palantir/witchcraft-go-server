@@ -456,7 +456,7 @@ exclamations: 4
 			info.RuntimeConfig.Subscribe(setCfg)
 			return nil, nil
 		}).
-		WithStrictUnmarshalConfig(true)
+		WithStrictUnmarshalConfig()
 
 	serverChan := make(chan error)
 	go func() {

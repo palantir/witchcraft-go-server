@@ -461,7 +461,7 @@ invalid-key: invalid-value
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
 			WithDisableGoRuntimeMetrics().
-			WithStrictUnmarshalConfig(true)
+			WithStrictUnmarshalConfig()
 	})
 
 	defer func() {
