@@ -3,6 +3,7 @@ module github.com/palantir/witchcraft-go-server
 go 1.13
 
 require (
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
@@ -19,7 +20,6 @@ require (
 	github.com/palantir/witchcraft-go-params v1.1.0
 	github.com/palantir/witchcraft-go-tracing v1.2.0
 	github.com/stretchr/testify v1.4.0
-	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.2.7
 )

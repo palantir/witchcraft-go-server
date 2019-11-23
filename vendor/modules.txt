@@ -2,6 +2,8 @@
 github.com/BurntSushi/toml
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/fsnotify/fsnotify v1.4.7
+github.com/fsnotify/fsnotify
 # github.com/gorilla/mux v1.7.3
 github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
@@ -108,8 +110,6 @@ golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/semver
 golang.org/x/tools/internal/span
-# gopkg.in/fsnotify.v1 v1.4.7
-gopkg.in/fsnotify.v1
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.2.7
