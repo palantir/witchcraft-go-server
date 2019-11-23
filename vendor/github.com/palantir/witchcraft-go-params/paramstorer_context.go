@@ -15,26 +15,41 @@ func ContextWithParamStorers(ctx context.Context, params ...ParamStorer) context
 	return context.WithValue(ctx, wParamsContextKey, NewParamStorer(append([]ParamStorer{ParamStorerFromContext(ctx)}, params...)...))
 }
 
+// ContextWithSafeParam returns a copy of the provided context that contains the provided safe parameter. If the
+// provided context already has safe/unsafe params, the newly returned context will contain the result of merging the
+// previous parameters with the provided parameter.
 func ContextWithSafeParam(ctx context.Context, key string, value interface{}) context.Context {
 	return ContextWithSafeParams(ctx, map[string]interface{}{
 		key: value,
 	})
 }
 
+// ContextWithSafeParams returns a copy of the provided context that contains the provided safe parameters. If the
+// provided context already has safe/unsafe params, the newly returned context will contain the result of merging the
+// previous parameters with the provided parameters.
 func ContextWithSafeParams(ctx context.Context, safeParams map[string]interface{}) context.Context {
 	return ContextWithParamStorers(ctx, NewSafeParamStorer(safeParams))
 }
 
+// ContextWithUnsafeParam returns a copy of the provided context that contains the provided unsafe parameter. If the
+// provided context already has safe/unsafe params, the newly returned context will contain the result of merging the
+// previous parameters with the provided parameter.
 func ContextWithUnsafeParam(ctx context.Context, key string, value interface{}) context.Context {
 	return ContextWithUnsafeParams(ctx, map[string]interface{}{
 		key: value,
 	})
 }
 
+// ContextWithUnsafeParams returns a copy of the provided context that contains the provided unsafe parameters. If the
+// provided context already has safe/unsafe params, the newly returned context will contain the result of merging the
+// previous parameters with the provided parameters.
 func ContextWithUnsafeParams(ctx context.Context, unsafeParams map[string]interface{}) context.Context {
 	return ContextWithParamStorers(ctx, NewUnsafeParamStorer(unsafeParams))
 }
 
+// ContextWithSafeAndUnsafeParams returns a copy of the provided context that contains the provided safe and unsafe
+// parameters. If the provided context already has safe/unsafe params, the newly returned context will contain the
+// result of merging the previous parameters with the provided parameters.
 func ContextWithSafeAndUnsafeParams(ctx context.Context, safeParams, unsafeParams map[string]interface{}) context.Context {
 	return ContextWithParamStorers(ctx, NewSafeAndUnsafeParamStorer(safeParams, unsafeParams))
 }
