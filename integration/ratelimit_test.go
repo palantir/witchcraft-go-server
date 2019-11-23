@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/palantir/pkg/httpserver"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status/reporter"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
@@ -48,6 +49,8 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()
 
+	totalPostRequests := 4
+	reqChan := make(chan struct{}, totalPostRequests)
 	initFn := func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
 		info.Router.RootRouter().AddRouteHandlerMiddleware(limiter)
 		if err := info.Router.Get("/get", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -56,6 +59,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 			return nil, err
 		}
 		if err := info.Router.Post("/post", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			reqChan <- struct{}{}
 			<-wait.Done()
 			rw.WriteHeader(http.StatusOK)
 		})); err != nil {
@@ -75,7 +79,8 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 
 	client := testServerClient()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	testTimeout := time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
 	doGet := func() *http.Response {
@@ -111,7 +116,9 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	requireHealthy("expected healthy before the second request")
 	go func() { resp2c <- doPost() }()
 
-	time.Sleep(time.Millisecond) // let things settle
+	// wait until both of the above requests have made it through
+	err = waitForRequests(reqChan, 2, testTimeout)
+	require.NoError(t, err)
 	requireHealthy("expected healthy before the third request")
 
 	resp3 := doPost()
@@ -138,5 +145,23 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	case err := <-serverErr:
 		require.NoError(t, err)
 	default:
+	}
+}
+
+func waitForRequests(reqChan <-chan struct{}, expected int, timeout time.Duration) error {
+	t := time.After(timeout)
+	var current int
+	for {
+		select {
+		case <-reqChan:
+			current++
+			if current == expected {
+				return nil
+			}
+		case <-t:
+			return werror.Error("timed out waiting for expected number of requests",
+				werror.SafeParam("current", current),
+				werror.SafeParam("expected", expected))
+		}
 	}
 }
