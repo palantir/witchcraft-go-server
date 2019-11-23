@@ -49,7 +49,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()
 
-	totalPostRequests := 4
+	const totalPostRequests = 4
 	reqChan := make(chan struct{}, totalPostRequests)
 	initFn := func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
 		info.Router.RootRouter().AddRouteHandlerMiddleware(limiter)
@@ -79,7 +79,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 
 	client := testServerClient()
 
-	testTimeout := time.Minute
+	const testTimeout = time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 
