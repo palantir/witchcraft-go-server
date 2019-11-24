@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Makes it such that if there is an error unmarshalling runtime configuration, the update is blocked and the last valid configuration is used. Also adds a health check that is unhealthy if the latest runtime configuration was not valid.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/134

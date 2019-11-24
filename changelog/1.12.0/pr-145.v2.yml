@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix flaky test by waiting for requests before testing rate limit
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/145

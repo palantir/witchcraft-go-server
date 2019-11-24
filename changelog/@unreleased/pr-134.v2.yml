@@ -1,5 +1,0 @@
-type: break
-break:
-  description: Install and Runtime configuration is now unmarshalled using UnmarshalStrict as opposed to Unmarshal. Additionally, a health check is registered that indicates whether Runtime configuration reloading is blocked due to invalid configuration.
-  links:
-  - https://github.com/palantir/witchcraft-go-server/pull/134
