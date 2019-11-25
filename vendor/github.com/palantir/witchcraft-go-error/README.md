@@ -1,3 +1,7 @@
+<p align="right">
+<a href="https://autorelease.general.dmz.palantir.tech/palantir/witchcraft-go-error"><img src="https://img.shields.io/badge/Perform%20an-Autorelease-success.svg" alt="Autorelease"></a>
+</p>
+
 witchcraft-go-error
 ===================
 [![](https://godoc.org/github.com/palantir/witchcraft-go-error?status.svg)](http://godoc.org/github.com/palantir/witchcraft-go-error)

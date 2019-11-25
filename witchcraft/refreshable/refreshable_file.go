@@ -20,11 +20,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/fsnotify/fsnotify"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	wparams "github.com/palantir/witchcraft-go-params"
-	"gopkg.in/fsnotify.v1"
 )
 
 type fileRefreshable struct {

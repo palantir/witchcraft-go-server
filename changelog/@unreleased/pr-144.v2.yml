@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add module definition
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/144

@@ -4,7 +4,7 @@ package werror
 import (
 	"fmt"
 
-	"github.com/palantir/witchcraft-go-params"
+	wparams "github.com/palantir/witchcraft-go-params"
 )
 
 // Error returns a new error with the provided message and parameters.
@@ -235,7 +235,7 @@ func (e *werror) formatMessage(state fmt.State, verb rune) {
 	}
 	switch verb {
 	case 's', 'q', 'v':
-		fmt.Fprint(state, e.message)
+		_, _ = fmt.Fprint(state, e.message)
 	}
 }
 
@@ -254,9 +254,9 @@ func (e *werror) formatParameters(state fmt.State, verb rune) {
 	}
 	if e.message != "" {
 		// Whitespace before the message.
-		fmt.Fprint(state, " ")
+		_, _ = fmt.Fprint(state, " ")
 	}
-	fmt.Fprintf(state, "%+v", safe)
+	_, _ = fmt.Fprintf(state, "%+v", safe)
 }
 
 func (e *werror) formatStack(state fmt.State, verb rune) {
@@ -280,13 +280,13 @@ func (e *werror) formatCause(state fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if state.Flag('+') {
-			fmt.Fprintf(state, "%+v\n", e.cause)
+			_, _ = fmt.Fprintf(state, "%+v\n", e.cause)
 		} else {
-			fmt.Fprintf(state, "%s%v", prefix, e.cause)
+			_, _ = fmt.Fprintf(state, "%s%v", prefix, e.cause)
 		}
 	case 's':
-		fmt.Fprintf(state, "%s%s", prefix, e.cause)
+		_, _ = fmt.Fprintf(state, "%s%s", prefix, e.cause)
 	case 'q':
-		fmt.Fprintf(state, "%s%q", prefix, e.cause)
+		_, _ = fmt.Fprintf(state, "%s%q", prefix, e.cause)
 	}
 }

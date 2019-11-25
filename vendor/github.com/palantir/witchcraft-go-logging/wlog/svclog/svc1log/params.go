@@ -19,10 +19,10 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/palantir/witchcraft-go-error"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	"github.com/palantir/witchcraft-go-params"
+	wparams "github.com/palantir/witchcraft-go-params"
 )
 
 const (

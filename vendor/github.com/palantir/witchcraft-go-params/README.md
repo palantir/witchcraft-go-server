@@ -1,12 +1,19 @@
+<p align="right">
+<a href="https://autorelease.general.dmz.palantir.tech/palantir/witchcraft-go-params"><img src="https://img.shields.io/badge/Perform%20an-Autorelease-success.svg" alt="Autorelease"></a>
+</p>
+
 witchcraft-go-params
 ====================
+[![](https://godoc.org/github.com/palantir/witchcraft-go-params?status.svg)](http://godoc.org/github.com/palantir/witchcraft-go-params)
+
 `witchcraft-go-params` defines the `wparams` package, which provides the `ParamStorer` interface and functions for 
 storing and retrieving `ParamStorer` implementations in from a context.
 
 Conceptually, "params" are values that are associated with a specific key that provide context about an operation that
 is being performed. Params are categorized as "safe" or "unsafe" -- "safe" params are parameters which are considered
 safe to ship/export/expose off-premises, while "unsafe" parameters are parameters that should not leave the premises.
-Param values are typically used by things such as loggers and errors to provide further context for an operation.
+Param values are typically used by things such as loggers and errors to provide further context for an operation. Keys
+are case-sensitive and must be unique across both safe and unsafe parameters.
 
 The following is a short example of a canonical use case:
 

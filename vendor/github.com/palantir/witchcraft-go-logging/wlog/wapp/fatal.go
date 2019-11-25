@@ -18,7 +18,7 @@ import (
 	"context"
 	"runtime/debug"
 
-	"github.com/palantir/witchcraft-go-error"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
