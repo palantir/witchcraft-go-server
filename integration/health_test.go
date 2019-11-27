@@ -453,15 +453,15 @@ func TestRuntimeConfigReloadHealthWithStrictUnmarshalTrue(t *testing.T) {
 	validCfgYML := `logging:
   level: info
 `
-	invalidCfgYML := `
-invalid-key: invalid-value
+	invalidCfgYML := `logging:
+  level: 1
 `
 	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
-			WithDisableGoRuntimeMetrics().
-			WithStrictUnmarshalConfig()
+			WithDisableGoRuntimeMetrics()
+			//WithStrictUnmarshalConfig()
 	})
 
 	defer func() {
