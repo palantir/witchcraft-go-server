@@ -103,7 +103,7 @@ type Server struct {
 	// the server's status is used.
 	readinessSource status.Source
 
-	// specifies the source used to provide the liveness information for the server. If nil, a default value that uses
+	// specifies the source used to provide the liveneswitchcraft/server_routess information for the server. If nil, a default value that uses
 	// the server's status is used.
 	livenessSource status.Source
 
@@ -582,7 +582,6 @@ func (s *Server) Start() (rErr error) {
 	if err != nil {
 		return err
 	}
-	s.healthCheckSources = append(s.healthCheckSources, configReloadHealthCheckSource)
 
 	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {
 		s.svcLogger.SetLevel(loggerCfg.Level)
@@ -662,7 +661,8 @@ func (s *Server) Start() (rErr error) {
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied.
-	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg); err != nil {
+	// this includes the configReloadHealthCheckSource which is always appended to health checks added by the initFn
+	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg, configReloadHealthCheckSource); err != nil {
 		return err
 	}
 
