@@ -103,7 +103,7 @@ type Server struct {
 	// the server's status is used.
 	readinessSource status.Source
 
-	// specifies the source used to provide the liveneswitchcraft/server_routess information for the server. If nil, a default value that uses
+	// specifies the source used to provide the liveness information for the server. If nil, a default value that uses
 	// the server's status is used.
 	livenessSource status.Source
 
