@@ -660,8 +660,8 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
-	// health/liveness/readiness configuration updated by initFn is applied.
-	// this includes the configReloadHealthCheckSource which is always appended to health checks added by the initFn
+	// health/liveness/readiness configuration updated by initFn is applied. Includes the
+	// configReloadHealthCheckSource, which is always appended to s.healthCheckSources.
 	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg, configReloadHealthCheckSource); err != nil {
 		return err
 	}
