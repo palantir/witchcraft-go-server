@@ -1,5 +1,5 @@
 type: fix
-feature:
+fix:
   fix: Add configHealthCheckSource after the init function
   links:
   - https://github.com/palantir/witchcraft-go-server/pull/151
