@@ -41,7 +41,7 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 	return routerWithContextPath, mgmtRouterWithContextPath
 }
 
-func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig) error {
+func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig, configHealthCheckSource status.HealthCheckSource) error {
 	// add debugging endpoint to management router
 	if err := addDebuggingRoutes(mgmtRouterWithContextPath); err != nil {
 		return werror.Wrap(err, "failed to register debugging routes")
@@ -50,7 +50,7 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	statusResource := wresource.New("status", mgmtRouterWithContextPath)
 
 	// add health endpoints
-	if err := routes.AddHealthRoutes(statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
+	if err := routes.AddHealthRoutes(statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager, configHealthCheckSource)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
 		return in.(config.Runtime).HealthChecks.SharedSecret
 	}))); err != nil {
 		return werror.Wrap(err, "failed to register health routes")

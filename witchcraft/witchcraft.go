@@ -582,7 +582,6 @@ func (s *Server) Start() (rErr error) {
 	if err != nil {
 		return err
 	}
-	s.healthCheckSources = append(s.healthCheckSources, configReloadHealthCheckSource)
 
 	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {
 		s.svcLogger.SetLevel(loggerCfg.Level)
@@ -661,8 +660,9 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
-	// health/liveness/readiness configuration updated by initFn is applied.
-	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg); err != nil {
+	// health/liveness/readiness configuration updated by initFn is applied. Includes the
+	// configReloadHealthCheckSource, which is always appended to s.healthCheckSources.
+	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg, configReloadHealthCheckSource); err != nil {
 		return err
 	}
 
