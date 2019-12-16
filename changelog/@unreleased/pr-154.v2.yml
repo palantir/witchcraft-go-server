@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Add Go metric tags to server.uptime metric
+
+    Add tags that include Go version, Go OS and Go Arch to the
+    server.uptime metric.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/154
