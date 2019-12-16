@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -140,6 +141,11 @@ func TestEmitMetrics(t *testing.T) {
 		case "server.uptime":
 			seenUptime = true
 			assert.Equal(t, "gauge", metricLog.MetricType, "server.uptime metric had incorrect type")
+			assert.Equal(t, map[string]string{
+				"go_os":      runtime.GOOS,
+				"go_arch":    runtime.GOARCH,
+				"go_version": runtime.Version(),
+			}, metricLog.Tags)
 			assert.NotZero(t, metricLog.Values["value"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
