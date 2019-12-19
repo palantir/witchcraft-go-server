@@ -16,6 +16,7 @@ package witchcraft
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/palantir/pkg/metrics"
@@ -110,7 +111,12 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 }
 
 func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {
-	metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+	ctx = metrics.WithRegistry(ctx, metricsRegistry)
+	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_version", runtime.Version()))
+	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_os", runtime.GOOS))
+	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_arch", runtime.GOARCH))
+
+	metrics.FromContext(ctx).Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
 
 	// start goroutine that updates the uptime metric
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
@@ -121,7 +127,7 @@ func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registr
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+				metrics.FromContext(ctx).Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
 			}
 		}
 	})
