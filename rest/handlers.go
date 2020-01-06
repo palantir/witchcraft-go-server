@@ -85,10 +85,7 @@ func StatusCodeMapper(err error) int {
 		return http.StatusInternalServerError
 	}
 	statusCodeInt, ok := statusCode.(int)
-	if !ok {
-		return http.StatusInternalServerError
-	}
-	if statusCodeInt == 0 {
+	if !ok || statusCodeInt == 0 {
 		return http.StatusInternalServerError
 	}
 	return statusCodeInt
