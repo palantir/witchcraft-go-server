@@ -76,7 +76,7 @@ func (h handler) handleError(ctx context.Context, statusCode int, err error) {
 	}
 }
 
-// StatusCodeMapper maps a provided error to an HTTP status code. If the provided error contains a status code added
+// StatusCodeMapper maps a provided error to an HTTP status code. If the provided error contains a non-zero status code added
 // using the StatusCode ErrorParam, returns that status code; otherwise, returns http.StatusInternalServerError.
 func StatusCodeMapper(err error) int {
 	safe, _ := werror.ParamsFromError(err)
@@ -86,6 +86,9 @@ func StatusCodeMapper(err error) int {
 	}
 	statusCodeInt, ok := statusCode.(int)
 	if !ok {
+		return http.StatusInternalServerError
+	}
+	if statusCodeInt == 0 {
 		return http.StatusInternalServerError
 	}
 	return statusCodeInt
