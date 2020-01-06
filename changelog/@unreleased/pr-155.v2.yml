@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Add default status code for rest error when none is provided.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/155
+
