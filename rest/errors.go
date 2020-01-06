@@ -16,7 +16,6 @@ package rest
 
 import (
 	werror "github.com/palantir/witchcraft-go-error"
-	"net/http"
 )
 
 const (
@@ -38,9 +37,7 @@ func (f errorParamFunc) apply(err *errorMetadata) {
 }
 
 func NewError(err error, params ...ErrorParam) error {
-	e := errorMetadata{
-		statusCode: http.StatusInternalServerError,
-	}
+	e := errorMetadata{}
 	for _, param := range params {
 		param.apply(&e)
 	}
