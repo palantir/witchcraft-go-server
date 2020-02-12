@@ -41,7 +41,7 @@ github.com/palantir/pkg/signals
 github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.0.0
 github.com/palantir/pkg/transform
-# github.com/palantir/witchcraft-go-error v1.2.0
+# github.com/palantir/witchcraft-go-error v1.3.0
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
 # github.com/palantir/witchcraft-go-logging v1.5.0

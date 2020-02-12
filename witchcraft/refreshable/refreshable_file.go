@@ -41,7 +41,7 @@ type fileRefreshable struct {
 func NewFileRefreshable(ctx context.Context, filePath string) (r Refreshable, rErr error) {
 	initialBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return nil, werror.Wrap(err, "failed to create file-based Refreshable because file could not be read", werror.SafeParam("filePath", filePath))
+		return nil, werror.WrapWithContextParams(ctx, err, "failed to create file-based Refreshable because file could not be read", werror.SafeParam("filePath", filePath))
 	}
 	fRefreshable := &fileRefreshable{
 		innerRefreshable: NewDefaultRefreshable(initialBytes),
@@ -57,14 +57,14 @@ func NewFileRefreshable(ctx context.Context, filePath string) (r Refreshable, rE
 func (d *fileRefreshable) watchForChanges(ctx context.Context) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return werror.Wrap(err, "Failed to initialize file watcher")
+		return werror.WrapWithContextParams(ctx, err, "Failed to initialize file watcher")
 	}
 	// watch the directory to handle scenarios where the file is removed and then re-added
 	fileDir := filepath.Dir(d.filePath)
 	// use the base name of the fileLocation to normalize to the relative path the watcher will return
 	relativeFilePath := filepath.Base(d.filePath)
 	if err := watcher.Add(fileDir); err != nil {
-		return werror.Wrap(err, "Failed to add file to watcher",
+		return werror.WrapWithContextParams(ctx, err, "Failed to add file to watcher",
 			werror.SafeParam("file", d.filePath),
 			werror.SafeParam("fileDir", fileDir))
 	}

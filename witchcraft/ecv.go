@@ -15,6 +15,7 @@
 package witchcraft
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 
@@ -42,18 +43,18 @@ func ECVKeyFromStatic(kwt *encryptedconfigvalue.KeyWithType) ECVKeyProvider {
 	})
 }
 
-func ECVKeyFromFile(path string) ECVKeyProvider {
+func ECVKeyFromFile(ctx context.Context, path string) ECVKeyProvider {
 	return ecvKeyProvider(func() (*encryptedconfigvalue.KeyWithType, error) {
 		keyBytes, err := ioutil.ReadFile(path)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return nil, werror.Wrap(err, "encryption key file does not exist", werror.SafeParam("path", path))
+				return nil, werror.WrapWithContextParams(ctx, err, "encryption key file does not exist", werror.SafeParam("path", path))
 			}
-			return nil, werror.Wrap(err, "failed to read encryption key file", werror.SafeParam("path", path))
+			return nil, werror.WrapWithContextParams(ctx, err, "failed to read encryption key file", werror.SafeParam("path", path))
 		}
 		kwt, err := encryptedconfigvalue.NewKeyWithType(string(keyBytes))
 		if err != nil {
-			return nil, werror.Wrap(err, "failed to create key with type")
+			return nil, werror.WrapWithContextParams(ctx, err, "failed to create key with type")
 		}
 		return &kwt, nil
 	})

@@ -15,6 +15,7 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -35,12 +36,12 @@ func TestStatusCodeMapper(t *testing.T) {
 		},
 		{
 			name:         "werror wrapping not found error",
-			err:          werror.Wrap(NewError(werror.Error("inner"), StatusCode(http.StatusNotFound)), "outer"),
+			err:          werror.WrapWithContextParams(context.Background(), NewError(werror.Error("inner"), StatusCode(http.StatusNotFound)), "outer"),
 			expectedCode: http.StatusNotFound,
 		},
 		{
 			name:         "no rest error",
-			err:          werror.Error("werror"),
+			err:          werror.ErrorWithContextParams(context.Background(), "werror"),
 			expectedCode: http.StatusInternalServerError,
 		},
 	} {

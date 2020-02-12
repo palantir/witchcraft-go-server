@@ -15,6 +15,7 @@
 package rest
 
 import (
+	"context"
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
@@ -36,14 +37,14 @@ func (f errorParamFunc) apply(err *errorMetadata) {
 	f(err)
 }
 
-func NewError(err error, params ...ErrorParam) error {
+func NewError(ctx context.Context, err error, params ...ErrorParam) error {
 	e := errorMetadata{
 		statusCode: StatusCodeMapper(err),
 	}
 	for _, param := range params {
 		param.apply(&e)
 	}
-	return werror.Wrap(err, "witchcraft-server rest error", werror.SafeParam(httpStatusCodeParamKey, e.statusCode))
+	return werror.WrapWithContextParams(ctx, err, "witchcraft-server rest error", werror.SafeParam(httpStatusCodeParamKey, e.statusCode))
 }
 
 func StatusCode(code int) ErrorParam {

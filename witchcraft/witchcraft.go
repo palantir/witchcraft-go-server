@@ -706,7 +706,7 @@ type configurableRouterImpl struct {
 	*Server
 }
 
-func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
+func (s *Server) initInstallConfig(ctx context.Context) (config.Install, interface{}, error) {
 	if s.installConfigProvider == nil {
 		// if install config provider is not specified, use a file-based one
 		s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
@@ -716,16 +716,16 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 
 	cfgBytes, err := s.installConfigProvider.LoadBytes()
 	if err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to load install configuration bytes")
+		return config.Install{}, nil, werror.WrapWithContextParams(ctx, err, "Failed to load install configuration bytes")
 	}
 	cfgBytes, err = s.decryptConfigBytes(cfgBytes)
 	if err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to decrypt install configuration bytes")
+		return config.Install{}, nil, werror.WrapWithContextParams(ctx, err, "Failed to decrypt install configuration bytes")
 	}
 
 	var baseInstallCfg config.Install
 	if err := yaml.Unmarshal(cfgBytes, &baseInstallCfg); err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install base configuration YAML")
+		return config.Install{}, nil, werror.WrapWithContextParams(ctx, err, "Failed to unmarshal install base configuration YAML")
 	}
 
 	installConfigStruct := s.installConfigStruct
@@ -735,7 +735,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	specificInstallCfg := reflect.New(reflect.TypeOf(installConfigStruct)).Interface()
 
 	if err := s.configYAMLUnmarshalFn(cfgBytes, *&specificInstallCfg); err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
+		return config.Install{}, nil, werror.WrapWithContextParams(ctx, err, "Failed to unmarshal install specific configuration YAML")
 	}
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
 }

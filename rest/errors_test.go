@@ -15,6 +15,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -24,10 +25,10 @@ import (
 )
 
 func TestNewErrorOneWrap(t *testing.T) {
-	werr := werror.Error("Test error", werror.SafeParam("param1", "val1"),
+	werr := werror.ErrorWithContextParams(context.Background(), "Test error", werror.SafeParam("param1", "val1"),
 		werror.UnsafeParam("param2", "val2"))
 
-	restErr := NewError(werr, StatusCode(400))
+	restErr := NewError(context.Background(), werr, StatusCode(400))
 	errString := fmt.Sprintf("%+v", restErr)
 	assert.Contains(t, errString, "Test error")
 	assert.Equal(t, map[string]interface{}{
@@ -38,9 +39,9 @@ func TestNewErrorOneWrap(t *testing.T) {
 }
 
 func TestNewErrorTwoWrap(t *testing.T) {
-	werr1 := werror.Error("werr1", werror.SafeParam("param1", "val1"))
-	werr2 := werror.Wrap(werr1, "werr2", werror.SafeParam("param2", "val2"))
-	restErr := NewError(werr2, StatusCode(http.StatusBadRequest))
+	werr1 := werror.ErrorWithContextParams(context.Background(), "werr1", werror.SafeParam("param1", "val1"))
+	werr2 := werror.WrapWithContextParams(context.Background(), werr1, "werr2", werror.SafeParam("param2", "val2"))
+	restErr := NewError(context.Background(), werr2, StatusCode(http.StatusBadRequest))
 	errString := fmt.Sprintf("%+v", restErr)
 	assert.Contains(t, errString, "werr1")
 	assert.Contains(t, errString, "werr2")

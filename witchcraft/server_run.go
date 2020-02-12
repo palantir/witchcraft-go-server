@@ -32,8 +32,9 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 )
 
-func (s *Server) newServer(productName string, serverConfig config.Server, handler http.Handler) (rHTTPServer *http.Server, rStart func() error, rShutdown func(context.Context) error, rErr error) {
+func (s *Server) newServer(ctx context.Context, productName string, serverConfig config.Server, handler http.Handler) (rHTTPServer *http.Server, rStart func() error, rShutdown func(context.Context) error, rErr error) {
 	return newServerStartShutdownFns(
+		ctx,
 		serverConfig,
 		s.useSelfSignedServerCertificate,
 		s.clientAuth,
@@ -43,9 +44,10 @@ func (s *Server) newServer(productName string, serverConfig config.Server, handl
 	)
 }
 
-func (s *Server) newMgmtServer(productName string, serverConfig config.Server, handler http.Handler) (rStart func() error, rShutdown func(context.Context) error, rErr error) {
+func (s *Server) newMgmtServer(ctx context.Context, productName string, serverConfig config.Server, handler http.Handler) (rStart func() error, rShutdown func(context.Context) error, rErr error) {
 	serverConfig.Port = serverConfig.ManagementPort
 	_, start, shutdown, err := newServerStartShutdownFns(
+		ctx,
 		serverConfig,
 		s.useSelfSignedServerCertificate,
 		tls.NoClientCert,
@@ -57,6 +59,7 @@ func (s *Server) newMgmtServer(productName string, serverConfig config.Server, h
 }
 
 func newServerStartShutdownFns(
+	ctx context.Context,
 	serverConfig config.Server,
 	useSelfSignedServerCertificate bool,
 	clientAuthType tls.ClientAuthType,
@@ -84,13 +87,13 @@ func newServerStartShutdownFns(
 				svcLogger.Info(fmt.Sprintf("%s was closed", serverName))
 				return nil
 			}
-			return werror.Wrap(err, "server failed", werror.SafeParam("serverName", serverName))
+			return werror.WrapWithContextParams(ctx, err, "server failed", werror.SafeParam("serverName", serverName))
 		}
 		return nil
 	}, httpServer.Shutdown, nil
 }
 
-func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate bool, clientAuthType tls.ClientAuthType) (*tls.Config, error) {
+func newTLSConfig(ctx context.Context, serverConfig config.Server, useSelfSignedServerCertificate bool, clientAuthType tls.ClientAuthType) (*tls.Config, error) {
 	if !useSelfSignedServerCertificate && (serverConfig.KeyFile == "" || serverConfig.CertFile == "") {
 		var msg string
 		if serverConfig.KeyFile == "" && serverConfig.CertFile == "" {
@@ -110,7 +113,7 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 		tlsconfig.ServerNextProtos("h2"),
 	)
 	if err != nil {
-		return nil, werror.Wrap(err, "failed to initialize TLS configuration for server")
+		return nil, werror.WrapWithContextParams(ctx, err, "failed to initialize TLS configuration for server")
 	}
 	return tlsConfig, nil
 }

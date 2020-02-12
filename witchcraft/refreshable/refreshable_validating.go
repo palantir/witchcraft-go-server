@@ -15,6 +15,7 @@
 package refreshable
 
 import (
+	"context"
 	"sync/atomic"
 
 	werror "github.com/palantir/witchcraft-go-error"
@@ -51,18 +52,18 @@ func (v *ValidatingRefreshable) LastValidateErr() error {
 // NewValidatingRefreshable returns a new Refreshable whose current value is the latest value that passes the provided
 // validatingFn successfully. This returns an error if the current value of the passed in Refreshable does not pass the
 // validatingFn or if the validatingFn or Refreshable are nil.
-func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
+func NewValidatingRefreshable(ctx context.Context, origRefreshable Refreshable, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
 	if validatingFn == nil {
-		return nil, werror.Error("failed to create validating Refreshable because the validating function was nil")
+		return nil, werror.ErrorWithContextParams(ctx, "failed to create validating Refreshable because the validating function was nil")
 	}
 
 	if origRefreshable == nil {
-		return nil, werror.Error("failed to create validating Refreshable because the passed in Refreshable was nil")
+		return nil, werror.ErrorWithContextParams(ctx, "failed to create validating Refreshable because the passed in Refreshable was nil")
 	}
 
 	currentVal := origRefreshable.Current()
 	if err := validatingFn(currentVal); err != nil {
-		return nil, werror.Wrap(err, "failed to create validating Refreshable because initial value could not be validated")
+		return nil, werror.WrapWithContextParams(ctx, err, "failed to create validating Refreshable because initial value could not be validated")
 	}
 
 	validatedRefreshable := NewDefaultRefreshable(currentVal)

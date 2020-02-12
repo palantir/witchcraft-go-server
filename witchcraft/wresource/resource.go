@@ -15,6 +15,7 @@
 package wresource
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/palantir/pkg/metrics"
@@ -33,25 +34,25 @@ const (
 type Resource interface {
 	// Register performs the same operation as the Router.Register, but registers the route using the provided
 	// resourceName as the resource name that will be used as the tag in the recorded metric.
-	Register(endpointName, method, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Register(ctx context.Context, endpointName, method, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Get is a shorthand for Register(endpointName, http.MethodGet, handler, params...)
-	Get(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Get(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Head is a shorthand for Register(endpointName, http.MethodHead, handler, params...)
-	Head(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Head(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Post is a shorthand for Register(endpointName, http.MethodPost, handler, params...)
-	Post(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Post(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Put is a shorthand for Register(endpointName, http.MethodPut, handler, params...)
-	Put(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Put(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Patch is a shorthand for Register(endpointName, http.MethodPatch, handler, params...)
-	Patch(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Patch(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 
 	// Delete is a shorthand for Register(endpointName, http.MethodDelete, handler, params...)
-	Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
+	Delete(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error
 }
 
 func New(resourceName string, router wrouter.Router) Resource {
@@ -67,49 +68,49 @@ type resourceImpl struct {
 	router       wrouter.Router
 }
 
-func (r *resourceImpl) Register(endpointName, method, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+func (r *resourceImpl) Register(ctx context.Context, endpointName, method, path string, handler http.Handler, params ...wrouter.RouteParam) error {
 	var tags metrics.Tags
 	resourceTag, err := metrics.NewTag(ResourceTagName, r.resourceName)
 	if err != nil {
-		return werror.Wrap(err, "failed to create metric resourceTag")
+		return werror.WrapWithContextParams(ctx, err, "failed to create metric resourceTag")
 	}
 	tags = append(tags, resourceTag)
 
 	methodTag, err := metrics.NewTag(MethodTagName, method)
 	if err != nil {
-		return werror.Wrap(err, "failed to create metric methodTag")
+		return werror.WrapWithContextParams(ctx, err, "failed to create metric methodTag")
 	}
 	tags = append(tags, methodTag)
 
 	endpointTag, err := metrics.NewTag(EndpointTagName, endpointName)
 	if err != nil {
-		return werror.Wrap(err, "failed to create metric endpointTag")
+		return werror.WrapWithContextParams(ctx, err, "failed to create metric endpointTag")
 	}
 	tags = append(tags, endpointTag)
 
 	return r.router.Register(method, path, handler, append(params, wrouter.MetricTags(tags))...)
 }
 
-func (r *resourceImpl) Get(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
-	return r.Register(endpointName, http.MethodGet, path, handler, params...)
+func (r *resourceImpl) Get(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+	return r.Register(ctx, endpointName, http.MethodGet, path, handler, params...)
 }
 
-func (r *resourceImpl) Head(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
-	return r.Register(endpointName, http.MethodHead, path, handler, params...)
+func (r *resourceImpl) Head(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+	return r.Register(ctx, endpointName, http.MethodHead, path, handler, params...)
 }
 
-func (r *resourceImpl) Post(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
-	return r.Register(endpointName, http.MethodPost, path, handler, params...)
+func (r *resourceImpl) Post(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+	return r.Register(ctx, endpointName, http.MethodPost, path, handler, params...)
 }
 
-func (r *resourceImpl) Put(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
-	return r.Register(endpointName, http.MethodPut, path, handler, params...)
+func (r *resourceImpl) Put(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+	return r.Register(ctx, endpointName, http.MethodPut, path, handler, params...)
 }
 
-func (r *resourceImpl) Patch(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
-	return r.Register(endpointName, http.MethodPatch, path, handler, params...)
+func (r *resourceImpl) Patch(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+	return r.Register(ctx, endpointName, http.MethodPatch, path, handler, params...)
 }
 
-func (r *resourceImpl) Delete(endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
-	return r.Register(endpointName, http.MethodDelete, path, handler, params...)
+func (r *resourceImpl) Delete(ctx context.Context, endpointName, path string, handler http.Handler, params ...wrouter.RouteParam) error {
+	return r.Register(ctx, endpointName, http.MethodDelete, path, handler, params...)
 }
