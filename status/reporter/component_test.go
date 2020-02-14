@@ -30,7 +30,7 @@ const (
 
 func setup(t *testing.T) (HealthComponent, HealthReporter) {
 	healthReporter := NewHealthReporter()
-	healthComponent, err := healthReporter.InitializeHealthComponent(context.Background(),  validComponent)
+	healthComponent, err := healthReporter.InitializeHealthComponent(context.Background(), validComponent)
 	assert.NoError(t, err)
 	return healthComponent, healthReporter
 }

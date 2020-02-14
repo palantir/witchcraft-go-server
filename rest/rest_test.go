@@ -41,7 +41,7 @@ func TestWriteJSONResponse_Error(t *testing.T) {
 		},
 		{
 			Name:         "rest.Error with code",
-			Err:          rest.NewError(context.Background(),  werror.ErrorWithContextParams(context.Background(), "bad things happened"), rest.StatusCode(400)),
+			Err:          rest.NewError(context.Background(), werror.ErrorWithContextParams(context.Background(), "bad things happened"), rest.StatusCode(400)),
 			ExpectedCode: 400,
 			ExpectedJSON: "\"witchcraft-server rest error: bad things happened\"\n",
 		},

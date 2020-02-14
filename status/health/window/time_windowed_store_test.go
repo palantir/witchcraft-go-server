@@ -50,7 +50,7 @@ func TestTimeWindowedStore_AllItemsUpToDate(t *testing.T) {
 }
 
 func TestTimeWindowedStore_AllItemsOutOfDate(t *testing.T) {
-	store, err := NewTimeWindowedStore(context.Background(), 50 * time.Millisecond)
+	store, err := NewTimeWindowedStore(context.Background(), 50*time.Millisecond)
 	require.NoError(t, err)
 	store.Submit("item #1")
 	store.Submit("item #2")
@@ -61,7 +61,7 @@ func TestTimeWindowedStore_AllItemsOutOfDate(t *testing.T) {
 }
 
 func TestTimeWindowedStore_SomeItemsOutOfDate(t *testing.T) {
-	store, err := NewTimeWindowedStore(context.Background(), 50 * time.Millisecond)
+	store, err := NewTimeWindowedStore(context.Background(), 50*time.Millisecond)
 	require.NoError(t, err)
 	store.Submit("item #1")
 	store.Submit("item #2")

@@ -14,7 +14,9 @@
 
 package refreshable
 
-import "context"
+import (
+	"context"
+)
 
 type Refreshable interface {
 	// Current returns the most recent value of this Refreshable.

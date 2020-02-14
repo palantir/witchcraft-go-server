@@ -114,7 +114,7 @@ func MustNewMultiKeyHealthyIfNotAllErrorsSource(ctx context.Context, checkType h
 // windowSize must be a positive value, otherwise returns error.
 func NewMultiKeyHealthyIfNotAllErrorsSource(ctx context.Context, checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
-		return nil, werror.ErrorWithContextParams(ctx,"windowSize must be positive", werror.SafeParam("windowSize", windowSize))
+		return nil, werror.ErrorWithContextParams(ctx, "windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
 	return &multiKeyHealthyIfNotAllErrorsSource{
 		windowSize:           windowSize,

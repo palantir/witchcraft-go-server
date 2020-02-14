@@ -103,7 +103,7 @@ func newTLSConfig(ctx context.Context, serverConfig config.Server, useSelfSigned
 		} else {
 			msg = "certificate file"
 		}
-		return nil, werror.ErrorWithContextParams(ctx, msg + " for server not specified in configuration")
+		return nil, werror.ErrorWithContextParams(ctx, msg+" for server not specified in configuration")
 	}
 
 	tlsConfig, err := tlsconfig.NewServerConfig(

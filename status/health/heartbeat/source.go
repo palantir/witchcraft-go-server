@@ -47,7 +47,7 @@ var _ status.HealthCheckSource = &HealthCheckSource{}
 // heartbeatTimeout and startupTimeout. The returning HealthCheckResult is of type checkType.
 // Panics if heartbeatTimeout is non-positive or if startupTimeout is negative.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewHealthCheckSourceWithStartupGracePeriod(ctx context.Context,checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) *HealthCheckSource {
+func MustNewHealthCheckSourceWithStartupGracePeriod(ctx context.Context, checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) *HealthCheckSource {
 	healthCheckSource, err := NewHealthCheckSourceWithStartupGracePeriod(ctx, checkType, heartbeatTimeout, startupTimeout)
 	if err != nil {
 		panic(err)

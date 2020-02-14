@@ -16,6 +16,7 @@ package rest
 
 import (
 	"context"
+
 	werror "github.com/palantir/witchcraft-go-error"
 )
 

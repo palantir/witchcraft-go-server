@@ -41,7 +41,7 @@ func (v *ValidatingRefreshable) Subscribe(consumer func(interface{})) (unsubscri
 	return v.validatedRefreshable.Subscribe(consumer)
 }
 
-func (v *ValidatingRefreshable) Map(ctx context.Context,  mapFn func(interface{}) interface{}) Refreshable {
+func (v *ValidatingRefreshable) Map(ctx context.Context, mapFn func(interface{}) interface{}) Refreshable {
 	return v.validatedRefreshable.Map(ctx, mapFn)
 }
 

@@ -69,7 +69,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
 		if ok := metrics.CaptureRuntimeMemStatsWithContext(ctx, metricsRegistry, metricsEmitFreq); !ok {
-			return nil, nil, werror.ErrorWithContextParams(ctx,"metricsRegistry does not support capturing runtime memory statistics")
+			return nil, nil, werror.ErrorWithContextParams(ctx, "metricsRegistry does not support capturing runtime memory statistics")
 		}
 	}
 

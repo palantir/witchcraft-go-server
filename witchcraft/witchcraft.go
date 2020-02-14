@@ -556,7 +556,7 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// load install configuration
-	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig(context.Background(), )
+	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig(context.Background())
 	if err != nil {
 		return err
 	}

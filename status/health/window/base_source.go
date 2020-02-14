@@ -46,7 +46,7 @@ type baseHealthCheckSource struct {
 
 // MustNewBaseHealthCheckSource returns the result of calling NewBaseHealthCheckSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewBaseHealthCheckSource(ctx context.Context,windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) BaseHealthCheckSource {
+func MustNewBaseHealthCheckSource(ctx context.Context, windowSize time.Duration, itemsToCheckFn ItemsToCheckFn) BaseHealthCheckSource {
 	source, err := NewBaseHealthCheckSource(ctx, windowSize, itemsToCheckFn)
 	if err != nil {
 		panic(err)
