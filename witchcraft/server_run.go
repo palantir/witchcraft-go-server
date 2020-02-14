@@ -67,7 +67,7 @@ func newServerStartShutdownFns(
 	svcLogger svc1log.Logger,
 	handler http.Handler,
 ) (rHTTPServer *http.Server, start func() error, shutdown func(context.Context) error, rErr error) {
-	tlsConfig, err := newTLSConfig(serverConfig, useSelfSignedServerCertificate, clientAuthType)
+	tlsConfig, err := newTLSConfig(ctx, serverConfig, useSelfSignedServerCertificate, clientAuthType)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -103,7 +103,7 @@ func newTLSConfig(ctx context.Context, serverConfig config.Server, useSelfSigned
 		} else {
 			msg = "certificate file"
 		}
-		return nil, werror.Error(msg + " for server not specified in configuration")
+		return nil, werror.ErrorWithContextParams(ctx, msg + " for server not specified in configuration")
 	}
 
 	tlsConfig, err := tlsconfig.NewServerConfig(

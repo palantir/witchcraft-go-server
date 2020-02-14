@@ -31,12 +31,12 @@ func TestStatusCodeMapper(t *testing.T) {
 	}{
 		{
 			name:         "not found rest error",
-			err:          NewError(werror.Error("Test error"), StatusCode(http.StatusNotFound)),
+			err:          NewError(context.Background(), werror.ErrorWithContextParams(context.Background(), "Test error"), StatusCode(http.StatusNotFound)),
 			expectedCode: http.StatusNotFound,
 		},
 		{
 			name:         "werror wrapping not found error",
-			err:          werror.WrapWithContextParams(context.Background(), NewError(werror.Error("inner"), StatusCode(http.StatusNotFound)), "outer"),
+			err:          werror.WrapWithContextParams(context.Background(), NewError(context.Background(), werror.ErrorWithContextParams(context.Background(), "inner"), StatusCode(http.StatusNotFound)), "outer"),
 			expectedCode: http.StatusNotFound,
 		},
 		{

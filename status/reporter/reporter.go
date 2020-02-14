@@ -59,7 +59,7 @@ func newHealthReporter() *healthReporter {
 func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent, error) {
 	isSLSCompliant := regexp.MustCompile(slsHealthNameRegex).MatchString
 	if !isSLSCompliant(name) {
-		return nil, werror.Error("component name is not a valid SLS health component name",
+		return nil, werror.ErrorWithContextParams("component name is not a valid SLS health component name",
 			werror.SafeParam("name", name),
 			werror.SafeParam("validPattern", slsHealthNameRegex))
 	}
@@ -72,7 +72,7 @@ func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if _, ok := r.healthComponents[componentName]; ok {
-		return nil, werror.Error("Health component name already exists", werror.SafeParam("name", name))
+		return nil, werror.ErrorWithContextParams("Health component name already exists", werror.SafeParam("name", name))
 	}
 
 	r.healthComponents[componentName] = healthComponent

@@ -29,9 +29,9 @@ import (
 func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	testHealthCheckType := health.CheckType("TEST_HEALTH_CHECK")
 	testRefreshable := refreshable.NewDefaultRefreshable("initial-value")
-	validatingRefreshable, err := refreshable.NewValidatingRefreshable(testRefreshable, func(i interface{}) error {
+	validatingRefreshable, err := refreshable.NewValidatingRefreshable(context.Background(), testRefreshable, func(i interface{}) error {
 		if i.(string) == "validation-failing-value" {
-			return werror.Error("fail validation")
+			return werror.ErrorWithContextParams(context.Background(), "fail validation")
 		}
 		return nil
 	})

@@ -128,7 +128,7 @@ func TestEncryptedConfig(t *testing.T) {
 
 			logOutputBuffer := &bytes.Buffer{}
 			server := witchcraft.NewServer().
-				WithECVKeyFromFile(ecvKeyFile).
+				WithECVKeyFromFile(context.Background(), ecvKeyFile).
 				WithInstallConfigFromFile(installFile).
 				WithInstallConfigType(&messageInstall{}).
 				WithRuntimeConfigFromFile(runtimeFile).

@@ -45,7 +45,7 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 	defer d.Unlock()
 
 	if valType := reflect.TypeOf(val); valType != d.typ {
-		return werror.Error("value of Refreshable must is not the correct type",
+		return werror.ErrorWithContextParams("value of Refreshable must is not the correct type",
 			werror.SafeParam("refreshableType", d.typ),
 			werror.SafeParam("providedType", valType))
 	}

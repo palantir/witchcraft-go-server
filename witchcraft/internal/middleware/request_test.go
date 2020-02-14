@@ -16,6 +16,7 @@ package middleware_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -187,7 +188,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
-		err := authResource.Get("userAuth", "/userAuth", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		err := authResource.Get(context.Background(), "userAuth", "/userAuth", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 		}))
 		require.NoError(t, err)

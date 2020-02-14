@@ -42,11 +42,11 @@ func WriteJSONResponse(w http.ResponseWriter, obj interface{}, status int) {
 func ParseBearerTokenHeader(req *http.Request) (string, error) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
-		return "", werror.Error("Authorization header not found")
+		return "", werror.ErrorWithContextParams("Authorization header not found")
 	}
 	headerSplit := strings.Split(authHeader, " ")
 	if len(headerSplit) != 2 || strings.ToLower(headerSplit[0]) != "bearer" {
-		return "", werror.Error("Illegal authorization header, expected Bearer")
+		return "", werror.ErrorWithContextParams("Illegal authorization header, expected Bearer")
 	}
 	return headerSplit[1], nil
 }

@@ -335,8 +335,8 @@ func (s *Server) WithSelfSignedCertificate() *Server {
 
 // WithECVKeyFromFile configures the server to use the ECV key in the file at the specified path as the ECV key for
 // decrypting ECV values in configuration.
-func (s *Server) WithECVKeyFromFile(fPath string) *Server {
-	s.ecvKeyProvider = ECVKeyFromFile(fPath)
+func (s *Server) WithECVKeyFromFile(ctx context.Context, fPath string) *Server {
+	s.ecvKeyProvider = ECVKeyFromFile(ctx, fPath)
 	return s
 }
 
@@ -512,7 +512,7 @@ func (s *Server) Start() (rErr error) {
 			if err, ok := r.(error); ok {
 				rErr = err
 			} else {
-				rErr = werror.Error("panic recovered", werror.UnsafeParam("recovered", r))
+				rErr = werror.ErrorWithContextParams(context.Background(), "panic recovered", werror.UnsafeParam("recovered", r))
 			}
 
 			if s.svcLogger == nil {
@@ -547,7 +547,7 @@ func (s *Server) Start() (rErr error) {
 
 	// set provider for ECV key
 	if s.ecvKeyProvider == nil {
-		s.ecvKeyProvider = ECVKeyFromFile(ecvKeyPath)
+		s.ecvKeyProvider = ECVKeyFromFile(context.Background(), ecvKeyPath)
 	}
 
 	// if config unmarshal function is not set, default to yaml.Unmarshal
@@ -556,7 +556,7 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// load install configuration
-	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig()
+	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig(context.Background(), )
 	if err != nil {
 		return err
 	}
@@ -662,14 +662,14 @@ func (s *Server) Start() (rErr error) {
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied. Includes the
 	// configReloadHealthCheckSource, which is always appended to s.healthCheckSources.
-	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg, configReloadHealthCheckSource); err != nil {
+	if err := s.addRoutes(ctx, mgmtRouter, baseRefreshableRuntimeCfg, configReloadHealthCheckSource); err != nil {
 		return err
 	}
 
 	// only create and start a separate management http server if management port is explicitly specified and differs
 	// from the main server port
 	if mgmtPort := baseInstallCfg.Server.ManagementPort; mgmtPort != 0 && baseInstallCfg.Server.Port != mgmtPort {
-		mgmtStart, mgmtShutdown, err := s.newMgmtServer(baseInstallCfg.ProductName, baseInstallCfg.Server, mgmtRouter.RootRouter())
+		mgmtStart, mgmtShutdown, err := s.newMgmtServer(ctx, baseInstallCfg.ProductName, baseInstallCfg.Server, mgmtRouter.RootRouter())
 		if err != nil {
 			return err
 		}
@@ -687,7 +687,7 @@ func (s *Server) Start() (rErr error) {
 		}()
 	}
 
-	httpServer, svrStart, _, err := s.newServer(baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter())
+	httpServer, svrStart, _, err := s.newServer(ctx, baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter())
 	if err != nil {
 		return err
 	}
@@ -718,7 +718,7 @@ func (s *Server) initInstallConfig(ctx context.Context) (config.Install, interfa
 	if err != nil {
 		return config.Install{}, nil, werror.WrapWithContextParams(ctx, err, "Failed to load install configuration bytes")
 	}
-	cfgBytes, err = s.decryptConfigBytes(cfgBytes)
+	cfgBytes, err = s.decryptConfigBytes(ctx, cfgBytes)
 	if err != nil {
 		return config.Install{}, nil, werror.WrapWithContextParams(ctx, err, "Failed to decrypt install configuration bytes")
 	}
@@ -754,14 +754,14 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 	}
 
 	runtimeConfigProvider = runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
-		cfgBytes, err := s.decryptConfigBytes(cfgBytesVal.([]byte))
+		cfgBytes, err := s.decryptConfigBytes(ctx, cfgBytesVal.([]byte))
 		if err != nil {
 			s.svcLogger.Warn("Failed to decrypt encrypted runtime configuration", svc1log.Stacktrace(err))
 		}
 		return cfgBytes
 	})
 
-	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(
+	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(ctx,
 		runtimeConfigProvider,
 		func(cfgBytesVal interface{}) error {
 			runtimeConfigStruct := s.runtimeConfigStruct
@@ -876,27 +876,27 @@ func (s *Server) Close() error {
 	})
 }
 
-func (s *Server) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
+func (s *Server) decryptConfigBytes(ctx context.Context, cfgBytes []byte) ([]byte, error) {
 	if !encryptedconfigvalue.ContainsEncryptedConfigValueStringVars(cfgBytes) {
 		// Nothing to do
 		return cfgBytes, nil
 	}
 	if s.ecvKeyProvider == nil {
-		return cfgBytes, werror.Error("No encryption key provider configured but config contains encrypted values")
+		return cfgBytes, werror.ErrorWithContextParams(ctx, "No encryption key provider configured but config contains encrypted values")
 	}
 	ecvKey, err := s.ecvKeyProvider.Load()
 	if err != nil {
 		return cfgBytes, err
 	}
 	if ecvKey == nil {
-		return cfgBytes, werror.Error("No encryption key configured but config contains encrypted values")
+		return cfgBytes, werror.ErrorWithContextParams(ctx, "No encryption key configured but config contains encrypted values")
 	}
 	return encryptedconfigvalue.DecryptAllEncryptedValueStringVars(cfgBytes, *ecvKey), nil
 }
 
 func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	if s.State() != ServerRunning {
-		return werror.Error("server is not running")
+		return werror.ErrorWithContextParams("server is not running")
 	}
 	s.stateManager.setState(ServerIdle)
 	return stopper(s.httpServer)

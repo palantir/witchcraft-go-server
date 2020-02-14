@@ -159,7 +159,7 @@ func waitForRequests(reqChan <-chan struct{}, expected int, timeout time.Duratio
 				return nil
 			}
 		case <-t:
-			return werror.Error("timed out waiting for expected number of requests",
+			return werror.ErrorWithContextParams("timed out waiting for expected number of requests",
 				werror.SafeParam("current", current),
 				werror.SafeParam("expected", expected))
 		}

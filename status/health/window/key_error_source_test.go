@@ -57,9 +57,9 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			name: "unhealthy when some keys are partially healthy",
 			keyErrorPairs: []keyErrorPair{
 				{key: "1"},
-				{key: "1", err: werror.Error("Error #1 for key 1")},
+				{key: "1", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 1")},
 				{key: "1"},
-				{key: "2", err: werror.Error("Error #1 for key 2")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 2")},
 				{key: "2"},
 				{key: "3"},
 			},
@@ -76,10 +76,10 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 		{
 			name: "unhealthy when all keys are completely unhealthy",
 			keyErrorPairs: []keyErrorPair{
-				{key: "1", err: werror.Error("Error #1 for key 1")},
-				{key: "2", err: werror.Error("Error #1 for key 2")},
-				{key: "2", err: werror.Error("Error #2 for key 2")},
-				{key: "3", err: werror.Error("Error #1 for key 3")},
+				{key: "1", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 1")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 2")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #2 for key 2")},
+				{key: "3", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 3")},
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
@@ -94,7 +94,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(testCheckType, messageInCaseOfError, time.Hour)
+			source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(context.Background(), testCheckType, messageInCaseOfError, time.Hour)
 			require.NoError(t, err)
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.Submit(keyErrorPair.key, keyErrorPair.err)
@@ -136,24 +136,24 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 			name: "healthy when all keys are partially healthy",
 			keyErrorPairs: []keyErrorPair{
 				{key: "1"},
-				{key: "1", err: werror.Error("Error #1 for key 1")},
+				{key: "1", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 1")},
 				{key: "1"},
-				{key: "2", err: werror.Error("Error #1 for key 2")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 2")},
 				{key: "2"},
 				{key: "3"},
-				{key: "3", err: werror.Error("Error #1 for key 3")},
-				{key: "3", err: werror.Error("Error #2 for key 3")},
+				{key: "3", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 3")},
+				{key: "3", err: werror.ErrorWithContextParams(context.Background(),"Error #2 for key 3")},
 			},
 			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
 		},
 		{
 			name: "unhealthy when some keys are completely unhealthy",
 			keyErrorPairs: []keyErrorPair{
-				{key: "1", err: werror.Error("Error #1 for key 1")},
-				{key: "2", err: werror.Error("Error #1 for key 2")},
-				{key: "2", err: werror.Error("Error #2 for key 2")},
+				{key: "1", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 1")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 2")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #2 for key 2")},
 				{key: "3"},
-				{key: "3", err: werror.Error("Error #1 for key 3")},
+				{key: "3", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 3")},
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
@@ -168,10 +168,10 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 		{
 			name: "unhealthy when all keys are completely unhealthy",
 			keyErrorPairs: []keyErrorPair{
-				{key: "1", err: werror.Error("Error #1 for key 1")},
-				{key: "2", err: werror.Error("Error #1 for key 2")},
-				{key: "2", err: werror.Error("Error #2 for key 2")},
-				{key: "3", err: werror.Error("Error #1 for key 3")},
+				{key: "1", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 1")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 2")},
+				{key: "2", err: werror.ErrorWithContextParams(context.Background(),"Error #2 for key 2")},
+				{key: "3", err: werror.ErrorWithContextParams(context.Background(),"Error #1 for key 3")},
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
@@ -186,7 +186,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := NewMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour)
+			source, err := NewMultiKeyHealthyIfNotAllErrorsSource(context.Background(), testCheckType, messageInCaseOfError, time.Hour)
 			require.NoError(t, err)
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.Submit(keyErrorPair.key, keyErrorPair.err)

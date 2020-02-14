@@ -43,7 +43,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		{
 			Name: "error returned by init function",
 			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
+				return nil, werror.ErrorWithContextParams("oops", werror.SafeParam("k", "v"))
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				var log logging.ServiceLogV1
@@ -57,7 +57,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		{
 			Name: "panic init function with error",
 			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				panic(werror.Error("oops", werror.SafeParam("k", "v")))
+				panic(werror.ErrorWithContextParams("oops", werror.SafeParam("k", "v")))
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				var log logging.ServiceLogV1

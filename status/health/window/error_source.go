@@ -46,8 +46,8 @@ type unhealthyIfAtLeastOneErrorSource struct {
 
 // MustNewUnhealthyIfAtLeastOneErrorSource returns the result of calling NewUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := NewUnhealthyIfAtLeastOneErrorSource(checkType, windowSize)
+func MustNewUnhealthyIfAtLeastOneErrorSource(ctx context.Context, checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
+	source, err := NewUnhealthyIfAtLeastOneErrorSource(ctx, checkType, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -57,8 +57,8 @@ func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowS
 // NewUnhealthyIfAtLeastOneErrorSource creates an unhealthyIfAtLeastOneErrorSource
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
-func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	source, err := NewHealthyIfNotAllErrorsSource(checkType, windowSize)
+func NewUnhealthyIfAtLeastOneErrorSource(ctx context.Context, checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
+	source, err := NewHealthyIfNotAllErrorsSource(ctx, checkType, windowSize)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ type healthyIfNotAllErrorsSource struct {
 
 // MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := NewHealthyIfNotAllErrorsSource(checkType, windowSize)
+func MustNewHealthyIfNotAllErrorsSource(ctx context.Context, checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
+	source, err := NewHealthyIfNotAllErrorsSource(ctx, checkType, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -105,9 +105,9 @@ func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize t
 // NewHealthyIfNotAllErrorsSource creates an healthyIfNotAllErrorsSource
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
-func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
+func NewHealthyIfNotAllErrorsSource(ctx context.Context, checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
-		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
+		return nil, werror.ErrorWithContextParams(ctx, "windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
 	return &healthyIfNotAllErrorsSource{
 		windowSize: windowSize,

@@ -58,11 +58,11 @@ func (s *serverStateManager) Start() error {
 	// error if current state is not idle/failed to transition to initializing
 	switch s.State() {
 	case ServerInitializing:
-		return werror.Error("server is already initializing and must be stopped before it can be started again")
+		return werror.ErrorWithContextParams("server is already initializing and must be stopped before it can be started again")
 	case ServerRunning:
-		return werror.Error("server is already running and must be stopped before it can be started again")
+		return werror.ErrorWithContextParams("server is already running and must be stopped before it can be started again")
 	default:
-		return werror.Error("server is in an unknown state and must be stopped before it can be started again")
+		return werror.ErrorWithContextParams("server is in an unknown state and must be stopped before it can be started again")
 	}
 }
 

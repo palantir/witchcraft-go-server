@@ -15,6 +15,7 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/palantir/witchcraft-go-server/rest"
@@ -23,16 +24,16 @@ import (
 	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
 )
 
-func AddLivenessRoutes(resource wresource.Resource, source status.Source) error {
-	return resource.Get("liveness", status.LivenessEndpoint, handler(source))
+func AddLivenessRoutes(ctx context.Context, resource wresource.Resource, source status.Source) error {
+	return resource.Get(ctx, "liveness", status.LivenessEndpoint, handler(source))
 }
 
-func AddReadinessRoutes(resource wresource.Resource, source status.Source) error {
-	return resource.Get("readiness", status.ReadinessEndpoint, handler(source))
+func AddReadinessRoutes(ctx context.Context, resource wresource.Resource, source status.Source) error {
+	return resource.Get(ctx, "readiness", status.ReadinessEndpoint, handler(source))
 }
 
-func AddHealthRoutes(resource wresource.Resource, source status.HealthCheckSource, sharedSecret refreshable.String) error {
-	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret))
+func AddHealthRoutes(ctx context.Context, resource wresource.Resource, source status.HealthCheckSource, sharedSecret refreshable.String) error {
+	return resource.Get(ctx, "health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret))
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response

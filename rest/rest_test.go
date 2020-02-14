@@ -15,6 +15,7 @@
 package rest_test
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -34,13 +35,13 @@ func TestWriteJSONResponse_Error(t *testing.T) {
 	}{
 		{
 			Name:         "standard werror",
-			Err:          werror.Error("bad things happened"),
+			Err:          werror.ErrorWithContextParams(context.Background(), "bad things happened"),
 			ExpectedCode: 500,
 			ExpectedJSON: "\"bad things happened\"\n",
 		},
 		{
 			Name:         "rest.Error with code",
-			Err:          rest.NewError(werror.Error("bad things happened"), rest.StatusCode(400)),
+			Err:          rest.NewError(context.Background(),  werror.ErrorWithContextParams(context.Background(), "bad things happened"), rest.StatusCode(400)),
 			ExpectedCode: 400,
 			ExpectedJSON: "\"witchcraft-server rest error: bad things happened\"\n",
 		},

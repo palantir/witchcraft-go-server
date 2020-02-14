@@ -60,10 +60,10 @@ func MustNewHealthCheckSourceWithStartupGracePeriod(checkType health.CheckType, 
 // Returns an error if heartbeatTimeout is non-positive or if startupTimeout is negative.
 func NewHealthCheckSourceWithStartupGracePeriod(checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) (*HealthCheckSource, error) {
 	if heartbeatTimeout <= 0 {
-		return nil, werror.Error("heartbeatTimeout must be positive")
+		return nil, werror.ErrorWithContextParams("heartbeatTimeout must be positive")
 	}
 	if startupTimeout < 0 {
-		return nil, werror.Error("startupTimeout cannot be negative")
+		return nil, werror.ErrorWithContextParams("startupTimeout cannot be negative")
 	}
 	return &HealthCheckSource{
 		heartbeatTimeout:  heartbeatTimeout,

@@ -15,6 +15,7 @@
 package window
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -38,9 +39,9 @@ type TimeWindowedStore struct {
 
 // NewTimeWindowedStore creates a new TimeWindowedStore with the provided windowSize.
 // windowSize must be a positive value, otherwise returns error.
-func NewTimeWindowedStore(windowSize time.Duration) (*TimeWindowedStore, error) {
+func NewTimeWindowedStore(ctx context.Context, windowSize time.Duration) (*TimeWindowedStore, error) {
 	if windowSize <= 0 {
-		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
+		return nil, werror.ErrorWithContextParams(ctx, "windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
 	return &TimeWindowedStore{
 		windowSize: windowSize,

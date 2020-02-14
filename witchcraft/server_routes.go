@@ -44,14 +44,14 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 
 func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig, configHealthCheckSource status.HealthCheckSource) error {
 	// add debugging endpoint to management router
-	if err := addDebuggingRoutes(mgmtRouterWithContextPath); err != nil {
+	if err := addDebuggingRoutes(ctx, mgmtRouterWithContextPath); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to register debugging routes")
 	}
 
 	statusResource := wresource.New("status", mgmtRouterWithContextPath)
 
 	// add health endpoints
-	if err := routes.AddHealthRoutes(statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager, configHealthCheckSource)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
+	if err := routes.AddHealthRoutes(ctx, statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager, configHealthCheckSource)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
 		return in.(config.Runtime).HealthChecks.SharedSecret
 	}))); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to register health routes")
@@ -61,7 +61,7 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 	if s.livenessSource == nil {
 		s.livenessSource = &s.stateManager
 	}
-	if err := routes.AddLivenessRoutes(statusResource, s.livenessSource); err != nil {
+	if err := routes.AddLivenessRoutes(ctx, statusResource, s.livenessSource); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to register liveness routes")
 	}
 
@@ -69,7 +69,7 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 	if s.readinessSource == nil {
 		s.readinessSource = &s.stateManager
 	}
-	if err := routes.AddReadinessRoutes(statusResource, s.readinessSource); err != nil {
+	if err := routes.AddReadinessRoutes(ctx, statusResource, s.readinessSource); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to register readiness routes")
 	}
 	return nil
@@ -121,24 +121,24 @@ func createRouter(routerImpl wrouter.RouterImpl, ctxPath string) wrouter.Router 
 	return routerWithContextPath
 }
 
-func addDebuggingRoutes(router wrouter.Router) error {
+func addDebuggingRoutes(ctx context.Context, router wrouter.Router) error {
 	debugger := wresource.New("debug", router.Subrouter("/debug"))
-	if err := debugger.Get("pprofIndex", "/pprof/", http.HandlerFunc(netpprof.Index)); err != nil {
+	if err := debugger.Get(ctx, "pprofIndex", "/pprof/", http.HandlerFunc(netpprof.Index)); err != nil {
 		return err
 	}
-	if err := debugger.Get("pprofCmdLine", "/pprof/cmdline", http.HandlerFunc(netpprof.Cmdline)); err != nil {
+	if err := debugger.Get(ctx, "pprofCmdLine", "/pprof/cmdline", http.HandlerFunc(netpprof.Cmdline)); err != nil {
 		return err
 	}
-	if err := debugger.Get("pprofCpuProfile", "/pprof/profile", http.HandlerFunc(netpprof.Profile)); err != nil {
+	if err := debugger.Get(ctx, "pprofCpuProfile", "/pprof/profile", http.HandlerFunc(netpprof.Profile)); err != nil {
 		return err
 	}
-	if err := debugger.Get("pprofSymbol", "/pprof/symbol", http.HandlerFunc(netpprof.Symbol)); err != nil {
+	if err := debugger.Get(ctx, "pprofSymbol", "/pprof/symbol", http.HandlerFunc(netpprof.Symbol)); err != nil {
 		return err
 	}
-	if err := debugger.Get("pprofTrace", "/pprof/trace", http.HandlerFunc(netpprof.Trace)); err != nil {
+	if err := debugger.Get(ctx, "pprofTrace", "/pprof/trace", http.HandlerFunc(netpprof.Trace)); err != nil {
 		return err
 	}
-	return debugger.Get("pprofHeapProfile", "/pprof/heap", http.HandlerFunc(heap))
+	return debugger.Get(ctx, "pprofHeapProfile", "/pprof/heap", http.HandlerFunc(heap))
 }
 
 // heap responds with the pprof-formatted heap profile.
