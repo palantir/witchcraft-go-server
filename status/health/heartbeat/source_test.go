@@ -29,7 +29,7 @@ const (
 )
 
 func TestHealthCheckSource_NoHeartbeats_Repairing(t *testing.T) {
-	source, err := NewHealthCheckSourceWithStartupGracePeriod(testCheckType, 25*time.Millisecond, 25*time.Millisecond)
+	source, err := NewHealthCheckSourceWithStartupGracePeriod(context.Background(), testCheckType, 25*time.Millisecond, 25*time.Millisecond)
 	require.NoError(t, err)
 	status := source.HealthStatus(context.Background())
 	require.Equal(t, 1, len(status.Checks))
@@ -39,7 +39,7 @@ func TestHealthCheckSource_NoHeartbeats_Repairing(t *testing.T) {
 }
 
 func TestHealthCheckSource_NoHeartbeats_Error(t *testing.T) {
-	source, err := NewHealthCheckSourceWithStartupGracePeriod(testCheckType, 25*time.Millisecond, 25*time.Millisecond)
+	source, err := NewHealthCheckSourceWithStartupGracePeriod(context.Background(), testCheckType, 25*time.Millisecond, 25*time.Millisecond)
 	require.NoError(t, err)
 	<-time.After(50 * time.Millisecond)
 	status := source.HealthStatus(context.Background())
@@ -50,7 +50,7 @@ func TestHealthCheckSource_NoHeartbeats_Error(t *testing.T) {
 }
 
 func TestHealthCheckSource_WithHeartbeats_Healthy(t *testing.T) {
-	source, err := NewHealthCheckSource(testCheckType, 25*time.Millisecond)
+	source, err := NewHealthCheckSource(context.Background(), testCheckType, 25*time.Millisecond)
 	require.NoError(t, err)
 	source.Heartbeat()
 	status := source.HealthStatus(context.Background())
@@ -61,7 +61,7 @@ func TestHealthCheckSource_WithHeartbeats_Healthy(t *testing.T) {
 }
 
 func TestHealthCheckSource_WithHeartbeats_Error(t *testing.T) {
-	source, err := NewHealthCheckSource(testCheckType, 25*time.Millisecond)
+	source, err := NewHealthCheckSource(context.Background(), testCheckType, 25*time.Millisecond)
 	require.NoError(t, err)
 	source.Heartbeat()
 	<-time.After(50 * time.Millisecond)
@@ -73,7 +73,7 @@ func TestHealthCheckSource_WithHeartbeats_Error(t *testing.T) {
 }
 
 func TestHealthCheckSource_WithHeartbeats_HealthyThenErrorThenHealthy(t *testing.T) {
-	source, err := NewHealthCheckSource(testCheckType, 25*time.Millisecond)
+	source, err := NewHealthCheckSource(context.Background(), testCheckType, 25*time.Millisecond)
 	require.NoError(t, err)
 	source.Heartbeat()
 	status := source.HealthStatus(context.Background())

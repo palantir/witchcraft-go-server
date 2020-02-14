@@ -47,8 +47,8 @@ var _ status.HealthCheckSource = &HealthCheckSource{}
 // heartbeatTimeout and startupTimeout. The returning HealthCheckResult is of type checkType.
 // Panics if heartbeatTimeout is non-positive or if startupTimeout is negative.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewHealthCheckSourceWithStartupGracePeriod(checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) *HealthCheckSource {
-	healthCheckSource, err := NewHealthCheckSourceWithStartupGracePeriod(checkType, heartbeatTimeout, startupTimeout)
+func MustNewHealthCheckSourceWithStartupGracePeriod(ctx context.Context,checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) *HealthCheckSource {
+	healthCheckSource, err := NewHealthCheckSourceWithStartupGracePeriod(ctx, checkType, heartbeatTimeout, startupTimeout)
 	if err != nil {
 		panic(err)
 	}
@@ -58,12 +58,12 @@ func MustNewHealthCheckSourceWithStartupGracePeriod(checkType health.CheckType, 
 // NewHealthCheckSourceWithStartupGracePeriod creates a HealthCheckSource with the specified
 // heartbeatTimeout and startupTimeout. The returning HealthCheckResult is of type checkType.
 // Returns an error if heartbeatTimeout is non-positive or if startupTimeout is negative.
-func NewHealthCheckSourceWithStartupGracePeriod(checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) (*HealthCheckSource, error) {
+func NewHealthCheckSourceWithStartupGracePeriod(ctx context.Context, checkType health.CheckType, heartbeatTimeout, startupTimeout time.Duration) (*HealthCheckSource, error) {
 	if heartbeatTimeout <= 0 {
-		return nil, werror.ErrorWithContextParams("heartbeatTimeout must be positive")
+		return nil, werror.ErrorWithContextParams(ctx, "heartbeatTimeout must be positive")
 	}
 	if startupTimeout < 0 {
-		return nil, werror.ErrorWithContextParams("startupTimeout cannot be negative")
+		return nil, werror.ErrorWithContextParams(ctx, "startupTimeout cannot be negative")
 	}
 	return &HealthCheckSource{
 		heartbeatTimeout:  heartbeatTimeout,
@@ -77,8 +77,8 @@ func NewHealthCheckSourceWithStartupGracePeriod(checkType health.CheckType, hear
 // heartbeatTimeout and zero as startupTimeout. The returning HealthCheckResult is of type checkType.
 // Panics if heartbeatTimeout is non-positive.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewHealthCheckSource(checkType health.CheckType, heartbeatTimeout time.Duration) *HealthCheckSource {
-	healthCheckSource, err := NewHealthCheckSource(checkType, heartbeatTimeout)
+func MustNewHealthCheckSource(ctx context.Context, checkType health.CheckType, heartbeatTimeout time.Duration) *HealthCheckSource {
+	healthCheckSource, err := NewHealthCheckSource(ctx, checkType, heartbeatTimeout)
 	if err != nil {
 		panic(err)
 	}
@@ -88,8 +88,8 @@ func MustNewHealthCheckSource(checkType health.CheckType, heartbeatTimeout time.
 // NewHealthCheckSource creates a HealthCheckSource with the specified
 // heartbeatTimeout and zero as startupTimeout. The returning HealthCheckResult is of type checkType.
 // Returns an error if heartbeatTimeout is non-positive.
-func NewHealthCheckSource(checkType health.CheckType, heartbeatTimeout time.Duration) (*HealthCheckSource, error) {
-	return NewHealthCheckSourceWithStartupGracePeriod(checkType, heartbeatTimeout, 0)
+func NewHealthCheckSource(ctx context.Context, checkType health.CheckType, heartbeatTimeout time.Duration) (*HealthCheckSource, error) {
+	return NewHealthCheckSourceWithStartupGracePeriod(ctx, checkType, heartbeatTimeout, 0)
 }
 
 // HealthStatus constructs a HealthStatus object based on the submitted heartbeats.
