@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Bump werror to 1.3.0 and move over Error/Wrap functions
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/158
