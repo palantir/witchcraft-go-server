@@ -35,7 +35,7 @@ import (
 
 func TestNewInflightLimitMiddleware(t *testing.T) {
 	healthReporter := reporter.NewHealthReporter()
-	healthComponent, err := healthReporter.InitializeHealthComponent("INFLIGHT_MUTATING_REQUESTS")
+	healthComponent, err := healthReporter.InitializeHealthComponent(context.Background(), "INFLIGHT_MUTATING_REQUESTS")
 	require.NoError(t, err)
 	requireHealthy := func(msg string) {
 		require.Equal(t, string(health.HealthStateHealthy), string(healthComponent.Status()), msg)
@@ -159,7 +159,7 @@ func waitForRequests(reqChan <-chan struct{}, expected int, timeout time.Duratio
 				return nil
 			}
 		case <-t:
-			return werror.ErrorWithContextParams("timed out waiting for expected number of requests",
+			return werror.ErrorWithContextParams(context.Background(), "timed out waiting for expected number of requests",
 				werror.SafeParam("current", current),
 				werror.SafeParam("expected", expected))
 		}

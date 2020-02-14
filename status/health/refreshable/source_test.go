@@ -49,7 +49,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	}))
 
 	// change underyling refreshable to value that fails validation
-	err = testRefreshable.Update("validation-failing-value")
+	err = testRefreshable.Update(context.Background(), "validation-failing-value")
 	require.NoError(t, err)
 	errorMsg := "Refreshable validation failed, please look at service logs for more information."
 	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
@@ -63,7 +63,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	}))
 
 	// change underyling refreshable to value that passes validation
-	err = testRefreshable.Update("other-value")
+	err = testRefreshable.Update(context.Background(), "other-value")
 	require.NoError(t, err)
 	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{

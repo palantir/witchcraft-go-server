@@ -121,7 +121,7 @@ func TestHealthReporter(t *testing.T) {
 	for _, n := range healthyComponents {
 		go func(healthReporter reporter.HealthReporter, name string) {
 			defer wg.Done()
-			component, err := healthReporter.InitializeHealthComponent(name)
+			component, err := healthReporter.InitializeHealthComponent(context.Background(), name)
 			if err != nil {
 				panic(fmt.Errorf("failed to initialize %s health reporter: %v", name, err))
 			}
@@ -137,7 +137,7 @@ func TestHealthReporter(t *testing.T) {
 	for _, n := range unhealthyComponents {
 		go func(healthReporter reporter.HealthReporter, name string) {
 			defer wg.Done()
-			component, err := healthReporter.InitializeHealthComponent(name)
+			component, err := healthReporter.InitializeHealthComponent(context.Background(), name)
 			if err != nil {
 				panic(fmt.Errorf("failed to initialize %s health reporter: %v", name, err))
 			}
@@ -408,7 +408,7 @@ invalid-key: invalid-value
 	}, healthResults)
 
 	// write invalid runtime config and observe health check go unhealthy
-	err = runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
+	err = runtimeConfigRefreshable.Update(context.Background(), []byte(invalidCfgYML))
 	require.NoError(t, err)
 	time.Sleep(500 * time.Millisecond)
 
@@ -497,7 +497,7 @@ invalid-key: invalid-value
 	}, healthResults)
 
 	// write invalid runtime config and observe health check go unhealthy
-	err = runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
+	err = runtimeConfigRefreshable.Update(context.Background(), []byte(invalidCfgYML))
 	require.NoError(t, err)
 	time.Sleep(500 * time.Millisecond)
 

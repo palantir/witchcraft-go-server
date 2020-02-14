@@ -30,7 +30,7 @@ const (
 
 func setup(t *testing.T) (HealthComponent, HealthReporter) {
 	healthReporter := NewHealthReporter()
-	healthComponent, err := healthReporter.InitializeHealthComponent(validComponent)
+	healthComponent, err := healthReporter.InitializeHealthComponent(context.Background(),  validComponent)
 	assert.NoError(t, err)
 	return healthComponent, healthReporter
 }
@@ -82,7 +82,7 @@ func TestSetHealthAndGetHealthResult(t *testing.T) {
 
 func TestNonCompliantName(t *testing.T) {
 	healthReporter := NewHealthReporter()
-	_, err := healthReporter.InitializeHealthComponent(invalidComponent)
+	_, err := healthReporter.InitializeHealthComponent(context.Background(), invalidComponent)
 	assert.Error(t, err)
 }
 
