@@ -15,6 +15,7 @@
 package refreshable
 
 import (
+	"context"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -40,12 +41,12 @@ func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
 	}
 }
 
-func (d *DefaultRefreshable) Update(val interface{}) error {
+func (d *DefaultRefreshable) Update(ctx context.Context, val interface{}) error {
 	d.Lock()
 	defer d.Unlock()
 
 	if valType := reflect.TypeOf(val); valType != d.typ {
-		return werror.ErrorWithContextParams("value of Refreshable must is not the correct type",
+		return werror.ErrorWithContextParams(ctx, "value of Refreshable must is not the correct type",
 			werror.SafeParam("refreshableType", d.typ),
 			werror.SafeParam("providedType", valType))
 	}
@@ -92,10 +93,10 @@ func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
 	}
 }
 
-func (d *DefaultRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
+func (d *DefaultRefreshable) Map(ctx context.Context, mapFn func(interface{}) interface{}) Refreshable {
 	newRefreshable := NewDefaultRefreshable(mapFn(d.Current()))
 	d.Subscribe(func(updatedVal interface{}) {
-		_ = newRefreshable.Update(mapFn(updatedVal))
+		_ = newRefreshable.Update(ctx, mapFn(updatedVal))
 	})
 	return newRefreshable
 }

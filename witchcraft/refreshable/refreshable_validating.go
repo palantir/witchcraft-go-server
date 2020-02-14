@@ -41,8 +41,8 @@ func (v *ValidatingRefreshable) Subscribe(consumer func(interface{})) (unsubscri
 	return v.validatedRefreshable.Subscribe(consumer)
 }
 
-func (v *ValidatingRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
-	return v.validatedRefreshable.Map(mapFn)
+func (v *ValidatingRefreshable) Map(ctx context.Context,  mapFn func(interface{}) interface{}) Refreshable {
+	return v.validatedRefreshable.Map(ctx, mapFn)
 }
 
 func (v *ValidatingRefreshable) LastValidateErr() error {
@@ -81,7 +81,7 @@ func NewValidatingRefreshable(ctx context.Context, origRefreshable Refreshable, 
 			return
 		}
 
-		if err := validatedRefreshable.Update(i); err != nil {
+		if err := validatedRefreshable.Update(ctx, i); err != nil {
 			v.lastValidateErr.Store(errorWrapper{err})
 			return
 		}

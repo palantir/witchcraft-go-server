@@ -50,7 +50,7 @@ func main() {
 			}
 
 			// register endpoint that uses runtime configuration
-			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
+			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(ctx, func(in interface{}) interface{} {
 				return in.(AppRuntimeConfig).MyNum
 			}))
 			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {

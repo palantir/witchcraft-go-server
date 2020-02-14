@@ -14,6 +14,8 @@
 
 package refreshable
 
+import "context"
+
 type Refreshable interface {
 	// Current returns the most recent value of this Refreshable.
 	Current() interface{}
@@ -23,5 +25,5 @@ type Refreshable interface {
 	Subscribe(consumer func(interface{})) (unsubscribe func())
 
 	// Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
-	Map(func(interface{}) interface{}) Refreshable
+	Map(context.Context, func(interface{}) interface{}) Refreshable
 }

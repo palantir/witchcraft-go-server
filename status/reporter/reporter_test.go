@@ -61,18 +61,18 @@ func TestGetNotFound(t *testing.T) {
 
 func TestInitializeCollision(t *testing.T) {
 	reporter := NewHealthReporter()
-	component, err := reporter.InitializeHealthComponent(validComponent)
+	component, err := reporter.InitializeHealthComponent(context.Background(), validComponent)
 	assert.NotNil(t, component)
 	assert.NoError(t, err)
 
-	componentCollision, err := reporter.InitializeHealthComponent(validComponent)
+	componentCollision, err := reporter.InitializeHealthComponent(context.Background(), validComponent)
 	assert.Nil(t, componentCollision)
 	assert.Error(t, err)
 }
 
 func TestInitializeThenGet(t *testing.T) {
 	reporter := NewHealthReporter()
-	component, err := reporter.InitializeHealthComponent(validComponent)
+	component, err := reporter.InitializeHealthComponent(context.Background(), validComponent)
 	assert.NotNil(t, component)
 	assert.NoError(t, err)
 
@@ -83,7 +83,7 @@ func TestInitializeThenGet(t *testing.T) {
 
 func TestUnregisterThenGet(t *testing.T) {
 	reporter := newHealthReporter()
-	component, err := reporter.InitializeHealthComponent(validComponent)
+	component, err := reporter.InitializeHealthComponent(context.Background(), validComponent)
 	assert.NotNil(t, component)
 	assert.NoError(t, err)
 
@@ -95,7 +95,7 @@ func TestUnregisterThenGet(t *testing.T) {
 
 func TestUnregisterThenGetComponentStatus(t *testing.T) {
 	reporter := newHealthReporter()
-	component, err := reporter.InitializeHealthComponent(validComponent)
+	component, err := reporter.InitializeHealthComponent(context.Background(), validComponent)
 	assert.NotNil(t, component)
 	assert.NoError(t, err)
 

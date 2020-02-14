@@ -49,7 +49,7 @@ type serverStateManager struct {
 	serverRunning int32
 }
 
-func (s *serverStateManager) Start() error {
+func (s *serverStateManager) Start(ctx context.Context) error {
 	// state went from Idle to Initializing: OK
 	if atomic.CompareAndSwapInt32(&s.serverRunning, int32(ServerIdle), int32(ServerInitializing)) {
 		return nil
@@ -58,11 +58,11 @@ func (s *serverStateManager) Start() error {
 	// error if current state is not idle/failed to transition to initializing
 	switch s.State() {
 	case ServerInitializing:
-		return werror.ErrorWithContextParams("server is already initializing and must be stopped before it can be started again")
+		return werror.ErrorWithContextParams(ctx,"server is already initializing and must be stopped before it can be started again")
 	case ServerRunning:
-		return werror.ErrorWithContextParams("server is already running and must be stopped before it can be started again")
+		return werror.ErrorWithContextParams(ctx,"server is already running and must be stopped before it can be started again")
 	default:
-		return werror.ErrorWithContextParams("server is in an unknown state and must be stopped before it can be started again")
+		return werror.ErrorWithContextParams(ctx,"server is in an unknown state and must be stopped before it can be started again")
 	}
 }
 

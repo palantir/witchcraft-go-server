@@ -535,7 +535,7 @@ func (s *Server) Start() (rErr error) {
 
 	// Set state to "initializing". Fails if current state is not "idle" (ensures that this instance is not being run
 	// concurrently).
-	if err := s.stateManager.Start(); err != nil {
+	if err := s.stateManager.Start(context.Background()); err != nil {
 		return err
 	}
 	// Reset state if server terminated without calling s.Close() or s.Shutdown()
@@ -612,7 +612,7 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// handle built-in runtime config changes
-	unsubscribe := baseRefreshableRuntimeCfg.Map(func(in interface{}) interface{} {
+	unsubscribe := baseRefreshableRuntimeCfg.Map(ctx, func(in interface{}) interface{} {
 		return in.(config.Runtime).LoggerConfig
 	}).Subscribe(func(in interface{}) {
 		if loggerCfg := in.(*config.LoggerConfig); loggerCfg != nil {
@@ -753,7 +753,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return nil, nil, nil, err
 	}
 
-	runtimeConfigProvider = runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
+	runtimeConfigProvider = runtimeConfigProvider.Map(ctx, func(cfgBytesVal interface{}) interface{} {
 		cfgBytes, err := s.decryptConfigBytes(ctx, cfgBytesVal.([]byte))
 		if err != nil {
 			s.svcLogger.Warn("Failed to decrypt encrypted runtime configuration", svc1log.Stacktrace(err))
@@ -779,7 +779,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		runtimeConfigReloadCheckType,
 		*validatedRuntimeConfig)
 
-	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
+	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(ctx, func(cfgBytesVal interface{}) interface{} {
 		var runtimeCfg config.Runtime
 		if err := s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
 			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
@@ -787,7 +787,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		return runtimeCfg
 	}))
 
-	runtimeConfig := validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
+	runtimeConfig := validatedRuntimeConfig.Map(ctx, func(cfgBytesVal interface{}) interface{} {
 		runtimeConfigStruct := s.runtimeConfigStruct
 		if runtimeConfigStruct == nil {
 			runtimeConfigStruct = config.Runtime{}
@@ -896,7 +896,7 @@ func (s *Server) decryptConfigBytes(ctx context.Context, cfgBytes []byte) ([]byt
 
 func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	if s.State() != ServerRunning {
-		return werror.ErrorWithContextParams("server is not running")
+		return werror.ErrorWithContextParams(context.Background(), "server is not running")
 	}
 	s.stateManager.setState(ServerIdle)
 	return stopper(s.httpServer)

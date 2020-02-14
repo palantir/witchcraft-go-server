@@ -90,7 +90,7 @@ func (d *fileRefreshable) watchForChanges(ctx context.Context) error {
 						svc1log.FromContext(ctx).Debug("Ignoring fsnotify event for runtime configuration file because file checksum was unchanged")
 						continue
 					}
-					if err := d.innerRefreshable.Update(fileBytes); err != nil {
+					if err := d.innerRefreshable.Update(ctx, fileBytes); err != nil {
 						svc1log.FromContext(ctx).Error("Failed to update refreshable with new file bytes", svc1log.Stacktrace(err))
 						continue
 					}
@@ -112,6 +112,6 @@ func (d *fileRefreshable) Subscribe(consumer func(interface{})) (unsubscribe fun
 	return d.innerRefreshable.Subscribe(consumer)
 }
 
-func (d *fileRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
-	return d.innerRefreshable.Map(mapFn)
+func (d *fileRefreshable) Map(ctx context.Context, mapFn func(interface{}) interface{}) Refreshable {
+	return d.innerRefreshable.Map(ctx, mapFn)
 }

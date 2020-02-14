@@ -115,7 +115,7 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 
 func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.HealthStatus, int) {
 	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
-		token, err := rest.ParseBearerTokenHeader(req)
+		token, err := rest.ParseBearerTokenHeader(req.Context(), req)
 		if err != nil || sharedSecret != token {
 			return health.HealthStatus{}, http.StatusUnauthorized
 		}

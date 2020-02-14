@@ -30,7 +30,7 @@ var _ HealthReporter = &healthReporter{}
 
 type HealthReporter interface {
 	status.HealthCheckSource
-	InitializeHealthComponent(name string) (HealthComponent, error)
+	InitializeHealthComponent(ctx context.Context, name string) (HealthComponent, error)
 	GetHealthComponent(name string) (HealthComponent, bool)
 	UnregisterHealthComponent(name string) bool
 }
@@ -56,10 +56,10 @@ func newHealthReporter() *healthReporter {
 // initializing until a future call modifies the initializing status. The created health component is stored in the
 // HealthReporter and can be fetched later by name via GetHealthComponent.
 // Returns ErrorState if the component name is non-SLS compliant, or the name is already in use
-func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent, error) {
+func (r *healthReporter) InitializeHealthComponent(ctx context.Context, name string) (HealthComponent, error) {
 	isSLSCompliant := regexp.MustCompile(slsHealthNameRegex).MatchString
 	if !isSLSCompliant(name) {
-		return nil, werror.ErrorWithContextParams("component name is not a valid SLS health component name",
+		return nil, werror.ErrorWithContextParams(ctx, "component name is not a valid SLS health component name",
 			werror.SafeParam("name", name),
 			werror.SafeParam("validPattern", slsHealthNameRegex))
 	}
@@ -72,7 +72,7 @@ func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if _, ok := r.healthComponents[componentName]; ok {
-		return nil, werror.ErrorWithContextParams("Health component name already exists", werror.SafeParam("name", name))
+		return nil, werror.ErrorWithContextParams(ctx, "Health component name already exists", werror.SafeParam("name", name))
 	}
 
 	r.healthComponents[componentName] = healthComponent

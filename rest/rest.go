@@ -15,6 +15,7 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -39,14 +40,14 @@ func WriteJSONResponse(w http.ResponseWriter, obj interface{}, status int) {
 // ParseBearerTokenHeader parses a bearer token value out of the Authorization header. It expects a header with a key
 // of 'Authorization' and a value of 'bearer {token}'. ParseBearerTokenHeader will return the token value, or an error
 // if the Authorization header is missing, an empty string, or is not in the format expected.
-func ParseBearerTokenHeader(req *http.Request) (string, error) {
+func ParseBearerTokenHeader(ctx context.Context, req *http.Request) (string, error) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
-		return "", werror.ErrorWithContextParams("Authorization header not found")
+		return "", werror.ErrorWithContextParams(ctx, "Authorization header not found")
 	}
 	headerSplit := strings.Split(authHeader, " ")
 	if len(headerSplit) != 2 || strings.ToLower(headerSplit[0]) != "bearer" {
-		return "", werror.ErrorWithContextParams("Illegal authorization header, expected Bearer")
+		return "", werror.ErrorWithContextParams(ctx, "Illegal authorization header, expected Bearer")
 	}
 	return headerSplit[1], nil
 }
