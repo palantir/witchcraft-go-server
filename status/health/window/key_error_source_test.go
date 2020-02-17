@@ -16,6 +16,7 @@ package window
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -91,6 +92,15 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 					"3": "Error #1 for key 3",
 				},
 			},
+		},
+		{
+			name: "new nil error for key results in healthy",
+			keyErrorPairs: []keyErrorPair{
+				{key: "1", err: fmt.Errorf("error #1 for key 1")},
+				{key: "2", err: nil},
+				{key: "1", err: nil},
+			},
+			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
