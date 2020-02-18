@@ -22,13 +22,19 @@ import (
 	"github.com/palantir/witchcraft-go-server/status"
 )
 
-// KeyedErrorSubmitter is a separate interface to allow method signatures to only accept the Submit functionality of
-// a KeyedErrorHealthCheckSource
+// KeyedErrorSubmitter is not intended to be implemented separately - it simply
+// provides consumers the ability to scope a method argument, such as a constructor, to provide
+// only the Submit functionality of the KeyedErrorHealthCheckSource.
 type KeyedErrorSubmitter interface {
+	// Submit stores non-nil errors by the provided key in a map; keys of submitted nil errors are
+	// deleted from the map.
 	Submit(key string, err error)
 }
 
-// KeyedErrorHealthCheckSource tracks errors by key to compute health status
+// KeyedErrorHealthCheckSource tracks errors by key to compute health status. Only entries with non-nil
+// errors are stored. When computing health status, the KeyedErrorHealthCheckSource will return a
+// health status with state HealthStateHealthy if it has no error entries. If it has any error entries, it will return
+// a health status with the state HealthStateError.
 type KeyedErrorHealthCheckSource interface {
 	KeyedErrorSubmitter
 	status.HealthCheckSource
@@ -41,7 +47,7 @@ type keyedErrorHealthCheckSource struct {
 	checkMessage string
 }
 
-// NewKeyedErrorHealthCheckSource creates a health messenger that tracks errors by keys to compute health status
+// NewKeyedErrorHealthCheckSource creates a health messenger that tracks errors by keys to compute health status.
 func NewKeyedErrorHealthCheckSource(checkType health.CheckType, checkMessage string) KeyedErrorHealthCheckSource {
 	return &keyedErrorHealthCheckSource{
 		checkType:    checkType,
