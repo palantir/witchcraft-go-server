@@ -34,7 +34,7 @@ type KeyedErrorSubmitter interface {
 // KeyedErrorHealthCheckSource tracks errors by key to compute health status. Only entries with non-nil
 // errors are stored. When computing health status, the KeyedErrorHealthCheckSource will return a
 // health status with state HealthStateHealthy if it has no error entries. If it has any error entries, it will return
-// a health status with the state HealthStateError.
+// a health status with the state set to HealthStateError and params including all errors by their keys.
 type KeyedErrorHealthCheckSource interface {
 	KeyedErrorSubmitter
 	status.HealthCheckSource
