@@ -57,9 +57,9 @@ func TestUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			name: "unhealthy when there is at least one err",
 			errors: []error{
 				nil,
-				werror.Error("Error #1"),
+				werror.ErrorWithContextParams(context.Background(), "Error #1"),
 				nil,
-				werror.Error("Error #2"),
+				werror.ErrorWithContextParams(context.Background(), "Error #2"),
 				nil,
 			},
 			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #2"),
@@ -106,9 +106,9 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 			name: "healthy when there is at least one non nil err",
 			errors: []error{
 				nil,
-				werror.Error("Error #1"),
+				werror.ErrorWithContextParams(context.Background(), "Error #1"),
 				nil,
-				werror.Error("Error #2"),
+				werror.ErrorWithContextParams(context.Background(), "Error #2"),
 				nil,
 			},
 			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
@@ -116,8 +116,8 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 		{
 			name: "unhealthy when there are only non nil items",
 			errors: []error{
-				werror.Error("Error #1"),
-				werror.Error("Error #2"),
+				werror.ErrorWithContextParams(context.Background(), "Error #1"),
+				werror.ErrorWithContextParams(context.Background(), "Error #2"),
 			},
 			expectedCheck: whealth.UnhealthyHealthCheckResult(testCheckType, "Error #2"),
 		},
