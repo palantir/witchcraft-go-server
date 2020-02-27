@@ -27,7 +27,10 @@ import (
 )
 
 const (
-	testCheckType health.CheckType = "TEST_CHECK"
+	testCheckType    health.CheckType = "TEST_CHECK"
+	windowSize                        = 100 * time.Millisecond
+	halfwindowSize                    = windowSize / 2
+	doubleWindowSize                  = windowSize * 2
 )
 
 func TestUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
@@ -134,4 +137,61 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 			assert.Equal(t, expectedStatus, actualStatus)
 		})
 	}
+}
+
+// TestErrorInInitialWindow validates that the anchor prevents a single error
+// in the first window from causing the health status to become unhealthy
+func TestErrorInInitialWindow(t *testing.T) {
+	timeProvider := &offsetTimeProvider{}
+	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, true, timeProvider)
+	assert.NoError(t, err)
+
+	anchoredWindow.Submit(werror.ErrorWithContextParams(context.Background(), "an error"))
+	healthStatus := anchoredWindow.HealthStatus(context.Background())
+	checkResult, ok := healthStatus.Checks[testCheckType]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateHealthy, checkResult.State)
+}
+
+// TestErrorBeforeAndAfterGap validates that errors in the anchor period
+// will cause health status change as the window slides past the anchored
+// window without new healthy statuses to keep state healthy
+func TestErrorBeforeAndAfterGap(t *testing.T) {
+	timeProvider := &offsetTimeProvider{}
+	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, true, timeProvider)
+	assert.NoError(t, err)
+
+	timeProvider.RestlessSleep(halfwindowSize)
+	anchoredWindow.Submit(werror.ErrorWithContextParams(context.Background(), "an error"))
+	timeProvider.RestlessSleep(halfwindowSize)
+
+	healthStatus := anchoredWindow.HealthStatus(context.Background())
+	checkResult, ok := healthStatus.Checks[testCheckType]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateError, checkResult.State)
+}
+
+// TestHealthyInGapBeforeAnchor validates that a healthy status
+// anchor is applied after a gap period and prevents a single error from
+// changing status in new period after gap
+func TestHealthyInGapBeforeAnchor(t *testing.T) {
+	timeProvider := &offsetTimeProvider{}
+	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, true, timeProvider)
+	assert.NoError(t, err)
+
+	timeProvider.RestlessSleep(halfwindowSize)
+	anchoredWindow.Submit(werror.ErrorWithContextParams(context.Background(), "an error"))
+	timeProvider.RestlessSleep(halfwindowSize)
+
+	healthStatus := anchoredWindow.HealthStatus(context.Background())
+	checkResult, ok := healthStatus.Checks[testCheckType]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateError, checkResult.State)
+	timeProvider.RestlessSleep(doubleWindowSize)
+
+	anchoredWindow.Submit(werror.ErrorWithContextParams(context.Background(), "an error"))
+	healthStatus = anchoredWindow.HealthStatus(context.Background())
+	checkResult, ok = healthStatus.Checks[testCheckType]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateHealthy, checkResult.State)
 }
