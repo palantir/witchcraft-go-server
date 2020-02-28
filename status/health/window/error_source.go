@@ -124,7 +124,8 @@ func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, wind
 
 // NewAnchoredHealthyIfNotAllErrorsSource creates an healthyIfNotAllErrorsSource
 // with supplied checkType, using sliding window of size windowSize, which will
-// anchor healthy for the initial window or after gaps greater than windowSize
+// anchor (force the window to be at least the grace period) by inserting a healthy
+// check at the beginning of new the initial window or after gaps greater than windowSize
 // windowSize must be a positive value, otherwise returns error.
 func NewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
 	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, newOrdinaryTimeProvider())
