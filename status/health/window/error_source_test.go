@@ -68,6 +68,7 @@ func TestUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			source, err := NewUnhealthyIfAtLeastOneErrorSource(testCheckType, time.Hour)
 			require.NoError(t, err)
+
 			for _, err := range testCase.errors {
 				source.Submit(err)
 			}
@@ -123,7 +124,10 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := NewHealthyIfNotAllErrorsSource(testCheckType, time.Hour)
+			timeProvider := &offsetTimeProvider{}
+			source, err := newHealthyIfNotAllErrorsSource(testCheckType, time.Hour, false, timeProvider)
+			timeProvider.RestlessSleep(time.Hour)
+
 			require.NoError(t, err)
 			for _, err := range testCase.errors {
 				source.Submit(err)
