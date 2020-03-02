@@ -126,6 +126,8 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			timeProvider := &offsetTimeProvider{}
 			source, err := newHealthyIfNotAllErrorsSource(testCheckType, time.Hour, false, timeProvider)
+
+			// Make sure test is applied outside of startup window
 			timeProvider.RestlessSleep(time.Hour)
 
 			require.NoError(t, err)
@@ -143,9 +145,23 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 	}
 }
 
-// TestErrorInInitialWindow validates that the anchor prevents a single error
-// in the first window from causing the health status to become unhealthy
+// TestErrorInInitialWindow validates that error in the first window
+// does not cause the health status to become unhealthy
 func TestErrorInInitialWindow(t *testing.T) {
+	timeProvider := &offsetTimeProvider{}
+	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, false, timeProvider)
+	assert.NoError(t, err)
+
+	anchoredWindow.Submit(werror.ErrorWithContextParams(context.Background(), "an error"))
+	healthStatus := anchoredWindow.HealthStatus(context.Background())
+	checkResult, ok := healthStatus.Checks[testCheckType]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateHealthy, checkResult.State)
+}
+
+// TestErrorInInitialWindow validates that error in the first window
+// does not cause the health status to become unhealthy when anchored as well
+func TestErrorInInitialAnchoredWindow(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, true, timeProvider)
 	assert.NoError(t, err)
