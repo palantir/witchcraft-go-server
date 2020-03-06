@@ -16,7 +16,6 @@ package refreshable
 
 import (
 	"context"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -27,21 +26,21 @@ import (
 
 func TestSimple(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
+	fileToWrite := path.Join(tempDir, "file")
 	assert.NoError(t, err)
 	v1 := []byte("renderConf1")
 	v2 := []byte("renderConf2")
-	fileToWrite := path.Join(tempDir, "renderConf")
 	err = ioutil.WriteFile(fileToWrite, v1, 0777)
 	assert.NoError(t, err)
 	r, err := NewFileRefreshable(context.Background(), fileToWrite)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
-	fmt.Println(str)
+	assert.Equal(t, str, "renderConf1")
 	err = ioutil.WriteFile(fileToWrite, v2, 0777)
 	assert.NoError(t, err)
 	time.Sleep(time.Second)
 	str = getStringFromRefreshable(t, r)
-	fmt.Println(str)
+	assert.Equal(t, str, "renderConf2")
 	err = os.RemoveAll(tempDir)
 	assert.NoError(t, err)
 }
