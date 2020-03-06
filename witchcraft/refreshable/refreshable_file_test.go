@@ -126,6 +126,7 @@ func TestRefreshableCanFollowMovingSymLink(t *testing.T) {
 	assert.Equal(t, str, "renderConf1")
 	// Change where the symlink points
 	err = os.Remove(fileToWritePointingAtActual)
+	assert.NoError(t, err)
 	err = os.Symlink(fileToWriteActualUpdated, fileToWritePointingAtActual)
 	assert.NoError(t, err)
 
