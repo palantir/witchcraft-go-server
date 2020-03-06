@@ -34,19 +34,19 @@ type fileRefreshable struct {
 }
 
 const (
-	refreshableSyncPeriod = time.Second
+	defaultRefreshableSyncPeriod = time.Second
 )
 
-// NewFileRefreshable returns a new Refreshable whose current value is the bytes of the file at the provided path.
-// The file is checked every refreshableSyncPeriod
+// NewFileRefreshableWithDuration is identical to NewFileRefreshable except it defaults to use defaultRefreshableSyncPeriod for how often the file is checked
+func NewFileRefreshable(ctx context.Context, filePath string) (Refreshable, error) {
+	return NewFileRefreshableWithDuration(ctx, filePath, defaultRefreshableSyncPeriod)
+}
+
+// NewFileRefreshableWithDuration returns a new Refreshable whose current value is the bytes of the file at the provided path.
+// The file is checked every duration time.Duration as an argument.
 // Calling this function also starts a goroutine which updates the value of the refreshable whenever the specified file
 // is changed. The goroutine will terminate when the provided context is done or when the returned cancel function is
 // called.
-func NewFileRefreshable(ctx context.Context, filePath string) (Refreshable, error) {
-	return NewFileRefreshableWithDuration(ctx, filePath, refreshableSyncPeriod)
-}
-
-// NewFileRefreshableWithDuration is identical to NewFileRefreshable except with a user specified duration
 func NewFileRefreshableWithDuration(ctx context.Context, filePath string, duration time.Duration) (Refreshable, error) {
 	initialBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {

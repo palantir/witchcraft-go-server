@@ -16,9 +16,12 @@ package refreshable
 
 import (
 	"context"
+	"github.com/nmiyake/pkg/dirs"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -30,9 +33,12 @@ const (
 	testStr2 = "renderConf2"
 )
 
-func TestRefreshableChanges(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	assert.NoError(t, err)
+// Verifies that a file that is written to and then update returns the updated value when Refreshable.Current() is called
+// We ensure we wait long enough (80ms) such that the refreshable duration (50ms) will read the change
+func TestRefreshableFileChanges(t *testing.T) {
+	tempDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
 	fileToWrite := filepath.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
 	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
@@ -43,38 +49,39 @@ func TestRefreshableChanges(t *testing.T) {
 	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
-	err = os.RemoveAll(tempDir)
-	assert.NoError(t, err)
 }
 
-func TestRefreshableSubscribes(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
-	assert.NoError(t, err)
+// Verifies that a subscribing to a FileRefreshable will correctly call the callback provided
+// We ensure we wait long enough (80ms) such that the refreshable duration (50ms) will read the change
+func TestRefreshableFileSubscribes(t *testing.T) {
+	tempDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
 	fileToWrite := filepath.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
 	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
-	count := 0
+	var count int32
 	mappingFunc := func(mapped interface{}) {
-		count = count + 1
+		atomic.AddInt32(&count, 1)
 		str := getStringFromInterface(t, mapped)
 		assert.Equal(t, str, "renderConf2")
 	}
 	r.Subscribe(mappingFunc)
 	writeFileHelper(t, fileToWrite, testStr2)
 	time.Sleep(time.Millisecond * 80)
-	assert.Equal(t, 1, count)
-
-	err = os.RemoveAll(tempDir)
-	assert.NoError(t, err)
+	assert.Equal(t, int32(1), count)
 }
 
-func TestRefreshableCanFollowSymLink(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
+// Verifies that a RefreshableFile can follow a symlink when the original file updates
+// We ensure we wait long enough (80ms) such that the refreshable duration (50ms) will read the change
+func TestRefreshableFileCanFollowSymLink(t *testing.T) {
+	tempDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
 	// We will have fileToWritePointingAtActual point at fileToWriteActual
-	assert.NoError(t, err)
 	fileToWriteActual := filepath.Join(tempDir, "fileToWriteActual")
 	fileToWritePointingAtActual := filepath.Join(tempDir, "fileToWritePointingAtActual")
 	// Write the old file
@@ -92,14 +99,15 @@ func TestRefreshableCanFollowSymLink(t *testing.T) {
 	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
-	err = os.RemoveAll(tempDir)
-	assert.NoError(t, err)
 }
 
-func TestRefreshableCanFollowMultipleSymLinks(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
+// Verifies that a RefreshableFile can follow a symlink to a symlink when the original file updates
+// We ensure we wait long enough (80ms) such that the refreshable duration (50ms) will read the change
+func TestRefreshableFileCanFollowMultipleSymLinks(t *testing.T) {
+	tempDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
 	// We will have fileToWritePointingAtActual point at fileToWriteActual
-	assert.NoError(t, err)
 	fileToWriteActual := filepath.Join(tempDir, "fileToWriteActual")
 	fileToWritePointingAtActual := filepath.Join(tempDir, "fileToWritePointingAtActual")
 	fileToWritePointingAtSymlink := filepath.Join(tempDir, "fileToWritePointingAtSymlink")
@@ -121,14 +129,15 @@ func TestRefreshableCanFollowMultipleSymLinks(t *testing.T) {
 	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
-	err = os.RemoveAll(tempDir)
-	assert.NoError(t, err)
 }
 
-func TestRefreshableCanFollowMovingSymLink(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "")
+// Verifies that a RefreshableFile can follow a symlink to a symlink when the symlink changes
+// We ensure we wait long enough (80ms) such that the refreshable duration (50ms) will read the change
+func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
+	tempDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
 	// We will have fileToWritePointingAtActual point at fileToWriteActual
-	assert.NoError(t, err)
 	fileToWriteActualOriginal := filepath.Join(tempDir, "fileToWriteActualOriginal")
 	fileToWriteActualUpdated := filepath.Join(tempDir, "fileToWriteActualUpdated")
 	fileToWritePointingAtActual := filepath.Join(tempDir, "fileToWritePointingAtActual")
@@ -158,12 +167,10 @@ func TestRefreshableCanFollowMovingSymLink(t *testing.T) {
 	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
-	err = os.RemoveAll(tempDir)
-	assert.NoError(t, err)
 }
 
 func writeFileHelper(t *testing.T, path, value string) {
-	err := ioutil.WriteFile(path, []byte(value), 0777)
+	err := ioutil.WriteFile(path, []byte(value), 0644)
 	assert.NoError(t, err)
 }
 
