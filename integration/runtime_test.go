@@ -97,6 +97,7 @@ exclamations: 4
 	server := witchcraft.NewServer().
 		WithRuntimeConfigType(testRuntimeConfig{}).
 		WithDisableGoRuntimeMetrics().
+		WithRuntimeConfigFromFileAndDuration("var/conf/runtime.yml", time.Millisecond*30).
 		WithSelfSignedCertificate().
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
