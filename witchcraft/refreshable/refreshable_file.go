@@ -19,6 +19,7 @@ import (
 	"crypto/sha256"
 	"io/ioutil"
 	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	werror "github.com/palantir/witchcraft-go-error"
@@ -53,6 +54,78 @@ func NewFileRefreshable(ctx context.Context, filePath string) (r Refreshable, rE
 	}
 	return fRefreshable, nil
 }
+
+type fileRefreshable2 struct {
+	innerRefreshable *DefaultRefreshable
+
+	filePath     string
+	fileChecksum [sha256.Size]byte
+}
+
+func NewFileRefreshable2(ctx context.Context, filePath string) (Refreshable, error) {
+	initialBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, werror.Wrap(err, "failed to create file-based Refreshable because file could not be read", werror.SafeParam("filePath", filePath))
+	}
+	fRefreshable := &fileRefreshable2{
+		innerRefreshable: NewDefaultRefreshable(initialBytes),
+		filePath:         filePath,
+		fileChecksum:     sha256.Sum256(initialBytes),
+	}
+	fRefreshable.watchForChangesAsync(ctx)
+	return fRefreshable, nil
+}
+
+func (d *fileRefreshable2) watchForChangesAsync(ctxOuter context.Context) {
+	go wapp.RunWithRecoveryLogging(wparams.ContextWithSafeParam(ctxOuter, "filePath", d.filePath), func(ctx context.Context) {
+		d.watchForChanges(ctx)
+	})
+}
+
+func (d *fileRefreshable2) watchForChanges(ctx context.Context)  {
+	gcIntervalTicker := time.NewTicker(time.Millisecond * 300)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-gcIntervalTicker.C:
+			d.eval(ctx)
+		}
+	}
+}
+
+
+func (d *fileRefreshable2) eval(ctx context.Context) {
+	fileBytes, err := ioutil.ReadFile(d.filePath)
+	if err != nil {
+		svc1log.FromContext(ctx).Warn("Failed to read file bytes to update refreshable", svc1log.Stacktrace(err))
+		return
+	}
+	loadedChecksum := sha256.Sum256(fileBytes)
+	if loadedChecksum == d.fileChecksum {
+		svc1log.FromContext(ctx).Debug("Ignoring fsnotify event for runtime configuration file because file checksum was unchanged")
+		return
+	}
+	if err := d.innerRefreshable.Update(fileBytes); err != nil {
+		svc1log.FromContext(ctx).Error("Failed to update refreshable with new file bytes", svc1log.Stacktrace(err))
+		return
+	}
+	d.fileChecksum = loadedChecksum
+}
+
+
+func (d *fileRefreshable2) Current() interface{} {
+	return d.innerRefreshable.Current()
+}
+
+func (d *fileRefreshable2) Subscribe(consumer func(interface{})) (unsubscribe func()) {
+	return d.innerRefreshable.Subscribe(consumer)
+}
+
+func (d *fileRefreshable2) Map(mapFn func(interface{}) interface{}) Refreshable {
+	return d.innerRefreshable.Map(mapFn)
+}
+
 
 func (d *fileRefreshable) watchForChanges(ctx context.Context) error {
 	watcher, err := fsnotify.NewWatcher()
