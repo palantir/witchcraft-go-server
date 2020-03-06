@@ -35,7 +35,7 @@ func TestRefreshableChanges(t *testing.T) {
 	assert.NoError(t, err)
 	fileToWrite := path.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
-	r, err := NewFileRefreshable(context.Background(), fileToWrite, time.Millisecond * 50)
+	r, err := NewFileRefreshable(context.Background(), fileToWrite, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -49,22 +49,22 @@ func TestRefreshableChanges(t *testing.T) {
 
 func TestRefreshableCanFollowSymLink(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
-	// We will have fileToWriteNew point at fileToWriteOld
+	// We will have fileToWritePointingAtActual point at fileToWriteActual
 	assert.NoError(t, err)
-	fileToWriteOld := path.Join(tempDir, "fileOld")
-	fileToWriteNew := path.Join(tempDir, "fileNew")
+	fileToWriteActual := path.Join(tempDir, "fileToWriteActual")
+	fileToWritePointingAtActual := path.Join(tempDir, "fileToWritePointingAtActual")
 	// Write the old file
-	writeFileHelper(t, fileToWriteOld, testStr1)
+	writeFileHelper(t, fileToWriteActual, testStr1)
 	// Symlink the old file to point at the new file
-	err = os.Symlink(fileToWriteOld, fileToWriteNew)
+	err = os.Symlink(fileToWriteActual, fileToWritePointingAtActual)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshable(context.Background(), fileToWriteNew, time.Millisecond * 50)
+	r, err := NewFileRefreshable(context.Background(), fileToWritePointingAtActual, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
-	// Update the symlink file
-	writeFileHelper(t, fileToWriteOld, testStr2)
+	// Update the actual file
+	writeFileHelper(t, fileToWriteActual, testStr2)
 	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
@@ -72,33 +72,65 @@ func TestRefreshableCanFollowSymLink(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestComplexSymLink(t *testing.T) {
+func TestRefreshableCanFollowMultipleSymLinks(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
-	fileToWriteOld := path.Join(tempDir, "fileOld")
-	fileToWriteAgain := path.Join(tempDir, "fileOldAgain")
-	fileToWriteNew := path.Join(tempDir, "fileNew")
+	// We will have fileToWritePointingAtActual point at fileToWriteActual
 	assert.NoError(t, err)
-	v1 := []byte("renderConf1")
-	v2 := []byte("renderConf2")
-	err = ioutil.WriteFile(fileToWriteOld, v1, 0777)
+	fileToWriteActual := path.Join(tempDir, "fileToWriteActual")
+	fileToWritePointingAtActual := path.Join(tempDir, "fileToWritePointingAtActual")
+	fileToWritePointingAtSymlink := path.Join(tempDir, "fileToWritePointingAtSymlink")
+	// Write the old file
+	writeFileHelper(t, fileToWriteActual, testStr1)
+	// Symlink the old file to point at the new file
+	err = os.Symlink(fileToWriteActual, fileToWritePointingAtActual)
 	assert.NoError(t, err)
-	err = ioutil.WriteFile(fileToWriteAgain, v1, 0777)
+	// Symlink a to a symlink
+	err = os.Symlink(fileToWritePointingAtActual, fileToWritePointingAtSymlink)
 	assert.NoError(t, err)
-	err = os.Symlink(fileToWriteOld, fileToWriteNew)
-	assert.NoError(t, err)
-	r, err := NewFileRefreshable(context.Background(), fileToWriteNew, time.Millisecond * 50)
+	// Point the refreshable towards the new file
+	r, err := NewFileRefreshable(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
-	err = os.Remove(fileToWriteNew)
-	assert.NoError(t, err)
-	err = os.Symlink(fileToWriteAgain, fileToWriteNew)
-	assert.NoError(t, err)
+	// Update the symlink file
+	writeFileHelper(t, fileToWriteActual, testStr2)
+	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
-	assert.Equal(t, str, "renderConf1")
-	err = ioutil.WriteFile(fileToWriteAgain, v2, 0777)
+	assert.Equal(t, str, "renderConf2")
+	err = os.RemoveAll(tempDir)
 	assert.NoError(t, err)
-	time.Sleep(time.Second)
+}
+
+func TestRefreshableCanFollowMovingSymLink(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "")
+	// We will have fileToWritePointingAtActual point at fileToWriteActual
+	assert.NoError(t, err)
+	fileToWriteActualOriginal := path.Join(tempDir, "fileToWriteActualOriginal")
+	fileToWriteActualUpdated := path.Join(tempDir, "fileToWriteActualUpdated")
+	fileToWritePointingAtActual := path.Join(tempDir, "fileToWritePointingAtActual")
+	fileToWritePointingAtSymlink := path.Join(tempDir, "fileToWritePointingAtSymlink")
+	// Write the old file
+	writeFileHelper(t, fileToWriteActualOriginal, testStr1)
+	// Write the old file
+	writeFileHelper(t, fileToWriteActualUpdated, testStr2)
+	// Symlink the old file to point at the new file
+	err = os.Symlink(fileToWriteActualOriginal, fileToWritePointingAtActual)
+	assert.NoError(t, err)
+	// Symlink a to a symlink
+	err = os.Symlink(fileToWritePointingAtActual, fileToWritePointingAtSymlink)
+	assert.NoError(t, err)
+	// Point the refreshable towards the new file
+	r, err := NewFileRefreshable(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
+	assert.NoError(t, err)
+	str := getStringFromRefreshable(t, r)
+	assert.Equal(t, str, "renderConf1")
+	// Change where the symlink points
+	err = os.Remove(fileToWritePointingAtActual)
+	err = os.Symlink(fileToWriteActualUpdated, fileToWritePointingAtActual)
+	assert.NoError(t, err)
+
+	// Update the symlink file
+	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 	err = os.RemoveAll(tempDir)
