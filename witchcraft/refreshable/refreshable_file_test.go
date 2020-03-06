@@ -16,53 +16,56 @@ package refreshable
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestSimple(t *testing.T) {
+const (
+	testStr1 = "renderConf1"
+	testStr2 = "renderConf2"
+)
+
+func TestRefreshableChanges(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
+	assert.NoError(t, err)
 	fileToWrite := path.Join(tempDir, "file")
-	assert.NoError(t, err)
-	v1 := []byte("renderConf1")
-	v2 := []byte("renderConf2")
-	err = ioutil.WriteFile(fileToWrite, v1, 0777)
-	assert.NoError(t, err)
-	r, err := NewFileRefreshable2(context.Background(), fileToWrite)
+	writeFileHelper(t, fileToWrite, testStr1)
+	r, err := NewFileRefreshable(context.Background(), fileToWrite, time.Millisecond * 50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
-	err = ioutil.WriteFile(fileToWrite, v2, 0777)
-	assert.NoError(t, err)
-	time.Sleep(time.Second)
+	writeFileHelper(t, fileToWrite, testStr2)
+	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 	err = os.RemoveAll(tempDir)
 	assert.NoError(t, err)
 }
 
-func TestSimpleSymLink(t *testing.T) {
+func TestRefreshableCanFollowSymLink(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
+	// We will have fileToWriteNew point at fileToWriteOld
+	assert.NoError(t, err)
 	fileToWriteOld := path.Join(tempDir, "fileOld")
 	fileToWriteNew := path.Join(tempDir, "fileNew")
-	assert.NoError(t, err)
-	v1 := []byte("renderConf1")
-	v2 := []byte("renderConf2")
-	err = ioutil.WriteFile(fileToWriteOld, v1, 0777)
-	assert.NoError(t, err)
+	// Write the old file
+	writeFileHelper(t, fileToWriteOld, testStr1)
+	// Symlink the old file to point at the new file
 	err = os.Symlink(fileToWriteOld, fileToWriteNew)
 	assert.NoError(t, err)
-	r, err := NewFileRefreshable2(context.Background(), fileToWriteNew)
+	// Point the refreshable towards the new file
+	r, err := NewFileRefreshable(context.Background(), fileToWriteNew, time.Millisecond * 50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
-	err = ioutil.WriteFile(fileToWriteOld, v2, 0777)
-	assert.NoError(t, err)
-	time.Sleep(time.Second)
+	// Update the symlink file
+	writeFileHelper(t, fileToWriteOld, testStr2)
+	time.Sleep(time.Millisecond * 80)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 	err = os.RemoveAll(tempDir)
@@ -83,7 +86,7 @@ func TestComplexSymLink(t *testing.T) {
 	assert.NoError(t, err)
 	err = os.Symlink(fileToWriteOld, fileToWriteNew)
 	assert.NoError(t, err)
-	r, err := NewFileRefreshable2(context.Background(), fileToWriteNew)
+	r, err := NewFileRefreshable(context.Background(), fileToWriteNew, time.Millisecond * 50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -99,6 +102,11 @@ func TestComplexSymLink(t *testing.T) {
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 	err = os.RemoveAll(tempDir)
+	assert.NoError(t, err)
+}
+
+func writeFileHelper(t *testing.T, path, value string) {
+	err := ioutil.WriteFile(path, []byte(value), 0777)
 	assert.NoError(t, err)
 }
 
