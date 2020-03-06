@@ -37,7 +37,7 @@ const (
 	defaultRefreshableSyncPeriod = time.Second
 )
 
-// NewFileRefreshableWithDuration is identical to NewFileRefreshable except it defaults to use defaultRefreshableSyncPeriod for how often the file is checked
+// NewFileRefreshable is identical to NewFileRefreshableWithDuration except it defaults to use defaultRefreshableSyncPeriod for how often the file is checked
 func NewFileRefreshable(ctx context.Context, filePath string) (Refreshable, error) {
 	return NewFileRefreshableWithDuration(ctx, filePath, defaultRefreshableSyncPeriod)
 }

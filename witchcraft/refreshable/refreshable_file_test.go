@@ -16,8 +16,6 @@ package refreshable
 
 import (
 	"context"
-	"github.com/nmiyake/pkg/dirs"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,7 +23,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nmiyake/pkg/dirs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (

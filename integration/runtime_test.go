@@ -17,7 +17,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"io/ioutil"
 	"os"
 	"path"
@@ -30,6 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
+	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -502,7 +502,7 @@ exclamations: 4
 	assert.Equal(t, validCfg2, currCfg)
 }
 
-func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable{
+func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable {
 	r, err := refreshable.NewFileRefreshableWithDuration(context.Background(), "var/conf/runtime.yml", time.Millisecond*30)
 	assert.NoError(t, err)
 	return r
