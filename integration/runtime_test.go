@@ -312,6 +312,7 @@ exclamations: 4
 			},
 		}).
 		WithDisableGoRuntimeMetrics().
+		WithRuntimeConfigFromFileAndDuration("var/conf/runtime.yml", time.Millisecond*30).
 		WithSelfSignedCertificate().
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
@@ -445,6 +446,7 @@ exclamations: 4
 		}).
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate().
+		WithRuntimeConfigFromFileAndDuration("var/conf/runtime.yml", time.Millisecond*30).
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
 				cfg, ok := cfgI.(testRuntimeConfig)
