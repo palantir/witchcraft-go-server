@@ -319,7 +319,7 @@ func (s *Server) WithRuntimeConfigProvider(r refreshable.Refreshable) *Server {
 // configuration based on updates to the file).
 func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 	s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-		return refreshable.NewFileRefreshable(ctx, fpath)
+		return refreshable.NewFileRefreshable(ctx, fpath, fileRefreshableSyncPeriod)
 	}
 	return s
 }
@@ -494,6 +494,7 @@ func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 
 const (
 	defaultMetricEmitFrequency = time.Second * 60
+	fileRefreshableSyncPeriod = time.Second * 3
 
 	ecvKeyPath        = "var/conf/encrypted-config-value.key"
 	installConfigPath = "var/conf/install.yml"
@@ -744,7 +745,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-			return refreshable.NewFileRefreshable(ctx, runtimeConfigPath)
+			return refreshable.NewFileRefreshable(ctx, runtimeConfigPath, fileRefreshableSyncPeriod)
 		}
 	}
 
