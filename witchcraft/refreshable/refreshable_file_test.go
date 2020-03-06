@@ -29,8 +29,10 @@ import (
 )
 
 const (
-	testStr1 = "renderConf1"
-	testStr2 = "renderConf2"
+	testStr1              = "renderConf1"
+	testStr2              = "renderConf2"
+	refreshableSyncPeriod = time.Millisecond * 100
+	sleepPeriod           = time.Millisecond * 175
 )
 
 // Verifies that a file that is written to and then update returns the updated value when Refreshable.Current() is called
@@ -41,12 +43,12 @@ func TestRefreshableFileChanges(t *testing.T) {
 	defer cleanup()
 	fileToWrite := filepath.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
-	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, refreshableSyncPeriod)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
 	writeFileHelper(t, fileToWrite, testStr2)
-	time.Sleep(time.Millisecond * 80)
+	time.Sleep(sleepPeriod)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 }
@@ -59,7 +61,7 @@ func TestRefreshableFileSubscribes(t *testing.T) {
 	defer cleanup()
 	fileToWrite := filepath.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
-	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, refreshableSyncPeriod)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -71,7 +73,7 @@ func TestRefreshableFileSubscribes(t *testing.T) {
 	}
 	r.Subscribe(mappingFunc)
 	writeFileHelper(t, fileToWrite, testStr2)
-	time.Sleep(time.Millisecond * 80)
+	time.Sleep(sleepPeriod)
 	assert.Equal(t, int32(1), count)
 }
 
@@ -90,13 +92,13 @@ func TestRefreshableFileCanFollowSymLink(t *testing.T) {
 	err = os.Symlink(fileToWriteActual, fileToWritePointingAtActual)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtActual, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtActual, refreshableSyncPeriod)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
 	// Update the actual file
 	writeFileHelper(t, fileToWriteActual, testStr2)
-	time.Sleep(time.Millisecond * 80)
+	time.Sleep(sleepPeriod)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 }
@@ -120,13 +122,13 @@ func TestRefreshableFileCanFollowMultipleSymLinks(t *testing.T) {
 	err = os.Symlink(fileToWritePointingAtActual, fileToWritePointingAtSymlink)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtSymlink, refreshableSyncPeriod)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
 	// Update the symlink file
 	writeFileHelper(t, fileToWriteActual, testStr2)
-	time.Sleep(time.Millisecond * 80)
+	time.Sleep(sleepPeriod)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 }
@@ -153,7 +155,7 @@ func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
 	err = os.Symlink(fileToWritePointingAtActual, fileToWritePointingAtSymlink)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtSymlink, refreshableSyncPeriod)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -164,7 +166,7 @@ func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Update the symlink file
-	time.Sleep(time.Millisecond * 80)
+	time.Sleep(sleepPeriod)
 	str = getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf2")
 }
