@@ -500,7 +500,7 @@ func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 
 const (
 	defaultMetricEmitFrequency = time.Second * 60
-	fileRefreshableSyncPeriod  = time.Second * 3
+	fileRefreshableSyncPeriod  = time.Second
 
 	ecvKeyPath        = "var/conf/encrypted-config-value.key"
 	installConfigPath = "var/conf/install.yml"
