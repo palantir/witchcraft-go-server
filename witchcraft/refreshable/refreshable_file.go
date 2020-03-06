@@ -61,14 +61,15 @@ func NewFileRefreshableWithDuration(ctx context.Context, filePath string, durati
 	return fRefreshable, nil
 }
 
-func (d *fileRefreshable) watchForChangesAsync(ctxOuter context.Context, duration time.Duration) {
-	go wapp.RunWithRecoveryLogging(wparams.ContextWithSafeParam(ctxOuter, "filePath", d.filePath), func(ctx context.Context) {
+func (d *fileRefreshable) watchForChangesAsync(ctx context.Context, duration time.Duration) {
+	go wapp.RunWithRecoveryLogging(wparams.ContextWithSafeParam(ctx, "filePath", d.filePath), func(ctx context.Context) {
 		d.watchForChanges(ctx, duration)
 	})
 }
 
 func (d *fileRefreshable) watchForChanges(ctx context.Context, duration time.Duration) {
 	gcIntervalTicker := time.NewTicker(duration)
+	defer gcIntervalTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():

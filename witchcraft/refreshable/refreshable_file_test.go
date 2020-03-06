@@ -18,7 +18,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -33,7 +33,7 @@ const (
 func TestRefreshableChanges(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	assert.NoError(t, err)
-	fileToWrite := path.Join(tempDir, "file")
+	fileToWrite := filepath.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
 	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
 	assert.NoError(t, err)
@@ -50,7 +50,7 @@ func TestRefreshableChanges(t *testing.T) {
 func TestRefreshableSubscribes(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	assert.NoError(t, err)
-	fileToWrite := path.Join(tempDir, "file")
+	fileToWrite := filepath.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
 	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
 	assert.NoError(t, err)
@@ -71,13 +71,12 @@ func TestRefreshableSubscribes(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-
 func TestRefreshableCanFollowSymLink(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	// We will have fileToWritePointingAtActual point at fileToWriteActual
 	assert.NoError(t, err)
-	fileToWriteActual := path.Join(tempDir, "fileToWriteActual")
-	fileToWritePointingAtActual := path.Join(tempDir, "fileToWritePointingAtActual")
+	fileToWriteActual := filepath.Join(tempDir, "fileToWriteActual")
+	fileToWritePointingAtActual := filepath.Join(tempDir, "fileToWritePointingAtActual")
 	// Write the old file
 	writeFileHelper(t, fileToWriteActual, testStr1)
 	// Symlink the old file to point at the new file
@@ -101,9 +100,9 @@ func TestRefreshableCanFollowMultipleSymLinks(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	// We will have fileToWritePointingAtActual point at fileToWriteActual
 	assert.NoError(t, err)
-	fileToWriteActual := path.Join(tempDir, "fileToWriteActual")
-	fileToWritePointingAtActual := path.Join(tempDir, "fileToWritePointingAtActual")
-	fileToWritePointingAtSymlink := path.Join(tempDir, "fileToWritePointingAtSymlink")
+	fileToWriteActual := filepath.Join(tempDir, "fileToWriteActual")
+	fileToWritePointingAtActual := filepath.Join(tempDir, "fileToWritePointingAtActual")
+	fileToWritePointingAtSymlink := filepath.Join(tempDir, "fileToWritePointingAtSymlink")
 	// Write the old file
 	writeFileHelper(t, fileToWriteActual, testStr1)
 	// Symlink the old file to point at the new file
@@ -130,10 +129,10 @@ func TestRefreshableCanFollowMovingSymLink(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	// We will have fileToWritePointingAtActual point at fileToWriteActual
 	assert.NoError(t, err)
-	fileToWriteActualOriginal := path.Join(tempDir, "fileToWriteActualOriginal")
-	fileToWriteActualUpdated := path.Join(tempDir, "fileToWriteActualUpdated")
-	fileToWritePointingAtActual := path.Join(tempDir, "fileToWritePointingAtActual")
-	fileToWritePointingAtSymlink := path.Join(tempDir, "fileToWritePointingAtSymlink")
+	fileToWriteActualOriginal := filepath.Join(tempDir, "fileToWriteActualOriginal")
+	fileToWriteActualUpdated := filepath.Join(tempDir, "fileToWriteActualUpdated")
+	fileToWritePointingAtActual := filepath.Join(tempDir, "fileToWritePointingAtActual")
+	fileToWritePointingAtSymlink := filepath.Join(tempDir, "fileToWritePointingAtSymlink")
 	// Write the old file
 	writeFileHelper(t, fileToWriteActualOriginal, testStr1)
 	// Write the old file
