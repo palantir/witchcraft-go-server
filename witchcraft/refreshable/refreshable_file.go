@@ -33,12 +33,21 @@ type fileRefreshable struct {
 	fileChecksum [sha256.Size]byte
 }
 
+const (
+	refreshableSyncPeriod = time.Second
+)
+
 // NewFileRefreshable returns a new Refreshable whose current value is the bytes of the file at the provided path.
-// The duration configures how often the refreshable check the file
+// The file is checked every refreshableSyncPeriod
 // Calling this function also starts a goroutine which updates the value of the refreshable whenever the specified file
 // is changed. The goroutine will terminate when the provided context is done or when the returned cancel function is
 // called.
-func NewFileRefreshable(ctx context.Context, filePath string, duration time.Duration) (Refreshable, error) {
+func NewFileRefreshable(ctx context.Context, filePath string) (Refreshable, error) {
+	return NewFileRefreshableWithDuration(ctx, filePath, refreshableSyncPeriod)
+}
+
+// NewFileRefreshableWithDuration is identical to NewFileRefreshable except with a user specified duration
+func NewFileRefreshableWithDuration(ctx context.Context, filePath string, duration time.Duration) (Refreshable, error) {
 	initialBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, werror.WrapWithContextParams(ctx, err, "failed to create file-based Refreshable because file could not be read", werror.SafeParam("filePath", filePath))

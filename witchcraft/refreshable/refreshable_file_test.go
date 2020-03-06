@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2020 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ func TestRefreshableChanges(t *testing.T) {
 	assert.NoError(t, err)
 	fileToWrite := path.Join(tempDir, "file")
 	writeFileHelper(t, fileToWrite, testStr1)
-	r, err := NewFileRefreshable(context.Background(), fileToWrite, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -46,6 +46,31 @@ func TestRefreshableChanges(t *testing.T) {
 	err = os.RemoveAll(tempDir)
 	assert.NoError(t, err)
 }
+
+func TestRefreshableSubscribes(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "")
+	assert.NoError(t, err)
+	fileToWrite := path.Join(tempDir, "file")
+	writeFileHelper(t, fileToWrite, testStr1)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWrite, time.Millisecond*50)
+	assert.NoError(t, err)
+	str := getStringFromRefreshable(t, r)
+	assert.Equal(t, str, "renderConf1")
+	count := 0
+	mappingFunc := func(mapped interface{}) {
+		count = count + 1
+		str := getStringFromInterface(t, mapped)
+		assert.Equal(t, str, "renderConf2")
+	}
+	r.Subscribe(mappingFunc)
+	writeFileHelper(t, fileToWrite, testStr2)
+	time.Sleep(time.Millisecond * 80)
+	assert.Equal(t, 1, count)
+
+	err = os.RemoveAll(tempDir)
+	assert.NoError(t, err)
+}
+
 
 func TestRefreshableCanFollowSymLink(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
@@ -59,7 +84,7 @@ func TestRefreshableCanFollowSymLink(t *testing.T) {
 	err = os.Symlink(fileToWriteActual, fileToWritePointingAtActual)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshable(context.Background(), fileToWritePointingAtActual, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtActual, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -88,7 +113,7 @@ func TestRefreshableCanFollowMultipleSymLinks(t *testing.T) {
 	err = os.Symlink(fileToWritePointingAtActual, fileToWritePointingAtSymlink)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshable(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -120,7 +145,7 @@ func TestRefreshableCanFollowMovingSymLink(t *testing.T) {
 	err = os.Symlink(fileToWritePointingAtActual, fileToWritePointingAtSymlink)
 	assert.NoError(t, err)
 	// Point the refreshable towards the new file
-	r, err := NewFileRefreshable(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
+	r, err := NewFileRefreshableWithDuration(context.Background(), fileToWritePointingAtSymlink, time.Millisecond*50)
 	assert.NoError(t, err)
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
@@ -144,7 +169,10 @@ func writeFileHelper(t *testing.T, path, value string) {
 }
 
 func getStringFromRefreshable(t *testing.T, r Refreshable) string {
-	current := r.Current()
+	return getStringFromInterface(t, r.Current())
+}
+
+func getStringFromInterface(t *testing.T, current interface{}) string {
 	currentCasted, ok := current.([]uint8)
 	assert.True(t, ok)
 	b := make([]byte, len(currentCasted))
