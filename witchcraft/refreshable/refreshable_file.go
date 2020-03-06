@@ -65,12 +65,12 @@ func (d *fileRefreshable) watchForChanges(ctx context.Context, duration time.Dur
 		case <-ctx.Done():
 			return
 		case <-gcIntervalTicker.C:
-			d.evalFileAtTicker(ctx)
+			d.evaluateFileOnDisk(ctx)
 		}
 	}
 }
 
-func (d *fileRefreshable) evalFileAtTicker(ctx context.Context) {
+func (d *fileRefreshable) evaluateFileOnDisk(ctx context.Context) {
 	fileBytes, err := ioutil.ReadFile(d.filePath)
 	if err != nil {
 		svc1log.FromContext(ctx).Warn("Failed to read file bytes to update refreshable", svc1log.Stacktrace(err))
