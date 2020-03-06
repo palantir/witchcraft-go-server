@@ -324,15 +324,6 @@ func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 	return s
 }
 
-// WithRuntimeConfigFromFileAndDuration is identical to WithRuntimeConfigFromFile except a duration is provided
-// If provided, this duration is the frequency in which the file refreshable is checked
-func (s *Server) WithRuntimeConfigFromFileAndDuration(fpath string, duration time.Duration) *Server {
-	s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-		return refreshable.NewFileRefreshableWithDuration(ctx, fpath, duration)
-	}
-	return s
-}
-
 // WithSelfSignedCertificate configures the server to use a dynamically generated self-signed certificate for its TLS
 // authentication. Because there is no way to verify the certificate used by the server, this option is typically only
 // used in tests or very specialized circumstances where the connection to the server can be verified/authenticated

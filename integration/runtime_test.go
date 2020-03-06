@@ -17,6 +17,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"io/ioutil"
 	"os"
 	"path"
@@ -93,11 +94,10 @@ exclamations: 4
 	require.NoError(t, err)
 
 	var currCfg testRuntimeConfig
-
 	server := witchcraft.NewServer().
 		WithRuntimeConfigType(testRuntimeConfig{}).
 		WithDisableGoRuntimeMetrics().
-		WithRuntimeConfigFromFileAndDuration("var/conf/runtime.yml", time.Millisecond*30).
+		WithRuntimeConfigProvider(getConfiguredFileRefreshable(t)).
 		WithSelfSignedCertificate().
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
@@ -312,7 +312,7 @@ exclamations: 4
 			},
 		}).
 		WithDisableGoRuntimeMetrics().
-		WithRuntimeConfigFromFileAndDuration("var/conf/runtime.yml", time.Millisecond*30).
+		WithRuntimeConfigProvider(getConfiguredFileRefreshable(t)).
 		WithSelfSignedCertificate().
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
@@ -446,7 +446,7 @@ exclamations: 4
 		}).
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate().
-		WithRuntimeConfigFromFileAndDuration("var/conf/runtime.yml", time.Millisecond*30).
+		WithRuntimeConfigProvider(getConfiguredFileRefreshable(t)).
 		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
 			setCfg := func(cfgI interface{}) {
 				cfg, ok := cfgI.(testRuntimeConfig)
@@ -500,4 +500,10 @@ exclamations: 4
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, validCfg2, currCfg)
+}
+
+func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable{
+	r, err := refreshable.NewFileRefreshableWithDuration(context.Background(), "var/conf/runtime.yml", time.Millisecond*30)
+	assert.NoError(t, err)
+	return r
 }
