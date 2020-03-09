@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Change refreshable_file.go to use a ticker instead of fsnotify such that symlinks work
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/166
+
