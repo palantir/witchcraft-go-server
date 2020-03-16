@@ -162,7 +162,7 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 	var healthCheckResult health.HealthCheckResult
 	if m.requireFirstFullWindow && m.timeProvider.Now().Sub(m.startTime) < m.windowSize {
-		 healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)
+		healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)
 	} else {
 		m.pruneOldKeys(m.errorStore, m.lastError)
 		m.pruneOldKeys(m.successStore, nil)
