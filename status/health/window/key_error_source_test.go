@@ -237,7 +237,15 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceInsideStartWindow(t *testing.T) {
 				{key: "3"},
 				{key: "3", err: werror.Error("Error #1 for key 3")},
 			},
-			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
+			expectedCheck: health.HealthCheckResult{
+				Type:    testCheckType,
+				State:   health.HealthStateRepairing,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "Error #1 for key 1",
+					"2": "Error #2 for key 2",
+				},
+			},
 		},
 		{
 			name: "healthy when all keys are completely unhealthy",
@@ -247,7 +255,16 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceInsideStartWindow(t *testing.T) {
 				{key: "2", err: werror.Error("Error #2 for key 2")},
 				{key: "3", err: werror.Error("Error #1 for key 3")},
 			},
-			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
+			expectedCheck: health.HealthCheckResult{
+				Type:    testCheckType,
+				State:   health.HealthStateRepairing,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "Error #1 for key 1",
+					"2": "Error #2 for key 2",
+					"3": "Error #1 for key 3",
+				},
+			},
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -273,9 +290,16 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceStartOnlyErrorWithWindowTransition(t
 	ctx := context.Background()
 	messageInCaseOfError := "message in case of error"
 
-	healthyStatus := health.HealthStatus{
+	repairStatus := health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
-			testCheckType: whealth.HealthyHealthCheckResult(testCheckType),
+		testCheckType: 	{
+			Type:    testCheckType,
+			State:   health.HealthStateRepairing,
+			Message: &messageInCaseOfError,
+			Params: map[string]interface{}{
+				"1": "error for key: 1",
+				},
+			},
 		},
 	}
 
@@ -289,7 +313,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceStartOnlyErrorWithWindowTransition(t
 
 	// still inside the initial window so error should be suppressed
 	actualStatus := source.HealthStatus(context.Background())
-	assert.Equal(t, healthyStatus, actualStatus)
+	assert.Equal(t, repairStatus, actualStatus)
 
 	// move out of the initial health check window but keep error inside sliding window
 	timeProvider.RestlessSleep(50 * time.Minute)

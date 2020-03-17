@@ -161,30 +161,36 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 	defer m.sourceMutex.Unlock()
 
 	var healthCheckResult health.HealthCheckResult
-	if m.requireFirstFullWindow && m.timeProvider.Now().Sub(m.startTime) < m.windowSize {
-		healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)
-	} else {
-		m.pruneOldKeys(m.errorStore, m.lastError)
-		m.pruneOldKeys(m.successStore, nil)
 
-		params := make(map[string]interface{})
-		for _, key := range m.errorStore.List().Keys() {
-			if _, hasSuccess := m.successStore.Get(key); hasSuccess {
-				continue
-			}
-			params[key] = m.lastError[key].Error()
+	m.pruneOldKeys(m.errorStore, m.lastError)
+	m.pruneOldKeys(m.successStore, nil)
+
+	params := make(map[string]interface{})
+	for _, key := range m.errorStore.List().Keys() {
+		if _, hasSuccess := m.successStore.Get(key); hasSuccess {
+			continue
 		}
+		params[key] = m.lastError[key].Error()
+	}
 
-		if len(params) > 0 {
+	if len(params) > 0 {
+		if m.timeProvider.Now().Sub(m.startTime) < m.windowSize {
+			healthCheckResult = health.HealthCheckResult{
+				Type:    m.checkType,
+				State:   health.HealthStateRepairing,
+				Message: &m.messageInCaseOfError,
+				Params:  params,
+			}
+		} else {
 			healthCheckResult = health.HealthCheckResult{
 				Type:    m.checkType,
 				State:   health.HealthStateError,
 				Message: &m.messageInCaseOfError,
 				Params:  params,
 			}
-		} else {
-			healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)
 		}
+	} else {
+		healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)
 	}
 
 	return health.HealthStatus{
