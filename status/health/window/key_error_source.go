@@ -174,7 +174,7 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 	}
 
 	if len(params) > 0 {
-		if m.timeProvider.Now().Sub(m.startTime) < m.windowSize {
+		if m.requireFirstFullWindow && m.timeProvider.Now().Sub(m.startTime) < m.windowSize {
 			healthCheckResult = health.HealthCheckResult{
 				Type:    m.checkType,
 				State:   health.HealthStateRepairing,

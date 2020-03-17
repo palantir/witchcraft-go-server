@@ -292,12 +292,12 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceStartOnlyErrorWithWindowTransition(t
 
 	repairStatus := health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
-		testCheckType: 	{
-			Type:    testCheckType,
-			State:   health.HealthStateRepairing,
-			Message: &messageInCaseOfError,
-			Params: map[string]interface{}{
-				"1": "error for key: 1",
+			testCheckType: {
+				Type:    testCheckType,
+				State:   health.HealthStateRepairing,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "error for key: 1",
 				},
 			},
 		},

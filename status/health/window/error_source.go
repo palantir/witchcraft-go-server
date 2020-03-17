@@ -58,15 +58,9 @@ func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowS
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	if windowSize <= 0 {
-		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
-	}
-
-	underlyingSource := &healthyIfNotAllErrorsSource{
-		timeProvider:       newOrdinaryTimeProvider(),
-		useAnchoredWindows: false,
-		windowSize:         windowSize,
-		checkType:          checkType,
+	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, false, newOrdinaryTimeProvider())
+	if err != nil {
+		return nil, err
 	}
 
 	return &unhealthyIfAtLeastOneErrorSource{
@@ -91,20 +85,22 @@ func (u *unhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) hea
 // It returns, if there are only non-nil errors, the first non-nil error as an unhealthy check.
 // If there are no items, returns healthy.
 type healthyIfNotAllErrorsSource struct {
-	timeProvider       timeProvider
-	useAnchoredWindows bool
-	windowSize         time.Duration
-	lastErrorTime      time.Time
-	lastError          error
-	lastSuccessTime    time.Time
-	sourceMutex        sync.RWMutex
-	checkType          health.CheckType
+	timeProvider           timeProvider
+	useAnchoredWindows     bool
+	windowSize             time.Duration
+	lastErrorTime          time.Time
+	lastError              error
+	lastSuccessTime        time.Time
+	sourceMutex            sync.RWMutex
+	checkType              health.CheckType
+	requireFirstFullWindow bool
+	startTime              time.Time
 }
 
 // MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, newOrdinaryTimeProvider())
+	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, newOrdinaryTimeProvider())
 	if err != nil {
 		panic(err)
 	}
@@ -115,7 +111,7 @@ func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize t
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, false, newOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, newOrdinaryTimeProvider())
 }
 
 // MustNewAnchoredHealthyIfNotAllErrorsSource returns the result of calling
@@ -124,7 +120,7 @@ func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.
 // Care should be taken in considering health submission rate and window size when using anchored
 // windows. Windows too close to service emission frequency may cause errors to not surface
 func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, true, newOrdinaryTimeProvider())
+	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, newOrdinaryTimeProvider())
 	if err != nil {
 		panic(err)
 	}
@@ -139,23 +135,27 @@ func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, wind
 // considering health submission rate and window size when using anchored windows.
 // Windows too close to service emission frequency may cause errors to not surface
 func NewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, newOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, newOrdinaryTimeProvider())
 }
 
-func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration, useAnchoredWindows bool, timeProvider timeProvider) (ErrorHealthCheckSource, error) {
+func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration, useAnchoredWindows bool, requireFirstFullWindow bool, timeProvider timeProvider) (ErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
 		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
 
 	retVal := &healthyIfNotAllErrorsSource{
-		timeProvider:       timeProvider,
-		useAnchoredWindows: useAnchoredWindows,
-		windowSize:         windowSize,
-		checkType:          checkType,
+		timeProvider:           timeProvider,
+		useAnchoredWindows:     useAnchoredWindows,
+		windowSize:             windowSize,
+		checkType:              checkType,
+		startTime:              timeProvider.Now(),
+		requireFirstFullWindow: requireFirstFullWindow,
 	}
 
-	// Always require the first initial window to elapse before reporting unhealthy
-	retVal.lastSuccessTime = retVal.timeProvider.Now()
+	// When anchored treat first initial window as anchored
+	if useAnchoredWindows {
+		retVal.lastSuccessTime = retVal.timeProvider.Now()
+	}
 
 	return retVal, nil
 }
@@ -186,15 +186,22 @@ func (h *healthyIfNotAllErrorsSource) Submit(err error) {
 func (h *healthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.HealthStatus {
 	h.sourceMutex.RLock()
 	defer h.sourceMutex.RUnlock()
+
 	var healthCheckResult health.HealthCheckResult
 	curTime := h.timeProvider.Now()
 	if !h.lastSuccessTime.IsZero() && curTime.Sub(h.lastSuccessTime) < h.windowSize {
 		healthCheckResult = whealth.HealthyHealthCheckResult(h.checkType)
 	} else if !h.lastErrorTime.IsZero() && curTime.Sub(h.lastErrorTime) < h.windowSize {
-		healthCheckResult = whealth.UnhealthyHealthCheckResult(h.checkType, h.lastError.Error())
+
+		if h.requireFirstFullWindow && curTime.Sub(h.startTime) < h.windowSize {
+			healthCheckResult = whealth.RepairingHealthCheckResult(h.checkType, h.lastError.Error())
+		} else {
+			healthCheckResult = whealth.UnhealthyHealthCheckResult(h.checkType, h.lastError.Error())
+		}
 	} else {
 		healthCheckResult = whealth.HealthyHealthCheckResult(h.checkType)
 	}
+
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			h.checkType: healthCheckResult,
