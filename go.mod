@@ -3,7 +3,6 @@ module github.com/palantir/witchcraft-go-server
 go 1.13
 
 require (
-	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0

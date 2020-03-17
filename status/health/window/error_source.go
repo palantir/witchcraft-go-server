@@ -58,12 +58,19 @@ func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowS
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	source, err := NewHealthyIfNotAllErrorsSource(checkType, windowSize)
-	if err != nil {
-		return nil, err
+	if windowSize <= 0 {
+		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
+
+	underlyingSource := &healthyIfNotAllErrorsSource{
+		timeProvider:       newOrdinaryTimeProvider(),
+		useAnchoredWindows: false,
+		windowSize:         windowSize,
+		checkType:          checkType,
+	}
+
 	return &unhealthyIfAtLeastOneErrorSource{
-		source: source,
+		source: underlyingSource,
 	}, nil
 }
 
@@ -114,6 +121,8 @@ func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.
 // MustNewAnchoredHealthyIfNotAllErrorsSource returns the result of calling
 // NewAnchoredHealthyIfNotAllErrorsSource but panics if that call returns an error
 // Should only be used in instances where the inputs are statically defined and known to be valid.
+// Care should be taken in considering health submission rate and window size when using anchored
+// windows. Windows too close to service emission frequency may cause errors to not surface
 func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
 	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, true, newOrdinaryTimeProvider())
 	if err != nil {
@@ -126,7 +135,9 @@ func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, wind
 // with supplied checkType, using sliding window of size windowSize, which will
 // anchor (force the window to be at least the grace period) by inserting a healthy
 // check at the beginning of new the initial window or after gaps greater than windowSize
-// windowSize must be a positive value, otherwise returns error.
+// windowSize must be a positive value, otherwise returns error. Care should be taken in
+// considering health submission rate and window size when using anchored windows.
+// Windows too close to service emission frequency may cause errors to not surface
 func NewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
 	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, newOrdinaryTimeProvider())
 }
@@ -143,9 +154,8 @@ func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.
 		checkType:          checkType,
 	}
 
-	if useAnchoredWindows {
-		retVal.lastSuccessTime = retVal.timeProvider.Now()
-	}
+	// Always require the first initial window to elapse before reporting unhealthy
+	retVal.lastSuccessTime = retVal.timeProvider.Now()
 
 	return retVal, nil
 }
