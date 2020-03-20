@@ -110,7 +110,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 	}
 }
 
-func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
+func TestMultiKeyHealthyIfNotAllErrorsSourceOutsideStartWindow(t *testing.T) {
 	messageInCaseOfError := "message in case of error"
 	for _, testCase := range []struct {
 		name          string
@@ -186,8 +186,13 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := NewMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour)
+			timeProvider := &offsetTimeProvider{}
+			source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, true, timeProvider)
 			require.NoError(t, err)
+
+			// sleep puts all tests outside the required healthy start window
+			timeProvider.RestlessSleep(time.Hour)
+
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.Submit(keyErrorPair.key, keyErrorPair.err)
 			}
@@ -200,4 +205,133 @@ func TestMultiKeyHealthyIfNotAllErrorsSource(t *testing.T) {
 			assert.Equal(t, expectedStatus, actualStatus)
 		})
 	}
+}
+
+func TestMultiKeyHealthyIfNotAllErrorsSourceInsideStartWindow(t *testing.T) {
+	messageInCaseOfError := "message in case of error"
+	for _, testCase := range []struct {
+		name          string
+		keyErrorPairs []keyErrorPair
+		expectedCheck health.HealthCheckResult
+	}{
+		{
+			name: "healthy when all keys are partially healthy",
+			keyErrorPairs: []keyErrorPair{
+				{key: "1"},
+				{key: "1", err: werror.Error("Error #1 for key 1")},
+				{key: "1"},
+				{key: "2", err: werror.Error("Error #1 for key 2")},
+				{key: "2"},
+				{key: "3"},
+				{key: "3", err: werror.Error("Error #1 for key 3")},
+				{key: "3", err: werror.Error("Error #2 for key 3")},
+			},
+			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
+		},
+		{
+			name: "healthy when some keys are completely unhealthy",
+			keyErrorPairs: []keyErrorPair{
+				{key: "1", err: werror.Error("Error #1 for key 1")},
+				{key: "2", err: werror.Error("Error #1 for key 2")},
+				{key: "2", err: werror.Error("Error #2 for key 2")},
+				{key: "3"},
+				{key: "3", err: werror.Error("Error #1 for key 3")},
+			},
+			expectedCheck: health.HealthCheckResult{
+				Type:    testCheckType,
+				State:   health.HealthStateRepairing,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "Error #1 for key 1",
+					"2": "Error #2 for key 2",
+				},
+			},
+		},
+		{
+			name: "healthy when all keys are completely unhealthy",
+			keyErrorPairs: []keyErrorPair{
+				{key: "1", err: werror.Error("Error #1 for key 1")},
+				{key: "2", err: werror.Error("Error #1 for key 2")},
+				{key: "2", err: werror.Error("Error #2 for key 2")},
+				{key: "3", err: werror.Error("Error #1 for key 3")},
+			},
+			expectedCheck: health.HealthCheckResult{
+				Type:    testCheckType,
+				State:   health.HealthStateRepairing,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "Error #1 for key 1",
+					"2": "Error #2 for key 2",
+					"3": "Error #1 for key 3",
+				},
+			},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			timeProvider := &offsetTimeProvider{}
+			source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, true, timeProvider)
+			require.NoError(t, err)
+
+			for _, keyErrorPair := range testCase.keyErrorPairs {
+				source.Submit(keyErrorPair.key, keyErrorPair.err)
+			}
+			expectedStatus := health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					testCheckType: testCase.expectedCheck,
+				},
+			}
+			actualStatus := source.HealthStatus(context.Background())
+			assert.Equal(t, expectedStatus, actualStatus)
+		})
+	}
+}
+
+func TestMultiKeyHealthyIfNotAllErrorsSourceStartOnlyErrorWithWindowTransition(t *testing.T) {
+	ctx := context.Background()
+	messageInCaseOfError := "message in case of error"
+
+	repairStatus := health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			testCheckType: {
+				Type:    testCheckType,
+				State:   health.HealthStateRepairing,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "error for key: 1",
+				},
+			},
+		},
+	}
+
+	timeProvider := &offsetTimeProvider{}
+	source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, true, timeProvider)
+	require.NoError(t, err)
+
+	// move partially into the initial health check window
+	timeProvider.RestlessSleep(20 * time.Minute)
+	source.Submit("1", werror.ErrorWithContextParams(ctx, "error for key: 1"))
+
+	// still inside the initial window so error should be suppressed
+	actualStatus := source.HealthStatus(context.Background())
+	assert.Equal(t, repairStatus, actualStatus)
+
+	// move out of the initial health check window but keep error inside sliding window
+	timeProvider.RestlessSleep(50 * time.Minute)
+
+	expectedPostWindow := health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			testCheckType: {
+				Type:    testCheckType,
+				State:   health.HealthStateError,
+				Message: &messageInCaseOfError,
+				Params: map[string]interface{}{
+					"1": "error for key: 1",
+				},
+			},
+		},
+	}
+
+	actualStatus = source.HealthStatus(context.Background())
+	assert.Equal(t, expectedPostWindow, actualStatus)
+
 }
