@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    Reduce default trace sample rate from 100% -> 1%
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/170
+
