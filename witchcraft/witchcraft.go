@@ -238,6 +238,8 @@ type ConfigurableRouter interface {
 	WithLiveness(liveness status.Source) *Server
 }
 
+const defaultSampleRate = 0.01
+
 // NewServer returns a new uninitialized server.
 func NewServer() *Server {
 	return &Server{}
@@ -903,7 +905,7 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 }
 
 func (s *Server) getApplicationTracingOptions(install config.Install) []wtracing.TracerOption {
-	return getTracingOptions(s.applicationTraceSampler, install, alwaysSample, install.Server.Port, install.TraceSampleRate)
+	return getTracingOptions(s.applicationTraceSampler, install, traceSamplerFromSampleRate(defaultSampleRate), install.Server.Port, install.TraceSampleRate)
 }
 
 func (s *Server) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
