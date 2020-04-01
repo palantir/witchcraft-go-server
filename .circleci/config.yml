@@ -19,17 +19,17 @@ workflows:
           name: verify
           executor:
             name: go/golang
-            version: "1.14"
+            version: 1.14.1
             <<: *owner-repo
       - godel/test:
           name: test-go-1.14
           executor:
             name: go/golang
-            version: "1.14"
+            version: 1.14.1
             <<: *owner-repo
       - godel/test:
           name: test-go-1.13
           executor:
             name: go/golang
-            version: 1.13.8
+            version: 1.13.9
             <<: *owner-repo
