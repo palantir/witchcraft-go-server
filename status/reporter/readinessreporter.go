@@ -33,7 +33,7 @@ type Reporter interface {
 }
 
 type readinessReporter struct {
-	// In the code below, `mutex` solely exists to protect access to `readinessComponents`.
+	// mutex protects access to `readinessComponents`.
 	mutex               sync.RWMutex
 	readinessComponents map[ComponentName]Component
 }
@@ -48,22 +48,26 @@ func (r *readinessReporter) Status() (respStatus int, metadata interface{}) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	// If there are no readiness components, we return ready by default.
-	worstRespStatus := http.StatusOK
+	// Attempt to return the highest "unready" response code. If none exist, return ready.
+	highestUnreadyRespStatus := 0
 	aggregatedMetadata := make(map[ComponentName]interface{})
 	for name, component := range r.readinessComponents {
 		respStatus, metadata := component.Status()
 		// Response codes within [200, 399] are considered ready.
-		//   See https://github.palantir.build/deployability/sls-spec/blob/develop/docs/readiness.md#readiness.
-		if respStatus < 200 || respStatus >= 400 {
-			worstRespStatus = respStatus
+		//   Refer to readiness section of the SLS specification.
+		if (respStatus < 200 || respStatus >= 400) && respStatus > highestUnreadyRespStatus {
+			highestUnreadyRespStatus = respStatus
 		}
 		aggregatedMetadata[name] = metadata
 	}
-	return worstRespStatus, aggregatedMetadata
+	if highestUnreadyRespStatus == 0 {
+		return http.StatusOK, aggregatedMetadata
+	}
+	return highestUnreadyRespStatus, aggregatedMetadata
 }
 
 func (r *readinessReporter) InitializeReadinessComponent(ctx context.Context, name ComponentName) (Component, error) {
+	ctx = svc1log.WithLoggerParams(ctx, svc1log.SafeParam("readinessComponent", name))
 	var component Component
 	component = &readinessComponent{
 		name: name,
@@ -74,11 +78,11 @@ func (r *readinessReporter) InitializeReadinessComponent(ctx context.Context, na
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if _, exists := r.readinessComponents[name]; exists {
-		return nil, werror.ErrorWithContextParams(ctx, "Readiness component already exists.", werror.SafeParam("name", name))
+		return nil, werror.ErrorWithContextParams(ctx, "readiness component already exists")
 	}
 
 	r.readinessComponents[name] = component
-	svc1log.FromContext(ctx).Info("Registered new readiness component.", svc1log.SafeParam("readinessComponent", name))
+	svc1log.FromContext(ctx).Info("Registered new readiness component.")
 	return component, nil
 }
 
@@ -92,10 +96,10 @@ func (r *readinessReporter) GetReadinessComponent(name ComponentName) (Component
 func (r *readinessReporter) UnregisterReadinessComponent(ctx context.Context, name ComponentName) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	if _, exists := r.readinessComponents[name]; exists {
-		delete(r.readinessComponents, name)
-		svc1log.FromContext(ctx).Info("Unregistered readiness component.", svc1log.SafeParam("readinessComponent", name))
-		return true
+	if _, exists := r.readinessComponents[name]; !exists {
+		return false
 	}
-	return false
+	delete(r.readinessComponents, name)
+	svc1log.FromContext(ctx).Info("Unregistered readiness component.", svc1log.SafeParam("readinessComponent", name))
+	return true
 }

@@ -80,7 +80,7 @@ func TestStatusBehavior(t *testing.T) {
 			},
 		},
 		{
-			name: "reporter with multiple components",
+			name: "reporter with ready and unready components",
 			components: map[ComponentName]componentTestData{
 				"test-component": {
 					status:   http.StatusCreated,
@@ -95,6 +95,24 @@ func TestStatusBehavior(t *testing.T) {
 			expectedMetadata: map[ComponentName]interface{}{
 				"test-component":    "metadata",
 				"unready-component": "unready-metadata",
+			},
+		},
+		{
+			name: "reporter with multiple unready components returns highest status",
+			components: map[ComponentName]componentTestData{
+				"internal-server-error-component": {
+					status:   http.StatusInternalServerError,
+					metadata: "internal-server-error",
+				},
+				"bad-gateway-component": {
+					status:   http.StatusBadGateway,
+					metadata: "bad-gateway",
+				},
+			},
+			expectedRespStatus: http.StatusBadGateway,
+			expectedMetadata: map[ComponentName]interface{}{
+				"internal-server-error-component": "internal-server-error",
+				"bad-gateway-component":           "bad-gateway",
 			},
 		},
 	} {
