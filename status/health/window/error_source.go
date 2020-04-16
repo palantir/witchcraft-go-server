@@ -99,7 +99,7 @@ type healthyIfNotAllErrorsSource struct {
 // MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, true, newOrdinaryTimeProvider())
+	source, err := NewHealthyIfNotAllErrorsSource(checkType, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +120,7 @@ func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.
 // Care should be taken in considering health submission rate and window size when using anchored
 // windows. Windows too close to service emission frequency may cause errors to not surface.
 func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, windowSize, true, newOrdinaryTimeProvider())
+	source, err := NewAnchoredHealthyIfNotAllErrorsSource(checkType, windowSize)
 	if err != nil {
 		panic(err)
 	}
