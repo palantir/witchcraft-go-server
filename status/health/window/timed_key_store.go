@@ -20,8 +20,9 @@ import (
 
 // TimedKey is a pair of a key and a timestamp.
 type TimedKey struct {
-	Key  string
-	Time time.Time
+	Key     string
+	Time    time.Time
+	Payload interface{}
 }
 
 // TimedKeys is a list of TimedKey objects.
@@ -42,7 +43,7 @@ func (t TimedKeys) Keys() []string {
 type TimedKeyStore interface {
 	// Put adds a new TimedKey to the end of the list with the timestamp set to the current time.
 	// Adding an already present key will cause the current TimedKey to be updated to the current and to be sent to the end of the list.
-	Put(key string)
+	Put(key string, payload interface{})
 	// Delete removes a TimedKey from the list. If the key doesn't exist, it is a no op.
 	// The second return value returns whether or not the key existed within the store.
 	Delete(key string) bool
@@ -91,11 +92,12 @@ func NewTimedKeyStore() TimedKeyStore {
 	}
 }
 
-func (t *timedKeyStore) Put(key string) {
+func (t *timedKeyStore) Put(key string, payload interface{}) {
 	_ = t.Delete(key)
 	timedKey := TimedKey{
-		Key:  key,
-		Time: time.Now(),
+		Key:     key,
+		Time:    time.Now(),
+		Payload: payload,
 	}
 	node := &keyNode{
 		prev:     t.end.prev,

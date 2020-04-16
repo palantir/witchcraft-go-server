@@ -91,7 +91,7 @@ type multiKeyHealthyIfNotAllErrorsSource struct {
 	windowSize             time.Duration
 	errorStore             TimedKeyStore
 	successStore           TimedKeyStore
-	lastError              map[string]error
+	gapEndtimeStore        TimedKeyStore
 	sourceMutex            sync.Mutex
 	checkType              health.CheckType
 	messageInCaseOfError   string
@@ -101,24 +101,6 @@ type multiKeyHealthyIfNotAllErrorsSource struct {
 }
 
 var _ status.HealthCheckSource = &multiKeyHealthyIfNotAllErrorsSource{}
-
-func newMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, requireFirstFullWindow bool, timeProvider timeProvider) (KeyedErrorHealthCheckSource, error) {
-	if windowSize <= 0 {
-		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
-	}
-
-	return &multiKeyHealthyIfNotAllErrorsSource{
-		windowSize:             windowSize,
-		errorStore:             NewTimedKeyStore(),
-		successStore:           NewTimedKeyStore(),
-		lastError:              make(map[string]error),
-		checkType:              checkType,
-		messageInCaseOfError:   messageInCaseOfError,
-		requireFirstFullWindow: requireFirstFullWindow,
-		startTime:              timeProvider.Now(),
-		timeProvider:           timeProvider,
-	}, nil
-}
 
 // MustNewMultiKeyHealthyIfNotAllErrorsSource returns the result of calling NewMultiKeyHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
@@ -137,21 +119,36 @@ func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageI
 	return newMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize, true, newOrdinaryTimeProvider())
 }
 
+func newMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, requireFirstFullWindow bool, timeProvider timeProvider) (KeyedErrorHealthCheckSource, error) {
+	if windowSize <= 0 {
+		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
+	}
+
+	return &multiKeyHealthyIfNotAllErrorsSource{
+		windowSize:             windowSize,
+		errorStore:             NewTimedKeyStore(),
+		successStore:           NewTimedKeyStore(),
+		gapEndtimeStore:        NewTimedKeyStore(),
+		checkType:              checkType,
+		messageInCaseOfError:   messageInCaseOfError,
+		requireFirstFullWindow: requireFirstFullWindow,
+		startTime:              timeProvider.Now(),
+		timeProvider:           timeProvider,
+	}, nil
+}
+
 // Submit submits an item as a key error pair.
 func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 	m.sourceMutex.Lock()
 	defer m.sourceMutex.Unlock()
 
-	m.pruneOldKeys(m.errorStore, m.lastError)
-	m.pruneOldKeys(m.successStore, nil)
+	pruneOldKeys(m.errorStore, m.windowSize)
+	pruneOldKeys(m.successStore, m.windowSize)
 
 	if err == nil {
-		m.successStore.Put(key)
-		delete(m.lastError, key)
-		m.errorStore.Delete(key)
+		m.successStore.Put(key, nil)
 	} else {
-		m.lastError[key] = err
-		m.errorStore.Put(key)
+		m.errorStore.Put(key, err)
 	}
 }
 
@@ -162,15 +159,15 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 	var healthCheckResult health.HealthCheckResult
 
-	m.pruneOldKeys(m.errorStore, m.lastError)
-	m.pruneOldKeys(m.successStore, nil)
+	pruneOldKeys(m.errorStore, m.windowSize)
+	pruneOldKeys(m.successStore, m.windowSize)
 
 	params := make(map[string]interface{})
-	for _, key := range m.errorStore.List().Keys() {
-		if _, hasSuccess := m.successStore.Get(key); hasSuccess {
+	for _, item := range m.errorStore.List() {
+		if _, hasSuccess := m.successStore.Get(item.Key); hasSuccess {
 			continue
 		}
-		params[key] = m.lastError[key].Error()
+		params[item.Key] = item.Payload.(error).Error()
 	}
 
 	if len(params) > 0 {
@@ -200,7 +197,7 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 	}
 }
 
-func (m *multiKeyHealthyIfNotAllErrorsSource) pruneOldKeys(store TimedKeyStore, errors map[string]error) {
+func pruneOldKeys(store TimedKeyStore, maxAge time.Duration) {
 	curTime := time.Now()
 	for {
 		oldest, exists := store.Oldest()
@@ -208,13 +205,10 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) pruneOldKeys(store TimedKeyStore, 
 			return
 		}
 
-		if curTime.Sub(oldest.Time) < m.windowSize {
+		if curTime.Sub(oldest.Time) < maxAge {
 			return
 		}
 
 		store.Delete(oldest.Key)
-		if errors != nil {
-			delete(errors, oldest.Key)
-		}
 	}
 }
