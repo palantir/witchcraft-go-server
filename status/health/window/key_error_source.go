@@ -49,7 +49,7 @@ type multiKeyUnhealthyIfAtLeastOneErrorSource struct {
 // MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource returns the result of calling NewMultiKeyUnhealthyIfAtLeastOneErrorSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
-	source, err := newMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize, false, newOrdinaryTimeProvider())
+	source, err := NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType, messageInCaseOfError, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +60,7 @@ func MustNewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType,
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
 func NewMultiKeyUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
-	source, err := newMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize, false, newOrdinaryTimeProvider())
+	source, err := newMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize, 0, false, newOrdinaryTimeProvider())
 	if err != nil {
 		return nil, err
 	}
@@ -88,16 +88,16 @@ func (m *multiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Cont
 // The Params field of the HealthCheckResult is the last error message for each key mapped by the key for all unhealthy keys.
 // If there are no items within the last windowSize time frame, returns healthy.
 type multiKeyHealthyIfNotAllErrorsSource struct {
-	windowSize             time.Duration
-	errorStore             TimedKeyStore
-	successStore           TimedKeyStore
-	gapEndtimeStore        TimedKeyStore
-	sourceMutex            sync.Mutex
-	checkType              health.CheckType
-	messageInCaseOfError   string
-	requireFirstFullWindow bool
-	startTime              time.Time
-	timeProvider           timeProvider
+	windowSize              time.Duration
+	errorStore              TimedKeyStore
+	successStore            TimedKeyStore
+	gapEndTimeStore         TimedKeyStore
+	repairingGracePeriod    time.Duration
+	globalRepairingDeadline time.Time
+	sourceMutex             sync.Mutex
+	checkType               health.CheckType
+	messageInCaseOfError    string
+	timeProvider            timeProvider
 }
 
 var _ status.HealthCheckSource = &multiKeyHealthyIfNotAllErrorsSource{}
@@ -116,25 +116,31 @@ func MustNewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, mess
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
 func NewMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
-	return newMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize, true, newOrdinaryTimeProvider())
+	return newMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize, 0, true, newOrdinaryTimeProvider())
 }
 
-func newMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, requireFirstFullWindow bool, timeProvider timeProvider) (KeyedErrorHealthCheckSource, error) {
+func newMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize, repairingGracePeriod time.Duration, requireFirstFullWindow bool, timeProvider timeProvider) (KeyedErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
 		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}
 
-	return &multiKeyHealthyIfNotAllErrorsSource{
-		windowSize:             windowSize,
-		errorStore:             NewTimedKeyStore(),
-		successStore:           NewTimedKeyStore(),
-		gapEndtimeStore:        NewTimedKeyStore(),
-		checkType:              checkType,
-		messageInCaseOfError:   messageInCaseOfError,
-		requireFirstFullWindow: requireFirstFullWindow,
-		startTime:              timeProvider.Now(),
-		timeProvider:           timeProvider,
-	}, nil
+	source := &multiKeyHealthyIfNotAllErrorsSource{
+		windowSize:              windowSize,
+		errorStore:              NewTimedKeyStore(),
+		successStore:            NewTimedKeyStore(),
+		gapEndTimeStore:         NewTimedKeyStore(),
+		repairingGracePeriod:    repairingGracePeriod,
+		globalRepairingDeadline: timeProvider.Now(),
+		checkType:               checkType,
+		messageInCaseOfError:    messageInCaseOfError,
+		timeProvider:            timeProvider,
+	}
+
+	if requireFirstFullWindow {
+
+	}
+
+	return source, nil
 }
 
 // Submit submits an item as a key error pair.
@@ -144,6 +150,13 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 
 	pruneOldKeys(m.errorStore, m.windowSize)
 	pruneOldKeys(m.successStore, m.windowSize)
+	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod)
+
+	_, hasError := m.errorStore.Get(key)
+	_, hasSuccess := m.successStore.Get(key)
+	if !hasError && !hasSuccess {
+		m.gapEndTimeStore.Put(key, nil)
+	}
 
 	if err == nil {
 		m.successStore.Put(key, nil)
@@ -161,11 +174,17 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 	pruneOldKeys(m.errorStore, m.windowSize)
 	pruneOldKeys(m.successStore, m.windowSize)
+	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod)
 
 	params := make(map[string]interface{})
 	for _, item := range m.errorStore.List() {
 		if _, hasSuccess := m.successStore.Get(item.Key); hasSuccess {
 			continue
+		}
+
+		if gapEndTime, hasRepairingDeadline := m.gapEndTimeStore.Get(item.Key); hasRepairingDeadline {
+			repairingDeadline := gapEndTime.Time.Add(m.repairingGracePeriod)
+
 		}
 		params[item.Key] = item.Payload.(error).Error()
 	}
