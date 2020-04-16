@@ -126,9 +126,9 @@ func newMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageI
 
 	source := &multiKeyHealthyIfNotAllErrorsSource{
 		windowSize:              windowSize,
-		errorStore:              NewTimedKeyStore(),
-		successStore:            NewTimedKeyStore(),
-		gapEndTimeStore:         NewTimedKeyStore(),
+		errorStore:              NewTimedKeyStore(timeProvider),
+		successStore:            NewTimedKeyStore(timeProvider),
+		gapEndTimeStore:         NewTimedKeyStore(timeProvider),
 		repairingGracePeriod:    repairingGracePeriod,
 		globalRepairingDeadline: timeProvider.Now(),
 		checkType:               checkType,
@@ -137,7 +137,7 @@ func newMultiKeyHealthyIfNotAllErrorsSource(checkType health.CheckType, messageI
 	}
 
 	if requireFirstFullWindow {
-
+		source.globalRepairingDeadline = timeProvider.Now().Add(windowSize)
 	}
 
 	return source, nil
@@ -150,7 +150,7 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 
 	pruneOldKeys(m.errorStore, m.windowSize)
 	pruneOldKeys(m.successStore, m.windowSize)
-	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod)
+	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize)
 
 	_, hasError := m.errorStore.Get(key)
 	_, hasSuccess := m.successStore.Get(key)
@@ -174,9 +174,10 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 	pruneOldKeys(m.errorStore, m.windowSize)
 	pruneOldKeys(m.successStore, m.windowSize)
-	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod)
+	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize)
 
 	params := make(map[string]interface{})
+	shouldError := false
 	for _, item := range m.errorStore.List() {
 		if _, hasSuccess := m.successStore.Get(item.Key); hasSuccess {
 			continue
@@ -184,26 +185,28 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 		if gapEndTime, hasRepairingDeadline := m.gapEndTimeStore.Get(item.Key); hasRepairingDeadline {
 			repairingDeadline := gapEndTime.Time.Add(m.repairingGracePeriod)
-
+			if m.globalRepairingDeadline.After(repairingDeadline) {
+				repairingDeadline = m.globalRepairingDeadline
+			}
+			if item.Time.After(repairingDeadline) || item.Time.Equal(repairingDeadline) {
+				shouldError = true
+			}
+		} else {
+			shouldError = true
 		}
+
 		params[item.Key] = item.Payload.(error).Error()
 	}
 
 	if len(params) > 0 {
-		if m.requireFirstFullWindow && m.timeProvider.Now().Sub(m.startTime) < m.windowSize {
-			healthCheckResult = health.HealthCheckResult{
-				Type:    m.checkType,
-				State:   health.HealthStateRepairing,
-				Message: &m.messageInCaseOfError,
-				Params:  params,
-			}
-		} else {
-			healthCheckResult = health.HealthCheckResult{
-				Type:    m.checkType,
-				State:   health.HealthStateError,
-				Message: &m.messageInCaseOfError,
-				Params:  params,
-			}
+		healthCheckResult = health.HealthCheckResult{
+			Type:    m.checkType,
+			State:   health.HealthStateRepairing,
+			Message: &m.messageInCaseOfError,
+			Params:  params,
+		}
+		if shouldError {
+			healthCheckResult.State = health.HealthStateError
 		}
 	} else {
 		healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)

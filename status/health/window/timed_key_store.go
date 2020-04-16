@@ -71,24 +71,26 @@ type keyNode struct {
 // begin and end are extra nodes that are before the first element and after the last one, respectively.
 // They point to each other when the list is empty.
 type timedKeyStore struct {
-	begin     *keyNode
-	end       *keyNode
-	nodeByKey map[string]*keyNode
+	begin        *keyNode
+	end          *keyNode
+	nodeByKey    map[string]*keyNode
+	timeProvider timeProvider
 }
 
 // NewTimedKeyStore creates a TimedKeyStore that executes all operations in O(1) time except
 // for List, which is O(n), where n is the number of stored keys.
 // Memory consumption is O(n), where n is the number of stored keys.
 // This struct is not thread safe.
-func NewTimedKeyStore() TimedKeyStore {
+func NewTimedKeyStore(timeProvider timeProvider) TimedKeyStore {
 	begin := &keyNode{}
 	end := &keyNode{}
 	begin.next = end
 	end.prev = begin
 	return &timedKeyStore{
-		begin:     begin,
-		end:       end,
-		nodeByKey: make(map[string]*keyNode),
+		begin:        begin,
+		end:          end,
+		nodeByKey:    make(map[string]*keyNode),
+		timeProvider: timeProvider,
 	}
 }
 
@@ -96,7 +98,7 @@ func (t *timedKeyStore) Put(key string, payload interface{}) {
 	_ = t.Delete(key)
 	timedKey := TimedKey{
 		Key:     key,
-		Time:    time.Now(),
+		Time:    t.timeProvider.Now(),
 		Payload: payload,
 	}
 	node := &keyNode{

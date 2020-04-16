@@ -57,7 +57,7 @@ func assertStoreContent(t *testing.T, store TimedKeyStore, list []string, subtes
 }
 
 func TestTimedKeyStore(t *testing.T) {
-	store := NewTimedKeyStore()
+	store := NewTimedKeyStore(newOrdinaryTimeProvider())
 	assertStoreContent(t, store, []string{}, "store initially empty")
 
 	store.Delete("a")

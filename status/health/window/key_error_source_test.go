@@ -110,7 +110,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 	}
 }
 
-func TestMultiKeyHealthyIfNotAllErrorsSourceOutsideStartWindow(t *testing.T) {
+func TestMultiKeyHealthyIfNotAllErrorsSource_OutsideStartWindow(t *testing.T) {
 	messageInCaseOfError := "message in case of error"
 	for _, testCase := range []struct {
 		name          string
@@ -187,7 +187,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceOutsideStartWindow(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			timeProvider := &offsetTimeProvider{}
-			source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, true, timeProvider)
+			source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, 0, true, timeProvider)
 			require.NoError(t, err)
 
 			// sleep puts all tests outside the required healthy start window
@@ -207,7 +207,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceOutsideStartWindow(t *testing.T) {
 	}
 }
 
-func TestMultiKeyHealthyIfNotAllErrorsSourceInsideStartWindow(t *testing.T) {
+func TestMultiKeyHealthyIfNotAllErrorsSource_InsideStartWindow(t *testing.T) {
 	messageInCaseOfError := "message in case of error"
 	for _, testCase := range []struct {
 		name          string
@@ -269,7 +269,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceInsideStartWindow(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			timeProvider := &offsetTimeProvider{}
-			source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, true, timeProvider)
+			source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, 0, true, timeProvider)
 			require.NoError(t, err)
 
 			for _, keyErrorPair := range testCase.keyErrorPairs {
@@ -286,7 +286,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceInsideStartWindow(t *testing.T) {
 	}
 }
 
-func TestMultiKeyHealthyIfNotAllErrorsSourceStartOnlyErrorWithWindowTransition(t *testing.T) {
+func TestMultiKeyHealthyIfNotAllErrorsSource_StartOnlyErrorWithWindowTransition(t *testing.T) {
 	ctx := context.Background()
 	messageInCaseOfError := "message in case of error"
 
@@ -304,7 +304,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSourceStartOnlyErrorWithWindowTransition(t
 	}
 
 	timeProvider := &offsetTimeProvider{}
-	source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, true, timeProvider)
+	source, err := newMultiKeyHealthyIfNotAllErrorsSource(testCheckType, messageInCaseOfError, time.Hour, 0, true, timeProvider)
 	require.NoError(t, err)
 
 	// move partially into the initial health check window
