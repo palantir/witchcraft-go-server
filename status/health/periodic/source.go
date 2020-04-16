@@ -66,11 +66,12 @@ func NewHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryI
 // of error.
 func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, source Source, options ...Option) status.HealthCheckSource {
 	checker := &healthCheckSource{
-		source:        source,
-		gracePeriod:   gracePeriod,
-		retryInterval: retryInterval,
-		checkStates:   map[health.CheckType]*checkState{},
-		startupTime:   time.Now(),
+		source:             source,
+		gracePeriod:        gracePeriod,
+		retryInterval:      retryInterval,
+		checkStates:        map[health.CheckType]*checkState{},
+		startupTime:        time.Now(),
+		startupGracePeriod: gracePeriod,
 	}
 	for _, option := range options {
 		option.apply(checker)

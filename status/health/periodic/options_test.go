@@ -36,7 +36,8 @@ func TestWithInitialPoll(t *testing.T) {
 		time.Second,
 		"CHECK_TYPE",
 		pollAlwaysErr,
-		WithInitialPoll())
+		WithInitialPoll(),
+		WithStartupGracePeriod(0))
 	<-time.After(time.Second)
 	healthStatus := periodicCheckWithInitialPoll.HealthStatus(context.Background())
 	check, ok := healthStatus.Checks["CHECK_TYPE"]
