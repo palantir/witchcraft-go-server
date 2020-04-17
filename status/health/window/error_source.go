@@ -37,7 +37,7 @@ type ErrorHealthCheckSource interface {
 }
 
 // unhealthyIfAtLeastOneErrorSource is a HealthCheckSource that polls a TimeWindowedStore.
-// It returns the first non-nil error as an unhealthy check.
+// It returns the latest non-nil error as an unhealthy check.
 // If there are no items, returns healthy.
 type unhealthyIfAtLeastOneErrorSource struct {
 	// unhealthyIfAtLeastOneErrorSource is a healthyIfNotAllErrorsSource that drops all successes.
@@ -58,7 +58,7 @@ func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowS
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, false, NewOrdinaryTimeProvider())
+	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, false, NewOrdinaryTimeProvider())
 	if err != nil {
 		return nil, err
 	}
@@ -82,25 +82,24 @@ func (u *unhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) hea
 }
 
 // healthyIfNotAllErrorsSource is a HealthCheckSource that polls a TimeWindowedStore.
-// It returns, if there are only non-nil errors, the first non-nil error as an unhealthy check.
+// It returns, if there are only non-nil errors, the latest non-nil error as an unhealthy check.
 // If there are no items, returns healthy.
 type healthyIfNotAllErrorsSource struct {
-	timeProvider           TimeProvider
-	useAnchoredWindows     bool
-	windowSize             time.Duration
-	lastErrorTime          time.Time
-	lastError              error
-	lastSuccessTime        time.Time
-	sourceMutex            sync.RWMutex
-	checkType              health.CheckType
-	requireFirstFullWindow bool
-	startTime              time.Time
+	timeProvider         TimeProvider
+	windowSize           time.Duration
+	lastErrorTime        time.Time
+	lastError            error
+	lastSuccessTime      time.Time
+	sourceMutex          sync.RWMutex
+	checkType            health.CheckType
+	repairingGracePeriod time.Duration
+	repairingDeadline    time.Time
 }
 
 // MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, NewOrdinaryTimeProvider())
+	source, err := NewHealthyIfNotAllErrorsSource(checkType, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -110,17 +109,18 @@ func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize t
 // NewHealthyIfNotAllErrorsSource creates an healthyIfNotAllErrorsSource
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
+// Errors submitted in the first time window cause the health check to go to REPAIRING instead of ERROR.
 func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, NewOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, true, NewOrdinaryTimeProvider())
 }
 
 // MustNewAnchoredHealthyIfNotAllErrorsSource returns the result of calling
 // NewAnchoredHealthyIfNotAllErrorsSource but panics if that call returns an error
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 // Care should be taken in considering health submission rate and window size when using anchored
-// windows. Windows too close to service emission frequency may cause errors to not surface
+// windows. Windows too close to service emission frequency may cause errors to not surface.
 func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, NewOrdinaryTimeProvider())
+	source, err := NewAnchoredHealthyIfNotAllErrorsSource(checkType, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -129,35 +129,38 @@ func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, wind
 
 // NewAnchoredHealthyIfNotAllErrorsSource creates an healthyIfNotAllErrorsSource
 // with supplied checkType, using sliding window of size windowSize, which will
-// anchor (force the window to be at least the grace period) by inserting a healthy
-// check at the beginning of new the initial window or after gaps greater than windowSize
-// windowSize must be a positive value, otherwise returns error. Care should be taken in
-// considering health submission rate and window size when using anchored windows.
-// Windows too close to service emission frequency may cause errors to not surface
+// anchor (force the window to be at least the grace period) by defining a repairing deadline
+// at the end of the initial window or one window size after the end of a gap.
+// If all errors happen before the repairing deadline, the health check returns REPAIRING instead of ERROR.
+// windowSize must be a positive value, otherwise returns error.
+// Care should be taken in considering health submission rate and window size when using anchored
+// windows. Windows too close to service emission frequency may cause errors to not surface.
 func NewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, NewOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, windowSize, true, NewOrdinaryTimeProvider())
 }
 
-func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration, useAnchoredWindows bool, requireFirstFullWindow bool, timeProvider TimeProvider) (ErrorHealthCheckSource, error) {
+func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize, repairingGracePeriod time.Duration, requireFirstFullWindow bool, timeProvider TimeProvider) (ErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
-		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
+		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize.String()))
+	}
+	if repairingGracePeriod < 0 {
+		return nil, werror.Error("repairingGracePeriod must be non negative", werror.SafeParam("repairingGracePeriod", repairingGracePeriod.String()))
 	}
 
-	retVal := &healthyIfNotAllErrorsSource{
-		timeProvider:           timeProvider,
-		useAnchoredWindows:     useAnchoredWindows,
-		windowSize:             windowSize,
-		checkType:              checkType,
-		startTime:              timeProvider.Now(),
-		requireFirstFullWindow: requireFirstFullWindow,
+	source := &healthyIfNotAllErrorsSource{
+		timeProvider:         timeProvider,
+		windowSize:           windowSize,
+		checkType:            checkType,
+		repairingGracePeriod: repairingGracePeriod,
+		repairingDeadline:    timeProvider.Now(),
 	}
 
-	// When anchored treat first initial window as anchored
-	if useAnchoredWindows {
-		retVal.lastSuccessTime = retVal.timeProvider.Now()
+	// If requireFirstFullWindow, extend the repairing deadline to one windowSize from now.
+	if requireFirstFullWindow {
+		source.repairingDeadline = timeProvider.Now().Add(windowSize)
 	}
 
-	return retVal, nil
+	return source, nil
 }
 
 // Submit submits an error.
@@ -166,12 +169,12 @@ func (h *healthyIfNotAllErrorsSource) Submit(err error) {
 	defer h.sourceMutex.Unlock()
 
 	// If using anchored windows when last submit is greater than the window
-	// it will re-anchor the next window with a new healthy point.
-	if h.useAnchoredWindows && h.timeProvider.Now().Sub(h.lastSuccessTime) > h.windowSize &&
-		(h.lastErrorTime.IsZero() || h.timeProvider.Now().Sub(h.lastErrorTime) > h.windowSize) {
-		// This check source treats no data as healthy so implicitly
-		// are already reporting healthy when doing the re-anchor
-		h.lastSuccessTime = h.timeProvider.Now()
+	// it will re-anchor the next window with a new repairing deadline.
+	if !h.hasSuccessInWindow() && !h.hasErrorInWindow() {
+		newRepairingDeadline := h.timeProvider.Now().Add(h.repairingGracePeriod)
+		if newRepairingDeadline.After(h.repairingDeadline) {
+			h.repairingDeadline = newRepairingDeadline
+		}
 	}
 
 	if err != nil {
@@ -188,12 +191,10 @@ func (h *healthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.H
 	defer h.sourceMutex.RUnlock()
 
 	var healthCheckResult health.HealthCheckResult
-	curTime := h.timeProvider.Now()
-	if !h.lastSuccessTime.IsZero() && curTime.Sub(h.lastSuccessTime) < h.windowSize {
+	if h.hasSuccessInWindow() {
 		healthCheckResult = whealth.HealthyHealthCheckResult(h.checkType)
-	} else if !h.lastErrorTime.IsZero() && curTime.Sub(h.lastErrorTime) < h.windowSize {
-
-		if h.requireFirstFullWindow && curTime.Sub(h.startTime) < h.windowSize {
+	} else if h.hasErrorInWindow() {
+		if h.lastErrorTime.Before(h.repairingDeadline) {
 			healthCheckResult = whealth.RepairingHealthCheckResult(h.checkType, h.lastError.Error())
 		} else {
 			healthCheckResult = whealth.UnhealthyHealthCheckResult(h.checkType, h.lastError.Error())
@@ -207,4 +208,12 @@ func (h *healthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) health.H
 			h.checkType: healthCheckResult,
 		},
 	}
+}
+
+func (h *healthyIfNotAllErrorsSource) hasSuccessInWindow() bool {
+	return !h.lastSuccessTime.IsZero() && h.timeProvider.Now().Sub(h.lastSuccessTime) <= h.windowSize
+}
+
+func (h *healthyIfNotAllErrorsSource) hasErrorInWindow() bool {
+	return !h.lastErrorTime.IsZero() && h.timeProvider.Now().Sub(h.lastErrorTime) <= h.windowSize
 }
