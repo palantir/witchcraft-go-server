@@ -140,9 +140,9 @@ func TestHealthyIfNotAllErrorsSource(t *testing.T) {
 	}
 }
 
-// TestErrorInInitialWindow validates that error in the first window
+// TestHealthyIfNotAllErrorsSource_ErrorInInitialWindowWhenFirstFullWindowRequired validates that error in the first window
 // causes the check to report as repairing when first window is required.
-func TestErrorInInitialWindowWhenFirstFullWindowRequired(t *testing.T) {
+func TestHealthyIfNotAllErrorsSource_ErrorInInitialWindowWhenFirstFullWindowRequired(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, 0, true, timeProvider)
 	assert.NoError(t, err)
@@ -154,9 +154,9 @@ func TestErrorInInitialWindowWhenFirstFullWindowRequired(t *testing.T) {
 	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
 }
 
-// TestErrorInInitialWindow validates that error in the first window
+// TestAnchoredHealthyIfNotAllErrorsSource_ErrorInInitialAnchoredWindow validates that error in the first window
 // does not cause the health status to become unhealthy when anchored as well.
-func TestErrorInInitialAnchoredWindow(t *testing.T) {
+func TestAnchoredHealthyIfNotAllErrorsSource_ErrorInInitialAnchoredWindow(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, windowSize, false, timeProvider)
 	assert.NoError(t, err)
@@ -168,9 +168,9 @@ func TestErrorInInitialAnchoredWindow(t *testing.T) {
 	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
 }
 
-// TestErrorInInitialWindow validates that error in the first window
+// TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairing validates that error in the first window
 // does not cause the health status to become unhealthy when anchored as well.
-func TestGapThenRepairing(t *testing.T) {
+func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairing(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, windowSize, true, timeProvider)
 	assert.NoError(t, err)
@@ -185,9 +185,9 @@ func TestGapThenRepairing(t *testing.T) {
 	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
 }
 
-// TestRepairingThenError validates that in a constant stream of errors, the health
+// TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError validates that in a constant stream of errors, the health
 // check initially reports repairing and then reports error after the etime window.
-func TestGapThenRepairingThenError(t *testing.T) {
+func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, windowSize, true, timeProvider)
 	assert.NoError(t, err)
@@ -211,9 +211,9 @@ func TestGapThenRepairingThenError(t *testing.T) {
 	assert.Equal(t, health.HealthStateError, checkResult.State)
 }
 
-// TestRepairingThenError validates that if a success is submitted during repairing phase,
+// TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy validates that if a success is submitted during repairing phase,
 // the health check recovers.
-func TestGapThenRepairingThenHealthy(t *testing.T) {
+func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, windowSize, true, timeProvider)
 	assert.NoError(t, err)
@@ -237,9 +237,9 @@ func TestGapThenRepairingThenHealthy(t *testing.T) {
 	assert.Equal(t, health.HealthStateHealthy, checkResult.State)
 }
 
-// TestRepairingThenGap validates if no more errors happen beyond the repairing phase,
+// TestAnchoredHealthyIfNotAllErrorsSource_RepairingThenGap validates if no more errors happen beyond the repairing phase,
 // the health check recovers.
-func TestRepairingThenGap(t *testing.T) {
+func TestAnchoredHealthyIfNotAllErrorsSource_RepairingThenGap(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, windowSize, true, timeProvider)
 	assert.NoError(t, err)
