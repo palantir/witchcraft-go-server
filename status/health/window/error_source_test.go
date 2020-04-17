@@ -186,7 +186,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairing(t *testing.T) {
 }
 
 // TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError validates that in a constant stream of errors, the health
-// check initially reports repairing and then reports error after the etime window.
+// check initially reports repairing and then reports error after the time window.
 func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t *testing.T) {
 	timeProvider := &offsetTimeProvider{}
 	anchoredWindow, err := newHealthyIfNotAllErrorsSource(testCheckType, windowSize, windowSize, true, timeProvider)
