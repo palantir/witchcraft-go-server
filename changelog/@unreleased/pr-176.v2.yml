@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    Return repairing for errors inside multi key anchored window
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/176
+
