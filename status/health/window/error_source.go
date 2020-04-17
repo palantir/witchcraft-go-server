@@ -58,7 +58,7 @@ func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowS
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, false, newOrdinaryTimeProvider())
+	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, false, NewOrdinaryTimeProvider())
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (u *unhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) hea
 // It returns, if there are only non-nil errors, the latest non-nil error as an unhealthy check.
 // If there are no items, returns healthy.
 type healthyIfNotAllErrorsSource struct {
-	timeProvider         timeProvider
+	timeProvider         TimeProvider
 	windowSize           time.Duration
 	lastErrorTime        time.Time
 	lastError            error
@@ -111,7 +111,7 @@ func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize t
 // windowSize must be a positive value, otherwise returns error.
 // Errors submitted in the first time window cause the health check to go to REPAIRING instead of ERROR.
 func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, true, newOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, 0, true, NewOrdinaryTimeProvider())
 }
 
 // MustNewAnchoredHealthyIfNotAllErrorsSource returns the result of calling
@@ -136,10 +136,10 @@ func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, wind
 // Care should be taken in considering health submission rate and window size when using anchored
 // windows. Windows too close to service emission frequency may cause errors to not surface.
 func NewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, windowSize, true, newOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, windowSize, true, NewOrdinaryTimeProvider())
 }
 
-func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize, repairingGracePeriod time.Duration, requireFirstFullWindow bool, timeProvider timeProvider) (ErrorHealthCheckSource, error) {
+func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize, repairingGracePeriod time.Duration, requireFirstFullWindow bool, timeProvider TimeProvider) (ErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
 		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize.String()))
 	}

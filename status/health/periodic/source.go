@@ -40,10 +40,12 @@ type checkState struct {
 
 type healthCheckSource struct {
 	// static
-	source        Source
-	gracePeriod   time.Duration
-	retryInterval time.Duration
-	initialPoll   bool
+	source             Source
+	gracePeriod        time.Duration
+	retryInterval      time.Duration
+	initialPoll        bool
+	startupTime        time.Time
+	startupGracePeriod time.Duration
 
 	// mutable
 	mutex       sync.RWMutex
@@ -64,10 +66,12 @@ func NewHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryI
 // of error.
 func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, source Source, options ...Option) status.HealthCheckSource {
 	checker := &healthCheckSource{
-		source:        source,
-		gracePeriod:   gracePeriod,
-		retryInterval: retryInterval,
-		checkStates:   map[health.CheckType]*checkState{},
+		source:             source,
+		gracePeriod:        gracePeriod,
+		retryInterval:      retryInterval,
+		checkStates:        map[health.CheckType]*checkState{},
+		startupTime:        time.Now(),
+		startupGracePeriod: gracePeriod,
 	}
 	for _, option := range options {
 		option.apply(checker)
@@ -105,6 +109,9 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 			if result.State == health.HealthStateHealthy {
 				result.State = health.HealthStateRepairing
 			}
+		}
+		if time.Since(h.startupTime) < h.startupGracePeriod && result.State == health.HealthStateError {
+			result.State = health.HealthStateRepairing
 		}
 		results = append(results, result)
 	}

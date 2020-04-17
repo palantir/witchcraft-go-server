@@ -243,7 +243,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 		},
 		"ERROR_CHECK": {
 			Type:    "ERROR_CHECK",
-			State:   health.HealthStateError,
+			State:   health.HealthStateRepairing,
 			Message: stringPtr("No successful checks during 1m0s grace period: something went wrong"),
 			Params:  map[string]interface{}{"foo": "bar"},
 		},

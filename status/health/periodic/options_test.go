@@ -28,16 +28,45 @@ func TestWithInitialPoll(t *testing.T) {
 	var pollAlwaysErr = func() error {
 		return fmt.Errorf("error")
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	periodicCheckWithInitialPoll := NewHealthCheckSource(
-		context.Background(),
+		ctx,
 		time.Minute,
 		time.Second,
 		"CHECK_TYPE",
 		pollAlwaysErr,
-		WithInitialPoll())
+		WithInitialPoll(),
+		WithStartupGracePeriod(0))
 	<-time.After(time.Second)
 	healthStatus := periodicCheckWithInitialPoll.HealthStatus(context.Background())
 	check, ok := healthStatus.Checks["CHECK_TYPE"]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateError, check.State)
+}
+
+func TestWithStartupGracePeriod(t *testing.T) {
+	var pollAlwaysErr = func() error {
+		return fmt.Errorf("error")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	periodicCheckWithInitialPoll := NewHealthCheckSource(
+		ctx,
+		time.Minute,
+		time.Second,
+		"CHECK_TYPE",
+		pollAlwaysErr,
+		WithInitialPoll(),
+		WithStartupGracePeriod(3*time.Second/2))
+	<-time.After(time.Second)
+	healthStatus := periodicCheckWithInitialPoll.HealthStatus(context.Background())
+	check, ok := healthStatus.Checks["CHECK_TYPE"]
+	assert.True(t, ok)
+	assert.Equal(t, health.HealthStateRepairing, check.State)
+	<-time.After(time.Second)
+	healthStatus = periodicCheckWithInitialPoll.HealthStatus(context.Background())
+	check, ok = healthStatus.Checks["CHECK_TYPE"]
 	assert.True(t, ok)
 	assert.Equal(t, health.HealthStateError, check.State)
 }
