@@ -18,9 +18,9 @@ import (
 	"time"
 )
 
-// timeProvider exists to supply a means of testing time window
+// TimeProvider exists to supply a means of testing time window
 // changes without actually taking the time to sleep
-type timeProvider interface {
+type TimeProvider interface {
 	Now() time.Time
 }
 
@@ -30,7 +30,8 @@ func (o *ordinaryTimeProvider) Now() time.Time {
 	return time.Now()
 }
 
-func newOrdinaryTimeProvider() timeProvider {
+// NewOrdinaryTimeProvider creates a new time provider that returns time.Now().
+func NewOrdinaryTimeProvider() TimeProvider {
 	return &ordinaryTimeProvider{}
 }
 
