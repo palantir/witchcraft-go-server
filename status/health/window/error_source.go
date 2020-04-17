@@ -58,7 +58,7 @@ func MustNewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowS
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewUnhealthyIfAtLeastOneErrorSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, false, newOrdinaryTimeProvider())
+	underlyingSource, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, false, NewOrdinaryTimeProvider())
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (u *unhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Context) hea
 // It returns, if there are only non-nil errors, the first non-nil error as an unhealthy check.
 // If there are no items, returns healthy.
 type healthyIfNotAllErrorsSource struct {
-	timeProvider           timeProvider
+	timeProvider           TimeProvider
 	useAnchoredWindows     bool
 	windowSize             time.Duration
 	lastErrorTime          time.Time
@@ -100,7 +100,7 @@ type healthyIfNotAllErrorsSource struct {
 // MustNewHealthyIfNotAllErrorsSource returns the result of calling NewHealthyIfNotAllErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, newOrdinaryTimeProvider())
+	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, NewOrdinaryTimeProvider())
 	if err != nil {
 		panic(err)
 	}
@@ -111,7 +111,7 @@ func MustNewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize t
 // with a sliding window of size windowSize and uses the checkType.
 // windowSize must be a positive value, otherwise returns error.
 func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, newOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, false, true, NewOrdinaryTimeProvider())
 }
 
 // MustNewAnchoredHealthyIfNotAllErrorsSource returns the result of calling
@@ -120,7 +120,7 @@ func NewHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.
 // Care should be taken in considering health submission rate and window size when using anchored
 // windows. Windows too close to service emission frequency may cause errors to not surface
 func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) ErrorHealthCheckSource {
-	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, newOrdinaryTimeProvider())
+	source, err := newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, NewOrdinaryTimeProvider())
 	if err != nil {
 		panic(err)
 	}
@@ -135,10 +135,10 @@ func MustNewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, wind
 // considering health submission rate and window size when using anchored windows.
 // Windows too close to service emission frequency may cause errors to not surface
 func NewAnchoredHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration) (ErrorHealthCheckSource, error) {
-	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, newOrdinaryTimeProvider())
+	return newHealthyIfNotAllErrorsSource(checkType, windowSize, true, true, NewOrdinaryTimeProvider())
 }
 
-func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration, useAnchoredWindows bool, requireFirstFullWindow bool, timeProvider timeProvider) (ErrorHealthCheckSource, error) {
+func newHealthyIfNotAllErrorsSource(checkType health.CheckType, windowSize time.Duration, useAnchoredWindows bool, requireFirstFullWindow bool, timeProvider TimeProvider) (ErrorHealthCheckSource, error) {
 	if windowSize <= 0 {
 		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize))
 	}

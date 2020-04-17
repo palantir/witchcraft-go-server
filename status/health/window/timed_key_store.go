@@ -74,14 +74,14 @@ type timedKeyStore struct {
 	begin        *keyNode
 	end          *keyNode
 	nodeByKey    map[string]*keyNode
-	timeProvider timeProvider
+	timeProvider TimeProvider
 }
 
 // NewTimedKeyStore creates a TimedKeyStore that executes all operations in O(1) time except
 // for List, which is O(n), where n is the number of stored keys.
 // Memory consumption is O(n), where n is the number of stored keys.
 // This struct is not thread safe.
-func NewTimedKeyStore(timeProvider timeProvider) TimedKeyStore {
+func NewTimedKeyStore(timeProvider TimeProvider) TimedKeyStore {
 	begin := &keyNode{}
 	end := &keyNode{}
 	begin.next = end
