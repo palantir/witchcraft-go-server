@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    Introduce ReadinessReporter and ReadinessComponent, which allows for the defining and aggregation of custom readiness checks. Rename the HealthReporter and HealthComponent files for clarity.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/172
+
