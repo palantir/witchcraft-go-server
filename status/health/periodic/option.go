@@ -14,6 +14,10 @@
 
 package periodic
 
+import (
+	"time"
+)
+
 type Option interface {
 	apply(source *healthCheckSource)
 }
@@ -29,5 +33,14 @@ func (fn optionFn) apply(source *healthCheckSource) {
 func WithInitialPoll() Option {
 	return optionFn(func(source *healthCheckSource) {
 		source.initialPoll = true
+	})
+}
+
+// WithStartupGracePeriod configures the health check source to transform all ERROR results into REPAIRING results
+// for the first startupGracePeriod time window.
+// The default value of the startup grace period is the window grace period.
+func WithStartupGracePeriod(startupGracePeriod time.Duration) Option {
+	return optionFn(func(source *healthCheckSource) {
+		source.startupGracePeriod = startupGracePeriod
 	})
 }
