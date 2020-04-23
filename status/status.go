@@ -52,6 +52,18 @@ type HealthCheckSource interface {
 	HealthStatus(ctx context.Context) health.HealthStatus
 }
 
+// HealthCheckSourceFn is a wrapper for a function that returns health status that implements the HealthCheckSource interface.
+type HealthCheckSourceFn func(ctx context.Context) health.HealthStatus
+
+// HealthStatus allows HealthCheckSourceFn to implement the HealthCheckSource interface.
+func (h HealthCheckSourceFn) HealthStatus(ctx context.Context) health.HealthStatus {
+	return h(ctx)
+}
+
+var _ HealthCheckSource = HealthCheckSourceFn(func(ctx context.Context) health.HealthStatus {
+	return health.HealthStatus{}
+})
+
 type combinedHealthCheckSource struct {
 	healthCheckSources []HealthCheckSource
 }
