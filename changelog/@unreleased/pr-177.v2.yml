@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    Add health check source registry
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/177
+
