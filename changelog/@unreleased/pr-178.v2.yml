@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    It is typical for some of our services to implement a health check ensuring connectivity/ability to authenticate with another service while also implementing health checks for more specific interactions with that service. This PR introduces a health check source tree that enables consumers to determine when the tree should traverse to health check sources further down in the tree based on the health check result at the current tree node.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/178
+
