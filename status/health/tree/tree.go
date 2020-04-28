@@ -22,6 +22,9 @@ import (
 )
 
 type (
+	// TraverseForHealthStatus accepts the health status result of the current health check source node
+	// and returns whether the current health check source tree node should traverse to child health check
+	// source nodes or not.
 	TraverseForHealthStatus func(status health.HealthStatus) bool
 )
 
@@ -50,8 +53,8 @@ func WithTraverseForHealthStatus(fn TraverseForHealthStatus) CheckSourceTreePara
 }
 
 // NewHealthCheckSourceTree returns a new health check source tree node that uses the result of its own health check
-// to determine if it should invoke the provided child health checks. the default behavior is to only traverse to child
-// checks is if the most severe health state of the current node's health status is health.HealthStateHealthy.
+// to determine if it should invoke the provided child health checks. The default behavior is to only traverse to child
+// checks if the most severe health state of the current node's health status is health.HealthStateHealthy.
 func NewHealthCheckSourceTree(
 	ownHealthCheckSource status.HealthCheckSource,
 	childrenHealthCheckSources []status.HealthCheckSource,
@@ -74,10 +77,10 @@ func (n *healthCheckSourceTreeNode) HealthStatus(ctx context.Context) health.Hea
 		return ownHealthStatus
 	}
 	healthStatusFromChildSources := n.combinedChildrenHealthCheckSource.HealthStatus(ctx)
-	for ownCheckType, ownCheckResult := range ownHealthStatus.Checks {
-		healthStatusFromChildSources.Checks[ownCheckType] = ownCheckResult
+	for checkType, checkResult := range healthStatusFromChildSources.Checks {
+		ownHealthStatus.Checks[checkType] = checkResult
 	}
-	return healthStatusFromChildSources
+	return ownHealthStatus
 }
 
 func healthStateFromChecks(checks map[health.CheckType]health.HealthCheckResult) health.HealthState {
