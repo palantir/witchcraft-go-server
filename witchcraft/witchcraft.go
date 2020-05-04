@@ -572,12 +572,9 @@ func (s *Server) Start() (rErr error) {
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
+
 	// add loggers to context
-	ctx = svc1log.WithLogger(ctx, s.svcLogger)
-	ctx = evt2log.WithLogger(ctx, s.evtLogger)
-	ctx = metric1log.WithLogger(ctx, s.metricLogger)
-	ctx = trc1log.WithLogger(ctx, s.trcLogger)
-	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	ctx = s.withLoggers(ctx)
 
 	// load runtime configuration
 	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
@@ -605,6 +602,13 @@ func (s *Server) Start() (rErr error) {
 	}
 	defer metricsDeferFn()
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
+
+	// wrap loggers with metric emitting log wrappers
+	//metricEmitter := metricloggers.NewMetricEmitter(metricsRegistry)
+	//s.svcLogger = metricloggers.NewSvcLogger(s.svcLogger, metricEmitter)
+
+	// replace existing context loggers with metric emitting versions
+	// ctx = s.withLoggers(ctx)
 
 	// add middleware
 	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg))
@@ -701,6 +705,15 @@ func (s *Server) Start() (rErr error) {
 
 	s.stateManager.setState(ServerRunning)
 	return svrStart()
+}
+
+func (s *Server) withLoggers(ctx context.Context) context.Context {
+	ctx = svc1log.WithLogger(ctx, s.svcLogger)
+	ctx = evt2log.WithLogger(ctx, s.evtLogger)
+	ctx = metric1log.WithLogger(ctx, s.metricLogger)
+	ctx = trc1log.WithLogger(ctx, s.trcLogger)
+	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	return ctx
 }
 
 type configurableRouterImpl struct {
