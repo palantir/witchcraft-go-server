@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -146,29 +146,27 @@ func BenchmarkServer_Loggers(b *testing.B) {
 			},
 		},
 	} {
-		for _, numLinesToLog := range []int{1, 10, 100} {
-			b.Run(fmt.Sprintf("%s-numLinesToLog=%d-benchmark", test.Name, numLinesToLog), func(b *testing.B) {
-				err := witchcraft.NewServer().
-					WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-						for i := 0; i < b.N; i++ {
-							for j := 0; j < numLinesToLog; j++ {
-								test.LoggingBody(ctx)
-							}
-						}
-						return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
-					}).
-					WithInstallConfig(config.Install{UseConsoleLog: true}).
-					WithRuntimeConfig(config.Runtime{}).
-					WithLoggerStdoutWriter(&bytes.Buffer{}).
-					WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-					WithDisableGoRuntimeMetrics().
-					WithSelfSignedCertificate().
-					Start()
+		b.Run(test.Name, func(b *testing.B) {
+			err := witchcraft.NewServer().
+				WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						test.LoggingBody(ctx)
+					}
+					b.StopTimer()
+					return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+				}).
+				WithInstallConfig(config.Install{UseConsoleLog: true}).
+				WithRuntimeConfig(config.Runtime{}).
+				WithLoggerStdoutWriter(ioutil.Discard).
+				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+				WithDisableGoRuntimeMetrics().
+				WithSelfSignedCertificate().
+				Start()
 
-				// Requires an error so that `Start` will return
-				require.Error(b, err)
-			})
-		}
+			// Requires an error so that `Start` will return
+			require.Error(b, err)
+		})
 	}
 }
 
