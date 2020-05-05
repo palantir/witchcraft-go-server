@@ -157,7 +157,7 @@ func BenchmarkServer_Loggers(b *testing.B) {
 		},
 	} {
 		for _, numLinesToLog := range []int{1, 10, 100} {
-			b.Run(fmt.Sprintf("%s-count=%d", test.Name, numLinesToLog), func(b *testing.B) {
+			b.Run(fmt.Sprintf("%s-numLinesToLog=%d", test.Name, numLinesToLog), func(b *testing.B) {
 				logOutputBuffer := &bytes.Buffer{}
 				err := witchcraft.NewServer().
 					WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
