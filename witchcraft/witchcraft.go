@@ -48,6 +48,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/status/health/refreshable"
+	"github.com/palantir/witchcraft-go-server/witchcraft/internal/metricloggers"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
@@ -567,17 +568,34 @@ func (s *Server) Start() (rErr error) {
 		s.idsExtractor = extractor.NewDefaultIDsExtractor()
 	}
 
-	// initialize loggers
+	// initialize loggers. These loggers are not instrumented (do not record metrics as they log) because the metrics
+	// registry is not yet initialized: these loggers will be replaced by instrumenting loggers after metric registry
+	// initialization.
 	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
+
 	// add loggers to context
-	ctx = svc1log.WithLogger(ctx, s.svcLogger)
-	ctx = evt2log.WithLogger(ctx, s.evtLogger)
-	ctx = metric1log.WithLogger(ctx, s.metricLogger)
-	ctx = trc1log.WithLogger(ctx, s.trcLogger)
-	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	ctx = s.withLoggers(ctx)
+
+	// initialize metrics. Note that loggers associated with ctx are not instrumented, but
+	metricsRegistry, metricsDeferFn, err := s.initMetrics(ctx, baseInstallCfg)
+	if err != nil {
+		return err
+	}
+	defer metricsDeferFn()
+	ctx = metrics.WithRegistry(ctx, metricsRegistry)
+
+	// after metrics registry is created, update loggers to use versions that record metrics as logging is performed.
+	s.svcLogger = metricloggers.NewSvc1Logger(s.svcLogger, metricsRegistry)
+	s.evtLogger = metricloggers.NewEvt2Logger(s.evtLogger, metricsRegistry)
+	s.metricLogger = metricloggers.NewMetric1Logger(s.metricLogger, metricsRegistry)
+	s.trcLogger = metricloggers.NewTrc1Logger(s.trcLogger, metricsRegistry)
+	s.auditLogger = metricloggers.NewAudit2Logger(s.auditLogger, metricsRegistry)
+
+	// update context to use instrumented loggers
+	ctx = s.withLoggers(ctx)
 
 	// load runtime configuration
 	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
@@ -597,14 +615,6 @@ func (s *Server) Start() (rErr error) {
 
 	// initialize routers
 	router, mgmtRouter := s.initRouters(baseInstallCfg)
-
-	// initialize metrics
-	metricsRegistry, metricsDeferFn, err := s.initMetrics(ctx, baseInstallCfg)
-	if err != nil {
-		return err
-	}
-	defer metricsDeferFn()
-	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// add middleware
 	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg))
@@ -701,6 +711,15 @@ func (s *Server) Start() (rErr error) {
 
 	s.stateManager.setState(ServerRunning)
 	return svrStart()
+}
+
+func (s *Server) withLoggers(ctx context.Context) context.Context {
+	ctx = svc1log.WithLogger(ctx, s.svcLogger)
+	ctx = evt2log.WithLogger(ctx, s.evtLogger)
+	ctx = metric1log.WithLogger(ctx, s.metricLogger)
+	ctx = trc1log.WithLogger(ctx, s.trcLogger)
+	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	return ctx
 }
 
 type configurableRouterImpl struct {
