@@ -33,7 +33,7 @@ type defaultMetricRecorder struct {
 	registry metrics.Registry
 }
 
-func NewMetricRecorder(registry metrics.Registry) metricRecorder {
+func newMetricRecorder(registry metrics.Registry) metricRecorder {
 	return &defaultMetricRecorder{registry: registry}
 }
 

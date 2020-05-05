@@ -15,6 +15,7 @@
 package metricloggers
 
 import (
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
@@ -26,10 +27,10 @@ type metricRecordingSvcLogger struct {
 	recorder metricRecorder
 }
 
-func NewSvcLogger(logger svc1log.Logger, recorder metricRecorder) svc1log.Logger {
+func NewSvcLogger(logger svc1log.Logger, registry metrics.Registry) svc1log.Logger {
 	return &metricRecordingSvcLogger{
 		logger:   logger,
-		recorder: recorder,
+		recorder: newMetricRecorder(registry),
 	}
 }
 
