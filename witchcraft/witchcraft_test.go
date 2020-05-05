@@ -112,66 +112,56 @@ func TestFatalErrorLogging(t *testing.T) {
 // BenchmarkServer_Loggers benchmarks the time for Server loggers to log a fixed number of lines.
 func BenchmarkServer_Loggers(b *testing.B) {
 	for _, test := range []struct {
-		Name     string
-		InitBody func(context.Context, int)
+		Name        string
+		LoggingBody func(context.Context)
 	}{
 		{
 			Name: "svc1log",
-			InitBody: func(ctx context.Context, numLinesToLog int) {
-				for j := 0; j < numLinesToLog; j++ {
-					svc1log.FromContext(ctx).Info("info!")
-				}
+			LoggingBody: func(ctx context.Context) {
+				svc1log.FromContext(ctx).Info("info!")
 			},
 		},
 		{
 			Name: "evt2log",
-			InitBody: func(ctx context.Context, numLinesToLog int) {
-				for j := 0; j < numLinesToLog; j++ {
-					evt2log.FromContext(ctx).Event("event!")
-				}
+			LoggingBody: func(ctx context.Context) {
+				evt2log.FromContext(ctx).Event("event!")
 			},
 		},
 		{
 			Name: "metric1log",
-			InitBody: func(ctx context.Context, numLinesToLog int) {
-				for j := 0; j < numLinesToLog; j++ {
-					metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
-				}
+			LoggingBody: func(ctx context.Context) {
+				metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
 			},
 		},
 		{
 			Name: "trc1log",
-			InitBody: func(ctx context.Context, numLinesToLog int) {
-				for j := 0; j < numLinesToLog; j++ {
-					trc1log.FromContext(ctx).Log(wtracing.SpanModel{})
-				}
+			LoggingBody: func(ctx context.Context) {
+				trc1log.FromContext(ctx).Log(wtracing.SpanModel{})
 			},
 		},
 		{
 			Name: "audit2log",
-			InitBody: func(ctx context.Context, numLinesToLog int) {
-				for j := 0; j < numLinesToLog; j++ {
-					audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
-				}
+			LoggingBody: func(ctx context.Context) {
+				audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
 			},
 		},
 	} {
 		for _, numLinesToLog := range []int{1, 10, 100} {
-			b.Run(fmt.Sprintf("%s-numLinesToLog=%d", test.Name, numLinesToLog), func(b *testing.B) {
-				logOutputBuffer := &bytes.Buffer{}
+			b.Run(fmt.Sprintf("%s-numLinesToLog=%d-benchmark", test.Name, numLinesToLog), func(b *testing.B) {
 				err := witchcraft.NewServer().
 					WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
 						for i := 0; i < b.N; i++ {
-							test.InitBody(ctx, numLinesToLog)
+							for j := 0; j < numLinesToLog; j++ {
+								test.LoggingBody(ctx)
+							}
 						}
 						return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 					}).
 					WithInstallConfig(config.Install{UseConsoleLog: true}).
 					WithRuntimeConfig(config.Runtime{}).
-					WithLoggerStdoutWriter(logOutputBuffer).
+					WithLoggerStdoutWriter(&bytes.Buffer{}).
 					WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 					WithDisableGoRuntimeMetrics().
-					WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
 					WithSelfSignedCertificate().
 					Start()
 
