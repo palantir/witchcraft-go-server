@@ -23,10 +23,10 @@ var _ svc1log.Logger = (*metricRecordingSvcLogger)(nil)
 
 type metricRecordingSvcLogger struct {
 	logger   svc1log.Logger
-	recorder MetricRecorder
+	recorder metricRecorder
 }
 
-func NewSvcLogger(logger svc1log.Logger, recorder MetricRecorder) svc1log.Logger {
+func NewSvcLogger(logger svc1log.Logger, recorder metricRecorder) svc1log.Logger {
 	return &metricRecordingSvcLogger{
 		logger:   logger,
 		recorder: recorder,
