@@ -20,40 +20,40 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-var _ svc1log.Logger = (*metricRecordingSvcLogger)(nil)
+var _ svc1log.Logger = (*svc1Logger)(nil)
 
-type metricRecordingSvcLogger struct {
+type svc1Logger struct {
 	logger   svc1log.Logger
 	recorder metricRecorder
 }
 
-func NewSvcLogger(logger svc1log.Logger, registry metrics.Registry) svc1log.Logger {
-	return &metricRecordingSvcLogger{
+func NewSvc1Logger(logger svc1log.Logger, registry metrics.Registry) svc1log.Logger {
+	return &svc1Logger{
 		logger:   logger,
-		recorder: newMetricRecorder(registry),
+		recorder: newMetricRecorder(registry, svc1log.TypeValue),
 	}
 }
 
-func (m *metricRecordingSvcLogger) Debug(msg string, params ...svc1log.Param) {
+func (m *svc1Logger) Debug(msg string, params ...svc1log.Param) {
 	m.logger.Debug(msg, params...)
-	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelDebugValue)
+	m.recorder.RecordLeveledSLSLog(wlog.DebugLevel)
 }
 
-func (m *metricRecordingSvcLogger) Info(msg string, params ...svc1log.Param) {
+func (m *svc1Logger) Info(msg string, params ...svc1log.Param) {
 	m.logger.Info(msg, params...)
-	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelInfoValue)
+	m.recorder.RecordLeveledSLSLog(wlog.InfoLevel)
 }
 
-func (m *metricRecordingSvcLogger) Warn(msg string, params ...svc1log.Param) {
+func (m *svc1Logger) Warn(msg string, params ...svc1log.Param) {
 	m.logger.Warn(msg, params...)
-	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelWarnValue)
+	m.recorder.RecordLeveledSLSLog(wlog.WarnLevel)
 }
 
-func (m *metricRecordingSvcLogger) Error(msg string, params ...svc1log.Param) {
+func (m *svc1Logger) Error(msg string, params ...svc1log.Param) {
 	m.logger.Error(msg, params...)
-	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelErrorValue)
+	m.recorder.RecordLeveledSLSLog(wlog.ErrorLevel)
 }
 
-func (m *metricRecordingSvcLogger) SetLevel(level wlog.LogLevel) {
+func (m *svc1Logger) SetLevel(level wlog.LogLevel) {
 	m.logger.SetLevel(level)
 }

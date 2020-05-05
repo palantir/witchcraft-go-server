@@ -46,8 +46,10 @@ func TestFatalErrorLogging(t *testing.T) {
 				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
+				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
+				require.Equal(t, 1, len(svc1LogLines), "Expected exactly 1 service log line to be output")
 				var log logging.ServiceLogV1
-				require.NoError(t, json.Unmarshal(logOutput, &log))
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
 				assert.Equal(t, logging.LogLevelError, log.Level)
 				assert.Equal(t, "oops", log.Message)
 				assert.Equal(t, "v", log.Params["k"], "safe param not preserved")
@@ -60,8 +62,10 @@ func TestFatalErrorLogging(t *testing.T) {
 				panic(werror.Error("oops", werror.SafeParam("k", "v")))
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
+				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
+				require.Equal(t, 1, len(svc1LogLines), "Expected exactly 1 service log line to be output")
 				var log logging.ServiceLogV1
-				require.NoError(t, json.Unmarshal(logOutput, &log))
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
 				assert.Equal(t, logging.LogLevelError, log.Level)
 				assert.Equal(t, "panic recovered", log.Message)
 				assert.Equal(t, "v", log.Params["k"], "safe param not preserved")
@@ -74,8 +78,10 @@ func TestFatalErrorLogging(t *testing.T) {
 				panic(map[string]interface{}{"k": "v"})
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
+				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
+				require.Equal(t, 1, len(svc1LogLines), "Expected exactly 1 service log line to be output")
 				var log logging.ServiceLogV1
-				require.NoError(t, json.Unmarshal(logOutput, &log))
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
 				assert.Equal(t, logging.LogLevelError, log.Level)
 				assert.Equal(t, "panic recovered", log.Message)
 				assert.Equal(t, map[string]interface{}{"k": "v"}, log.UnsafeParams["recovered"])
@@ -205,4 +211,22 @@ func newServer(host string, port int) (*witchcraft.Server, func()) {
 		}).
 		WithRuntimeConfig(config.Runtime{})
 	return server, func() { _ = server.Close() }
+}
+
+// getLogMessagesOfType returns a slice of the content of all of the log entries that have a "type" field that match the
+// provided value.
+func getLogMessagesOfType(t *testing.T, typ string, logOutput []byte) [][]byte {
+	lines := bytes.Split(logOutput, []byte("\n"))
+	var logLines [][]byte
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		var currEntry map[string]interface{}
+		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
+		if logLineType, ok := currEntry["type"]; ok && logLineType == typ {
+			logLines = append(logLines, line)
+		}
+	}
+	return logLines
 }

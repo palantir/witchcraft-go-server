@@ -77,9 +77,29 @@ func TestEmitMetrics(t *testing.T) {
 		}
 	}
 
-	var seenMyCounter, seenResponseTimer, seenUptime, seenResponseSize, seenRequestSize, seenResponseError bool
+	var (
+		seenLoggingSLS,
+		seenMyCounter,
+		seenResponseTimer,
+		seenUptime,
+		seenResponseSize,
+		seenRequestSize,
+		seenResponseError bool
+	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
+		case "logging.sls":
+			seenLoggingSLS = true
+			assert.Equal(t, "meter", metricLog.MetricType, "logging.sls metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
+
+			metricTagLevel := metricLog.Tags["level"]
+			if metricLog.Tags["type"] == "service.1" {
+				assert.NotEqual(t, "", metricTagLevel)
+			} else {
+				assert.Equal(t, "", metricTagLevel)
+			}
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
@@ -148,9 +168,10 @@ func TestEmitMetrics(t *testing.T) {
 			}, metricLog.Tags)
 			assert.NotZero(t, metricLog.Values["value"])
 		default:
-			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
+			assert.Fail(t, "unexpected metric encountered", "%s", metricLog.MetricName)
 		}
 	}
+	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
 	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
@@ -207,9 +228,29 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		}
 	}
 
-	var seenMyCounter, seenResponseTimer, seenResponseSize, seenRequestSize, seenResponseError, seenUptime bool
+	var (
+		seenLoggingSLS,
+		seenMyCounter,
+		seenResponseTimer,
+		seenResponseSize,
+		seenRequestSize,
+		seenResponseError,
+		seenUptime bool
+	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
+		case "logging.sls":
+			seenLoggingSLS = true
+			assert.Equal(t, "meter", metricLog.MetricType, "logging.sls metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
+
+			metricTagLevel := metricLog.Tags["level"]
+			if metricLog.Tags["type"] == "service.1" {
+				assert.NotEqual(t, "", metricTagLevel)
+			} else {
+				assert.Equal(t, "", metricTagLevel)
+			}
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
@@ -273,9 +314,10 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			assert.Equal(t, "gauge", metricLog.MetricType, "server.uptime metric had incorrect type")
 			assert.NotZero(t, metricLog.Values["value"])
 		default:
-			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
+			assert.Fail(t, "unexpected metric encountered", "%s", metricLog.MetricName)
 		}
 	}
+	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
 	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
@@ -333,9 +375,29 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		}
 	}
 
-	var seenMyCounter, seenResponseTimer, seenResponseSize, seenRequestSize, seenResponseError, seenUptime bool
+	var (
+		seenLoggingSLS,
+		seenMyCounter,
+		seenResponseTimer,
+		seenResponseSize,
+		seenRequestSize,
+		seenResponseError,
+		seenUptime bool
+	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
+		case "logging.sls":
+			seenLoggingSLS = true
+			assert.Equal(t, "meter", metricLog.MetricType, "logging.sls metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
+
+			metricTagLevel := metricLog.Tags["level"]
+			if metricLog.Tags["type"] == "service.1" {
+				assert.NotEqual(t, "", metricTagLevel)
+			} else {
+				assert.Equal(t, "", metricTagLevel)
+			}
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
@@ -370,6 +432,7 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
 	}
+	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
 	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
@@ -400,6 +463,7 @@ func TestMetricsBlacklist(t *testing.T) {
 		server := createTestServer(t, initFn, installCfg, logOutputBuffer)
 		server.WithMetricsBlacklist(map[string]struct{}{
 			"my-counter":          {},
+			"logging.sls":         {},
 			"server.request.size": {},
 			"server.uptime":       {},
 		})
@@ -427,9 +491,18 @@ func TestMetricsBlacklist(t *testing.T) {
 		}
 	}
 
-	var seenMyCounter, seenResponseTimer, seenResponseSize, seenRequestSize, seenResponseError bool
+	var (
+		seenLoggingSLS,
+		seenMyCounter,
+		seenResponseTimer,
+		seenResponseSize,
+		seenRequestSize,
+		seenResponseError bool
+	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
+		case "logging.sls":
+			assert.Fail(t, "logging.sls metric should not be emitted")
 		case "my-counter":
 			assert.Fail(t, "my-counter metric should not be emitted")
 		case "server.response":
@@ -452,6 +525,7 @@ func TestMetricsBlacklist(t *testing.T) {
 	}
 	assert.False(t, seenMyCounter, "my-counter metric was emitted")
 	assert.False(t, seenRequestSize, "server.request.size metric was emitted")
+	assert.False(t, seenLoggingSLS, "logging.sls metric was emitted")
 
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")

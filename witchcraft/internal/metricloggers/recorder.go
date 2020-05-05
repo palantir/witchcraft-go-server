@@ -16,34 +16,58 @@ package metricloggers
 
 import (
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/witchcraft-go-logging/wlog"
 )
 
 const (
 	slsLoggingMeterName = "logging.sls"
-	noLevelValue        = ""
 )
 
+// map from level to tag for the level. Maps is used because these values are the only ones that are used, and
+// pre-allocating them avoids the cost of calling metrics.MustNewTag on every invocation. This is worth optimizing since
+// this is a known hot code path.
+var levelTags = map[wlog.LogLevel]metrics.Tag{
+	wlog.DebugLevel: createLevelTag(wlog.DebugLevel),
+	wlog.InfoLevel:  createLevelTag(wlog.InfoLevel),
+	wlog.WarnLevel:  createLevelTag(wlog.WarnLevel),
+	wlog.ErrorLevel: createLevelTag(wlog.ErrorLevel),
+	wlog.FatalLevel: createLevelTag(wlog.FatalLevel),
+}
+
+func createLevelTag(level wlog.LogLevel) metrics.Tag {
+	return metrics.MustNewTag("level", string(level))
+}
+
 type metricRecorder interface {
-	// RecordSLSLog increments the count of the SLS logging metric
-	// for the given log type and log level.
+	// RecordSLSLog increments the count of the SLS logging metric for the given log type.
+	RecordSLSLog()
+
+	// RecordSLSLog increments the count of the SLS logging metric for the given log type and log level.
 	// If level is empty, it will be omitted from the recorded metric.
-	RecordSLSLog(typ string, level string)
+	RecordLeveledSLSLog(level wlog.LogLevel)
 }
 
 type defaultMetricRecorder struct {
 	registry metrics.Registry
+	typeTag  metrics.Tag
 }
 
-func newMetricRecorder(registry metrics.Registry) metricRecorder {
-	return &defaultMetricRecorder{registry: registry}
+func newMetricRecorder(registry metrics.Registry, typ string) metricRecorder {
+	return &defaultMetricRecorder{
+		registry: registry,
+		typeTag:  metrics.MustNewTag("type", typ),
+	}
 }
 
-func (m *defaultMetricRecorder) RecordSLSLog(typ string, level string) {
-	tags := metrics.Tags{
-		metrics.MustNewTag("type", typ),
+func (m *defaultMetricRecorder) RecordSLSLog() {
+	m.registry.Meter(slsLoggingMeterName, m.typeTag).Mark(1)
+}
+
+func (m *defaultMetricRecorder) RecordLeveledSLSLog(level wlog.LogLevel) {
+	levelTag, ok := levelTags[level]
+	if !ok {
+		// this should not happen since all levels should be in levelTags map, but handle just in case
+		levelTag = createLevelTag(level)
 	}
-	if level != noLevelValue {
-		tags = append(tags, metrics.MustNewTag("level", level))
-	}
-	m.registry.Meter(slsLoggingMeterName, tags...).Mark(1)
+	m.registry.Meter(slsLoggingMeterName, m.typeTag, levelTag).Mark(1)
 }
