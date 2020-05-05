@@ -20,6 +20,7 @@ import (
 
 const (
 	slsLoggingMeterName = "logging.sls"
+	noLevelValue        = ""
 )
 
 type metricRecorder interface {
@@ -41,7 +42,7 @@ func (m *defaultMetricRecorder) RecordSLSLog(typ string, level string) {
 	tags := metrics.Tags{
 		metrics.MustNewTag("type", typ),
 	}
-	if len(level) > 0 {
+	if level != noLevelValue {
 		tags = append(tags, metrics.MustNewTag("level", level))
 	}
 	m.registry.Meter(slsLoggingMeterName, tags...).Mark(1)
