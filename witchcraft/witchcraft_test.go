@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -108,84 +109,77 @@ func TestFatalErrorLogging(t *testing.T) {
 	}
 }
 
-// BenchmarkServer_Loggers benchmarks the time for Server loggers to log 100 lines.
+// BenchmarkServer_Loggers benchmarks the time for Server loggers to log a fixed number of lines.
 func BenchmarkServer_Loggers(b *testing.B) {
 	for _, test := range []struct {
-		Name   string
-		InitFn witchcraft.InitFunc
+		Name     string
+		InitBody func(context.Context, int)
 	}{
 		{
 			Name: "svc1log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				for i := 0; i < b.N; i++ {
-					for j := 0; j < 100; j++ {
-						svc1log.FromContext(ctx).Info("info!")
-					}
+			InitBody: func(ctx context.Context, numLinesToLog int) {
+				for j := 0; j < numLinesToLog; j++ {
+					svc1log.FromContext(ctx).Info("info!")
 				}
-				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 		},
 		{
 			Name: "evt2log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				for i := 0; i < b.N; i++ {
-					for j := 0; j < 100; j++ {
-						evt2log.FromContext(ctx).Event("event!")
-					}
+			InitBody: func(ctx context.Context, numLinesToLog int) {
+				for j := 0; j < numLinesToLog; j++ {
+					evt2log.FromContext(ctx).Event("event!")
 				}
-				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 		},
 		{
 			Name: "metric1log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				for i := 0; i < b.N; i++ {
-					for j := 0; j < 100; j++ {
-						metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
-					}
+			InitBody: func(ctx context.Context, numLinesToLog int) {
+				for j := 0; j < numLinesToLog; j++ {
+					metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
 				}
-				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 		},
 		{
 			Name: "trc1log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				for i := 0; i < b.N; i++ {
-					for j := 0; j < 100; j++ {
-						trc1log.FromContext(ctx).Log(wtracing.SpanModel{})
-					}
+			InitBody: func(ctx context.Context, numLinesToLog int) {
+				for j := 0; j < numLinesToLog; j++ {
+					trc1log.FromContext(ctx).Log(wtracing.SpanModel{})
 				}
-				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 		},
 		{
 			Name: "audit2log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
-				for i := 0; i < b.N; i++ {
-					for j := 0; j < 100; j++ {
-						audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
-					}
+			InitBody: func(ctx context.Context, numLinesToLog int) {
+				for j := 0; j < numLinesToLog; j++ {
+					audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
 				}
-				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 		},
 	} {
-		b.Run(test.Name, func(b *testing.B) {
-			logOutputBuffer := &bytes.Buffer{}
-			err := witchcraft.NewServer().
-				WithInitFunc(test.InitFn).
-				WithInstallConfig(config.Install{UseConsoleLog: true}).
-				WithRuntimeConfig(config.Runtime{}).
-				WithLoggerStdoutWriter(logOutputBuffer).
-				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-				WithDisableGoRuntimeMetrics().
-				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
-				WithSelfSignedCertificate().
-				Start()
+		for _, count := range []int{1, 10, 100} {
+			b.Run(fmt.Sprintf("%s-count=%d", test.Name, count), func(b *testing.B) {
+				numLinesToLog := 100
+				logOutputBuffer := &bytes.Buffer{}
+				err := witchcraft.NewServer().
+					WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+						for i := 0; i < b.N; i++ {
+							test.InitBody(ctx, numLinesToLog)
+						}
+						return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+					}).
+					WithInstallConfig(config.Install{UseConsoleLog: true}).
+					WithRuntimeConfig(config.Runtime{}).
+					WithLoggerStdoutWriter(logOutputBuffer).
+					WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+					WithDisableGoRuntimeMetrics().
+					WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
+					WithSelfSignedCertificate().
+					Start()
 
-			// Requires an error so that `Start` will return
-			require.Error(b, err)
-		})
+				// Requires an error so that `Start` will return
+				require.Error(b, err)
+			})
+		}
 	}
 }
 
