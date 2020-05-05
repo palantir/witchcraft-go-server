@@ -19,40 +19,40 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-var _ svc1log.Logger = (*metricEmittingSvcLogger)(nil)
+var _ svc1log.Logger = (*metricRecordingSvcLogger)(nil)
 
-type metricEmittingSvcLogger struct {
-	logger  svc1log.Logger
-	emitter MetricEmitter
+type metricRecordingSvcLogger struct {
+	logger   svc1log.Logger
+	recorder MetricRecorder
 }
 
-func NewSvcLogger(logger svc1log.Logger, emitter MetricEmitter) svc1log.Logger {
-	return &metricEmittingSvcLogger{
-		logger:  logger,
-		emitter: emitter,
+func NewSvcLogger(logger svc1log.Logger, recorder MetricRecorder) svc1log.Logger {
+	return &metricRecordingSvcLogger{
+		logger:   logger,
+		recorder: recorder,
 	}
 }
 
-func (m *metricEmittingSvcLogger) Debug(msg string, params ...svc1log.Param) {
-	m.emitter.MarkSLSLog(svc1log.TypeValue, svc1log.LevelDebugValue)
+func (m *metricRecordingSvcLogger) Debug(msg string, params ...svc1log.Param) {
 	m.logger.Debug(msg, params...)
+	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelDebugValue)
 }
 
-func (m *metricEmittingSvcLogger) Info(msg string, params ...svc1log.Param) {
-	m.emitter.MarkSLSLog(svc1log.TypeValue, svc1log.LevelInfoValue)
+func (m *metricRecordingSvcLogger) Info(msg string, params ...svc1log.Param) {
 	m.logger.Info(msg, params...)
+	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelInfoValue)
 }
 
-func (m *metricEmittingSvcLogger) Warn(msg string, params ...svc1log.Param) {
-	m.emitter.MarkSLSLog(svc1log.TypeValue, svc1log.LevelWarnValue)
+func (m *metricRecordingSvcLogger) Warn(msg string, params ...svc1log.Param) {
 	m.logger.Warn(msg, params...)
+	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelWarnValue)
 }
 
-func (m *metricEmittingSvcLogger) Error(msg string, params ...svc1log.Param) {
-	m.emitter.MarkSLSLog(svc1log.TypeValue, svc1log.LevelErrorValue)
+func (m *metricRecordingSvcLogger) Error(msg string, params ...svc1log.Param) {
 	m.logger.Error(msg, params...)
+	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelErrorValue)
 }
 
-func (m *metricEmittingSvcLogger) SetLevel(level wlog.LogLevel) {
+func (m *metricRecordingSvcLogger) SetLevel(level wlog.LogLevel) {
 	m.logger.SetLevel(level)
 }

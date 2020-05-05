@@ -16,27 +16,26 @@ package metricloggers
 
 import (
 	"github.com/palantir/pkg/metrics"
-	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
 const (
 	slsLoggingMeterName = "logging.sls"
 )
 
-type MetricEmitter interface {
+type MetricRecorder interface {
 	MarkSLSLog(typ string, level string)
 }
 
-type metricEmitter struct {
-	registry metrics.RootRegistry
+type metricRecorder struct {
+	registry metrics.Registry
 }
 
-func NewMetricEmitter(registry metrics.RootRegistry) MetricEmitter {
-	return &metricEmitter{registry: registry}
+func NewMetricRecorder(registry metrics.Registry) MetricRecorder {
+	return &metricRecorder{registry: registry}
 }
 
-func (m *metricEmitter) MarkSLSLog(typ string, level string) {
+func (m *metricRecorder) MarkSLSLog(typ string, level string) {
 	m.registry.Meter(slsLoggingMeterName,
-		metrics.MustNewTag("type", svc1log.TypeValue),
+		metrics.MustNewTag("type", typ),
 		metrics.MustNewTag("level", level)).Mark(1)
 }
