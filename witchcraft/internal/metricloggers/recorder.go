@@ -42,8 +42,9 @@ type metricRecorder interface {
 	// RecordSLSLog increments the count of the SLS logging metric for the given log type.
 	RecordSLSLog()
 
-	// RecordSLSLog increments the count of the SLS logging metric for the given log type and log level.
-	// If level is empty, it will be omitted from the recorded metric.
+	// RecordSLSLog increments the count of the SLS logging metric for the given log type and log level. The level
+	// parameter should be one of the wlog.LogLevel constants defined in the wlog package -- using a value that is not
+	// defined there may cause this function to panic.
 	RecordLeveledSLSLog(level wlog.LogLevel)
 }
 
