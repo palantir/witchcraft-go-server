@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |
+    Create metricloggers package that records metrics for logging operations and update loggers in the context provided
+    by the server to use them. After this change, the server metrics will include a "logging.sls" metric that records
+    the number of logging operations performed with tags that specify the logger type and level used.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/179
