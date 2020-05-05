@@ -35,22 +35,22 @@ func NewSvcLogger(logger svc1log.Logger, recorder MetricRecorder) svc1log.Logger
 
 func (m *metricRecordingSvcLogger) Debug(msg string, params ...svc1log.Param) {
 	m.logger.Debug(msg, params...)
-	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelDebugValue)
+	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelDebugValue)
 }
 
 func (m *metricRecordingSvcLogger) Info(msg string, params ...svc1log.Param) {
 	m.logger.Info(msg, params...)
-	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelInfoValue)
+	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelInfoValue)
 }
 
 func (m *metricRecordingSvcLogger) Warn(msg string, params ...svc1log.Param) {
 	m.logger.Warn(msg, params...)
-	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelWarnValue)
+	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelWarnValue)
 }
 
 func (m *metricRecordingSvcLogger) Error(msg string, params ...svc1log.Param) {
 	m.logger.Error(msg, params...)
-	m.recorder.MarkSLSLog(svc1log.TypeValue, svc1log.LevelErrorValue)
+	m.recorder.RecordSLSLog(svc1log.TypeValue, svc1log.LevelErrorValue)
 }
 
 func (m *metricRecordingSvcLogger) SetLevel(level wlog.LogLevel) {

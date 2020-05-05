@@ -603,13 +603,6 @@ func (s *Server) Start() (rErr error) {
 	defer metricsDeferFn()
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
-	// wrap loggers with metric emitting log wrappers
-	//metricEmitter := metricloggers.NewMetricEmitter(metricsRegistry)
-	//s.svcLogger = metricloggers.NewSvcLogger(s.svcLogger, metricEmitter)
-
-	// replace existing context loggers with metric emitting versions
-	// ctx = s.withLoggers(ctx)
-
 	// add middleware
 	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg))
 	if mgmtRouter != router {

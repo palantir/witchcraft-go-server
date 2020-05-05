@@ -23,7 +23,7 @@ const (
 )
 
 type MetricRecorder interface {
-	MarkSLSLog(typ string, level string)
+	RecordSLSLog(typ string, level string)
 }
 
 type metricRecorder struct {
@@ -34,8 +34,15 @@ func NewMetricRecorder(registry metrics.Registry) MetricRecorder {
 	return &metricRecorder{registry: registry}
 }
 
-func (m *metricRecorder) MarkSLSLog(typ string, level string) {
-	m.registry.Meter(slsLoggingMeterName,
+// RecordSLSLog increments the count of the SLS logging metric
+// for the given log type and log level.
+// If level is empty, it will be omitted from the recorded metric.
+func (m *metricRecorder) RecordSLSLog(typ string, level string) {
+	tags := metrics.Tags{
 		metrics.MustNewTag("type", typ),
-		metrics.MustNewTag("level", level)).Mark(1)
+	}
+	if len(level) > 0 {
+		tags = append(tags, metrics.MustNewTag("level", level))
+	}
+	m.registry.Meter(slsLoggingMeterName, tags...).Mark(1)
 }
