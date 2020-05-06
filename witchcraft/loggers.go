@@ -40,7 +40,7 @@ const (
 // initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
-func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logLevel wlog.LogLevel) {
+func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
 	if s.svcLogOrigin == nil {
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
 		origin := svc1log.CallerPkg(2, 0)
@@ -56,7 +56,8 @@ func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logL
 	}
 
 	logWriterFn := func(slsFilename string) io.Writer {
-		return newDefaultLogOutputWriter(registry, slsFilename, useConsoleLog, loggerStdoutWriter)
+		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
 
 	// initialize instrumented loggers
@@ -79,23 +80,20 @@ func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logL
 	)
 }
 
-// Returns an instrumented io.Writer that can be used as the underlying writer for a logger.
-// If either logToStdout or logToStdoutBasedOnEnv() is true, then the returned Writer will delegate to stdoutWriter.
-// Otherwise, it will use a default writer that writes to slsFilename.
-func newDefaultLogOutputWriter(registry metrics.Registry, slsFilename string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
-	var internalWriter io.Writer
+// Returns a io.Writer that can be used as the underlying writer for a logger.
+// If either logToStdout or logToStdoutBasedOnEnv() is true, then stdoutWriter is returned.
+// Otherwise, a default writer that writes to slsFilename is returned.
+func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
 	if logToStdout || logToStdoutBasedOnEnv() {
-		internalWriter = stdoutWriter
-	} else {
-		internalWriter = &lumberjack.Logger{
-			Filename:   fmt.Sprintf(defaultLogOutputFormat, slsFilename),
-			MaxSize:    1000,
-			MaxBackups: 10,
-			MaxAge:     30,
-			Compress:   true,
-		}
+		return stdoutWriter
 	}
-	return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
+	return &lumberjack.Logger{
+		Filename:   fmt.Sprintf(defaultLogOutputFormat, slsFilename),
+		MaxSize:    1000,
+		MaxBackups: 10,
+		MaxAge:     30,
+		Compress:   true,
+	}
 }
 
 // logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.
