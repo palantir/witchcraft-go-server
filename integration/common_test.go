@@ -47,7 +47,8 @@ const (
 
 // createAndRunTestServer returns a running witchcraft.Server that is initialized with simple default configuration in a
 // temporary directory. Returns the server, the path to the temporary directory, a channel that returns the error
-// returned by the server when it stops and a cleanup function that will remove the temporary directory.
+// returned by the server when it stops and a cleanup function that will remove the temporary directory. All logger
+// output is written to the provided logOutputBuffer, or to os.Stdout if no logOutputBuffer is specified.
 func createAndRunTestServer(t *testing.T, initFn witchcraft.InitFunc, logOutputBuffer io.Writer) (server *witchcraft.Server, port int, managementPort int, serverErr <-chan error, cleanup func()) {
 	var err error
 	port, err = httpserver.AvailablePort()

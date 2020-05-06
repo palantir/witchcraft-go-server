@@ -19,6 +19,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
@@ -46,8 +47,13 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
 		loggerStdoutWriter = s.loggerStdoutWriter
 	}
 
-	logOutputFn := func(logOutputPath string) io.Writer {
-		return newDefaultLogOutput(logOutputPath, useConsoleLog, loggerStdoutWriter)
+	loggerFileWriterProvider := DefaultFileWriterProvider()
+	if s.loggerFileWriterProvider != nil {
+		loggerFileWriterProvider = s.loggerFileWriterProvider
+	}
+
+	logOutputFn := func(logFileName string) io.Writer {
+		return CreateLogWriter(fmt.Sprintf("var/log/%s.log", logFileName), useConsoleLog, loggerStdoutWriter, loggerFileWriterProvider)
 	}
 
 	s.svcLogger = svc1log.New(logOutputFn("service"), logLevel, svc1LogParams...)
@@ -64,12 +70,19 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
 	)
 }
 
-func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
-	if logToStdout || logToStdoutBasedOnEnv() {
-		return stdoutWriter
-	}
+type FileWriterProvider interface {
+	FileWriter(logOutputPath string) io.Writer
+}
+
+func DefaultFileWriterProvider() FileWriterProvider {
+	return &defaultFileWriterProvider{}
+}
+
+type defaultFileWriterProvider struct{}
+
+func (p *defaultFileWriterProvider) FileWriter(logOutputPath string) io.Writer {
 	return &lumberjack.Logger{
-		Filename:   fmt.Sprintf("var/log/%s.log", logOutputPath),
+		Filename:   logOutputPath,
 		MaxSize:    1000,
 		MaxBackups: 10,
 		MaxAge:     30,
@@ -77,8 +90,56 @@ func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io
 	}
 }
 
-// logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.
-func logToStdoutBasedOnEnv() bool {
+type cachingFileWriterProvider struct {
+	delegate FileWriterProvider
+	cache    map[string]io.Writer
+	lock     sync.Mutex
+}
+
+// NewCachingFileWriterProvider returns a FileWriterProvider that uses the provided FileWriterProvider to create writers
+// and always returns the same io.Writer for a given path. Is thread-safe.
+func NewCachingFileWriterProvider(delegate FileWriterProvider) FileWriterProvider {
+	return &cachingFileWriterProvider{
+		delegate: delegate,
+		cache:    make(map[string]io.Writer),
+	}
+}
+
+func (p *cachingFileWriterProvider) FileWriter(logOutputPath string) io.Writer {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	if _, ok := p.cache[logOutputPath]; !ok {
+		// if not in cache, create and set
+		p.cache[logOutputPath] = p.delegate.FileWriter(logOutputPath)
+	}
+	return p.cache[logOutputPath]
+}
+
+// CreateLogWriter returns the io.Writer that should be used to write logs given the specified parameters. This function
+// is used internally by witchcraft.Server, and is thus useful in cases where code that executes before a
+// witchcraft.Server wants to perform logging operations using the same writer as the one that the witchcraft.Server
+// will use later (as opposed to the invoking code and server both using separate io.Writers for the same output
+// destination, which could cause issues like overwriting the same file).
+//
+// The following is an example usage:
+//
+//   cachingWriterProvider := witchcraft.NewCachingFileWriterProvider(witchcraft.DefaultFileWriterProvider())
+//   svc1Logger := svc1log.New(witchcraft.CreateLogWriter("var/log/service.log", false, os.Stdout, cachingWriterProvider), wlog.DebugLevel)
+//   server := witchcraft.NewServer().
+//	 	 WithLoggerFileWriterProvider(cachingWriterProvider).
+//		 ...
+//
+// In this example, the svc1Logger and the service logger for witchcraft.NewServer will both use the same writer
+// provided by cachingWriterProvider.
+func CreateLogWriter(logOutputPath string, useConsoleLog bool, consoleLogWriter io.Writer, fileWriterProvider FileWriterProvider) io.Writer {
+	if useConsoleLog || logToConsoleBasedOnEnv() {
+		return consoleLogWriter
+	}
+	return fileWriterProvider.FileWriter(logOutputPath)
+}
+
+// logToConsoleBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.
+func logToConsoleBasedOnEnv() bool {
 	return isDocker() && !isJail()
 }
 
