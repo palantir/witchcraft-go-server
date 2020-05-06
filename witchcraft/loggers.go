@@ -28,6 +28,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
+	"github.com/palantir/witchcraft-go-server/witchcraft/internal/metricloggers"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -65,16 +66,19 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
 }
 
 func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
+	var internalWriter io.Writer
 	if logToStdout || logToStdoutBasedOnEnv() {
-		return stdoutWriter
+		internalWriter = stdoutWriter
+	} else {
+		internalWriter = &lumberjack.Logger{
+			Filename:   fmt.Sprintf("var/log/%s.log", logOutputPath),
+			MaxSize:    1000,
+			MaxBackups: 10,
+			MaxAge:     30,
+			Compress:   true,
+		}
 	}
-	return &lumberjack.Logger{
-		Filename:   fmt.Sprintf("var/log/%s.log", logOutputPath),
-		MaxSize:    1000,
-		MaxBackups: 10,
-		MaxAge:     30,
-		Compress:   true,
-	}
+	return metricloggers.NewMetricWriter(internalWriter, logOutputPath)
 }
 
 // logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.

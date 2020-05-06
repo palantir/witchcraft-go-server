@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	slsLoggingMeterName = "logging.sls"
+	slsLoggingMeterName       = "logging.sls"
+	slsLogLengthHistogramName = "logging.sls.length"
 )
 
 // map from level to tag for the level. Maps is used because these values are the only ones that are used, and
@@ -46,6 +47,9 @@ type metricRecorder interface {
 	// parameter should be one of the wlog.LogLevel constants defined in the wlog package -- using a value that is not
 	// defined there may cause this function to panic.
 	RecordLeveledSLSLog(level wlog.LogLevel)
+
+	// TODO:
+	RecordSLSLogLength(len int)
 }
 
 type defaultMetricRecorder struct {
@@ -58,6 +62,10 @@ func newMetricRecorder(registry metrics.Registry, typ string) metricRecorder {
 		registry: registry,
 		typeTag:  metrics.MustNewTag("type", typ),
 	}
+}
+
+func (m *defaultMetricRecorder) RecordSLSLogLength(len int) {
+	m.registry.Histogram(slsLogLengthHistogramName, m.typeTag).Update(int64(len))
 }
 
 func (m *defaultMetricRecorder) RecordSLSLog() {
