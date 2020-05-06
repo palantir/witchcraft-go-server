@@ -32,6 +32,14 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+const (
+	defaultLogOutputFormat = "var/log/%s.log"
+)
+
+// initLoggers initializes the Server loggers with the provided logLevel.
+// If useConsoleLog is true, then all loggers log to stdout.
+// Returns a list of the underlying log writers, which later may be configured to emit metrics
+// after the Server metrics registry has been initialized.
 func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metricloggers.MetricWriter {
 	if s.svcLogOrigin == nil {
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
@@ -47,23 +55,23 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metri
 		loggerStdoutWriter = s.loggerStdoutWriter
 	}
 
-	logOutputFn := func(logOutputPath string) metricloggers.MetricWriter {
-		return newDefaultLogOutput(logOutputPath, useConsoleLog, loggerStdoutWriter)
+	logWriterFn := func(slsFilename string) metricloggers.MetricWriter {
+		return newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
 	}
 
-	svcLogWriter := logOutputFn("service")
+	svcLogWriter := logWriterFn("service")
 	s.svcLogger = svc1log.New(svcLogWriter, logLevel, svc1LogParams...)
-	evtLogWriter := logOutputFn("event")
+	evtLogWriter := logWriterFn("event")
 	s.evtLogger = evt2log.New(evtLogWriter)
-	metricLogWriter := logOutputFn("metrics")
+	metricLogWriter := logWriterFn("metrics")
 	s.metricLogger = metric1log.New(metricLogWriter)
-	trcLogWriter := logOutputFn("trace")
+	trcLogWriter := logWriterFn("trace")
 	s.trcLogger = trc1log.New(trcLogWriter)
-	auditLogWriter := logOutputFn("audit")
+	auditLogWriter := logWriterFn("audit")
 	s.auditLogger = audit2log.New(auditLogWriter)
-	diagnosticLogWriter := logOutputFn("diagnostic")
+	diagnosticLogWriter := logWriterFn("diagnostic")
 	s.diagLogger = diag1log.New(diagnosticLogWriter)
-	reqLogWriter := logOutputFn("request")
+	reqLogWriter := logWriterFn("request")
 	s.reqLogger = req2log.New(reqLogWriter,
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
@@ -81,20 +89,23 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metri
 	}
 }
 
-func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
+// Returns a MetricWriter which can be used as the underlying writer for a logger.
+// If logToStdout is true, then the provided stdoutWriter is used within the MetricWriter.
+// Otherwise, the returned MetricWriter will use a default writer that writes to logOutputFilename.
+func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
 	var internalWriter io.Writer
 	if logToStdout || logToStdoutBasedOnEnv() {
 		internalWriter = stdoutWriter
 	} else {
 		internalWriter = &lumberjack.Logger{
-			Filename:   fmt.Sprintf("var/log/%s.log", logOutputPath),
+			Filename:   fmt.Sprintf(defaultLogOutputFormat, slsFilename),
 			MaxSize:    1000,
 			MaxBackups: 10,
 			MaxAge:     30,
 			Compress:   true,
 		}
 	}
-	return metricloggers.NewMetricWriter(internalWriter, logOutputPath)
+	return metricloggers.NewMetricWriter(internalWriter, slsFilename)
 }
 
 // logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.

@@ -568,10 +568,10 @@ func (s *Server) Start() (rErr error) {
 		s.idsExtractor = extractor.NewDefaultIDsExtractor()
 	}
 
-	// initialize loggers. These loggers are not instrumented (do not record metrics as they log) because the metrics
-	// registry is not yet initialized: these loggers will be replaced by instrumenting loggers after metric registry
-	// initialization.
-	metricWriters := s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel)
+	// initialize loggers. These loggers and the returned logWriters are not instrumented (do not record metrics as they log)
+	// because the metrics registry is not yet initialized: these loggers will be replaced by instrumenting loggers
+	// after metric registry initialization.
+	logWriters := s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
@@ -587,8 +587,8 @@ func (s *Server) Start() (rErr error) {
 	defer metricsDeferFn()
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
-	// after metrics registry is created, update loggers to use versions that record metrics as logging is performed.
-	for _, w := range metricWriters {
+	// after metrics registry is created, update writers and loggers to use versions that record metrics as logging is performed.
+	for _, w := range logWriters {
 		w.SetMetricRegistry(metricsRegistry)
 	}
 	s.svcLogger = metricloggers.NewSvc1Logger(s.svcLogger, metricsRegistry)
