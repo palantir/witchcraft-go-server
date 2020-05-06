@@ -96,10 +96,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 			// do not record metric if it does not have any values
 			return
 		}
-		// note that s.metricLogger is used rather than extracting metric logger from the context to ensure that
-		// most up-to-date metric logger is used (s.metricLogger may be updated during initialization). s.metricLogger
-		// is guaranteed to be non-nil at this point.
-		s.metricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tags.ToMap()))
+		// s.metricLogger is not guaranteed to be non-nil at this point, so we use the logger from the ctx.
+		metric1log.FromContext(ctx).Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tags.ToMap()))
 	}
 
 	// start goroutine that logs metrics at the given frequency
