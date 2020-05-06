@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
@@ -37,10 +38,9 @@ const (
 )
 
 // initLoggers initializes the Server loggers with the provided logLevel.
+// The loggers are instrumented and will record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
-// Returns a list of the underlying log writers, which later may be configured to emit metrics
-// after the Server metrics registry has been initialized.
-func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metricloggers.MetricWriter {
+func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logLevel wlog.LogLevel) {
 	if s.svcLogOrigin == nil {
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
 		origin := svc1log.CallerPkg(2, 0)
@@ -56,43 +56,33 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metri
 	}
 
 	logWriterFn := func(slsFilename string) metricloggers.MetricWriter {
-		return newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		return newDefaultLogOutputWriter(registry, slsFilename, useConsoleLog, loggerStdoutWriter)
 	}
 
-	svcLogWriter := logWriterFn("service")
-	s.svcLogger = svc1log.New(svcLogWriter, logLevel, svc1LogParams...)
-	evtLogWriter := logWriterFn("event")
-	s.evtLogger = evt2log.New(evtLogWriter)
-	metricLogWriter := logWriterFn("metrics")
-	s.metricLogger = metric1log.New(metricLogWriter)
-	trcLogWriter := logWriterFn("trace")
-	s.trcLogger = trc1log.New(trcLogWriter)
-	auditLogWriter := logWriterFn("audit")
-	s.auditLogger = audit2log.New(auditLogWriter)
-	diagnosticLogWriter := logWriterFn("diagnostic")
-	s.diagLogger = diag1log.New(diagnosticLogWriter)
-	reqLogWriter := logWriterFn("request")
-	s.reqLogger = req2log.New(reqLogWriter,
+	// initialize instrumented loggers
+	s.svcLogger = metricloggers.NewSvc1Logger(
+		svc1log.New(logWriterFn("service"), logLevel, svc1LogParams...), registry)
+	s.evtLogger = metricloggers.NewEvt2Logger(
+		evt2log.New(logWriterFn("event")), registry)
+	s.metricLogger = metricloggers.NewMetric1Logger(
+		metric1log.New(logWriterFn("metrics")), registry)
+	s.trcLogger = metricloggers.NewTrc1Logger(
+		trc1log.New(logWriterFn("trace")), registry)
+	s.auditLogger = metricloggers.NewAudit2Logger(
+		audit2log.New(logWriterFn("audit")), registry)
+	s.diagLogger = diag1log.New(logWriterFn("diagnostic"))
+	s.reqLogger = req2log.New(logWriterFn("request"),
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
 		req2log.SafeQueryParams(s.safeQueryParams...),
 	)
-	return []metricloggers.MetricWriter{
-		svcLogWriter,
-		evtLogWriter,
-		metricLogWriter,
-		trcLogWriter,
-		auditLogWriter,
-		diagnosticLogWriter,
-		reqLogWriter,
-	}
 }
 
 // Returns a MetricWriter which can be used as the underlying writer for a logger.
 // If either logToStdout or logToStdoutBasedOnEnv() is true, then the provided stdoutWriter is used within the MetricWriter.
-// Otherwise, the returned MetricWriter will use a default writer that writes to logOutputFilename.
-func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
+// Otherwise, the returned MetricWriter will use a default writer that writes to slsFilename.
+func newDefaultLogOutputWriter(registry metrics.Registry, slsFilename string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
 	var internalWriter io.Writer
 	if logToStdout || logToStdoutBasedOnEnv() {
 		internalWriter = stdoutWriter
@@ -105,7 +95,7 @@ func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWrite
 			Compress:   true,
 		}
 	}
-	return metricloggers.NewMetricWriter(internalWriter, slsFilename)
+	return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 }
 
 // logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.

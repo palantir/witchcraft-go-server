@@ -48,7 +48,6 @@ import (
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/status/health/refreshable"
-	"github.com/palantir/witchcraft-go-server/witchcraft/internal/metricloggers"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
@@ -520,7 +519,7 @@ func (s *Server) Start() (rErr error) {
 
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel)
+				s.initLoggers(nil, false, wlog.InfoLevel)
 			}
 
 			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
@@ -530,7 +529,7 @@ func (s *Server) Start() (rErr error) {
 		if rErr != nil {
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel)
+				s.initLoggers(nil, false, wlog.InfoLevel)
 			}
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}
@@ -571,7 +570,7 @@ func (s *Server) Start() (rErr error) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	// initialize metrics. Note that loggers associated with ctx are not instrumented, but
+	// initialize metrics. Note that loggers have not been initialized or associated with ctx
 	metricsRegistry, metricsDeferFn, err := s.initMetrics(ctx, baseInstallCfg)
 	if err != nil {
 		return err
@@ -579,22 +578,10 @@ func (s *Server) Start() (rErr error) {
 	defer metricsDeferFn()
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
-	// initialize loggers. These loggers and the returned logWriters are not instrumented (do not record metrics as they log)
-	// because the metrics registry is not yet initialized: these loggers will be replaced by instrumenting loggers
-	// after metric registry initialization.
-	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel)
+	// initialize loggers.
+	s.initLoggers(metricsRegistry, baseInstallCfg.UseConsoleLog, wlog.InfoLevel)
 
 	// add loggers to context
-	ctx = s.withLoggers(ctx)
-
-	// after metrics registry is created, update writers and loggers to use versions that record metrics as logging is performed.
-	s.svcLogger = metricloggers.NewSvc1Logger(s.svcLogger, metricsRegistry)
-	s.evtLogger = metricloggers.NewEvt2Logger(s.evtLogger, metricsRegistry)
-	s.metricLogger = metricloggers.NewMetric1Logger(s.metricLogger, metricsRegistry)
-	s.trcLogger = metricloggers.NewTrc1Logger(s.trcLogger, metricsRegistry)
-	s.auditLogger = metricloggers.NewAudit2Logger(s.auditLogger, metricsRegistry)
-
-	// update context to use instrumented loggers
 	ctx = s.withLoggers(ctx)
 
 	// load runtime configuration
