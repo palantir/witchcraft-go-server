@@ -8,13 +8,18 @@ import (
 
 var _ io.Writer = (*metricWriter)(nil)
 
+type MetricWriter interface {
+	io.Writer
+	SetMetricRegistry(metrics.Registry)
+}
+
 type metricWriter struct {
 	writer   io.Writer
 	typ      string
 	recorder metricRecorder
 }
 
-func NewMetricWriter(writer io.Writer, typ string) io.Writer {
+func NewMetricWriter(writer io.Writer, typ string) MetricWriter {
 	return &metricWriter{
 		writer:   writer,
 		typ:      typ,
@@ -29,7 +34,8 @@ func (m *metricWriter) SetMetricRegistry(registry metrics.Registry) {
 func (m *metricWriter) Write(p []byte) (int, error) {
 	n, err := m.writer.Write(p)
 	if m.recorder != nil {
-		m.recorder.RecordSLSLogLength(n)
+		// Commented out because I still need to fix the integration tests if we chose this approach
+		//m.recorder.RecordSLSLogLength(n)
 	}
 	return n, err
 }

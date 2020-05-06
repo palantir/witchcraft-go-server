@@ -32,7 +32,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
+func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metricloggers.MetricWriter {
 	if s.svcLogOrigin == nil {
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
 		origin := svc1log.CallerPkg(2, 0)
@@ -47,25 +47,41 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) {
 		loggerStdoutWriter = s.loggerStdoutWriter
 	}
 
-	logOutputFn := func(logOutputPath string) io.Writer {
+	logOutputFn := func(logOutputPath string) metricloggers.MetricWriter {
 		return newDefaultLogOutput(logOutputPath, useConsoleLog, loggerStdoutWriter)
 	}
 
-	s.svcLogger = svc1log.New(logOutputFn("service"), logLevel, svc1LogParams...)
-	s.evtLogger = evt2log.New(logOutputFn("event"))
-	s.metricLogger = metric1log.New(logOutputFn("metrics"))
-	s.trcLogger = trc1log.New(logOutputFn("trace"))
-	s.auditLogger = audit2log.New(logOutputFn("audit"))
-	s.diagLogger = diag1log.New(logOutputFn("diagnostic"))
-	s.reqLogger = req2log.New(logOutputFn("request"),
+	svcLogWriter := logOutputFn("service")
+	s.svcLogger = svc1log.New(svcLogWriter, logLevel, svc1LogParams...)
+	evtLogWriter := logOutputFn("event")
+	s.evtLogger = evt2log.New(evtLogWriter)
+	metricLogWriter := logOutputFn("metrics")
+	s.metricLogger = metric1log.New(metricLogWriter)
+	trcLogWriter := logOutputFn("trace")
+	s.trcLogger = trc1log.New(trcLogWriter)
+	auditLogWriter := logOutputFn("audit")
+	s.auditLogger = audit2log.New(auditLogWriter)
+	diagnosticLogWriter := logOutputFn("diagnostic")
+	s.diagLogger = diag1log.New(diagnosticLogWriter)
+	reqLogWriter := logOutputFn("request")
+	s.reqLogger = req2log.New(reqLogWriter,
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
 		req2log.SafeQueryParams(s.safeQueryParams...),
 	)
+	return []metricloggers.MetricWriter{
+		svcLogWriter,
+		evtLogWriter,
+		metricLogWriter,
+		trcLogWriter,
+		auditLogWriter,
+		diagnosticLogWriter,
+		reqLogWriter,
+	}
 }
 
-func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
+func newDefaultLogOutput(logOutputPath string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
 	var internalWriter io.Writer
 	if logToStdout || logToStdoutBasedOnEnv() {
 		internalWriter = stdoutWriter

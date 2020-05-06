@@ -48,7 +48,7 @@ type metricRecorder interface {
 	// defined there may cause this function to panic.
 	RecordLeveledSLSLog(level wlog.LogLevel)
 
-	// TODO:
+	// RecordSLSLogLength records the length of an SLS log line for the given log type.
 	RecordSLSLogLength(len int)
 }
 
