@@ -90,7 +90,7 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel) []metri
 }
 
 // Returns a MetricWriter which can be used as the underlying writer for a logger.
-// If logToStdout is true, then the provided stdoutWriter is used within the MetricWriter.
+// If either logToStdout or logToStdoutBasedOnEnv() is true, then the provided stdoutWriter is used within the MetricWriter.
 // Otherwise, the returned MetricWriter will use a default writer that writes to logOutputFilename.
 func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
 	var internalWriter io.Writer

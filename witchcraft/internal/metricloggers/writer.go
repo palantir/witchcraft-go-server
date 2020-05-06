@@ -22,12 +22,11 @@ import (
 
 var _ io.Writer = (*metricWriter)(nil)
 
-// MetricWriter can be used for SLS logging. It emits metrics about the length of the lines writen.
+// MetricWriter can be used for SLS logging. It records metrics about the length of the lines writen.
 type MetricWriter interface {
 	io.Writer
-	// SetMetricRegistry initializes the metric registry used for emitting metrics.
-	// Before this is called, no metrics are emitted.
-	SetMetricRegistry(metrics.Registry)
+	// SetMetricRegistry sets the metric registry. If the registry is nil, no metrics are recorded.
+	SetMetricRegistry(registry metrics.Registry)
 }
 
 type metricWriter struct {
@@ -36,7 +35,7 @@ type metricWriter struct {
 	recorder metricRecorder
 }
 
-// NewMetricWriter returns a MetricWriter that delegates to writer, and emits SLS log line length
+// NewMetricWriter returns a MetricWriter that delegates to writer, and records SLS log line length
 // according to the provided slsFilename, e.g. "service", or "trace".
 func NewMetricWriter(writer io.Writer, slsFilename string) MetricWriter {
 	return &metricWriter{
