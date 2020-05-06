@@ -79,6 +79,7 @@ func TestEmitMetrics(t *testing.T) {
 
 	var (
 		seenLoggingSLS,
+		seenLoggingSLSLength,
 		seenMyCounter,
 		seenResponseTimer,
 		seenUptime,
@@ -100,6 +101,14 @@ func TestEmitMetrics(t *testing.T) {
 			} else {
 				assert.Equal(t, "", metricTagLevel)
 			}
+		case "logging.sls.length":
+			seenLoggingSLSLength = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "logging.sls.length metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
@@ -171,7 +180,9 @@ func TestEmitMetrics(t *testing.T) {
 			assert.Fail(t, "unexpected metric encountered", "%s", metricLog.MetricName)
 		}
 	}
+
 	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
+	assert.True(t, seenLoggingSLSLength, "logging.sls.length metric was not emitted")
 	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
@@ -230,6 +241,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 
 	var (
 		seenLoggingSLS,
+		seenLoggingSLSLength,
 		seenMyCounter,
 		seenResponseTimer,
 		seenResponseSize,
@@ -251,6 +263,14 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			} else {
 				assert.Equal(t, "", metricTagLevel)
 			}
+		case "logging.sls.length":
+			seenLoggingSLSLength = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "logging.sls.length metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
@@ -318,6 +338,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		}
 	}
 	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
+	assert.True(t, seenLoggingSLSLength, "logging.sls.length metric was not emitted")
 	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
@@ -377,6 +398,7 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 
 	var (
 		seenLoggingSLS,
+		seenLoggingSLSLength,
 		seenMyCounter,
 		seenResponseTimer,
 		seenResponseSize,
@@ -398,6 +420,14 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 			} else {
 				assert.Equal(t, "", metricTagLevel)
 			}
+		case "logging.sls.length":
+			seenLoggingSLSLength = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "logging.sls.length metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.Nil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
@@ -433,6 +463,7 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		}
 	}
 	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
+	assert.True(t, seenLoggingSLSLength, "logging.sls.length metric was not emitted")
 	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
@@ -464,6 +495,7 @@ func TestMetricsBlacklist(t *testing.T) {
 		server.WithMetricsBlacklist(map[string]struct{}{
 			"my-counter":          {},
 			"logging.sls":         {},
+			"logging.sls.length":  {},
 			"server.request.size": {},
 			"server.uptime":       {},
 		})
@@ -493,6 +525,7 @@ func TestMetricsBlacklist(t *testing.T) {
 
 	var (
 		seenLoggingSLS,
+		seenLoggingSLSLength,
 		seenMyCounter,
 		seenResponseTimer,
 		seenResponseSize,
@@ -503,6 +536,8 @@ func TestMetricsBlacklist(t *testing.T) {
 		switch metricLog.MetricName {
 		case "logging.sls":
 			assert.Fail(t, "logging.sls metric should not be emitted")
+		case "logging.sls.length":
+			assert.Fail(t, "logging.sls.length metric should not be emitted")
 		case "my-counter":
 			assert.Fail(t, "my-counter metric should not be emitted")
 		case "server.response":
@@ -526,6 +561,7 @@ func TestMetricsBlacklist(t *testing.T) {
 	assert.False(t, seenMyCounter, "my-counter metric was emitted")
 	assert.False(t, seenRequestSize, "server.request.size metric was emitted")
 	assert.False(t, seenLoggingSLS, "logging.sls metric was emitted")
+	assert.False(t, seenLoggingSLSLength, "logging.sls.length metric was emitted")
 
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
