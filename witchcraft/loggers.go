@@ -37,9 +37,9 @@ const (
 	defaultLogOutputFormat = "var/log/%s.log"
 )
 
-// initLoggers initializes the Server loggers with the provided logLevel.
-// The loggers are instrumented and will record metrics in the given registry.
+// initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
+// The provided logLevel is used when initializing the service logs only.
 func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logLevel wlog.LogLevel) {
 	if s.svcLogOrigin == nil {
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
