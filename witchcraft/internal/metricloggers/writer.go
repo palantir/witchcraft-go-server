@@ -29,6 +29,7 @@ type metricWriter struct {
 
 // NewMetricWriter returns a MetricWriter that delegates to writer, and records SLS log line length
 // according to the provided slsFilename, e.g. "service", or "trace".
+// If registry is nil, then no metrics are recorded.
 func NewMetricWriter(writer io.Writer, registry metrics.Registry, slsFilename string) io.Writer {
 	var recorder metricRecorder
 	if registry != nil {
