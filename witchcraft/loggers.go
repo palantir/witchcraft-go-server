@@ -55,7 +55,7 @@ func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logL
 		loggerStdoutWriter = s.loggerStdoutWriter
 	}
 
-	logWriterFn := func(slsFilename string) metricloggers.MetricWriter {
+	logWriterFn := func(slsFilename string) io.Writer {
 		return newDefaultLogOutputWriter(registry, slsFilename, useConsoleLog, loggerStdoutWriter)
 	}
 
@@ -79,10 +79,10 @@ func (s *Server) initLoggers(registry metrics.Registry, useConsoleLog bool, logL
 	)
 }
 
-// Returns a MetricWriter which can be used as the underlying writer for a logger.
-// If either logToStdout or logToStdoutBasedOnEnv() is true, then the provided stdoutWriter is used within the MetricWriter.
-// Otherwise, the returned MetricWriter will use a default writer that writes to slsFilename.
-func newDefaultLogOutputWriter(registry metrics.Registry, slsFilename string, logToStdout bool, stdoutWriter io.Writer) metricloggers.MetricWriter {
+// Returns an instrumented io.Writer that can be used as the underlying writer for a logger.
+// If either logToStdout or logToStdoutBasedOnEnv() is true, then the returned Writer will delegate to stdoutWriter.
+// Otherwise, it will use a default writer that writes to slsFilename.
+func newDefaultLogOutputWriter(registry metrics.Registry, slsFilename string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
 	var internalWriter io.Writer
 	if logToStdout || logToStdoutBasedOnEnv() {
 		internalWriter = stdoutWriter
