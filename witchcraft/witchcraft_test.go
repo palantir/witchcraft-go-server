@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -27,8 +28,14 @@ import (
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
+	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -104,6 +111,67 @@ func TestFatalErrorLogging(t *testing.T) {
 
 			require.Error(t, err)
 			test.VerifyLog(t, logOutputBuffer.Bytes())
+		})
+	}
+}
+
+// BenchmarkServer_Loggers benchmarks the time for Server loggers to log a fixed number of lines.
+func BenchmarkServer_Loggers(b *testing.B) {
+	for _, test := range []struct {
+		Name        string
+		LoggingBody func(context.Context)
+	}{
+		{
+			Name: "svc1log",
+			LoggingBody: func(ctx context.Context) {
+				svc1log.FromContext(ctx).Info("info!")
+			},
+		},
+		{
+			Name: "evt2log",
+			LoggingBody: func(ctx context.Context) {
+				evt2log.FromContext(ctx).Event("event!")
+			},
+		},
+		{
+			Name: "metric1log",
+			LoggingBody: func(ctx context.Context) {
+				metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
+			},
+		},
+		{
+			Name: "trc1log",
+			LoggingBody: func(ctx context.Context) {
+				trc1log.FromContext(ctx).Log(wtracing.SpanModel{})
+			},
+		},
+		{
+			Name: "audit2log",
+			LoggingBody: func(ctx context.Context) {
+				audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
+			},
+		},
+	} {
+		b.Run(test.Name, func(b *testing.B) {
+			err := witchcraft.NewServer().
+				WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						test.LoggingBody(ctx)
+					}
+					b.StopTimer()
+					return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+				}).
+				WithInstallConfig(config.Install{UseConsoleLog: true}).
+				WithRuntimeConfig(config.Runtime{}).
+				WithLoggerStdoutWriter(ioutil.Discard).
+				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+				WithDisableGoRuntimeMetrics().
+				WithSelfSignedCertificate().
+				Start()
+
+			// Requires an error so that `Start` will return
+			require.Error(b, err)
 		})
 	}
 }
