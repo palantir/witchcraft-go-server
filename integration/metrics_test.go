@@ -254,9 +254,9 @@ func TestMetricWriter(t *testing.T) {
 			if metricLog.Tags["type"] == "audit" || metricLog.Tags["type"] == "trace" {
 				require.Equal(t, json.Number("1"), metricLog.Values["count"])
 
-				maxJson, ok := metricLog.Values["max"].(json.Number)
+				maxJSON, ok := metricLog.Values["max"].(json.Number)
 				require.True(t, ok)
-				max, err := maxJson.Int64()
+				max, err := maxJSON.Int64()
 				require.NoError(t, err)
 				require.Greater(t, max, int64(len(superLongLogLine)))
 			}

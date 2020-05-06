@@ -97,8 +97,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 			return
 		}
 		// note that s.metricLogger is used rather than extracting metric logger from the context to ensure that
-		// most up-to-date metric logger is used (s.metricLogger may be updated during initialization). s.metricLogger
-		// is guaranteed to be non-nil at this point.
+		// most up-to-date metric logger is used (s.metricLogger may be updated during initialization).
+		// s.metricLogger is not guaranteed to be non-nil at this point.
 		s.metricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tags.ToMap()))
 	}
 
