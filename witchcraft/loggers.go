@@ -71,13 +71,13 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 		trc1log.New(logWriterFn("trace")), registry)
 	s.auditLogger = metricloggers.NewAudit2Logger(
 		audit2log.New(logWriterFn("audit")), registry)
-	s.diagLogger = diag1log.New(logWriterFn("diagnostic"))
-	s.reqLogger = req2log.New(logWriterFn("request"),
+	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
+	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
 		req2log.SafeQueryParams(s.safeQueryParams...),
-	)
+	), registry)
 }
 
 // Returns a io.Writer that can be used as the underlying writer for a logger.

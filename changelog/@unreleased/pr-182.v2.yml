@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Records the "logging.sls" metric for diag1 and req2 loggers.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/182
