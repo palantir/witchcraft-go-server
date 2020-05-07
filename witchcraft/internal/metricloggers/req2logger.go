@@ -29,7 +29,7 @@ type req2Logger struct {
 func NewReq2Logger(logger req2log.Logger, registry metrics.Registry) req2log.Logger {
 	return &req2Logger{
 		logger:   logger,
-		recorder: newMetricRecorder(registry, "request.2"),
+		recorder: newMetricRecorder(registry, req2log.TypeValue),
 	}
 }
 
