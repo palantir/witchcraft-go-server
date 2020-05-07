@@ -17,7 +17,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/palantir/witchcraft-go-server/rest"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/status"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
@@ -47,6 +47,6 @@ func handler(source status.Source) http.Handler {
 			metadata = struct{}{}
 		}
 
-		rest.WriteJSONResponse(w, metadata, respCode)
+		httpserver.WriteJSONResponse(w, metadata, respCode)
 	})
 }

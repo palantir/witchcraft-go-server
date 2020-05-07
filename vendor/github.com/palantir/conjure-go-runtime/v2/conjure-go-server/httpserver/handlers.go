@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2020 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rest
+package httpserver
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
@@ -37,8 +38,6 @@ type handler struct {
 // handle the error according to the provided ErrorHandler. The provided 'fn' function is not expected to write
 // a response in the http.ResponseWriter if it returns a non-nil error. If a non-nil error is returned, the
 // mapped status code from the provided StatusMapper will be returned.
-//
-// Deprecated: Prefer server utilities in github.com/palantir/conjure-go-runtime/conjure-go-server/httpserver.
 func NewJSONHandler(fn func(http.ResponseWriter, *http.Request) error, statusFn StatusMapper, errorFn ErrorHandler) http.Handler {
 	return &handler{
 		handleFn: fn,
@@ -52,14 +51,13 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.handleFn(w, r); err != nil {
 		status := h.status(err)
 		h.handleError(r.Context(), status, err)
-		var jsonErr interface{}
-		if marshaler, ok := err.(json.Marshaler); ok {
-			jsonErr = marshaler
-		} else {
-			// Fall back to string encoding
-			jsonErr = err.Error()
+		if marshaler, ok := werror.RootCause(err).(json.Marshaler); ok {
+			WriteJSONResponse(w, marshaler, status)
+			return
 		}
-		WriteJSONResponse(w, jsonErr, status)
+		// Fall back to string encoding
+		http.Error(w, err.Error(), status)
+		return
 	}
 }
 
@@ -78,19 +76,30 @@ func (h handler) handleError(ctx context.Context, statusCode int, err error) {
 	}
 }
 
-// StatusCodeMapper maps a provided error to an HTTP status code. If the provided error contains a non-zero status code added
-// using the StatusCode ErrorParam, returns that status code; otherwise, returns http.StatusInternalServerError.
-//
-// Deprecated: Prefer server utilities in github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver.
+// StatusCodeMapper maps a provided error to an HTTP status code.
+// If the error's RootCause is a conjure error, the status mapping to the errorCode field is used.
+// If the provided error is a contains the legacy httpStatusCode parameter, that value is used.
+// Otherwise, returns http.StatusInternalServerError (500).
 func StatusCodeMapper(err error) int {
-	safe, _ := werror.ParamsFromError(err)
-	statusCode, ok := safe[httpStatusCodeParamKey]
-	if !ok {
-		return http.StatusInternalServerError
+	if conjureErr, ok := werror.RootCause(err).(errors.Error); ok {
+		return conjureErr.Code().StatusCode()
 	}
-	statusCodeInt, ok := statusCode.(int)
-	if !ok || statusCodeInt == 0 {
-		return http.StatusInternalServerError
+	if legacyCode := legacyErrorCode(err); legacyCode != 0 {
+		return legacyCode
+	}
+	return http.StatusInternalServerError
+}
+
+// legacyErrorCode extracts error codes set by the deprecated witchcraft-go-server/rest package.
+// It returns 0 if not found. New code should use conjure errors.
+func legacyErrorCode(err error) int {
+	statusCodeParam, _ := werror.ParamFromError(err, legacyHTTPStatusCodeParamKey)
+	if statusCodeParam == nil {
+		return 0
+	}
+	statusCodeInt, ok := statusCodeParam.(int)
+	if !ok {
+		return 0
 	}
 	return statusCodeInt
 }
@@ -98,8 +107,6 @@ func StatusCodeMapper(err error) int {
 // ErrHandler is an ErrorHandler that creates a log in the provided context's svc1log logger when an error is received.
 // The log output is printed at the ERROR level if the status code is >= 500; otherwise, it is printed at INFO level.
 // This preserves request-scoped logging configuration added by wrouter.
-//
-// Deprecated: Prefer server utilities in github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver.
 func ErrHandler(ctx context.Context, statusCode int, err error) {
 	logger := svc1log.FromContext(ctx)
 
