@@ -42,7 +42,7 @@ github.com/palantir/pkg/transform
 # github.com/palantir/witchcraft-go-error v1.3.0
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
-# github.com/palantir/witchcraft-go-logging v1.5.0
+# github.com/palantir/witchcraft-go-logging v1.5.2
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog

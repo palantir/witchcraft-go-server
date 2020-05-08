@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |
+    Create MetricWriter that records metrics for logging operations and update loggers in the context provided
+    by the server to use it. After this change, the server metrics will include a "logging.sls.length" metric that records
+    the length of log lines performed with tags that specify the logger type.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/181
