@@ -184,3 +184,21 @@ func getLogFileMessages(t *testing.T, logOutput []byte) []string {
 	}
 	return messages
 }
+
+// getLogMessagesOfType returns a slice of the content of all of the log entries that have a "type" field that match the
+// provided value.
+func getLogMessagesOfType(t *testing.T, typ string, logOutput []byte) []map[string]interface{} {
+	lines := bytes.Split(logOutput, []byte("\n"))
+	var logLines []map[string]interface{}
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		var currEntry map[string]interface{}
+		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
+		if logLineType, ok := currEntry["type"]; ok && logLineType == typ {
+			logLines = append(logLines, currEntry)
+		}
+	}
+	return logLines
+}
