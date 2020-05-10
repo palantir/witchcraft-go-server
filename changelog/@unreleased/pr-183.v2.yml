@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Move to conjure-go-server; deprecate rest package
+
+    Note that this forces all consumers to be on go modules due to the v2 in the import path
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/183
