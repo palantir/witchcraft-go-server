@@ -20,6 +20,7 @@ import (
 	netpprof "net/http/pprof"
 	"runtime/pprof"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/config"
@@ -106,6 +107,15 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	// add route middleware
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog(s.reqLogger, nil))
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteLogTraceSpan())
+
+	// add not found handler
+	rootRouter.RegisterNotFoundHandler(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		middleware.NewRouteRequestLog(s.reqLogger, nil)(rw, r, wrouter.RequestVals{},
+			func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+				errors.WriteErrorResponse(rw, errors.NewNotFound())
+			},
+		)
+	}))
 }
 
 func createRouter(routerImpl wrouter.RouterImpl, ctxPath string) wrouter.Router {
