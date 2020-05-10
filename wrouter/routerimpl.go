@@ -43,4 +43,6 @@ type RouterImpl interface {
 	// the number of parameters in the path. The variable names of the parameters in the path are provided in order
 	// in the "pathVarNames" slice.
 	PathParams(req *http.Request, pathVarNames []string) map[string]string
+
+	RegisterNotFoundHandler(handler http.Handler)
 }

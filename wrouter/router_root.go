@@ -26,6 +26,8 @@ type RootRouter interface {
 
 	AddRequestHandlerMiddleware(handlers ...RequestHandlerMiddleware)
 	AddRouteHandlerMiddleware(handlers ...RouteHandlerMiddleware)
+
+	RegisterNotFoundHandler(handler http.Handler)
 }
 
 type rootRouter struct {
@@ -200,6 +202,10 @@ func (r *rootRouter) AddRequestHandlerMiddleware(handlers ...RequestHandlerMiddl
 
 func (r *rootRouter) AddRouteHandlerMiddleware(handlers ...RouteHandlerMiddleware) {
 	r.routeHandlers = append(r.routeHandlers, handlers...)
+}
+
+func (r *rootRouter) RegisterNotFoundHandler(handler http.Handler) {
+	r.impl.RegisterNotFoundHandler(handler)
 }
 
 type requestHandlerWithNext struct {

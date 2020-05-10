@@ -76,6 +76,10 @@ func (r *router) Register(method string, pathSegments []wrouter.PathSegment, han
 	(*mux.Router)(r).Path(r.convertPathParams(pathSegments)).Methods(method).Handler(handler)
 }
 
+func (r *router) RegisterNotFoundHandler(handler http.Handler) {
+	(*mux.Router)(r).NotFoundHandler = handler
+}
+
 func (r *router) PathParams(req *http.Request, pathVarNames []string) map[string]string {
 	vars := mux.Vars(req)
 	if len(vars) == 0 {
