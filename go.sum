@@ -41,10 +41,13 @@ github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+W
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/openzipkin/zipkin-go v0.2.2 h1:nY8Hti+WKaP0cRsSeQ026wU03QsM762XBeCXBb9NAWI=
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
+github.com/palantir/conjure-go-runtime/v2 v2.1.0 h1:/n1abW2kqEx5zsSCb4bzrovK9ZhngIF9aZkUGQhXWp8=
+github.com/palantir/conjure-go-runtime/v2 v2.1.0/go.mod h1:k4+u7YJwBAO6Kk7SGvFCQR7vrkVW8vgQxO8rPZGuS5g=
 github.com/palantir/go-encrypted-config-value v1.1.0 h1:GwyTWSEthp3dRII2AL+lgdM5ajc8uBVQdv7dZSG91hY=
 github.com/palantir/go-encrypted-config-value v1.1.0/go.mod h1:6c5zDN0XqZLxJiV3yLZmoEkUpaB4W3xJdKY6UPn24qI=
 github.com/palantir/go-metrics v1.1.0 h1:gf6W9EBvzREheH/3wNLPmJD8pe+xtag3TjePZe4hUTQ=
 github.com/palantir/go-metrics v1.1.0/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
+github.com/palantir/pkg/bytesbuffers v1.0.0/go.mod h1:JFWINutL8wfBpXOqastvJtuEXNEQhIVNnBVY0oeJFws=
 github.com/palantir/pkg/datetime v1.0.0 h1:hV442fTe738bMHuxkECrQhdAx7ku7oO2LLrY7K4konc=
 github.com/palantir/pkg/datetime v1.0.0/go.mod h1:s01MDVkY8pZEP+sbAIbXxiAsS+mPLHla3cFnQ2pk//g=
 github.com/palantir/pkg/httpserver v1.0.0 h1:OHiEZCSzOGxi/KG0DOU3mIpCsiJQrZDsYKeNRG2fArc=
@@ -53,6 +56,7 @@ github.com/palantir/pkg/metrics v1.0.0 h1:C11EXaB4e9DbeccCoaBv0FOSdQZ9SkNeDP1vpP
 github.com/palantir/pkg/metrics v1.0.0/go.mod h1:bQgc6o1wUY8hEamP/BX5IYUq9hCYVRGhcCWlxfcqNRw=
 github.com/palantir/pkg/objmatcher v1.0.0 h1:TrVWmiruKaPgYbxvAFk3TlWtb1L72jo0/6Jw4udTEmU=
 github.com/palantir/pkg/objmatcher v1.0.0/go.mod h1:r/JGd9x5OOgTCoaHt7qSSRX7jAheaJ88nAWytWsrwN0=
+github.com/palantir/pkg/retry v1.0.0/go.mod h1:/LJ8kSqgmyNvUKVU0ZSkNLfQ47ufKIZKhEk211pQZ7s=
 github.com/palantir/pkg/safejson v1.0.0 h1:uMRaxVwRC45AcDCvdr930TDOluec13zYwKiZ0wKNRWs=
 github.com/palantir/pkg/safejson v1.0.0/go.mod h1:lrqgYn4dju1TbU+pf3gEQtzAbQtaGrTHa3860bus8tM=
 github.com/palantir/pkg/safelong v1.0.0 h1:CLtdL8mf3uu4mQcyOgYh/OtbUsbpW9Tu5i1uHiuafoc=
@@ -65,6 +69,8 @@ github.com/palantir/pkg/tlsconfig v1.0.0 h1:Ivvntm4LFe7aXKzMzZkxDq12nvdAhKllchij
 github.com/palantir/pkg/tlsconfig v1.0.0/go.mod h1:pyDZXpSYm5J6r/4Fm6mjDV25Oe1aMsrgTjkCccKt8MM=
 github.com/palantir/pkg/transform v1.0.0 h1:21MzkUg9fQgIdadTYMM1Z1qrml2MVdpNY5ai27G15LM=
 github.com/palantir/pkg/transform v1.0.0/go.mod h1:YH2PQUzswoDayk4rTvKt6B+NcnUJgZRNr9MEqfAMCo0=
+github.com/palantir/pkg/uuid v1.0.0 h1:w+61TWaMpaYytAILxzj/3IJvTzLZkZQvYW52H7dK900=
+github.com/palantir/pkg/uuid v1.0.0/go.mod h1:yCHOTYHJD/zKB1c8sJ2IhIGvPGnYYcp0FgGTnbr5jiM=
 github.com/palantir/witchcraft-go-error v1.2.0 h1:YFoZ8VC0ZLCGuhqM9iqdflUrTHGQmc3DC4GXGDZkhfY=
 github.com/palantir/witchcraft-go-error v1.2.0/go.mod h1:/cl2dMkuBbnfxDtFiC//8JfvZxmRkYRhgv3bBux9AD0=
 github.com/palantir/witchcraft-go-error v1.3.0 h1:1FUvIv+jS22t81uPI0Q5JEwzBDigClqGJJkLTuE8sZI=
@@ -112,6 +118,7 @@ golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73r
 golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
+golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=

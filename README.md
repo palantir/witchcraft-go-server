@@ -218,7 +218,7 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/palantir/witchcraft-go-server/rest"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
@@ -239,7 +239,7 @@ func main() {
 
 func registerMyNumEndpoint(router wrouter.Router) error {
 	return router.Get("/myNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rest.WriteJSONResponse(rw, rand.Intn(100), http.StatusOK)
+		httpserver.WriteJSONResponse(rw, rand.Intn(100), http.StatusOK)
 	}))
 }
 ```
@@ -342,8 +342,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
@@ -385,7 +385,7 @@ func main() {
 
 func registerMyNumEndpoint(router wrouter.Router, num int) error {
 	return router.Get("/myNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rest.WriteJSONResponse(rw, num, http.StatusOK)
+		httpserver.WriteJSONResponse(rw, num, http.StatusOK)
 	}))
 }
 ```
@@ -408,8 +408,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
@@ -440,7 +440,7 @@ func main() {
 
 func registerMyNumEndpoint(router wrouter.Router, num int) error {
 	return router.Get("/myNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rest.WriteJSONResponse(rw, num, http.StatusOK)
+		httpserver.WriteJSONResponse(rw, num, http.StatusOK)
 	}))
 }
 ```
@@ -473,8 +473,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
@@ -515,7 +515,7 @@ func main() {
 
 func registerMyNumEndpoint(router wrouter.Router, numProvider refreshable.Int) error {
 	return router.Get("/myNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rest.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
+		httpserver.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
 	}))
 }
 ``` 
@@ -559,8 +559,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
@@ -605,13 +605,13 @@ func main() {
 
 func registerInstallNumEndpoint(router wrouter.Router, num int) error {
 	return router.Get("/installNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rest.WriteJSONResponse(rw, num, http.StatusOK)
+		httpserver.WriteJSONResponse(rw, num, http.StatusOK)
 	}))
 }
 
 func registerRuntimeNumEndpoint(router wrouter.Router, numProvider refreshable.Int) error {
 	return router.Get("/runtimeNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rest.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
+		httpserver.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
 	}))
 }
 ```
