@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Removes flaky sls.logging.length test logic
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/184
