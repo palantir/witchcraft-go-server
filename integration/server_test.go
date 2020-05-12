@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/tlsconfig"
 	"github.com/palantir/witchcraft-go-server/config"
@@ -339,33 +340,77 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 	}()
 	defer cleanup()
 
-	const testTraceID = "6c2f558d62a7085f"
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/TestDefaultNotFoundHandler", port), nil)
-	require.NoError(t, err)
-	req.Header.Set("X-B3-TraceId", testTraceID)
+	t.Run("200", func(t *testing.T) {
+		const testTraceID = "1000000000000000"
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/example/foo", port), nil)
+		require.NoError(t, err)
+		req.Header.Set("X-B3-TraceId", testTraceID)
 
-	resp, err := testServerClient().Do(req)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	assert.Equal(t, "404 Not Found", resp.Status)
-	assert.False(t, called, "called boolean was not set to false (http handler executed)")
+		resp, err := testServerClient().Do(req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, "200 OK", resp.Status)
+		assert.True(t, called, "called boolean was not set to true (http handler not executed)")
 
-	// verify service log output
-	msgs := getLogFileMessages(t, logOutputBuffer.Bytes())
-	assert.Equal(t, []string{"Listening to https", "Listening to https"}, msgs)
-
-	// find request log for 404, assert trace ID matches request
-	reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
-	var notFoundReqLog map[string]interface{}
-	for _, reqlog := range reqlogs {
-		if reqlog["path"] == "/TestDefaultNotFoundHandler" {
-			notFoundReqLog = reqlog
-			break
+		reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
+		var notFoundReqLog map[string]interface{}
+		for _, reqlog := range reqlogs {
+			if reqlog["path"] == req.URL.Path {
+				notFoundReqLog = reqlog
+				break
+			}
 		}
-	}
-	if assert.NotNil(t, notFoundReqLog, "404 request did not produce request log") {
-		assert.Equal(t, testTraceID, reqlogs[0]["traceId"], "trace ID in request log did not match ID set by client")
-	}
+		if assert.NotNil(t, notFoundReqLog, "200 request did not produce request log") {
+			assert.Equal(t, testTraceID, notFoundReqLog["traceId"], "trace ID in request log did not match ID set by client")
+		}
+	})
+	t.Run("404", func(t *testing.T) {
+		const testTraceID = "1000000000000001"
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/TestDefaultNotFoundHandler", port), nil)
+		require.NoError(t, err)
+		req.Header.Set("X-B3-TraceId", testTraceID)
+
+		resp, err := testServerClient().Do(req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		assert.Equal(t, "404 Not Found", resp.Status)
+
+		body, err := ioutil.ReadAll(resp.Body)
+		require.NoError(t, err)
+		cerr, err := errors.UnmarshalError(body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, errors.NotFound, cerr.Code())
+		}
+
+		// find request log for 404, assert trace ID matches request
+		reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
+		var notFoundReqLog map[string]interface{}
+		for _, reqlog := range reqlogs {
+			if reqlog["path"] == req.URL.Path {
+				notFoundReqLog = reqlog
+				break
+			}
+		}
+		if assert.NotNil(t, notFoundReqLog, "404 request did not produce request log") {
+			assert.Equal(t, testTraceID, notFoundReqLog["traceId"], "trace ID in request log did not match ID set by client")
+		}
+
+		// find service log for 404, assert trace ID matches request
+		svclogs := getLogMessagesOfType(t, "service.1", logOutputBuffer.Bytes())
+		var notFoundSvcLog map[string]interface{}
+		for _, svclog := range svclogs {
+			if id, ok := svclog["params"].(map[string]interface{})["errorInstanceId"]; ok {
+				if id == cerr.InstanceID().String() {
+					notFoundSvcLog = svclog
+					break
+				}
+			}
+		}
+		if assert.NotNil(t, notFoundSvcLog, "404 request did not produce service log") {
+			assert.Equal(t, testTraceID, notFoundSvcLog["traceId"], "trace ID in request log did not match ID set by client")
+		}
+	})
 
 	select {
 	case err := <-serverErr:
