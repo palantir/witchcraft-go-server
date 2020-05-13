@@ -358,7 +358,6 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 	}
 
 	t.Run("request log", func(t *testing.T) {
-		//t.Skip("404s do not correctly produce request logs: https://github.com/palantir/witchcraft-go-server/issues/186")
 		// find request log for 404, assert trace ID matches request
 		reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
 		var notFoundReqLogs []map[string]interface{}

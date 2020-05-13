@@ -44,5 +44,7 @@ type RouterImpl interface {
 	// in the "pathVarNames" slice.
 	PathParams(req *http.Request, pathVarNames []string) map[string]string
 
+	// RegisterNotFoundHandler registers a handler which generates Not Found (404) responses.
+	// If not provided, the implementation's default behavior (typically http.Error) will be used.
 	RegisterNotFoundHandler(handler http.Handler)
 }
