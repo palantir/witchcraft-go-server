@@ -339,59 +339,57 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 	}()
 	defer cleanup()
 
-	t.Run("404", func(t *testing.T) {
-		const testTraceID = "1000000000000001"
-		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/TestDefaultNotFoundHandler", port), nil)
-		require.NoError(t, err)
-		req.Header.Set("X-B3-TraceId", testTraceID)
+	const testTraceID = "1000000000000001"
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://localhost:%d/TestDefaultNotFoundHandler", port), nil)
+	require.NoError(t, err)
+	req.Header.Set("X-B3-TraceId", testTraceID)
 
-		resp, err := testServerClient().Do(req)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
+	resp, err := testServerClient().Do(req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
-		assert.Equal(t, "404 Not Found", resp.Status)
+	assert.Equal(t, "404 Not Found", resp.Status)
 
-		body, err := ioutil.ReadAll(resp.Body)
-		require.NoError(t, err)
-		cerr, err := errors.UnmarshalError(body)
-		if assert.NoError(t, err) {
-			assert.Equal(t, errors.NotFound, cerr.Code())
+	body, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+	cerr, err := errors.UnmarshalError(body)
+	if assert.NoError(t, err) {
+		assert.Equal(t, errors.NotFound, cerr.Code())
+	}
+
+	t.Run("request log", func(t *testing.T) {
+		//t.Skip("404s do not correctly produce request logs: https://github.com/palantir/witchcraft-go-server/issues/186")
+		// find request log for 404, assert trace ID matches request
+		reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
+		var notFoundReqLogs []map[string]interface{}
+		for _, reqlog := range reqlogs {
+			if reqlog["traceId"] == testTraceID {
+				notFoundReqLogs = append(notFoundReqLogs, reqlog)
+			}
 		}
+		if assert.Len(t, notFoundReqLogs, 1, "expected exactly one request log with trace id") {
+			reqlog := notFoundReqLogs[0]
+			assert.Equal(t, 404.0, reqlog["status"])
+			assert.Equal(t, "POST", reqlog["method"])
+			assert.Equal(t, "/*", reqlog["path"])
+		}
+	})
 
-		t.Run("request log", func(t *testing.T) {
-			t.Skip("404s do not correctly produce request logs: https://github.com/palantir/witchcraft-go-server/issues/186")
-			// find request log for 404, assert trace ID matches request
-			reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
-			var notFoundReqLog map[string]interface{}
-			for _, reqlog := range reqlogs {
-				if reqlog["path"] == req.URL.Path {
-					notFoundReqLog = reqlog
-					break
-				}
+	t.Run("service log", func(t *testing.T) {
+		// find service log for 404, assert trace ID matches request
+		svclogs := getLogMessagesOfType(t, "service.1", logOutputBuffer.Bytes())
+		var notFoundSvcLogs []map[string]interface{}
+		for _, svclog := range svclogs {
+			if svclog["traceId"] == testTraceID {
+				notFoundSvcLogs = append(notFoundSvcLogs, svclog)
 			}
-			if assert.NotNil(t, notFoundReqLog, "404 request did not produce request log") {
-				assert.Equal(t, testTraceID, notFoundReqLog["traceId"], "trace ID in request log did not match ID set by client")
-			}
-		})
-
-		t.Run("service log", func(t *testing.T) {
-			// find service log for 404, assert trace ID matches request
-			svclogs := getLogMessagesOfType(t, "service.1", logOutputBuffer.Bytes())
-			var notFoundSvcLog map[string]interface{}
-			for _, svclog := range svclogs {
-				if id, ok := svclog["params"].(map[string]interface{})["errorInstanceId"]; ok {
-					if id == cerr.InstanceID().String() {
-						notFoundSvcLog = svclog
-						break
-					}
-				}
-			}
-			if assert.NotNil(t, notFoundSvcLog, "404 request did not produce service log") {
-				assert.Equal(t, testTraceID, notFoundSvcLog["traceId"], "trace ID in request log did not match ID set by client")
-			}
-
-		})
-
+		}
+		if assert.Len(t, notFoundSvcLogs, 1, "expected exactly one service log with trace id") {
+			svclog := notFoundSvcLogs[0]
+			assert.Equal(t, "INFO", svclog["level"])
+			assert.Equal(t, fmt.Sprintf("error handling request: %v", cerr), svclog["message"])
+			assert.Equal(t, map[string]interface{}{"errorInstanceId": cerr.InstanceID().String()}, svclog["params"])
+		}
 	})
 
 	select {
