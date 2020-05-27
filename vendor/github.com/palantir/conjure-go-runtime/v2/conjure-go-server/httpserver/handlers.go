@@ -51,13 +51,17 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.handleFn(w, r); err != nil {
 		status := h.status(err)
 		h.handleError(r.Context(), status, err)
-		if marshaler, ok := werror.RootCause(err).(json.Marshaler); ok {
-			WriteJSONResponse(w, marshaler, status)
-			return
+		switch e := werror.RootCause(err).(type) {
+		case errors.Error:
+			// if error is a conjure error, use WriteErrorResponse utility
+			errors.WriteErrorResponse(w, e)
+		case json.Marshaler:
+			// else if error is a json marshaler, write as json
+			WriteJSONResponse(w, e, status)
+		default:
+			// Fall back to string encoding
+			http.Error(w, err.Error(), status)
 		}
-		// Fall back to string encoding
-		http.Error(w, err.Error(), status)
-		return
 	}
 }
 
