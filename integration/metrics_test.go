@@ -30,10 +30,8 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
-	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
-	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -201,8 +199,8 @@ func TestEmitMetrics(t *testing.T) {
 }
 
 // TestMetricWriter verifies that logs backed by MetricWriters produces exactly one sls.logging.length metric per log line.
-// While initializing the testServer, we don't expect any other Audit or Trace logs to occur, so we log one line
-// for each of those types and ensure we only see one sls.logging.length metric for each.
+// While initializing the testServer, we don't expect any other Audit logs to occur, so we log one line
+// and ensure we only see one sls.logging.length metric for each.
 func TestMetricWriter(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
@@ -218,7 +216,6 @@ func TestMetricWriter(t *testing.T) {
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
 		// These log lines will happen after the MetricWriters are initialized, so we should expect to see one sls.logging.length per line
 		audit2log.FromContext(ctx).Audit(superLongLogLine, audit2log.AuditResultSuccess)
-		trc1log.FromContext(ctx).Log(wtracing.SpanModel{Name: superLongLogLine})
 
 		return func() {}, nil
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
@@ -251,7 +248,7 @@ func TestMetricWriter(t *testing.T) {
 			assert.NotNil(t, metricLog.Values["max"])
 			assert.NotNil(t, metricLog.Values["count"])
 			assert.NotNil(t, metricLog.Tags["type"])
-			if metricLog.Tags["type"] == "audit" || metricLog.Tags["type"] == "trace" {
+			if metricLog.Tags["type"] == "audit" {
 				require.Equal(t, json.Number("1"), metricLog.Values["count"])
 
 				maxJSON, ok := metricLog.Values["max"].(json.Number)

@@ -19,9 +19,9 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 )
 
@@ -110,12 +110,12 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 
 	h.previousHealth.Store(newHealth)
 
-	rest.WriteJSONResponse(w, metadata, newHealthStatusCode)
+	httpserver.WriteJSONResponse(w, metadata, newHealthStatusCode)
 }
 
 func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.HealthStatus, int) {
 	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
-		token, err := rest.ParseBearerTokenHeader(req)
+		token, err := httpserver.ParseBearerTokenHeader(req)
 		if err != nil || sharedSecret != token {
 			return health.HealthStatus{}, http.StatusUnauthorized
 		}

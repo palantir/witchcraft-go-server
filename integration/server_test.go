@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/tlsconfig"
 	"github.com/palantir/witchcraft-go-server/config"
@@ -324,4 +325,75 @@ func TestClientTLS(t *testing.T) {
 	require.NoError(t, err)
 	_, err = (&http.Client{Transport: &http.Transport{TLSClientConfig: tlsConf}}).Get(fmt.Sprintf("https://localhost:%d/example", port))
 	require.NoError(t, err)
+}
+
+func TestDefaultNotFoundHandler(t *testing.T) {
+	logOutputBuffer := &bytes.Buffer{}
+	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+		return nil, info.Router.Get("/foo", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.WriteHeader(200)
+		}))
+	}, logOutputBuffer)
+	defer func() {
+		_ = server.Close()
+	}()
+	defer cleanup()
+
+	const testTraceID = "1000000000000001"
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://localhost:%d/TestDefaultNotFoundHandler", port), nil)
+	require.NoError(t, err)
+	req.Header.Set("X-B3-TraceId", testTraceID)
+
+	resp, err := testServerClient().Do(req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	assert.Equal(t, "404 Not Found", resp.Status)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+	cerr, err := errors.UnmarshalError(body)
+	if assert.NoError(t, err) {
+		assert.Equal(t, errors.NotFound, cerr.Code())
+	}
+
+	t.Run("request log", func(t *testing.T) {
+		// find request log for 404, assert trace ID matches request
+		reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
+		var notFoundReqLogs []map[string]interface{}
+		for _, reqlog := range reqlogs {
+			if reqlog["traceId"] == testTraceID {
+				notFoundReqLogs = append(notFoundReqLogs, reqlog)
+			}
+		}
+		if assert.Len(t, notFoundReqLogs, 1, "expected exactly one request log with trace id") {
+			reqlog := notFoundReqLogs[0]
+			assert.Equal(t, 404.0, reqlog["status"])
+			assert.Equal(t, "POST", reqlog["method"])
+			assert.Equal(t, "/*", reqlog["path"])
+		}
+	})
+
+	t.Run("service log", func(t *testing.T) {
+		// find service log for 404, assert trace ID matches request
+		svclogs := getLogMessagesOfType(t, "service.1", logOutputBuffer.Bytes())
+		var notFoundSvcLogs []map[string]interface{}
+		for _, svclog := range svclogs {
+			if svclog["traceId"] == testTraceID {
+				notFoundSvcLogs = append(notFoundSvcLogs, svclog)
+			}
+		}
+		if assert.Len(t, notFoundSvcLogs, 1, "expected exactly one service log with trace id") {
+			svclog := notFoundSvcLogs[0]
+			assert.Equal(t, "INFO", svclog["level"])
+			assert.Equal(t, fmt.Sprintf("error handling request: %v", cerr), svclog["message"])
+			assert.Equal(t, map[string]interface{}{"errorInstanceId": cerr.InstanceID().String()}, svclog["params"])
+		}
+	})
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
 }

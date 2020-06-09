@@ -28,9 +28,9 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
-	"github.com/palantir/pkg/httpserver"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	pkgserver "github.com/palantir/pkg/httpserver"
 	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/rest"
 	"github.com/palantir/witchcraft-go-server/witchcraft"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
@@ -50,9 +50,9 @@ const (
 // returned by the server when it stops and a cleanup function that will remove the temporary directory.
 func createAndRunTestServer(t *testing.T, initFn witchcraft.InitFunc, logOutputBuffer io.Writer) (server *witchcraft.Server, port int, managementPort int, serverErr <-chan error, cleanup func()) {
 	var err error
-	port, err = httpserver.AvailablePort()
+	port, err = pkgserver.AvailablePort()
 	require.NoError(t, err)
-	managementPort, err = httpserver.AvailablePort()
+	managementPort, err = pkgserver.AvailablePort()
 	require.NoError(t, err)
 
 	server, serverErr, cleanup = createAndRunCustomTestServer(t, port, managementPort, initFn, logOutputBuffer, createTestServer)
@@ -129,7 +129,7 @@ func createTestServer(t *testing.T, initFn witchcraft.InitFunc, installCfg confi
 		WithInitFunc(func(ctx context.Context, initInfo witchcraft.InitInfo) (func(), error) {
 			// register handler that returns "ok"
 			err := initInfo.Router.Get("/ok", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				rest.WriteJSONResponse(rw, "ok", http.StatusOK)
+				httpserver.WriteJSONResponse(rw, "ok", http.StatusOK)
 			}))
 			if err != nil {
 				return nil, err
@@ -153,11 +153,11 @@ func createTestServer(t *testing.T, initFn witchcraft.InitFunc, installCfg confi
 // waitForTestServerReady returns a channel that returns true when a test server is ready on the provided port. Returns
 // false if the server is not ready within the provided timeout duration.
 func waitForTestServerReady(port int, path string, timeout time.Duration) <-chan bool {
-	return httpserver.Ready(func() (*http.Response, error) {
+	return pkgserver.Ready(func() (*http.Response, error) {
 		resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s", port, path))
 		return resp, err
 	},
-		httpserver.WaitTimeoutParam(timeout),
+		pkgserver.WaitTimeoutParam(timeout),
 	)
 }
 
@@ -183,4 +183,22 @@ func getLogFileMessages(t *testing.T, logOutput []byte) []string {
 		}
 	}
 	return messages
+}
+
+// getLogMessagesOfType returns a slice of the content of all of the log entries that have a "type" field that match the
+// provided value.
+func getLogMessagesOfType(t *testing.T, typ string, logOutput []byte) []map[string]interface{} {
+	lines := bytes.Split(logOutput, []byte("\n"))
+	var logLines []map[string]interface{}
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		var currEntry map[string]interface{}
+		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
+		if logLineType, ok := currEntry["type"]; ok && logLineType == typ {
+			logLines = append(logLines, currEntry)
+		}
+	}
+	return logLines
 }
