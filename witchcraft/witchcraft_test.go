@@ -115,7 +115,7 @@ func TestFatalErrorLogging(t *testing.T) {
 	}
 }
 
-// TestStartFailsBeforeMetricRegistryInitialized is initialized with no install config, which will cause the Start function to fail,
+// TestServer_StartFailsBeforeMetricRegistryInitialized creates a Server with no install config, which will cause the Start function to fail,
 // before the metrics registry has been initialized. Logging should not panic in this case.
 func TestServer_StartFailsBeforeMetricRegistryInitialized(t *testing.T) {
 	// Missing install config
