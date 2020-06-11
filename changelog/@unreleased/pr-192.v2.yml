@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Do not instrument loggers if metrics registry is nil
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/192
