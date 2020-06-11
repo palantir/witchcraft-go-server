@@ -28,6 +28,7 @@ import (
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
@@ -113,6 +114,19 @@ func TestFatalErrorLogging(t *testing.T) {
 			test.VerifyLog(t, logOutputBuffer.Bytes())
 		})
 	}
+}
+
+// TestStartFailsBeforeMetricRegistryInitialized is initialized with a bad config, which will cause the Start function to fail,
+// before the metrics registry has been initialized. Logging should not panic in this case.
+func TestStartFailsBeforeMetricRegistryInitialized(t *testing.T) {
+	err := witchcraft.NewServer().
+		WithOrigin(svc1log.CallerPkg(0, 1)).
+		WithRuntimeConfig(config.Runtime{LoggerConfig: &config.LoggerConfig{Level: wlog.DebugLevel}}).
+		WithInitFunc(func(ctx context.Context, wcinfo witchcraft.InitInfo) (func(), error) {
+			return nil, werror.ErrorWithContextParams(ctx, "fails to make server return!")
+		}).
+		Start()
+	require.Error(t, err)
 }
 
 // BenchmarkServer_Loggers benchmarks the time for Server loggers to log a fixed number of lines.
