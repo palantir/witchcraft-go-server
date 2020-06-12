@@ -519,7 +519,7 @@ func (s *Server) Start() (rErr error) {
 
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel, nil)
+				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
 			}
 
 			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
@@ -529,7 +529,7 @@ func (s *Server) Start() (rErr error) {
 		if rErr != nil {
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel, nil)
+				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
 			}
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}

@@ -60,33 +60,24 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
 
-	// initialize default loggers
-	s.svcLogger = svc1log.New(logWriterFn("service"), logLevel, svc1LogParams...)
-	s.evtLogger = evt2log.New(logWriterFn("event"))
-	s.metricLogger = metric1log.New(logWriterFn("metrics"))
-	s.trcLogger = trc1log.New(logWriterFn("trace"))
-	s.auditLogger = audit2log.New(logWriterFn("audit"))
-	s.diagLogger = diag1log.New(logWriterFn("diagnostic"))
-	s.reqLogger = req2log.New(logWriterFn("request"),
+	// initialize instrumented loggers
+	s.svcLogger = metricloggers.NewSvc1Logger(
+		svc1log.New(logWriterFn("service"), logLevel, svc1LogParams...), registry)
+	s.evtLogger = metricloggers.NewEvt2Logger(
+		evt2log.New(logWriterFn("event")), registry)
+	s.metricLogger = metricloggers.NewMetric1Logger(
+		metric1log.New(logWriterFn("metrics")), registry)
+	s.trcLogger = metricloggers.NewTrc1Logger(
+		trc1log.New(logWriterFn("trace")), registry)
+	s.auditLogger = metricloggers.NewAudit2Logger(
+		audit2log.New(logWriterFn("audit")), registry)
+	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
+	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
 		req2log.SafeQueryParams(s.safeQueryParams...),
-	)
-
-	if registry != nil {
-		s.instrumentExistingLoggers(registry)
-	}
-}
-
-func (s *Server) instrumentExistingLoggers(registry metrics.Registry) {
-	s.svcLogger = metricloggers.NewSvc1Logger(s.svcLogger, registry)
-	s.evtLogger = metricloggers.NewEvt2Logger(s.evtLogger, registry)
-	s.metricLogger = metricloggers.NewMetric1Logger(s.metricLogger, registry)
-	s.trcLogger = metricloggers.NewTrc1Logger(s.trcLogger, registry)
-	s.auditLogger = metricloggers.NewAudit2Logger(s.auditLogger, registry)
-	s.diagLogger = metricloggers.NewDiag1Logger(s.diagLogger, registry)
-	s.reqLogger = metricloggers.NewReq2Logger(s.reqLogger, registry)
+	), registry)
 }
 
 // Returns a io.Writer that can be used as the underlying writer for a logger.
