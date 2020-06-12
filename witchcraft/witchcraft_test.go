@@ -115,6 +115,15 @@ func TestFatalErrorLogging(t *testing.T) {
 	}
 }
 
+// TestServer_StartFailsBeforeMetricRegistryInitialized creates a Server with no install config, which will cause the Start function to fail,
+// before the metrics registry has been initialized. Logging should not panic in this case.
+func TestServer_StartFailsBeforeMetricRegistryInitialized(t *testing.T) {
+	// Missing install config
+	err := witchcraft.NewServer().Start()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Failed to load install configuration bytes")
+}
+
 // BenchmarkServer_Loggers benchmarks the time for Server loggers to log a fixed number of lines.
 func BenchmarkServer_Loggers(b *testing.B) {
 	for _, test := range []struct {

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Do not pass nil registry to loggers
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/192
