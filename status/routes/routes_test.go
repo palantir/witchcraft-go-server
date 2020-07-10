@@ -201,7 +201,7 @@ func TestAddHealthRoute(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			r := wrouter.New(whttprouter.New())
 			resource := wresource.New("test", r)
-			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.NewString(refreshable.NewDefaultRefreshable(test.sharedSecret)))
+			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.NewString(refreshable.NewDefaultRefreshable(test.sharedSecret)), nil)
 			require.NoError(t, err)
 
 			server := httptest.NewServer(r)

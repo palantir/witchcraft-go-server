@@ -54,7 +54,7 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	// add health endpoints
 	if err := routes.AddHealthRoutes(statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager, configHealthCheckSource)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
 		return in.(config.Runtime).HealthChecks.SharedSecret
-	}))); err != nil {
+	})), s.healthStatusChangeHandlers); err != nil {
 		return werror.Wrap(err, "failed to register health routes")
 	}
 
