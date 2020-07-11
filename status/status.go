@@ -71,10 +71,10 @@ func (c *combinedHealthCheckSource) HealthStatus(ctx context.Context) health.Hea
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and
 // invoking a HealthCheckSource if the secret is correct or unset.
 type healthHandlerImpl struct {
-	healthCheckSharedSecret   refreshable.String
-	check                     HealthCheckSource
-	previousHealth            *atomic.Value
-	healthStatusChangeHandler HealthStatusChangeHandler
+	healthCheckSharedSecret refreshable.String
+	check                   HealthCheckSource
+	previousHealth          *atomic.Value
+	changeHandler           HealthStatusChangeHandler
 }
 
 func NewHealthCheckHandler(checkSource HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []HealthStatusChangeHandler) http.Handler {
@@ -85,10 +85,10 @@ func NewHealthCheckHandler(checkSource HealthCheckSource, sharedSecret refreshab
 		allHandlers = append(allHandlers, healthStatusChangeHandlers...)
 	}
 	return &healthHandlerImpl{
-		healthCheckSharedSecret:   sharedSecret,
-		check:                     checkSource,
-		previousHealth:            previousHealth,
-		healthStatusChangeHandler: multiHealthStatusChangeHandler(allHandlers),
+		healthCheckSharedSecret: sharedSecret,
+		check:                   checkSource,
+		previousHealth:          previousHealth,
+		changeHandler:           multiHealthStatusChangeHandler(allHandlers),
 	}
 }
 
@@ -97,7 +97,7 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 	previousHealth := h.previousHealth.Load()
 	if previousHealth != nil {
 		if previousHealthTyped, ok := previousHealth.(health.HealthStatus); ok {
-			logIfHealthChanged(req.Context(), previousHealthTyped, metadata)
+			h.changeHandler.HandleHealthStatusChange(req.Context(), previousHealthTyped, metadata)
 		}
 	}
 
