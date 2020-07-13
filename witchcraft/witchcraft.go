@@ -497,6 +497,8 @@ func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 	return s
 }
 
+// WithHealthStatusChangeHandlers configures the health status change handlers that are called whenever the configured HealthCheckSource
+// returns a health status with differing check states.
 func (s *Server) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusChangeHandler) *Server {
 	s.healthStatusChangeHandlers = append(s.healthStatusChangeHandlers, handlers...)
 	return s
