@@ -31,8 +31,8 @@ func AddReadinessRoutes(resource wresource.Resource, source status.Source) error
 	return resource.Get("readiness", status.ReadinessEndpoint, handler(source))
 }
 
-func AddHealthRoutes(resource wresource.Resource, source status.HealthCheckSource, sharedSecret refreshable.String) error {
-	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret))
+func AddHealthRoutes(resource wresource.Resource, source status.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {
+	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers))
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response
