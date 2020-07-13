@@ -96,7 +96,7 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 	metadata, newHealthStatusCode := h.computeNewHealthStatus(req)
 	previousHealth := h.previousHealth.Load()
 	if previousHealth != nil {
-		if previousHealthTyped, ok := previousHealth.(health.HealthStatus); ok {
+		if previousHealthTyped, ok := previousHealth.(health.HealthStatus); ok && checksDiffer(previousHealthTyped.Checks, metadata.Checks) {
 			h.changeHandler.HandleHealthStatusChange(req.Context(), previousHealthTyped, metadata)
 		}
 	}
@@ -126,4 +126,20 @@ func HealthStatusCode(metadata health.HealthStatus) int {
 		}
 	}
 	return worst
+}
+
+func checksDiffer(previousChecks, newChecks map[health.CheckType]health.HealthCheckResult) bool {
+	if len(previousChecks) != len(newChecks) {
+		return true
+	}
+	for previousCheckType, previouscheckResult := range previousChecks {
+		newCheckResult, checkTypePresent := newChecks[previousCheckType]
+		if !checkTypePresent {
+			return true
+		}
+		if previouscheckResult.State != newCheckResult.State {
+			return true
+		}
+	}
+	return false
 }

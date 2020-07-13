@@ -42,26 +42,9 @@ func logIfHealthChanged(ctx context.Context, previousHealth, newHealth health.He
 			svc1log.FromContext(ctx).Error("Health status code changed.", svc1log.SafeParams(params))
 		}
 		return
-	} else if checksDiffer(previousHealth.Checks, newHealth.Checks) {
-		svc1log.FromContext(ctx).Info("Health checks content changed without status change.", svc1log.SafeParams(map[string]interface{}{
-			"statusCode":      newCode,
-			"newHealthStatus": newHealth.Checks,
-		}))
 	}
-}
-
-func checksDiffer(previousChecks, newChecks map[health.CheckType]health.HealthCheckResult) bool {
-	if len(previousChecks) != len(newChecks) {
-		return true
-	}
-	for previousCheckType, previouscheckResult := range previousChecks {
-		newCheckResult, checkTypePresent := newChecks[previousCheckType]
-		if !checkTypePresent {
-			return true
-		}
-		if previouscheckResult.State != newCheckResult.State {
-			return true
-		}
-	}
-	return false
+	svc1log.FromContext(ctx).Info("Health checks content changed without status change.", svc1log.SafeParams(map[string]interface{}{
+		"statusCode":      newCode,
+		"newHealthStatus": newHealth.Checks,
+	}))
 }

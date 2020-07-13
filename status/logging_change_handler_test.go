@@ -92,19 +92,6 @@ func TestLoggingChangeHandler(t *testing.T) {
 				msg:   "Health checks content changed without status change.",
 			},
 		},
-		{
-			name: "no log when checks and code do not change",
-			prev: health.HealthStatus{
-				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.HealthyHealthCheckResult("TEST"),
-				},
-			},
-			curr: health.HealthStatus{
-				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.HealthyHealthCheckResult("TEST"),
-				},
-			},
-		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			var buf bytes.Buffer
