@@ -52,6 +52,8 @@ github.com/palantir/pkg v1.0.1/go.mod h1:Eo6Jl0UXfT+65sLXJOcU9duu0WPvKsWFXCb0dE5
 github.com/palantir/pkg/bytesbuffers v1.0.0/go.mod h1:JFWINutL8wfBpXOqastvJtuEXNEQhIVNnBVY0oeJFws=
 github.com/palantir/pkg/datetime v1.0.0 h1:hV442fTe738bMHuxkECrQhdAx7ku7oO2LLrY7K4konc=
 github.com/palantir/pkg/datetime v1.0.0/go.mod h1:s01MDVkY8pZEP+sbAIbXxiAsS+mPLHla3cFnQ2pk//g=
+github.com/palantir/pkg/datetime v1.0.1 h1:jxJmpTZYrb0mzD8vD0ct0ii7iClWvgzS8Wbct17IDso=
+github.com/palantir/pkg/datetime v1.0.1/go.mod h1:Xx0XxVNJKPZRPw4xkNJ2qLNTLqGFu5QW6rAWeuoATBs=
 github.com/palantir/pkg/httpserver v1.0.0 h1:OHiEZCSzOGxi/KG0DOU3mIpCsiJQrZDsYKeNRG2fArc=
 github.com/palantir/pkg/httpserver v1.0.0/go.mod h1:SB44Ogix4t8LFq8eV57m8NYZgx0FnjaC9uIsoOvkE9o=
 github.com/palantir/pkg/httpserver v1.0.1 h1:50GykXrOIZ6U4OWz3o4jDCK4ql4h3TnldusqIi/75zs=
@@ -71,6 +73,8 @@ github.com/palantir/pkg/safejson v1.0.1 h1:VfpUJrdOnRm2m2ZBHXuVkdGbZd+B0ZrH8FpPx
 github.com/palantir/pkg/safejson v1.0.1/go.mod h1:jZEXk2DnsOJCv3zgXq+GvMZvZOW8sw5FP8NG4IfTxD8=
 github.com/palantir/pkg/safelong v1.0.0 h1:CLtdL8mf3uu4mQcyOgYh/OtbUsbpW9Tu5i1uHiuafoc=
 github.com/palantir/pkg/safelong v1.0.0/go.mod h1:2Pabf6SbeE2kerW1RyPGREZroNIQ9HvXKxCux0N5C3k=
+github.com/palantir/pkg/safelong v1.0.1 h1:l5IDwT1aAQ1FeyMG77kPnsEUb0z5bQXYYXVTTNJpP2E=
+github.com/palantir/pkg/safelong v1.0.1/go.mod h1:+uJuPdYul/jhsplszUwPu+jlc4E7Z4ZMNCuIXbMoyR8=
 github.com/palantir/pkg/safeyaml v1.0.0 h1:4YwdQYIEOCD8eMWwyIal8Oejm6ETiBA7etKIeEQUA+s=
 github.com/palantir/pkg/safeyaml v1.0.0/go.mod h1:g0GfNcalrnCZbwyZbW0OBmtHdjLXK7dG1oEk/ew+cB8=
 github.com/palantir/pkg/safeyaml v1.0.1 h1:4cSUj9Ttnwydq4vxB8NSxe+qhquBYYtMuJbw6EuSZpQ=
@@ -91,8 +95,8 @@ github.com/palantir/witchcraft-go-error v1.3.0 h1:1FUvIv+jS22t81uPI0Q5JEwzBDigCl
 github.com/palantir/witchcraft-go-error v1.3.0/go.mod h1:/cl2dMkuBbnfxDtFiC//8JfvZxmRkYRhgv3bBux9AD0=
 github.com/palantir/witchcraft-go-logging v1.5.2 h1:1xTnCqOSB5+BVlw4RkN3UWidhMxFT7nNNoRC1wA7scs=
 github.com/palantir/witchcraft-go-logging v1.5.2/go.mod h1:x2wqelmEPV2sqOgxnYpx7em44I2nzWuovl7d7cMv+pM=
-github.com/palantir/witchcraft-go-logging v1.6.0 h1:nzGYubwZgnnBZlBmTEUx/4QvdELLFt/MKgM7Jl8Rjhw=
-github.com/palantir/witchcraft-go-logging v1.6.0/go.mod h1:mjLKvBmSlB1R+YZXil4EaLdacmRooQ6AlpE/KK+Lr+o=
+github.com/palantir/witchcraft-go-logging v1.7.0 h1:B/iHig8vLRddBKdzdSx2UFUiu39lhooBCqbVESIWWJs=
+github.com/palantir/witchcraft-go-logging v1.7.0/go.mod h1:2vemUJD/z7L5lJGX9ZxPWzs8Op2YLAyPjCor4pv+bJc=
 github.com/palantir/witchcraft-go-params v1.1.0 h1:siRqQv9TuJ0qY2JK5Svd3/rGQQCWvNnjI2OGAftm8gc=
 github.com/palantir/witchcraft-go-params v1.1.0/go.mod h1:HH+l5b0binfqBJ21qVvQVOJp6s2/I6ld0NEWnaEgWvI=
 github.com/palantir/witchcraft-go-tracing v1.2.0 h1:+7MinUHafMfF3fDdHVRuQ6fhMi8R1qxv36ECqN3cqOQ=
