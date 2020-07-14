@@ -23,7 +23,7 @@ github.com/palantir/go-encrypted-config-value/encryption
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
 github.com/palantir/pkg
-# github.com/palantir/pkg/datetime v1.0.0
+# github.com/palantir/pkg/datetime v1.0.1
 github.com/palantir/pkg/datetime
 # github.com/palantir/pkg/httpserver v1.0.1
 github.com/palantir/pkg/httpserver
@@ -33,7 +33,7 @@ github.com/palantir/pkg/metrics
 github.com/palantir/pkg/objmatcher
 # github.com/palantir/pkg/safejson v1.0.1
 github.com/palantir/pkg/safejson
-# github.com/palantir/pkg/safelong v1.0.0
+# github.com/palantir/pkg/safelong v1.0.1
 github.com/palantir/pkg/safelong
 # github.com/palantir/pkg/safeyaml v1.0.1
 github.com/palantir/pkg/safeyaml
@@ -49,7 +49,7 @@ github.com/palantir/pkg/uuid/internal/uuid
 # github.com/palantir/witchcraft-go-error v1.3.0
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
-# github.com/palantir/witchcraft-go-logging v1.6.0
+# github.com/palantir/witchcraft-go-logging v1.7.0
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog
