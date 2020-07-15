@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add DiagnosticLoggingChangeHandler.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/197
