@@ -716,6 +716,7 @@ func (s *Server) withLoggers(ctx context.Context) context.Context {
 	ctx = metric1log.WithLogger(ctx, s.metricLogger)
 	ctx = trc1log.WithLogger(ctx, s.trcLogger)
 	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	ctx = diag1log.WithLogger(ctx, s.diagLogger)
 	return ctx
 }
 
