@@ -1,6 +1,6 @@
 type: feature
 feature:
   description: |
-    Add HealthStatusChangeHandler interface. Invoke health status change handlers whenever health checks have changed state.
+    Add DiagnosticLoggingChangeHandler.
   links:
-    - https://github.com/palantir/witchcraft-go-server/pull/195
+    - https://github.com/palantir/witchcraft-go-server/pull/197
