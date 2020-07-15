@@ -88,6 +88,7 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 			s.evtLogger,
 			s.auditLogger,
 			s.metricLogger,
+			s.diagLogger,
 		),
 		// add middleware that extracts UID, SID, and TokenID into context for loggers, sets a tracer on the context and
 		// starts a root span and sets it on the context.
