@@ -71,6 +71,7 @@ func TestCombinedMiddleware(t *testing.T) {
 				nil,
 				nil,
 				nil,
+				nil,
 			),
 			middleware.NewRequestExtractIDs(
 				svcLog,
