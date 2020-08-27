@@ -35,6 +35,7 @@ import (
 
 const (
 	defaultLogOutputFormat = "var/log/%s.log"
+	containerEnvVariable   = "CONTAINER"
 )
 
 // initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
@@ -98,7 +99,16 @@ func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWrite
 
 // logToStdoutBasedOnEnv returns true if the runtime environment is a non-jail Docker container, false otherwise.
 func logToStdoutBasedOnEnv() bool {
-	return isDocker() && !isJail()
+	return isContainer() && !isJail()
+}
+
+func isContainer() bool {
+	return isDocker() || isContainerByEnvVar()
+}
+
+func isContainerByEnvVar() bool {
+	_, present := os.LookupEnv(containerEnvVariable)
+	return present
 }
 
 func isDocker() bool {
