@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Expand the logToStdoutBasedOnEnv to take into account environment variables
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/205
