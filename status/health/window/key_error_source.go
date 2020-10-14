@@ -82,6 +82,54 @@ func (m *multiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Cont
 	return m.source.HealthStatus(ctx)
 }
 
+type multiKeyHealthyIfNoRecentErrorsSource struct {
+	windowSize time.Duration
+	errorStore TimedKeyStore
+	sourceMutex sync.Mutex
+	checkType health.CheckType
+	messageInCaseOfError string
+	timeProvider TimeProvider
+}
+
+func (m *multiKeyHealthyIfNoRecentErrorsSource) Submit(key string, err error) {
+	panic("implement me")
+}
+
+func (m *multiKeyHealthyIfNoRecentErrorsSource) HealthStatus(ctx context.Context) health.HealthStatus {
+	panic("implement me")
+}
+
+var _ status.HealthCheckSource = &multiKeyHealthyIfNoRecentErrorsSource{}
+
+// MustNewMultiKeyHealthyIfNoRecentErrorsSource returns the result of calling NewMultiKeyHealthyIfNoRecentErrorsSource, but panics if it returns an error.
+// Should only be used in instances where the inputs are statically defined and known to be valid.
+func MustNewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
+	source, err := NewMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
+
+// NewMultiKeyHealthyIfNoRecentErrorsSource creates an multiKeyUnhealthyIfNoRecentErrorsSource
+// with a sliding window of size windowSize and uses the checkType and a message in case of errors.
+// windowSize must be a positive value, otherwise returns error.
+// todo(jhowarth): better comments
+func NewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
+	return newMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize, NewOrdinaryTimeProvider())
+}
+
+func newMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, timeProvider TimeProvider) (KeyedErrorHealthCheckSource, error) {
+	return &multiKeyHealthyIfNoRecentErrorsSource{
+		windowSize:           windowSize,
+		errorStore:           NewTimedKeyStore(timeProvider),
+		sourceMutex:          sync.Mutex{},
+		checkType:            checkType,
+		messageInCaseOfError: messageInCaseOfError,
+		timeProvider:         timeProvider,
+	}, nil
+}
+
 // multiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that keeps the latest errors
 // for multiple keys submitted within the last windowSize time frame.
 // It returns unhealthy if there is at least one key with only non-nil errors within the last windowSize time frame.
