@@ -119,6 +119,10 @@ func NewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messag
 }
 
 func newMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, timeProvider TimeProvider) (KeyedErrorHealthCheckSource, error) {
+	if windowSize <= 0 {
+		return nil, werror.Error("windowSize must be positive", werror.SafeParam("windowSize", windowSize.String()))
+	}
+
 	return &multiKeyHealthyIfNoRecentErrorsSource{
 		windowSize:           windowSize,
 		errorStore:           NewTimedKeyStore(timeProvider),
