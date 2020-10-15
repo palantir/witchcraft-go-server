@@ -46,16 +46,3 @@ func (o *offsetTimeProvider) Now() time.Time {
 func (o *offsetTimeProvider) RestlessSleep(duration time.Duration) {
 	o.offset = time.Duration(o.offset.Nanoseconds() + duration.Nanoseconds())
 }
-
-type sliceTimeProvider struct {
-	times []time.Time
-}
-
-func (f *sliceTimeProvider) Now() time.Time {
-	if len(f.times) == 0 {
-		return time.Now()
-	}
-	val := f.times[0]
-	f.times = f.times[1:]
-	return val
-}

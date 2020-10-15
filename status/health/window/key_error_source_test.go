@@ -548,16 +548,15 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t
 func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 	messageInCaseOfError := "message in case of error"
 	for _, testCase := range []struct {
-		name          string
-		keyErrorPairs []keyErrorPair
-		expectedCheck health.HealthCheckResult
-		timeProvider  TimeProvider
+		name                     string
+		keyErrorPairs            []keyErrorPair
+		expectedCheck            health.HealthCheckResult
+		durationAfterSubmissions time.Duration
 	}{
 		{
 			name:          "healthy when there are no items",
 			keyErrorPairs: nil,
 			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
-			timeProvider:  NewOrdinaryTimeProvider(),
 		},
 		{
 			name: "healthy when all keys are completely healthy",
@@ -568,7 +567,6 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 				{key: "3"},
 			},
 			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
-			timeProvider:  NewOrdinaryTimeProvider(),
 		},
 		{
 			name: "unhealthy when some keys are unhealthy",
@@ -587,18 +585,14 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 					"2": "Error #1 for key 2",
 				},
 			},
-			timeProvider: NewOrdinaryTimeProvider(),
 		},
 		{
 			name: "healthy when outside window",
 			keyErrorPairs: []keyErrorPair{
 				{key: "1", err: werror.Error("Error #1 for key 1")},
 			},
-			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
-			timeProvider: &sliceTimeProvider{[]time.Time{
-				time.Now().Add(-1 * time.Hour),
-				time.Now().Add(-1 * time.Hour),
-			}},
+			expectedCheck:            whealth.HealthyHealthCheckResult(testCheckType),
+			durationAfterSubmissions: time.Hour,
 		},
 		{
 			name: "unhealthy when inside window",
@@ -614,7 +608,6 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 					"1": "Error #2 for key 1",
 				},
 			},
-			timeProvider: &sliceTimeProvider{[]time.Time{time.Now().Add(-1 * time.Hour), time.Now(), time.Now()}},
 		},
 		{
 			name: "healthy when last keys are healthy",
@@ -627,7 +620,6 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 				{key: "3"},
 			},
 			expectedCheck: whealth.HealthyHealthCheckResult(testCheckType),
-			timeProvider:  NewOrdinaryTimeProvider(),
 		},
 		{
 			name: "unhealthy when all keys are completely unhealthy",
@@ -647,15 +639,16 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 					"3": "Error #1 for key 3",
 				},
 			},
-			timeProvider: NewOrdinaryTimeProvider(),
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			source, err := newMultiKeyHealthyIfNoRecentErrorsSource(testCheckType, messageInCaseOfError, time.Minute, testCase.timeProvider)
+			timeProvider := &offsetTimeProvider{}
+			source, err := newMultiKeyHealthyIfNoRecentErrorsSource(testCheckType, messageInCaseOfError, time.Minute, timeProvider)
 			require.NoError(t, err)
 			for _, keyErrorPair := range testCase.keyErrorPairs {
 				source.Submit(keyErrorPair.key, keyErrorPair.err)
 			}
+			timeProvider.RestlessSleep(testCase.durationAfterSubmissions)
 			expectedStatus := health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					testCheckType: testCase.expectedCheck,

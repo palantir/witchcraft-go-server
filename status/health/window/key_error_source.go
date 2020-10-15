@@ -97,6 +97,38 @@ type multiKeyHealthyIfNoRecentErrorsSource struct {
 	timeProvider         TimeProvider
 }
 
+var _ status.HealthCheckSource = &multiKeyHealthyIfNoRecentErrorsSource{}
+
+// MustNewMultiKeyHealthyIfNoRecentErrorsSource returns the result of calling NewMultiKeyHealthyIfNoRecentErrorsSource, but panics if it returns an error.
+// Should only be used in instances where the inputs are statically defined and known to be valid.
+func MustNewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
+	source, err := NewMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
+
+// NewMultiKeyHealthyIfNoRecentErrorsSource creates an multiKeyUnhealthyIfNoRecentErrorsSource
+// with a sliding window of size windowSize and uses the checkType and a message in case of errors.
+// windowSize must be a positive value, otherwise returns error.
+// Once a non-nil error has been submitted, this will be unhealthy until a nil error is submitted or `windowSize` time
+// has passed without a non-nil error. Submitting a non-nil error resets the timer and stays unhealthy
+func NewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
+	return newMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize, NewOrdinaryTimeProvider())
+}
+
+func newMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, timeProvider TimeProvider) (KeyedErrorHealthCheckSource, error) {
+	return &multiKeyHealthyIfNoRecentErrorsSource{
+		windowSize:           windowSize,
+		errorStore:           NewTimedKeyStore(timeProvider),
+		sourceMutex:          sync.Mutex{},
+		checkType:            checkType,
+		messageInCaseOfError: messageInCaseOfError,
+		timeProvider:         timeProvider,
+	}, nil
+}
+
 // Submit submits an item as a key error pair.
 func (m *multiKeyHealthyIfNoRecentErrorsSource) Submit(key string, err error) {
 	m.sourceMutex.Lock()
@@ -138,38 +170,6 @@ func (m *multiKeyHealthyIfNoRecentErrorsSource) HealthStatus(ctx context.Context
 			m.checkType: healthCheckResult,
 		},
 	}
-}
-
-var _ status.HealthCheckSource = &multiKeyHealthyIfNoRecentErrorsSource{}
-
-// MustNewMultiKeyHealthyIfNoRecentErrorsSource returns the result of calling NewMultiKeyHealthyIfNoRecentErrorsSource, but panics if it returns an error.
-// Should only be used in instances where the inputs are statically defined and known to be valid.
-func MustNewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
-	source, err := NewMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize)
-	if err != nil {
-		panic(err)
-	}
-	return source
-}
-
-// NewMultiKeyHealthyIfNoRecentErrorsSource creates an multiKeyUnhealthyIfNoRecentErrorsSource
-// with a sliding window of size windowSize and uses the checkType and a message in case of errors.
-// windowSize must be a positive value, otherwise returns error.
-// Once a non-nil error has been submitted, this will be unhealthy until a nil error is submitted or `windowSize` time
-// has passed without a non-nil error. Submitting a non-nil error resets the timer and stays unhealthy
-func NewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
-	return newMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize, NewOrdinaryTimeProvider())
-}
-
-func newMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration, timeProvider TimeProvider) (KeyedErrorHealthCheckSource, error) {
-	return &multiKeyHealthyIfNoRecentErrorsSource{
-		windowSize:           windowSize,
-		errorStore:           NewTimedKeyStore(timeProvider),
-		sourceMutex:          sync.Mutex{},
-		checkType:            checkType,
-		messageInCaseOfError: messageInCaseOfError,
-		timeProvider:         timeProvider,
-	}, nil
 }
 
 // multiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that keeps the latest errors
