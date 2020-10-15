@@ -16,7 +16,6 @@ package window
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -112,12 +111,9 @@ func (m *multiKeyHealthyIfNoRecentErrorsSource) HealthStatus(ctx context.Context
 	m.sourceMutex.Lock()
 	defer m.sourceMutex.Unlock()
 
-	var healthCheckResult health.HealthCheckResult
-
-	fmt.Println(m.errorStore.Oldest())
 	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
-	fmt.Println(m.errorStore.Oldest())
 
+	var healthCheckResult health.HealthCheckResult
 	params := make(map[string]interface{})
 	for _, item := range m.errorStore.List() {
 		// nil error is not error
