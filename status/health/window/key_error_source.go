@@ -172,8 +172,6 @@ func newMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messag
 	}, nil
 }
 
-///////////////// Remove Before Review Joe ////////////////////
-
 // multiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that keeps the latest errors
 // for multiple keys submitted within the last windowSize time frame.
 // It returns unhealthy if there is at least one key with only non-nil errors within the last windowSize time frame.
