@@ -138,7 +138,7 @@ func (m *multiKeyHealthyIfNoRecentErrorsSource) Submit(key string, err error) {
 	m.sourceMutex.Lock()
 	defer m.sourceMutex.Unlock()
 
-	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
+	m.errorStore.PruneOldKeys(m.windowSize, m.timeProvider)
 	m.errorStore.Put(key, err)
 }
 
@@ -147,7 +147,7 @@ func (m *multiKeyHealthyIfNoRecentErrorsSource) HealthStatus(ctx context.Context
 	m.sourceMutex.Lock()
 	defer m.sourceMutex.Unlock()
 
-	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
+	m.errorStore.PruneOldKeys(m.windowSize, m.timeProvider)
 
 	var healthCheckResult health.HealthCheckResult
 	params := make(map[string]interface{})
@@ -266,9 +266,9 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 	m.sourceMutex.Lock()
 	defer m.sourceMutex.Unlock()
 
-	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
-	pruneOldKeys(m.successStore, m.windowSize, m.timeProvider)
-	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize, m.timeProvider)
+	m.errorStore.PruneOldKeys(m.windowSize, m.timeProvider)
+	m.successStore.PruneOldKeys(m.windowSize, m.timeProvider)
+	m.gapEndTimeStore.PruneOldKeys(m.repairingGracePeriod+m.windowSize, m.timeProvider)
 
 	_, hasError := m.errorStore.Get(key)
 	_, hasSuccess := m.successStore.Get(key)
@@ -290,9 +290,9 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 	var healthCheckResult health.HealthCheckResult
 
-	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
-	pruneOldKeys(m.successStore, m.windowSize, m.timeProvider)
-	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize, m.timeProvider)
+	m.errorStore.PruneOldKeys(m.windowSize, m.timeProvider)
+	m.successStore.PruneOldKeys(m.windowSize, m.timeProvider)
+	m.gapEndTimeStore.PruneOldKeys(m.repairingGracePeriod+m.windowSize, m.timeProvider)
 
 	params := make(map[string]interface{})
 	shouldError := false
@@ -334,21 +334,5 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			m.checkType: healthCheckResult,
 		},
-	}
-}
-
-func pruneOldKeys(store TimedKeyStore, maxAge time.Duration, timeProvider TimeProvider) {
-	curTime := timeProvider.Now()
-	for {
-		oldest, exists := store.Oldest()
-		if !exists {
-			return
-		}
-
-		if curTime.Sub(oldest.Time) < maxAge {
-			return
-		}
-
-		store.Delete(oldest.Key)
 	}
 }
