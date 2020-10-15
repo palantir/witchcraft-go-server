@@ -16,6 +16,7 @@ package window
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -82,21 +83,65 @@ func (m *multiKeyUnhealthyIfAtLeastOneErrorSource) HealthStatus(ctx context.Cont
 	return m.source.HealthStatus(ctx)
 }
 
+// multiKeyUnhealthyIfNoRecentErrorsSource is a HealthCheckSource that keeps the latest errors
+// for multiple keys submitted within the last windowSize time frame.
+// It returns unhealthy if there is at least one key with a non-nil error within the last windowSize time frame.
+// If a nil error is submitted while a non-nil error is still active, the nil error clears the error and restores health.
+// The Params field of the HealthCheckResult is the last error message for each key mapped by the key for all unhealthy keys.
+// If there are no items within the last windowSize time frame, returns healthy.
 type multiKeyHealthyIfNoRecentErrorsSource struct {
-	windowSize time.Duration
-	errorStore TimedKeyStore
-	sourceMutex sync.Mutex
-	checkType health.CheckType
+	windowSize           time.Duration
+	errorStore           TimedKeyStore
+	sourceMutex          sync.Mutex
+	checkType            health.CheckType
 	messageInCaseOfError string
-	timeProvider TimeProvider
+	timeProvider         TimeProvider
 }
 
+// Submit submits an item as a key error pair.
 func (m *multiKeyHealthyIfNoRecentErrorsSource) Submit(key string, err error) {
-	panic("implement me")
+	m.sourceMutex.Lock()
+	defer m.sourceMutex.Unlock()
+
+	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
+	m.errorStore.Put(key, err)
 }
 
+// HealthStatus polls the items inside the window and creates the HealthStatus.
 func (m *multiKeyHealthyIfNoRecentErrorsSource) HealthStatus(ctx context.Context) health.HealthStatus {
-	panic("implement me")
+	m.sourceMutex.Lock()
+	defer m.sourceMutex.Unlock()
+
+	var healthCheckResult health.HealthCheckResult
+
+	fmt.Println(m.errorStore.Oldest())
+	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
+	fmt.Println(m.errorStore.Oldest())
+
+	params := make(map[string]interface{})
+	for _, item := range m.errorStore.List() {
+		// nil error is not error
+		if item.Payload != nil {
+			params[item.Key] = item.Payload.(error).Error()
+		}
+	}
+
+	if len(params) > 0 {
+		healthCheckResult = health.HealthCheckResult{
+			Type:    m.checkType,
+			State:   health.HealthStateError,
+			Message: &m.messageInCaseOfError,
+			Params:  params,
+		}
+	} else {
+		healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)
+	}
+
+	return health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			m.checkType: healthCheckResult,
+		},
+	}
 }
 
 var _ status.HealthCheckSource = &multiKeyHealthyIfNoRecentErrorsSource{}
@@ -104,7 +149,7 @@ var _ status.HealthCheckSource = &multiKeyHealthyIfNoRecentErrorsSource{}
 // MustNewMultiKeyHealthyIfNoRecentErrorsSource returns the result of calling NewMultiKeyHealthyIfNoRecentErrorsSource, but panics if it returns an error.
 // Should only be used in instances where the inputs are statically defined and known to be valid.
 func MustNewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) KeyedErrorHealthCheckSource {
-	source, err := NewMultiKeyHealthyIfNotAllErrorsSource(checkType, messageInCaseOfError, windowSize)
+	source, err := NewMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize)
 	if err != nil {
 		panic(err)
 	}
@@ -114,7 +159,8 @@ func MustNewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, me
 // NewMultiKeyHealthyIfNoRecentErrorsSource creates an multiKeyUnhealthyIfNoRecentErrorsSource
 // with a sliding window of size windowSize and uses the checkType and a message in case of errors.
 // windowSize must be a positive value, otherwise returns error.
-// todo(jhowarth): better comments
+// Once a non-nil error has been submitted, this will be unhealthy until a nil error is submitted or `windowSize` time
+// has passed without a non-nil error. Submitting a non-nil error resets the timer and stays unhealthy
 func NewMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messageInCaseOfError string, windowSize time.Duration) (KeyedErrorHealthCheckSource, error) {
 	return newMultiKeyHealthyIfNoRecentErrorsSource(checkType, messageInCaseOfError, windowSize, NewOrdinaryTimeProvider())
 }
@@ -129,6 +175,8 @@ func newMultiKeyHealthyIfNoRecentErrorsSource(checkType health.CheckType, messag
 		timeProvider:         timeProvider,
 	}, nil
 }
+
+///////////////// Remove Before Review Joe ////////////////////
 
 // multiKeyHealthyIfNotAllErrorsSource is a HealthCheckSource that keeps the latest errors
 // for multiple keys submitted within the last windowSize time frame.
@@ -220,9 +268,9 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) Submit(key string, err error) {
 	m.sourceMutex.Lock()
 	defer m.sourceMutex.Unlock()
 
-	m.pruneOldKeys(m.errorStore, m.windowSize)
-	m.pruneOldKeys(m.successStore, m.windowSize)
-	m.pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize)
+	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
+	pruneOldKeys(m.successStore, m.windowSize, m.timeProvider)
+	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize, m.timeProvider)
 
 	_, hasError := m.errorStore.Get(key)
 	_, hasSuccess := m.successStore.Get(key)
@@ -244,9 +292,9 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 
 	var healthCheckResult health.HealthCheckResult
 
-	m.pruneOldKeys(m.errorStore, m.windowSize)
-	m.pruneOldKeys(m.successStore, m.windowSize)
-	m.pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize)
+	pruneOldKeys(m.errorStore, m.windowSize, m.timeProvider)
+	pruneOldKeys(m.successStore, m.windowSize, m.timeProvider)
+	pruneOldKeys(m.gapEndTimeStore, m.repairingGracePeriod+m.windowSize, m.timeProvider)
 
 	params := make(map[string]interface{})
 	shouldError := false
@@ -291,8 +339,8 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 	}
 }
 
-func (m *multiKeyHealthyIfNotAllErrorsSource) pruneOldKeys(store TimedKeyStore, maxAge time.Duration) {
-	curTime := m.timeProvider.Now()
+func pruneOldKeys(store TimedKeyStore, maxAge time.Duration, timeProvider TimeProvider) {
+	curTime := timeProvider.Now()
 	for {
 		oldest, exists := store.Oldest()
 		if !exists {
