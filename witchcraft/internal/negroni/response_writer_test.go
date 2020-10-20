@@ -50,7 +50,7 @@ func TestResponseWriterBeforeWrite(t *testing.T) {
 	rec := httptest.NewRecorder()
 	rw := NewResponseWriter(rec)
 
-	expect(t, rw.Status(), 0)
+	expect(t, rw.Status(), 200) // Defaults to 200 when not set
 	expect(t, rw.Written(), false)
 }
 
