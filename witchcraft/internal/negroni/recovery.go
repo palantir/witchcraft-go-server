@@ -1,3 +1,17 @@
+// Copyright (c) 2020 Palantir Technologies. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package negroni
 
 import (
@@ -110,7 +124,7 @@ func (t *TextPanicFormatter) FormatPanicError(rw http.ResponseWriter, r *http.Re
 	if rw.Header().Get("Content-Type") == "" {
 		rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	}
-	fmt.Fprintf(rw, panicText, infos.RecoveredPanic, infos.Stack)
+	_, _ = fmt.Fprintf(rw, panicText, infos.RecoveredPanic, infos.Stack)
 }
 
 // HTMLPanicFormatter output the stack inside
@@ -122,7 +136,7 @@ func (t *HTMLPanicFormatter) FormatPanicError(rw http.ResponseWriter, r *http.Re
 	if rw.Header().Get("Content-Type") == "" {
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
-	panicHTMLTemplate.Execute(rw, infos)
+	_ = panicHTMLTemplate.Execute(rw, infos)
 }
 
 // Recovery is a Negroni middleware that recovers from any panics and writes a 500 if there was one.

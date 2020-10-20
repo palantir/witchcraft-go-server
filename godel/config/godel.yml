@@ -22,4 +22,3 @@ exclude:
   paths:
     - godel
     - conjure
-    - witchcraft/internal/negroni
