@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: |
+    Request logging defaults to status of 200 when not explicitly set.
+    This ensures that the request logging middleware's behavior matches
+    that of the go std library and the observed response code from the server.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/212
