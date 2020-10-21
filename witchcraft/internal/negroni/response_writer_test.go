@@ -72,7 +72,7 @@ func TestResponseWriterWritingString(t *testing.T) {
 	rec := httptest.NewRecorder()
 	rw := NewResponseWriter(rec)
 
-	rw.Write([]byte("Hello world"))
+	_, _ = rw.Write([]byte("Hello world"))
 
 	expect(t, rec.Code, rw.Status())
 	expect(t, rec.Body.String(), "Hello world")
@@ -85,8 +85,8 @@ func TestResponseWriterWritingStrings(t *testing.T) {
 	rec := httptest.NewRecorder()
 	rw := NewResponseWriter(rec)
 
-	rw.Write([]byte("Hello world"))
-	rw.Write([]byte("foo bar bat baz"))
+	_, _ = rw.Write([]byte("Hello world"))
+	_, _ = rw.Write([]byte("foo bar bat baz"))
 
 	expect(t, rec.Code, rw.Status())
 	expect(t, rec.Body.String(), "Hello worldfoo bar bat baz")

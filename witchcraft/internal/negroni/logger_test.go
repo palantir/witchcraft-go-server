@@ -71,7 +71,7 @@ func Test_LoggerCustomFormat(t *testing.T) {
 	n := New()
 	n.Use(l)
 	n.UseHandler(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte("OK"))
+		_, _ = rw.Write([]byte("OK"))
 	}))
 
 	userAgent := "Negroni-Test"

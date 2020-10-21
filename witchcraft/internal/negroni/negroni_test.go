@@ -169,7 +169,7 @@ func TestDetectAddress(t *testing.T) {
 		t.Error("Expected the provided address")
 	}
 
-	os.Setenv("PORT", "8080")
+	_ = os.Setenv("PORT", "8080")
 	if detectAddress() != ":8080" {
 		t.Error("Expected the PORT env var with a prefixed colon")
 	}
