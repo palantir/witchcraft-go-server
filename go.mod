@@ -16,7 +16,7 @@ require (
 	github.com/palantir/pkg/signals v1.0.1
 	github.com/palantir/pkg/tlsconfig v1.0.1
 	github.com/palantir/witchcraft-go-error v1.3.0
-	github.com/palantir/witchcraft-go-logging v1.7.0
+	github.com/palantir/witchcraft-go-logging v1.7.1-0.20201024195734-9bef0d3390d3
 	github.com/palantir/witchcraft-go-params v1.1.0
 	github.com/palantir/witchcraft-go-tracing v1.2.0
 	github.com/stretchr/testify v1.4.0

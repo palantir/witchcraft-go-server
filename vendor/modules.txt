@@ -49,7 +49,7 @@ github.com/palantir/pkg/uuid/internal/uuid
 # github.com/palantir/witchcraft-go-error v1.3.0
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
-# github.com/palantir/witchcraft-go-logging v1.7.0
+# github.com/palantir/witchcraft-go-logging v1.7.1-0.20201024195734-9bef0d3390d3
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog
