@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add WitchcraftDebugService routes
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/216

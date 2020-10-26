@@ -29,6 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/status/routes"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -47,6 +48,11 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	// add debugging endpoint to management router
 	if err := addDebuggingRoutes(mgmtRouterWithContextPath); err != nil {
 		return werror.Wrap(err, "failed to register debugging routes")
+	}
+	if err := wdebug.RegisterRoute(mgmtRouterWithContextPath, refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
+		return in.(config.Runtime).DebugConfig.SharedSecret
+	}))); err != nil {
+		return err
 	}
 
 	statusResource := wresource.New("status", mgmtRouterWithContextPath)
