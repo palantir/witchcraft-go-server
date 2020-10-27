@@ -12,7 +12,7 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v2 v2.3.0
+# github.com/palantir/conjure-go-runtime/v2 v2.5.0
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
@@ -46,7 +46,7 @@ github.com/palantir/pkg/transform
 # github.com/palantir/pkg/uuid v1.0.1
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
-# github.com/palantir/witchcraft-go-error v1.3.0
+# github.com/palantir/witchcraft-go-error v1.4.1
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
 # github.com/palantir/witchcraft-go-logging v1.7.0
@@ -94,5 +94,5 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/yaml.v2 v2.2.7
+# gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
