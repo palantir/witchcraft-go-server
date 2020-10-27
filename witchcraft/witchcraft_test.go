@@ -18,10 +18,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
+	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -122,6 +126,63 @@ func TestServer_StartFailsBeforeMetricRegistryInitialized(t *testing.T) {
 	err := witchcraft.NewServer().Start()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Failed to load install configuration bytes")
+}
+
+func TestServer_WithOriginFromCallLine(t *testing.T) {
+	for _, test := range []struct {
+		Name      string
+		InitFn    witchcraft.InitFunc
+		VerifyLog func(t *testing.T, logOutput []byte)
+	}{
+		{
+			Name: "svc log in init function",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				svc1log.FromContext(ctx).Info("a message", svc1log.SafeParam("k", "v"))
+				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				_, file, line, _ := runtime.Caller(0)
+				file = path.Base(file) // janky way to trim gopath
+				line = line - 4        // janky way to refer to log line above
+				originSuffix := fmt.Sprintf("%s:%d", file, line)
+
+				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
+				require.Equal(t, 2, len(svc1LogLines), "Expected exactly 2 service log line to be output")
+
+				var log1 logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log1))
+				assert.Equal(t, "a message", log1.Message)
+				assert.True(t, strings.HasSuffix(*log1.Origin, originSuffix), "Expected origin %s to have suffix %s", *log1.Origin, originSuffix)
+				assert.Equal(t, "v", log1.Params["k"], "safe param not preserved")
+
+				var log2 logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[1], &log2))
+				assert.Equal(t, logging.LogLevelError, log2.Level)
+				assert.Equal(t, "oops", log2.Message)
+				assert.Equal(t, "v", log2.Params["k"], "safe param not preserved")
+				assert.NotEmpty(t, log2.Stacktrace)
+				assert.Equal(t, "witchcraft.go", path.Base(strings.Split(*log2.Origin, ":")[0]), "Unexpected origin %s", *log2.Origin)
+			},
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			logOutputBuffer := &bytes.Buffer{}
+			err := witchcraft.NewServer().
+				WithOriginFromCallLine().
+				WithInitFunc(test.InitFn).
+				WithInstallConfig(config.Install{UseConsoleLog: true}).
+				WithRuntimeConfig(config.Runtime{}).
+				WithLoggerStdoutWriter(logOutputBuffer).
+				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+				WithDisableGoRuntimeMetrics().
+				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
+				WithSelfSignedCertificate().
+				Start()
+
+			require.Error(t, err)
+			test.VerifyLog(t, logOutputBuffer.Bytes())
+		})
+	}
 }
 
 // BenchmarkServer_Loggers benchmarks the time for Server loggers to log a fixed number of lines.
@@ -306,4 +367,9 @@ func getLogMessagesOfType(t *testing.T, typ string, logOutput []byte) [][]byte {
 		}
 	}
 	return logLines
+}
+
+func getFileAndLine() (string, int) {
+	_, file, line, _ := runtime.Caller(1)
+	return path.Base(file), line
 }
