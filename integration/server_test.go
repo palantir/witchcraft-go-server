@@ -386,7 +386,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 		if assert.Len(t, notFoundSvcLogs, 1, "expected exactly one service log with trace id") {
 			svclog := notFoundSvcLogs[0]
 			assert.Equal(t, "INFO", svclog["level"])
-			assert.Equal(t, fmt.Sprintf("error handling request: %v", cerr), svclog["message"])
+			assert.Equal(t, fmt.Sprintf("error handling request: %v", cerr.Error()), svclog["message"])
 			assert.Equal(t, map[string]interface{}{"errorInstanceId": cerr.InstanceID().String()}, svclog["params"])
 		}
 	})
