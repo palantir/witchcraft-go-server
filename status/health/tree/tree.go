@@ -16,6 +16,7 @@ package tree
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status"
@@ -86,7 +87,11 @@ func (n *healthCheckSourceTreeNode) HealthStatus(ctx context.Context) health.Hea
 func healthStateFromChecks(checks map[health.CheckType]health.HealthCheckResult) health.HealthState {
 	healthState := health.HealthStateHealthy
 	for _, checkResult := range checks {
-		if status.HealthStateStatusCodes[checkResult.State] > status.HealthStateStatusCodes[healthState] {
+		code, ok := status.HealthStateStatusCodes[checkResult.State]
+		if !ok {
+			code = http.StatusInternalServerError
+		}
+		if code > status.HealthStateStatusCodes[healthState] {
 			healthState = checkResult.State
 		}
 	}
