@@ -32,6 +32,20 @@ const (
 	HealthStateTerminal HealthState = "TERMINAL"
 )
 
+// HealthState_Values returns all known variants of HealthState.
+func HealthState_Values() []HealthState {
+	return []HealthState{HealthStateHealthy, HealthStateDeferring, HealthStateSuspended, HealthStateRepairing, HealthStateWarning, HealthStateError, HealthStateTerminal}
+}
+
+// IsUnknown returns false for all known variants of HealthState and true otherwise.
+func (e HealthState) IsUnknown() bool {
+	switch e {
+	case HealthStateHealthy, HealthStateDeferring, HealthStateSuspended, HealthStateRepairing, HealthStateWarning, HealthStateError, HealthStateTerminal:
+		return false
+	}
+	return true
+}
+
 func (e *HealthState) UnmarshalText(data []byte) error {
 	switch v := strings.ToUpper(string(data)); v {
 	default:
