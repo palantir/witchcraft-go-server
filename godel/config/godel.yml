@@ -3,10 +3,10 @@ plugins:
     - https://palantir.bintray.com/releases/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz
   plugins:
     - locator:
-        id: com.palantir.godel-conjure-plugin:conjure-plugin:5.6.0
+        id: com.palantir.godel-conjure-plugin:conjure-plugin:5.7.0
         checksums:
-          darwin-amd64: cce097215be6624f0ea3488233108d2c6d21b422056bd3dbf19a54a3332634ab
-          linux-amd64: eb59be64ad44e6efe5b85199e824aad3577f5849bc0fda224a3d070f9b6e3b93
+          darwin-amd64: ce5d84dfeb540f8c6ae1925476fe448b8bf0a0407360bd35b2028c4e2d6df8c1
+          linux-amd64: 2436e9731a41ae12744cb8dfee5ac1268135ab4b3f2ac26c58237b9ad67c15c4
     - locator:
         id: com.palantir.godel-mod-plugin:mod-plugin:1.1.0
         checksums:
