@@ -42,7 +42,7 @@ func TestWithInitialPoll(t *testing.T) {
 	healthStatus := periodicCheckWithInitialPoll.HealthStatus(context.Background())
 	check, ok := healthStatus.Checks["CHECK_TYPE"]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateError, check.State)
+	assert.Equal(t, health.HealthState_ERROR, check.State.Value())
 }
 
 func TestWithStartupGracePeriod(t *testing.T) {
@@ -63,10 +63,10 @@ func TestWithStartupGracePeriod(t *testing.T) {
 	healthStatus := periodicCheckWithInitialPoll.HealthStatus(context.Background())
 	check, ok := healthStatus.Checks["CHECK_TYPE"]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, check.State)
+	assert.Equal(t, health.HealthState_REPAIRING, check.State.Value())
 	<-time.After(time.Second)
 	healthStatus = periodicCheckWithInitialPoll.HealthStatus(context.Background())
 	check, ok = healthStatus.Checks["CHECK_TYPE"]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateError, check.State)
+	assert.Equal(t, health.HealthState_ERROR, check.State.Value())
 }

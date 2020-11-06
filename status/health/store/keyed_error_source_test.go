@@ -39,7 +39,7 @@ func TestKeyedMessengerHealthStateError(t *testing.T) {
 					"1": "error message 1",
 					"2": "error message 2",
 				},
-				State: health.HealthStateError,
+				State: health.New_HealthState(health.HealthState_ERROR),
 				Type:  "TEST",
 			},
 		},
@@ -54,7 +54,7 @@ func TestKeyedMessengerHealthStateHealthy(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"TEST": {
 				Message: &testMessage,
-				State:   health.HealthStateHealthy,
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Type:    "TEST",
 			},
 		},

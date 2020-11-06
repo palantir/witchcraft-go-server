@@ -66,7 +66,7 @@ func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent
 	componentName := health.CheckType(name)
 	healthComponent := &healthComponent{
 		name:  componentName,
-		state: StartingState,
+		state: health.New_HealthState(StartingState),
 	}
 
 	r.mutex.Lock()

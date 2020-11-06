@@ -113,7 +113,7 @@ func TestAddHealthRoute(t *testing.T) {
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
-						State:  health.HealthStateHealthy,
+						State:  health.New_HealthState(health.HealthState_HEALTHY),
 						Params: make(map[string]interface{}),
 					},
 				},
@@ -128,12 +128,12 @@ func TestAddHealthRoute(t *testing.T) {
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
-						State:  health.HealthStateHealthy,
+						State:  health.New_HealthState(health.HealthState_HEALTHY),
 						Params: make(map[string]interface{}),
 					},
 					"SERVER_ERROR": {
 						Type:   "SERVER_ERROR",
-						State:  health.HealthStateError,
+						State:  health.New_HealthState(health.HealthState_ERROR),
 						Params: make(map[string]interface{}),
 					},
 				},
@@ -148,17 +148,17 @@ func TestAddHealthRoute(t *testing.T) {
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
-						State:  health.HealthStateHealthy,
+						State:  health.New_HealthState(health.HealthState_HEALTHY),
 						Params: make(map[string]interface{}),
 					},
 					"SERVER_TERMINAL": {
 						Type:   "SERVER_TERMINAL",
-						State:  health.HealthStateTerminal,
+						State:  health.New_HealthState(health.HealthState_TERMINAL),
 						Params: make(map[string]interface{}),
 					},
 					"SERVER_ERROR": {
 						Type:   "SERVER_ERROR",
-						State:  health.HealthStateError,
+						State:  health.New_HealthState(health.HealthState_ERROR),
 						Params: make(map[string]interface{}),
 					},
 				},
@@ -173,7 +173,7 @@ func TestAddHealthRoute(t *testing.T) {
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
-						State:  health.HealthStateHealthy,
+						State:  health.New_HealthState(health.HealthState_HEALTHY),
 						Params: make(map[string]interface{}),
 					},
 				},
@@ -188,7 +188,7 @@ func TestAddHealthRoute(t *testing.T) {
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
-						State:  health.HealthStateHealthy,
+						State:  health.New_HealthState(health.HealthState_HEALTHY),
 						Params: make(map[string]interface{}),
 					},
 				},

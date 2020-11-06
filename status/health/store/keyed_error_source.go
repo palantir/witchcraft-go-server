@@ -75,7 +75,7 @@ func (k *keyedErrorHealthCheckSource) HealthStatus(ctx context.Context) health.H
 				k.checkType: {
 					Message: &k.checkMessage,
 					Type:    k.checkType,
-					State:   health.HealthStateHealthy,
+					State:   health.New_HealthState(health.HealthState_HEALTHY),
 				},
 			},
 		}
@@ -90,7 +90,7 @@ func (k *keyedErrorHealthCheckSource) HealthStatus(ctx context.Context) health.H
 				Message: &k.checkMessage,
 				Params:  params,
 				Type:    k.checkType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 			},
 		},
 	}

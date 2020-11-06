@@ -70,11 +70,11 @@ func TestSetHealthAndGetHealthResult(t *testing.T) {
 	message := "err"
 	component, _ := setup(t)
 	component.SetHealth(
-		health.HealthStateTerminal,
+		health.HealthState_TERMINAL,
 		&message,
 		map[string]interface{}{"stack": "trace", "other": errors.New("err2")},
 	)
-	assert.Equal(t, health.HealthStateTerminal, component.Status())
+	assert.Equal(t, health.HealthState_TERMINAL, component.Status())
 	result := component.GetHealthCheck()
 	assert.Equal(t, "err", *result.Message)
 	assert.Equal(t, map[string]interface{}{"stack": "trace", "other": errors.New("err2")}, result.Params)
@@ -94,7 +94,7 @@ func TestGetHealthCheckCopy(t *testing.T) {
 
 	message := "modifiedMessage"
 	componentResult.Type = "modifiedType"
-	componentResult.State = ErrorState
+	componentResult.State = health.New_HealthState(ErrorState)
 	*componentResult.Message = message
 	componentResult.Params["modifiedParamKey"] = "modifiedParamValue"
 

@@ -28,7 +28,7 @@ import (
 // than HealthStateRepairing.
 func NewDiagnosticLoggingChangeHandler() HealthStatusChangeHandler {
 	return healthStatusChangeHandlerFn(func(ctx context.Context, prev, curr health.HealthStatus) {
-		if HealthStatusCode(curr) > HealthStateStatusCodes[health.HealthStateRepairing] {
+		if HealthStatusCode(curr) > HealthStateStatusCodes[health.HealthState_REPAIRING] {
 			var buf bytes.Buffer
 			_ = pprof.Lookup("goroutine").WriteTo(&buf, 2) // bytes.Buffer's Write never returns an error, so we swallow it
 			diag1log.FromContext(ctx).Diagnostic(logging.NewDiagnosticFromThreadDump(diag1log.ThreadDumpV1FromGoroutines(buf.Bytes())))

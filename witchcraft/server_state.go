@@ -86,15 +86,15 @@ func (s *serverStateManager) Status() (int, interface{}) {
 }
 
 func (s *serverStateManager) HealthStatus(ctx context.Context) health.HealthStatus {
-	state := health.HealthStateHealthy
+	state := health.HealthState_HEALTHY
 	if !s.Running() {
-		state = health.HealthStateTerminal
+		state = health.HealthState_TERMINAL
 	}
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"SERVER_STATUS": {
 				Type:  "SERVER_STATUS",
-				State: state,
+				State: health.New_HealthState(state),
 			},
 		},
 	}

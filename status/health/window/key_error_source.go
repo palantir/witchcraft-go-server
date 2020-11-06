@@ -161,7 +161,7 @@ func (m *multiKeyHealthyIfNoRecentErrorsSource) HealthStatus(ctx context.Context
 	if len(params) > 0 {
 		healthCheckResult = health.HealthCheckResult{
 			Type:    m.checkType,
-			State:   health.HealthStateError,
+			State:   health.New_HealthState(health.HealthState_ERROR),
 			Message: &m.messageInCaseOfError,
 			Params:  params,
 		}
@@ -319,12 +319,12 @@ func (m *multiKeyHealthyIfNotAllErrorsSource) HealthStatus(ctx context.Context) 
 	if len(params) > 0 {
 		healthCheckResult = health.HealthCheckResult{
 			Type:    m.checkType,
-			State:   health.HealthStateRepairing,
+			State:   health.New_HealthState(health.HealthState_REPAIRING),
 			Message: &m.messageInCaseOfError,
 			Params:  params,
 		}
 		if shouldError {
-			healthCheckResult.State = health.HealthStateError
+			healthCheckResult.State = health.New_HealthState(health.HealthState_ERROR)
 		}
 	} else {
 		healthCheckResult = whealth.HealthyHealthCheckResult(m.checkType)

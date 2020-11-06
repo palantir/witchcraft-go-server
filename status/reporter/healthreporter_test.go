@@ -29,13 +29,13 @@ func TestGetHealthy(t *testing.T) {
 	reporter.healthComponents = map[health.CheckType]HealthComponent{
 		testCheckType: &healthComponent{
 			name:  testCheckType,
-			state: health.HealthStateHealthy,
+			state: health.New_HealthState(health.HealthState_HEALTHY),
 		},
 	}
 
 	status, found := reporter.getHealthCheck(testCheckType)
 	assert.True(t, found)
-	assert.Equal(t, status.State, HealthyState)
+	assert.Equal(t, status.State.Value(), HealthyState)
 }
 
 func TestGetError(t *testing.T) {
@@ -43,13 +43,13 @@ func TestGetError(t *testing.T) {
 	reporter.healthComponents = map[health.CheckType]HealthComponent{
 		testCheckType: &healthComponent{
 			name:  testCheckType,
-			state: ErrorState,
+			state: health.New_HealthState(ErrorState),
 		},
 	}
 
 	status, found := reporter.getHealthCheck(testCheckType)
 	assert.True(t, found)
-	assert.Equal(t, status.State, ErrorState)
+	assert.Equal(t, status.State.Value(), ErrorState)
 }
 
 func TestGetNotFound(t *testing.T) {

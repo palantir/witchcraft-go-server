@@ -65,7 +65,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
@@ -83,7 +83,7 @@ func TestMultiKeyUnhealthyIfAtLeastOneErrorSource(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
@@ -157,7 +157,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource_OutsideStartWindow(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
@@ -175,7 +175,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource_OutsideStartWindow(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
@@ -239,7 +239,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource_InsideStartWindow(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
@@ -257,7 +257,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource_InsideStartWindow(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",
@@ -303,7 +303,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource_InitialWindowErrorsReturnRepairing(
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -319,7 +319,7 @@ func TestMultiKeyHealthyIfNotAllErrorsSource_InitialWindowErrorsReturnRepairing(
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -348,7 +348,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -364,7 +364,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -380,7 +380,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"2": "error for key: 2",
@@ -417,7 +417,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenGap(t *
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -432,7 +432,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenGap(t *
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -448,7 +448,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenGap(t *
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"2": "error for key: 2",
@@ -485,7 +485,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -501,7 +501,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -519,7 +519,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -535,7 +535,7 @@ func TestAnchoredMultiKeyHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testCheckType: {
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "error for key: 1",
@@ -579,7 +579,7 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"2": "Error #1 for key 2",
@@ -602,7 +602,7 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #2 for key 1",
@@ -631,7 +631,7 @@ func TestMultiKeyUnhealthyIfNoRecentErrorsSource(t *testing.T) {
 			},
 			expectedCheck: health.HealthCheckResult{
 				Type:    testCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &messageInCaseOfError,
 				Params: map[string]interface{}{
 					"1": "Error #1 for key 1",

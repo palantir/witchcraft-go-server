@@ -35,10 +35,10 @@ func TestCombinedHealthCheckSource(t *testing.T) {
 		healthStatus: health.HealthStatus{
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				"a": {
-					State: health.HealthStateHealthy,
+					State: health.New_HealthState(health.HealthState_HEALTHY),
 				},
 				"b": {
-					State: health.HealthStateHealthy,
+					State: health.New_HealthState(health.HealthState_HEALTHY),
 				},
 			},
 		},
@@ -47,10 +47,10 @@ func TestCombinedHealthCheckSource(t *testing.T) {
 		healthStatus: health.HealthStatus{
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				"a": {
-					State: health.HealthStateError,
+					State: health.New_HealthState(health.HealthState_ERROR),
 				},
 				"c": {
-					State: health.HealthStateHealthy,
+					State: health.New_HealthState(health.HealthState_HEALTHY),
 				},
 			},
 		},
@@ -60,13 +60,13 @@ func TestCombinedHealthCheckSource(t *testing.T) {
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"a": {
-				State: health.HealthStateError,
+				State: health.New_HealthState(health.HealthState_ERROR),
 			},
 			"b": {
-				State: health.HealthStateHealthy,
+				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 			"c": {
-				State: health.HealthStateHealthy,
+				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 		},
 	}, actual)

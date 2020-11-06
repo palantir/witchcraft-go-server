@@ -151,7 +151,7 @@ func TestHealthyIfNotAllErrorsSource_ErrorInInitialWindowWhenFirstFullWindowRequ
 	healthStatus := anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok := healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
+	assert.Equal(t, health.HealthState_REPAIRING, checkResult.State.Value())
 }
 
 // TestAnchoredHealthyIfNotAllErrorsSource_ErrorInInitialAnchoredWindow validates that error in the first window
@@ -165,7 +165,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_ErrorInInitialAnchoredWindow(t *tes
 	healthStatus := anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok := healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
+	assert.Equal(t, health.HealthState_REPAIRING, checkResult.State.Value())
 }
 
 // TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairing validates that error in the first window
@@ -182,7 +182,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairing(t *testing.T) {
 	healthStatus := anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok := healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
+	assert.Equal(t, health.HealthState_REPAIRING, checkResult.State.Value())
 }
 
 // TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError validates that in a constant stream of errors, the health
@@ -200,7 +200,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t *testin
 	healthStatus := anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok := healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
+	assert.Equal(t, health.HealthState_REPAIRING, checkResult.State.Value())
 
 	timeProvider.RestlessSleep(windowSize / 2)
 	anchoredWindow.Submit(werror.ErrorWithContextParams(context.Background(), "an error"))
@@ -208,7 +208,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenError(t *testin
 	healthStatus = anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok = healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateError, checkResult.State)
+	assert.Equal(t, health.HealthState_ERROR, checkResult.State.Value())
 }
 
 // TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy validates that if a success is submitted during repairing phase,
@@ -226,7 +226,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy(t *test
 	healthStatus := anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok := healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
+	assert.Equal(t, health.HealthState_REPAIRING, checkResult.State.Value())
 
 	timeProvider.RestlessSleep(windowSize / 2)
 	anchoredWindow.Submit(nil)
@@ -234,7 +234,7 @@ func TestAnchoredHealthyIfNotAllErrorsSource_GapThenRepairingThenHealthy(t *test
 	healthStatus = anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok = healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateHealthy, checkResult.State)
+	assert.Equal(t, health.HealthState_HEALTHY, checkResult.State.Value())
 }
 
 // TestAnchoredHealthyIfNotAllErrorsSource_RepairingThenGap validates if no more errors happen beyond the repairing phase,
@@ -252,12 +252,12 @@ func TestAnchoredHealthyIfNotAllErrorsSource_RepairingThenGap(t *testing.T) {
 	healthStatus := anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok := healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateRepairing, checkResult.State)
+	assert.Equal(t, health.HealthState_REPAIRING, checkResult.State.Value())
 
 	timeProvider.RestlessSleep(3 * windowSize / 2)
 
 	healthStatus = anchoredWindow.HealthStatus(context.Background())
 	checkResult, ok = healthStatus.Checks[testCheckType]
 	assert.True(t, ok)
-	assert.Equal(t, health.HealthStateHealthy, checkResult.State)
+	assert.Equal(t, health.HealthState_HEALTHY, checkResult.State.Value())
 }
