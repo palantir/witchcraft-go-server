@@ -32,13 +32,6 @@ type HealthComponent interface {
 	GetHealthCheck() health.HealthCheckResult
 }
 
-var (
-	StartingState = health.HealthState_REPAIRING
-	HealthyState  = health.HealthState_HEALTHY
-	WarningState  = health.HealthState_WARNING
-	ErrorState    = health.HealthState_ERROR
-)
-
 type healthComponent struct {
 	sync.RWMutex
 
@@ -49,16 +42,16 @@ type healthComponent struct {
 }
 
 func (r *healthComponent) Healthy() {
-	r.SetHealth(HealthyState, nil, nil)
+	r.SetHealth(health.HealthState_HEALTHY, nil, nil)
 }
 
 func (r *healthComponent) Warning(warningMsg string) {
-	r.SetHealth(WarningState, &warningMsg, nil)
+	r.SetHealth(health.HealthState_WARNING, &warningMsg, nil)
 }
 
 func (r *healthComponent) Error(err error) {
 	errorString := err.Error()
-	r.SetHealth(ErrorState, &errorString, nil)
+	r.SetHealth(health.HealthState_ERROR, &errorString, nil)
 }
 
 func (r *healthComponent) SetHealth(healthState health.HealthState_Value, message *string, params map[string]interface{}) {

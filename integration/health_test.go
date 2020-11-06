@@ -125,11 +125,11 @@ func TestHealthReporter(t *testing.T) {
 			if err != nil {
 				panic(fmt.Errorf("failed to initialize %s health reporter: %v", name, err))
 			}
-			if component.Status() != reporter.StartingState {
+			if component.Status() != health.HealthState_REPAIRING {
 				panic(fmt.Errorf("expected reporter to be in REPAIRING before being marked healthy, got %s", component.Status()))
 			}
 			component.Healthy()
-			if component.Status() != reporter.HealthyState {
+			if component.Status() != health.HealthState_HEALTHY {
 				panic(fmt.Errorf("expected reporter to be in HEALTHY after being marked healthy, got %s", component.Status()))
 			}
 		}(healthReporter, n)
@@ -141,11 +141,11 @@ func TestHealthReporter(t *testing.T) {
 			if err != nil {
 				panic(fmt.Errorf("failed to initialize %s health reporter: %v", name, err))
 			}
-			if component.Status() != reporter.StartingState {
+			if component.Status() != health.HealthState_REPAIRING {
 				panic(fmt.Errorf("expected reporter to be in REPAIRING before being marked healthy, got %s", component.Status()))
 			}
 			component.Error(errors.New(errString))
-			if component.Status() != reporter.ErrorState {
+			if component.Status() != health.HealthState_ERROR {
 				panic(fmt.Errorf("expected reporter to be in ERROR after being marked with error, got %s", component.Status()))
 			}
 		}(healthReporter, n)
@@ -155,7 +155,7 @@ func TestHealthReporter(t *testing.T) {
 	// Validate GetHealthComponent
 	component, ok := healthReporter.GetHealthComponent(healthyComponents[0])
 	assert.True(t, ok)
-	assert.Equal(t, reporter.HealthyState, component.Status())
+	assert.Equal(t, health.HealthState_HEALTHY, component.Status())
 
 	// Validate health
 	resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
@@ -171,25 +171,25 @@ func TestHealthReporter(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			health.CheckType("COMPONENT_A"): {
 				Type:    health.CheckType("COMPONENT_A"),
-				State:   health.New_HealthState(reporter.HealthyState),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
 				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("COMPONENT_B"): {
 				Type:    health.CheckType("COMPONENT_B"),
-				State:   health.New_HealthState(reporter.HealthyState),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
 				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("COMPONENT_C"): {
 				Type:    health.CheckType("COMPONENT_C"),
-				State:   health.New_HealthState(reporter.ErrorState),
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errString,
 				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("COMPONENT_D"): {
 				Type:    health.CheckType("COMPONENT_D"),
-				State:   health.New_HealthState(reporter.ErrorState),
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errString,
 				Params:  make(map[string]interface{}),
 			},
@@ -200,7 +200,7 @@ func TestHealthReporter(t *testing.T) {
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(reporter.HealthyState),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
 		},
@@ -337,7 +337,7 @@ func TestHealthSharedSecret(t *testing.T) {
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(reporter.HealthyState),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
 		},
@@ -401,7 +401,7 @@ invalid-key: invalid-value
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(reporter.HealthyState),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
 		},
@@ -431,7 +431,7 @@ invalid-key: invalid-value
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(reporter.HealthyState),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
 		},
@@ -490,7 +490,7 @@ invalid-key: invalid-value
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(reporter.HealthyState),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
 		},
@@ -521,7 +521,7 @@ invalid-key: invalid-value
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(reporter.HealthyState),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
 		},
