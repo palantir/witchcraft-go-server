@@ -1,5 +1,9 @@
 type: break
 break:
-  description: Bump conjure-go to v6, which updates health status enum value constants to use the new naming convention. This will be a break for downstream things vendoring WGS health libraries.
+  description: |
+    Bump conjure-go to v6, which updates health status enum value constants to use the new naming convention.
+    This is a breaking change for code that references the `HealthComponent` interface and the `HealthState`
+    enum value constants. In addition, this change also makes `HealthStateStatusCodes` unexported; consumers
+    should switch to using the new `HealthStateStatusCode(state health.HealthState_Value) int` function instead.
   links:
   - https://github.com/palantir/witchcraft-go-server/pull/222

@@ -118,6 +118,7 @@ func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.He
 	return metadata, HealthStatusCode(metadata)
 }
 
+// HealthStateStatusCode returns the http status code for the provided health.HealthState_Value.
 func HealthStateStatusCode(state health.HealthState_Value) int {
 	code, ok := healthStateStatusCodes[state]
 	if !ok {
