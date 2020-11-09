@@ -3,7 +3,8 @@ break:
   description: |
     Bump conjure-go to v6, which updates health status enum value constants to use the new naming convention.
     This is a breaking change for code that references the `HealthComponent` interface and the `HealthState`
-    enum value constants.
+    enum value constants. Consumers should update references to use the new `HealthState` enum type and
+    `HealthState_Value` constants.
 
     In addition, this change also makes `HealthStateStatusCodes` unexported; consumers
     should switch to using the new `HealthStateStatusCode(state health.HealthState_Value) int` function instead.
