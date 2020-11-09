@@ -22,7 +22,7 @@ import (
 func UnhealthyHealthCheckResult(checkType health.CheckType, message string) health.HealthCheckResult {
 	return health.HealthCheckResult{
 		Type:    checkType,
-		State:   health.HealthStateError,
+		State:   health.New_HealthState(health.HealthState_ERROR),
 		Message: &message,
 	}
 }
@@ -31,7 +31,7 @@ func UnhealthyHealthCheckResult(checkType health.CheckType, message string) heal
 func RepairingHealthCheckResult(checkType health.CheckType, message string) health.HealthCheckResult {
 	return health.HealthCheckResult{
 		Type:    checkType,
-		State:   health.HealthStateRepairing,
+		State:   health.New_HealthState(health.HealthState_REPAIRING),
 		Message: &message,
 	}
 }
@@ -40,6 +40,6 @@ func RepairingHealthCheckResult(checkType health.CheckType, message string) heal
 func HealthyHealthCheckResult(checkType health.CheckType) health.HealthCheckResult {
 	return health.HealthCheckResult{
 		Type:  checkType,
-		State: health.HealthStateHealthy,
+		State: health.New_HealthState(health.HealthState_HEALTHY),
 	}
 }

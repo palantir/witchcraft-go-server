@@ -42,7 +42,7 @@ func TestHealthCheckSourceTree(t *testing.T) {
 		return health.HealthStatus{
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				"PARENT": {
-					State: health.HealthStateError,
+					State: health.New_HealthState(health.HealthState_ERROR),
 				},
 			},
 		}
@@ -51,7 +51,7 @@ func TestHealthCheckSourceTree(t *testing.T) {
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"PARENT": {
-				State: health.HealthStateError,
+				State: health.New_HealthState(health.HealthState_ERROR),
 			},
 		},
 	}, treeSource.HealthStatus(context.Background()))
@@ -60,7 +60,7 @@ func TestHealthCheckSourceTree(t *testing.T) {
 		return health.HealthStatus{
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				"PARENT": {
-					State: health.HealthStateHealthy,
+					State: health.New_HealthState(health.HealthState_HEALTHY),
 				},
 			},
 		}
@@ -69,7 +69,7 @@ func TestHealthCheckSourceTree(t *testing.T) {
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"PARENT": {
-				State: health.HealthStateHealthy,
+				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 			"CHILD": {},
 		},
@@ -81,7 +81,7 @@ func TestHealthCheckSourceTreeWithTraverseForHealthState(t *testing.T) {
 		return health.HealthStatus{
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				"CHILD_CHECK": {
-					State: health.HealthStateRepairing,
+					State: health.New_HealthState(health.HealthState_REPAIRING),
 				},
 			},
 		}
@@ -90,7 +90,7 @@ func TestHealthCheckSourceTreeWithTraverseForHealthState(t *testing.T) {
 		return health.HealthStatus{
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				"TEST_CHECK": {
-					State: health.HealthStateRepairing,
+					State: health.New_HealthState(health.HealthState_REPAIRING),
 				},
 			},
 		}
@@ -103,10 +103,10 @@ func TestHealthCheckSourceTreeWithTraverseForHealthState(t *testing.T) {
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"TEST_CHECK": {
-				State: health.HealthStateRepairing,
+				State: health.New_HealthState(health.HealthState_REPAIRING),
 			},
 			"CHILD_CHECK": {
-				State: health.HealthStateRepairing,
+				State: health.New_HealthState(health.HealthState_REPAIRING),
 			},
 		},
 	}, healthCheckSourceTree.HealthStatus(context.Background()))
@@ -120,7 +120,7 @@ func TestHealthCheckSourceTreeWithTraverseForHealthState(t *testing.T) {
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			"TEST_CHECK": {
-				State: health.HealthStateRepairing,
+				State: health.New_HealthState(health.HealthState_REPAIRING),
 			},
 		},
 	}, healthCheckSourceTree.HealthStatus(context.Background()))

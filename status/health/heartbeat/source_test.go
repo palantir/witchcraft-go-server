@@ -35,7 +35,7 @@ func TestHealthCheckSource_NoHeartbeats_Repairing(t *testing.T) {
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck := status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateRepairing, check.State)
+	assert.Equal(t, health.HealthState_REPAIRING, check.State.Value())
 }
 
 func TestHealthCheckSource_NoHeartbeats_Error(t *testing.T) {
@@ -46,7 +46,7 @@ func TestHealthCheckSource_NoHeartbeats_Error(t *testing.T) {
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck := status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateError, check.State)
+	assert.Equal(t, health.HealthState_ERROR, check.State.Value())
 }
 
 func TestHealthCheckSource_WithHeartbeats_Healthy(t *testing.T) {
@@ -57,7 +57,7 @@ func TestHealthCheckSource_WithHeartbeats_Healthy(t *testing.T) {
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck := status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateHealthy, check.State)
+	assert.Equal(t, health.HealthState_HEALTHY, check.State.Value())
 }
 
 func TestHealthCheckSource_WithHeartbeats_Error(t *testing.T) {
@@ -69,7 +69,7 @@ func TestHealthCheckSource_WithHeartbeats_Error(t *testing.T) {
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck := status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateError, check.State)
+	assert.Equal(t, health.HealthState_ERROR, check.State.Value())
 }
 
 func TestHealthCheckSource_WithHeartbeats_HealthyThenErrorThenHealthy(t *testing.T) {
@@ -80,19 +80,19 @@ func TestHealthCheckSource_WithHeartbeats_HealthyThenErrorThenHealthy(t *testing
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck := status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateHealthy, check.State)
+	assert.Equal(t, health.HealthState_HEALTHY, check.State.Value())
 
 	<-time.After(50 * time.Millisecond)
 	status = source.HealthStatus(context.Background())
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck = status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateError, check.State)
+	assert.Equal(t, health.HealthState_ERROR, check.State.Value())
 
 	source.Heartbeat()
 	status = source.HealthStatus(context.Background())
 	require.Equal(t, 1, len(status.Checks))
 	check, hasCheck = status.Checks[testCheckType]
 	require.True(t, hasCheck)
-	assert.Equal(t, health.HealthStateHealthy, check.State)
+	assert.Equal(t, health.HealthState_HEALTHY, check.State.Value())
 }

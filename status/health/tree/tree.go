@@ -16,7 +16,6 @@ package tree
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/status"
@@ -55,7 +54,7 @@ func WithTraverseForHealthStatus(fn TraverseForHealthStatus) CheckSourceTreePara
 
 // NewHealthCheckSourceTree returns a new health check source tree node that uses the result of its own health check
 // to determine if it should invoke the provided child health checks. The default behavior is to only traverse to child
-// checks if the most severe health state of the current node's health status is health.HealthStateHealthy.
+// checks if the most severe health state of the current node's health status is health.HealthState_HEALTHY.
 func NewHealthCheckSourceTree(
 	ownHealthCheckSource status.HealthCheckSource,
 	childrenHealthCheckSources []status.HealthCheckSource,
@@ -85,13 +84,10 @@ func (n *healthCheckSourceTreeNode) HealthStatus(ctx context.Context) health.Hea
 }
 
 func healthStateFromChecks(checks map[health.CheckType]health.HealthCheckResult) health.HealthState {
-	healthState := health.HealthStateHealthy
+	healthState := health.New_HealthState(health.HealthState_HEALTHY)
 	for _, checkResult := range checks {
-		code, ok := status.HealthStateStatusCodes[checkResult.State]
-		if !ok {
-			code = http.StatusInternalServerError
-		}
-		if code > status.HealthStateStatusCodes[healthState] {
+		code := status.HealthStateStatusCode(checkResult.State.Value())
+		if code > status.HealthStateStatusCode(healthState.Value()) {
 			healthState = checkResult.State
 		}
 	}
@@ -99,5 +95,5 @@ func healthStateFromChecks(checks map[health.CheckType]health.HealthCheckResult)
 }
 
 func defaultTraverseForHealthStatus(healthStatus health.HealthStatus) bool {
-	return healthStateFromChecks(healthStatus.Checks) == health.HealthStateHealthy
+	return healthStateFromChecks(healthStatus.Checks).Value() == health.HealthState_HEALTHY
 }

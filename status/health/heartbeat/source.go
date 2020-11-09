@@ -114,7 +114,7 @@ func (h *HealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus 
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					h.checkType: {
 						Type:    h.checkType,
-						State:   health.HealthStateRepairing,
+						State:   health.New_HealthState(health.HealthState_REPAIRING),
 						Message: &message,
 						Params:  params,
 					},
@@ -127,7 +127,7 @@ func (h *HealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus 
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				h.checkType: {
 					Type:    h.checkType,
-					State:   health.HealthStateError,
+					State:   health.New_HealthState(health.HealthState_ERROR),
 					Message: &message,
 					Params:  params,
 				},
@@ -144,7 +144,7 @@ func (h *HealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus 
 			Checks: map[health.CheckType]health.HealthCheckResult{
 				h.checkType: {
 					Type:   h.checkType,
-					State:  health.HealthStateHealthy,
+					State:  health.New_HealthState(health.HealthState_HEALTHY),
 					Params: params,
 				},
 			},
@@ -156,7 +156,7 @@ func (h *HealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus 
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			h.checkType: {
 				Type:    h.checkType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &message,
 				Params:  params,
 			},

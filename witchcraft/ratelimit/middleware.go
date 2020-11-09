@@ -93,9 +93,9 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 	if current <= limit {
 		return false
 	}
-	if l.Health != nil && l.Health.Status() != health.HealthStateRepairing {
+	if l.Health != nil && l.Health.Status() != health.HealthState_REPAIRING {
 		msg := inFlightThrottledMessage
-		l.Health.SetHealth(health.HealthStateRepairing, &msg, nil)
+		l.Health.SetHealth(health.HealthState_REPAIRING, &msg, nil)
 	}
 	svc1log.FromContext(ctx).Warn(inFlightThrottledMessage,
 		svc1log.SafeParam("current", current),
@@ -108,7 +108,7 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 // l.Health is set to HEALTHY (if not already in that state).
 func (l *limiter) decrement(ctx context.Context) {
 	current := atomic.AddInt64(&l.current, -1)
-	if current < l.limit() && l.Health != nil && l.Health.Status() != health.HealthStateHealthy {
+	if current < l.limit() && l.Health != nil && l.Health.Status() != health.HealthState_HEALTHY {
 		l.Health.Healthy()
 	}
 }

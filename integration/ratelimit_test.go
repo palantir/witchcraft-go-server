@@ -38,10 +38,10 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 	healthComponent, err := healthReporter.InitializeHealthComponent("INFLIGHT_MUTATING_REQUESTS")
 	require.NoError(t, err)
 	requireHealthy := func(msg string) {
-		require.Equal(t, string(health.HealthStateHealthy), string(healthComponent.Status()), msg)
+		require.Equal(t, health.HealthState_HEALTHY, healthComponent.Status(), msg)
 	}
 	requireRepairing := func(msg string) {
-		require.Equal(t, string(health.HealthStateRepairing), string(healthComponent.Status()), msg)
+		require.Equal(t, health.HealthState_REPAIRING, healthComponent.Status(), msg)
 	}
 
 	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.NewInt(refreshable.NewDefaultRefreshable(2)), ratelimit.MatchMutating, healthComponent)

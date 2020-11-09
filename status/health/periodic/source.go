@@ -90,7 +90,7 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 		if !ok {
 			results = append(results, health.HealthCheckResult{
 				Type:    checkType,
-				State:   health.HealthStateRepairing,
+				State:   health.New_HealthState(health.HealthState_REPAIRING),
 				Message: stringPtr("Check has not yet run"),
 			})
 			continue
@@ -106,12 +106,12 @@ func (h *healthCheckSource) HealthStatus(ctx context.Context) health.HealthStatu
 			result = *checkState.lastResult
 			result.Message = stringPtr(wrap(result.Message, fmt.Sprintf("No completed checks during %s grace period", h.gracePeriod.String())))
 			// Mark REPAIRING if we were healthy before expiration.
-			if result.State == health.HealthStateHealthy {
-				result.State = health.HealthStateRepairing
+			if result.State.Value() == health.HealthState_HEALTHY {
+				result.State = health.New_HealthState(health.HealthState_REPAIRING)
 			}
 		}
-		if time.Since(h.startupTime) < h.startupGracePeriod && result.State == health.HealthStateError {
-			result.State = health.HealthStateRepairing
+		if time.Since(h.startupTime) < h.startupGracePeriod && result.State.Value() == health.HealthState_ERROR {
+			result.State = health.New_HealthState(health.HealthState_REPAIRING)
 		}
 		results = append(results, result)
 	}
@@ -174,7 +174,7 @@ func (h *healthCheckSource) doPoll(ctx context.Context) {
 			newState.lastSuccessTime = previousState.lastSuccessTime
 		}
 		// if current result is successful, update success state
-		if resultWithTime.result.State == health.HealthStateHealthy {
+		if resultWithTime.result.State.Value() == health.HealthState_HEALTHY {
 			newState.lastSuccess = resultWithTime.result
 			newState.lastSuccessTime = resultWithTime.time
 		}
@@ -200,13 +200,13 @@ func newDefaultHealthCheckSource(checkType health.CheckType, poll func() error) 
 				if err != nil {
 					return &health.HealthCheckResult{
 						Type:    checkType,
-						State:   health.HealthStateError,
+						State:   health.New_HealthState(health.HealthState_ERROR),
 						Message: stringPtr(err.Error()),
 					}
 				}
 				return &health.HealthCheckResult{
 					Type:  checkType,
-					State: health.HealthStateHealthy,
+					State: health.New_HealthState(health.HealthState_HEALTHY),
 				}
 			},
 		},

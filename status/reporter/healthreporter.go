@@ -55,7 +55,7 @@ func newHealthReporter() *healthReporter {
 // InitializeHealthComponent - Creates a health component for the given name where the component should be stated as
 // initializing until a future call modifies the initializing status. The created health component is stored in the
 // HealthReporter and can be fetched later by name via GetHealthComponent.
-// Returns ErrorState if the component name is non-SLS compliant, or the name is already in use
+// Returns health.HealthState_ERROR if the component name is non-SLS compliant, or the name is already in use
 func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent, error) {
 	isSLSCompliant := regexp.MustCompile(slsHealthNameRegex).MatchString
 	if !isSLSCompliant(name) {
@@ -66,7 +66,7 @@ func (r *healthReporter) InitializeHealthComponent(name string) (HealthComponent
 	componentName := health.CheckType(name)
 	healthComponent := &healthComponent{
 		name:  componentName,
-		state: StartingState,
+		state: health.New_HealthState(health.HealthState_REPAIRING),
 	}
 
 	r.mutex.Lock()

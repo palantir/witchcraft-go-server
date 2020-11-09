@@ -43,7 +43,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {
 				Type:  testHealthCheckType,
-				State: health.HealthStateHealthy,
+				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 		},
 	}))
@@ -56,7 +56,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {
 				Type:    testHealthCheckType,
-				State:   health.HealthStateError,
+				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errorMsg,
 			},
 		},
@@ -69,7 +69,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {
 				Type:  testHealthCheckType,
-				State: health.HealthStateHealthy,
+				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 		},
 	}))

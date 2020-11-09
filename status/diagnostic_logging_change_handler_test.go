@@ -36,12 +36,12 @@ func TestDiagnosticLoggingChangeHandler(t *testing.T) {
 			name: "no log if health status code repairing or less",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST_CHECK": {State: health.HealthStateHealthy},
+					"TEST_CHECK": {State: health.New_HealthState(health.HealthState_HEALTHY)},
 				},
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST_CHECK": {State: health.HealthStateRepairing},
+					"TEST_CHECK": {State: health.New_HealthState(health.HealthState_REPAIRING)},
 				},
 			},
 		},
@@ -49,12 +49,12 @@ func TestDiagnosticLoggingChangeHandler(t *testing.T) {
 			name: "log if health status code worse than repairing",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST_CHECK": {State: health.HealthStateHealthy},
+					"TEST_CHECK": {State: health.New_HealthState(health.HealthState_HEALTHY)},
 				},
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST_CHECK": {State: health.HealthStateWarning},
+					"TEST_CHECK": {State: health.New_HealthState(health.HealthState_WARNING)},
 				},
 			},
 			expectLogOutput: true,

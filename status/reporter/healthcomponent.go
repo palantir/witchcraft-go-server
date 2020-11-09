@@ -27,17 +27,10 @@ type HealthComponent interface {
 	Healthy()
 	Warning(message string)
 	Error(err error)
-	SetHealth(healthState health.HealthState, message *string, params map[string]interface{})
-	Status() health.HealthState
+	SetHealth(healthState health.HealthState_Value, message *string, params map[string]interface{})
+	Status() health.HealthState_Value
 	GetHealthCheck() health.HealthCheckResult
 }
-
-const (
-	StartingState = health.HealthStateRepairing
-	HealthyState  = health.HealthStateHealthy
-	WarningState  = health.HealthStateWarning
-	ErrorState    = health.HealthStateError
-)
 
 type healthComponent struct {
 	sync.RWMutex
@@ -49,33 +42,33 @@ type healthComponent struct {
 }
 
 func (r *healthComponent) Healthy() {
-	r.SetHealth(HealthyState, nil, nil)
+	r.SetHealth(health.HealthState_HEALTHY, nil, nil)
 }
 
 func (r *healthComponent) Warning(warningMsg string) {
-	r.SetHealth(WarningState, &warningMsg, nil)
+	r.SetHealth(health.HealthState_WARNING, &warningMsg, nil)
 }
 
 func (r *healthComponent) Error(err error) {
 	errorString := err.Error()
-	r.SetHealth(ErrorState, &errorString, nil)
+	r.SetHealth(health.HealthState_ERROR, &errorString, nil)
 }
 
-func (r *healthComponent) SetHealth(healthState health.HealthState, message *string, params map[string]interface{}) {
+func (r *healthComponent) SetHealth(healthState health.HealthState_Value, message *string, params map[string]interface{}) {
 	r.Lock()
 	defer r.Unlock()
 
-	r.state = healthState
+	r.state = health.New_HealthState(healthState)
 	r.message = message
 	r.params = params
 }
 
 // Returns the health status for the health component
-func (r *healthComponent) Status() health.HealthState {
+func (r *healthComponent) Status() health.HealthState_Value {
 	r.RLock()
 	defer r.RUnlock()
 
-	return r.state
+	return r.state.Value()
 }
 
 // Returns the entire HealthCheckResult for the component

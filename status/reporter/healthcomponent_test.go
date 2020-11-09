@@ -37,19 +37,19 @@ func setup(t *testing.T) (HealthComponent, HealthReporter) {
 
 func TestProperInitializing(t *testing.T) {
 	component, _ := setup(t)
-	assert.Equal(t, StartingState, component.Status())
+	assert.Equal(t, health.HealthState_REPAIRING, component.Status())
 }
 
 func TestHealthy(t *testing.T) {
 	component, _ := setup(t)
 	component.Healthy()
-	assert.Equal(t, HealthyState, component.Status())
+	assert.Equal(t, health.HealthState_HEALTHY, component.Status())
 }
 
 func TestWarningSetting(t *testing.T) {
 	component, healthReporter := setup(t)
 	component.Warning("warning message")
-	assert.Equal(t, WarningState, component.Status())
+	assert.Equal(t, health.HealthState_WARNING, component.Status())
 	status := healthReporter.HealthStatus(context.TODO())
 	componentStatus, found := status.Checks[validComponent]
 	assert.True(t, found)
@@ -59,7 +59,7 @@ func TestWarningSetting(t *testing.T) {
 func TestErrorSetting(t *testing.T) {
 	component, healthReporter := setup(t)
 	component.Error(errors.New("err"))
-	assert.Equal(t, ErrorState, component.Status())
+	assert.Equal(t, health.HealthState_ERROR, component.Status())
 	status := healthReporter.HealthStatus(context.TODO())
 	componentStatus, found := status.Checks[validComponent]
 	assert.True(t, found)
@@ -70,11 +70,11 @@ func TestSetHealthAndGetHealthResult(t *testing.T) {
 	message := "err"
 	component, _ := setup(t)
 	component.SetHealth(
-		health.HealthStateTerminal,
+		health.HealthState_TERMINAL,
 		&message,
 		map[string]interface{}{"stack": "trace", "other": errors.New("err2")},
 	)
-	assert.Equal(t, health.HealthStateTerminal, component.Status())
+	assert.Equal(t, health.HealthState_TERMINAL, component.Status())
 	result := component.GetHealthCheck()
 	assert.Equal(t, "err", *result.Message)
 	assert.Equal(t, map[string]interface{}{"stack": "trace", "other": errors.New("err2")}, result.Params)
@@ -89,12 +89,12 @@ func TestNonCompliantName(t *testing.T) {
 func TestGetHealthCheckCopy(t *testing.T) {
 	component, _ := setup(t)
 	originalMessage := "originalMessage"
-	component.SetHealth(HealthyState, &originalMessage, map[string]interface{}{"originalParamKey": "originalParamValue"})
+	component.SetHealth(health.HealthState_HEALTHY, &originalMessage, map[string]interface{}{"originalParamKey": "originalParamValue"})
 	componentResult := component.GetHealthCheck()
 
 	message := "modifiedMessage"
 	componentResult.Type = "modifiedType"
-	componentResult.State = ErrorState
+	componentResult.State = health.New_HealthState(health.HealthState_ERROR)
 	*componentResult.Message = message
 	componentResult.Params["modifiedParamKey"] = "modifiedParamValue"
 

@@ -24,15 +24,17 @@ import (
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 )
 
-var HealthStateStatusCodes = map[health.HealthState]int{
-	health.HealthStateHealthy:   http.StatusOK,
-	health.HealthStateDeferring: 518,
-	health.HealthStateSuspended: 519,
-	health.HealthStateRepairing: 520,
-	health.HealthStateWarning:   521,
-	health.HealthStateError:     522,
-	health.HealthStateTerminal:  523,
-}
+var (
+	healthStateStatusCodes = map[health.HealthState_Value]int{
+		health.HealthState_HEALTHY:   http.StatusOK,
+		health.HealthState_DEFERRING: 518,
+		health.HealthState_SUSPENDED: 519,
+		health.HealthState_REPAIRING: 520,
+		health.HealthState_WARNING:   521,
+		health.HealthState_ERROR:     522,
+		health.HealthState_TERMINAL:  523,
+	}
+)
 
 // Source provides status that should be sent as a response.
 type Source interface {
@@ -116,10 +118,20 @@ func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.He
 	return metadata, HealthStatusCode(metadata)
 }
 
+// HealthStateStatusCode returns the http status code for the provided health.HealthState_Value or
+// http.StatusInternalServerError if the health state value is not recognized.
+func HealthStateStatusCode(state health.HealthState_Value) int {
+	code, ok := healthStateStatusCodes[state]
+	if !ok {
+		code = http.StatusInternalServerError
+	}
+	return code
+}
+
 func HealthStatusCode(metadata health.HealthStatus) int {
 	worst := http.StatusOK
 	for _, result := range metadata.Checks {
-		code, ok := HealthStateStatusCodes[result.State]
+		code, ok := healthStateStatusCodes[result.State.Value()]
 		if !ok {
 			code = http.StatusInternalServerError
 		}
