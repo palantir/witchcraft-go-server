@@ -47,7 +47,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/config"
 	"github.com/palantir/witchcraft-go-server/status"
-	refreshablehealth "github.com/palantir/witchcraft-go-server/status/health/refreshable"
+	refreshablehealth "github.com/palantir/witchcraft-go-server/witchcraft/internal/refreshable"
 	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/wrouter"
 	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
