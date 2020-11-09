@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
 // New returns a wrouter.RouterImpl backed by a new httprouter.Router configured using the provided parameters.

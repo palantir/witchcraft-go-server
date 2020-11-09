@@ -17,7 +17,7 @@ package status
 import (
 	"context"
 
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
 )
 
 type HealthStatusChangeHandler interface {

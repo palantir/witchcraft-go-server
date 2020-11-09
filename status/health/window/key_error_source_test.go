@@ -20,8 +20,8 @@ import (
 	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	whealth "github.com/palantir/witchcraft-go-server/status/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	whealth "github.com/palantir/witchcraft-go-server/v2/status/health"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

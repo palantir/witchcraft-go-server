@@ -22,8 +22,8 @@ import (
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	whealth "github.com/palantir/witchcraft-go-server/status/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	whealth "github.com/palantir/witchcraft-go-server/v2/status/health"
 	"github.com/stretchr/testify/assert"
 )
 

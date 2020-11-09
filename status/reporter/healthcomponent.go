@@ -17,7 +17,7 @@ package reporter
 import (
 	"sync"
 
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
 )
 
 var _ HealthComponent = &healthComponent{}

@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
 // New returns a wrouter.RouterImpl backed by a new mux.Router configured using the provided parameters.

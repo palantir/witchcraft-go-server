@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/rest"
+	"github.com/palantir/witchcraft-go-server/v2/rest"
 	"github.com/stretchr/testify/require"
 )
 

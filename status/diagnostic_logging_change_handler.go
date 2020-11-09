@@ -21,7 +21,7 @@ import (
 
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
 )
 
 // NewDiagnosticLoggingChangeHandler will emit a diagnostic log whenever the latest health status' state is more severe

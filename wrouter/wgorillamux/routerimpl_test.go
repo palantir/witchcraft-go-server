@@ -19,7 +19,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/wrouter/wgorillamux"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter/wgorillamux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

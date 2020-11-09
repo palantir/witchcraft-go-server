@@ -20,10 +20,10 @@ import (
 	"sync/atomic"
 
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/status/reporter"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/status/reporter"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
 type MatchFunc func(req *http.Request, vals wrouter.RequestVals) bool

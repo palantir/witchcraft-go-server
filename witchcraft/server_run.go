@@ -29,7 +29,7 @@ import (
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/config"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 )
 
 func (s *Server) newServer(productName string, serverConfig config.Server, handler http.Handler) (rHTTPServer *http.Server, rStart func() error, rShutdown func(context.Context) error, rErr error) {

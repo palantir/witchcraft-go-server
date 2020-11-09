@@ -18,10 +18,10 @@ import (
 	"context"
 
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/status"
-	whealth "github.com/palantir/witchcraft-go-server/status/health"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/status"
+	whealth "github.com/palantir/witchcraft-go-server/v2/status/health"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 )
 
 type validatingRefreshableHealthCheckSource struct {
