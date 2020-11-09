@@ -1,5 +1,5 @@
 type: break
 break:
-  description: Move `ValidatingRefreshableHealthCheckSource` to internal package.
+  description: Move `ValidatingRefreshableHealthCheckSource` to internal package. This health check source is no longer being supported for external consumers.
   links:
   - https://github.com/palantir/witchcraft-go-server/pull/224
