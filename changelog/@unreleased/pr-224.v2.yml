@@ -1,0 +1,5 @@
+type: break
+break:
+  description: Move `ValidatingRefreshableHealthCheckSource` to internal package.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/224
