@@ -1,5 +1,5 @@
-type: improvement
-improvement:
-  description: Bump conjure-go to v6, which updates health status enum value constants to use the new naming convention.
+type: break
+break:
+  description: Bump conjure-go to v6, which updates health status enum value constants to use the new naming convention. This will be a break for downstream things vendoring WGS health libraries.
   links:
   - https://github.com/palantir/witchcraft-go-server/pull/222
