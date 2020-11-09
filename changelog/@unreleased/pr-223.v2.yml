@@ -1,0 +1,5 @@
+type: break
+break:
+  description: Bump witchcraft-go-server module to v2
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/223

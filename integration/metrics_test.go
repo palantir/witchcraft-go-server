@@ -30,8 +30,8 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
-	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v2/config"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -21,7 +21,7 @@ import (
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/status"
+	"github.com/palantir/witchcraft-go-server/v2/status"
 )
 
 // Reporter allows for the creation and aggregation of custom readiness checks.

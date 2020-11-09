@@ -19,7 +19,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/config"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/stretchr/testify/assert"
 )

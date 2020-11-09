@@ -19,8 +19,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/wrouter"
-	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

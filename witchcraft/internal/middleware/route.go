@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
-	"github.com/palantir/witchcraft-go-server/witchcraft/internal/negroni"
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/negroni"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )

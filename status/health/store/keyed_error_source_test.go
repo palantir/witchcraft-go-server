@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
 	"github.com/stretchr/testify/assert"
 )
 

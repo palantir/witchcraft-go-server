@@ -24,12 +24,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/status"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
-	"github.com/palantir/witchcraft-go-server/witchcraft/wresource"
-	"github.com/palantir/witchcraft-go-server/wrouter"
-	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/status"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

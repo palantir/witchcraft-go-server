@@ -20,9 +20,9 @@ import (
 	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/status"
-	whealth "github.com/palantir/witchcraft-go-server/status/health"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/status"
+	whealth "github.com/palantir/witchcraft-go-server/v2/status/health"
 )
 
 // ErrorSubmitter allows components whose functionality dictates a portion of health status to only consume this interface.

@@ -17,7 +17,7 @@ package wrouter_test
 import (
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -23,7 +23,7 @@ import (
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
-	"github.com/palantir/witchcraft-go-server/config"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 )
 
 func defaultMetricTypeValuesBlacklist() map[string]map[string]struct{} {

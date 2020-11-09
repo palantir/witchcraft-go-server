@@ -18,8 +18,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/palantir/witchcraft-go-server/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/status"
+	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-server/v2/status"
 )
 
 // KeyedErrorSubmitter is not intended to be implemented separately - it simply

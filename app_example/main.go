@@ -21,10 +21,10 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/config"
-	"github.com/palantir/witchcraft-go-server/witchcraft"
-	"github.com/palantir/witchcraft-go-server/witchcraft/refreshable"
-	"github.com/palantir/witchcraft-go-server/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/config"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 )
 

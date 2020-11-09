@@ -15,7 +15,7 @@
 package reporter
 
 import (
-	"github.com/palantir/witchcraft-go-server/status"
+	"github.com/palantir/witchcraft-go-server/v2/status"
 )
 
 type ComponentName string

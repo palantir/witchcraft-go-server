@@ -23,9 +23,9 @@ import (
 
 	// underscore import to use zap implementation
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
-	"github.com/palantir/witchcraft-go-server/wrouter"
-	"github.com/palantir/witchcraft-go-server/wrouter/wgorillamux"
-	"github.com/palantir/witchcraft-go-server/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter/wgorillamux"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
