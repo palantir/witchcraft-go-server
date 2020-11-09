@@ -305,7 +305,7 @@ With this configuration, the program can be run using `go run`:
 
 ```
 ➜ go run main.go
-{"level":"INFO","time":"2018-11-27T05:47:02.013456Z","message":"Listening to https","type":"service.1","origin":"github.com/palantir/witchcraft-go-server/app_example","params":{"address":":8100","server":"example-app"}}
+{"level":"INFO","time":"2018-11-27T05:47:02.013456Z","message":"Listening to https","type":"service.1","origin":"github.com/palantir/witchcraft-go-server/v2/app_example","params":{"address":":8100","server":"example-app"}}
 ```
 
 Issuing a request to this server using `curl` produces the expected response (note that the `-k` option is used to skip
