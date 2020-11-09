@@ -44,6 +44,9 @@ func ErrorWithContextParams(ctx context.Context, msg string, params ...Param) er
 // DEPRECATED: Please use WrapWithContextParams instead to ensure that all the wparams parameters that are set on the
 // context are included in the error.
 func Wrap(err error, msg string, params ...Param) error {
+	if err == nil {
+		return nil
+	}
 	return newWerror(msg, err, params...)
 }
 
