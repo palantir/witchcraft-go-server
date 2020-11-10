@@ -20,9 +20,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/v2/status"
 )
 
 type CheckFunc func(ctx context.Context) *health.HealthCheckResult

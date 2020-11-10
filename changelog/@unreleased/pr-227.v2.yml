@@ -1,0 +1,18 @@
+type: break
+break:
+  description: |
+    The health libraries previously included in witchcraft-go-server have moved to
+    witchcraft-go-health. These packages have been migrated as follow:
+
+    ```
+    witchcraft-go-server/conjure/witchcraft/api/health -> witchcraft-go-health/conjure/witchcraft/api/health
+    witchcraft-go-server/status/health/* -> witchcraft-go-health/sources/*
+    witchcraft-go-server/status/reporter -> witchcraft-go-health/reporter
+    witchcraft-go-server/status -> witchcraft-go-health/status
+    ```
+
+    Note that the `/status` package was split up and only the APIs and
+    health check sources were migrated to witchcraft-go-health. The HTTP handler
+    code for reporting health remains in witchcraft-go-server.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/227

@@ -24,8 +24,8 @@ import (
 
 	"github.com/palantir/pkg/httpserver"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/v2/status/reporter"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/reporter"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/ratelimit"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"

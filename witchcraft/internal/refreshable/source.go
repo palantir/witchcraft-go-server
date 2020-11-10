@@ -17,26 +17,26 @@ package refreshable
 import (
 	"context"
 
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/sources"
+	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/v2/status"
-	whealth "github.com/palantir/witchcraft-go-server/v2/status/health"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 )
 
 type validatingRefreshableHealthCheckSource struct {
-	status.HealthCheckSource
+	healthstatus.HealthCheckSource
 
 	healthCheckType health.CheckType
 	refreshable     refreshable.ValidatingRefreshable
 }
 
 func (v *validatingRefreshableHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
-	healthCheckResult := whealth.HealthyHealthCheckResult(v.healthCheckType)
+	healthCheckResult := sources.HealthyHealthCheckResult(v.healthCheckType)
 
 	if err := v.refreshable.LastValidateErr(); err != nil {
 		svc1log.FromContext(ctx).Error("Refreshable validation failed", svc1log.Stacktrace(err))
-		healthCheckResult = whealth.UnhealthyHealthCheckResult(v.healthCheckType,
+		healthCheckResult = sources.UnhealthyHealthCheckResult(v.healthCheckType,
 			"Refreshable validation failed, please look at service logs for more information.")
 	}
 
@@ -49,7 +49,7 @@ func (v *validatingRefreshableHealthCheckSource) HealthStatus(ctx context.Contex
 
 // NewValidatingRefreshableHealthCheckSource returns a status.HealthCheckSource that returns an Error health check whenever
 // the provided ValidatingRefreshable is failing its validation.
-func NewValidatingRefreshableHealthCheckSource(healthCheckType health.CheckType, refreshable refreshable.ValidatingRefreshable) status.HealthCheckSource {
+func NewValidatingRefreshableHealthCheckSource(healthCheckType health.CheckType, refreshable refreshable.ValidatingRefreshable) healthstatus.HealthCheckSource {
 	return &validatingRefreshableHealthCheckSource{
 		healthCheckType: healthCheckType,
 		refreshable:     refreshable,

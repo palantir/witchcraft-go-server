@@ -1,5 +1,0 @@
-version: 1
-projects:
-  conjure:
-    output-dir: ./conjure
-    ir-locator: https://palantir.bintray.com/releases/com/palantir/witchcraft/api/witchcraft-health-api/1.0.0/witchcraft-health-api-1.0.0.conjure.json

@@ -49,6 +49,12 @@ github.com/palantir/pkg/uuid/internal/uuid
 # github.com/palantir/witchcraft-go-error v1.4.3
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
+# github.com/palantir/witchcraft-go-health v1.0.0
+github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
+github.com/palantir/witchcraft-go-health/reporter
+github.com/palantir/witchcraft-go-health/sources
+github.com/palantir/witchcraft-go-health/sources/periodic
+github.com/palantir/witchcraft-go-health/status
 # github.com/palantir/witchcraft-go-logging v1.9.0
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath

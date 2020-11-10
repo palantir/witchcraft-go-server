@@ -21,7 +21,7 @@ import (
 	"sync/atomic"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 )
 
 type ServerState int32

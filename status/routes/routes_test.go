@@ -24,7 +24,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
@@ -42,7 +43,7 @@ func TestAddStatusRoutes(t *testing.T) {
 
 	for i, tc := range []struct {
 		endpoint  string
-		routeFunc func(resource wresource.Resource, source status.Source) error
+		routeFunc func(resource wresource.Resource, source healthstatus.Source) error
 		status    int
 		metadata  testMetadata
 	}{

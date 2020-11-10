@@ -34,6 +34,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
+	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
@@ -101,14 +102,14 @@ type Server struct {
 
 	// specifies the source used to provide the readiness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	readinessSource status.Source
+	readinessSource healthstatus.Source
 
 	// specifies the source used to provide the liveness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	livenessSource status.Source
+	livenessSource healthstatus.Source
 
 	// specifies the sources that are used to determine the health of this service
-	healthCheckSources []status.HealthCheckSource
+	healthCheckSources []healthstatus.HealthCheckSource
 
 	// specifies the handlers to invoke upon health status changes. The LoggingHealthStatusChangeHandler is added by default.
 	healthStatusChangeHandlers []status.HealthStatusChangeHandler
@@ -240,9 +241,9 @@ type InitInfo struct {
 type ConfigurableRouter interface {
 	wrouter.Router
 
-	WithHealth(healthSources ...status.HealthCheckSource) *Server
-	WithReadiness(readiness status.Source) *Server
-	WithLiveness(liveness status.Source) *Server
+	WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server
+	WithReadiness(readiness healthstatus.Source) *Server
+	WithLiveness(liveness healthstatus.Source) *Server
 }
 
 const defaultSampleRate = 0.01
@@ -365,19 +366,19 @@ func (s *Server) WithClientAuth(clientAuth tls.ClientAuthType) *Server {
 // WithHealth configures the server to use the specified health check sources to report the server's health. If multiple
 // healthSource's results have the same key, the result from the latest entry in healthSources will be used. These
 // results are combined with the server's built-in health source, which uses the `SERVER_STATUS` key.
-func (s *Server) WithHealth(healthSources ...status.HealthCheckSource) *Server {
+func (s *Server) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server {
 	s.healthCheckSources = healthSources
 	return s
 }
 
 // WithReadiness configures the server to use the specified source to report readiness.
-func (s *Server) WithReadiness(readiness status.Source) *Server {
+func (s *Server) WithReadiness(readiness healthstatus.Source) *Server {
 	s.readinessSource = readiness
 	return s
 }
 
 // WithLiveness configures the server to use the specified source to report liveness.
-func (s *Server) WithLiveness(liveness status.Source) *Server {
+func (s *Server) WithLiveness(liveness healthstatus.Source) *Server {
 	s.livenessSource = liveness
 	return s
 }
@@ -769,7 +770,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
 }
 
-func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, hcSrc status.HealthCheckSource, rErr error) {
+func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, hcSrc healthstatus.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
