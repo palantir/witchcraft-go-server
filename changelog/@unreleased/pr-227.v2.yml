@@ -1,0 +1,5 @@
+type: break
+break:
+  description: Finish migration of health libraries to witchcraft-go-health
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/227
