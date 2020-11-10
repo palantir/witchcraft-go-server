@@ -20,10 +20,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/sources"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
-	whealth "github.com/palantir/witchcraft-go-server/v2/status/health"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,12 +45,12 @@ func TestLoggingChangeHandler(t *testing.T) {
 			name: "log error when new status code is greater than 200",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.HealthyHealthCheckResult("TEST"),
+					"TEST": sources.HealthyHealthCheckResult("TEST"),
 				},
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.UnhealthyHealthCheckResult("TEST", "message"),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message"),
 				},
 			},
 			expected: &expectedLog{
@@ -62,12 +62,12 @@ func TestLoggingChangeHandler(t *testing.T) {
 			name: "log info when new status code is 200",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.UnhealthyHealthCheckResult("TEST", "message"),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message"),
 				},
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.HealthyHealthCheckResult("TEST"),
+					"TEST": sources.HealthyHealthCheckResult("TEST"),
 				},
 			},
 			expected: &expectedLog{
@@ -79,12 +79,12 @@ func TestLoggingChangeHandler(t *testing.T) {
 			name: "log when checks differ",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": whealth.HealthyHealthCheckResult("TEST"),
+					"TEST": sources.HealthyHealthCheckResult("TEST"),
 				},
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST_2": whealth.HealthyHealthCheckResult("TEST_2"),
+					"TEST_2": sources.HealthyHealthCheckResult("TEST_2"),
 				},
 			},
 			expected: &expectedLog{

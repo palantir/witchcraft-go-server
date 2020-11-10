@@ -18,8 +18,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
 )
 
 func loggingHealthStatusChangeHandler() HealthStatusChangeHandler {
@@ -29,7 +30,7 @@ func loggingHealthStatusChangeHandler() HealthStatusChangeHandler {
 }
 
 func logIfHealthChanged(ctx context.Context, previousHealth, newHealth health.HealthStatus) {
-	previousCode, newCode := HealthStatusCode(previousHealth), HealthStatusCode(newHealth)
+	previousCode, newCode := status.HealthStatusCode(previousHealth), status.HealthStatusCode(newHealth)
 	if previousCode != newCode {
 		params := map[string]interface{}{
 			"previousHealthStatusCode": previousCode,

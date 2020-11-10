@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package health
+package sources
 
 import (
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 )
 
 // UnhealthyHealthCheckResult returns an unhealthy health check result with type checkType and message message.

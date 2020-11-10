@@ -24,8 +24,8 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
+	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/status/routes"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
@@ -43,7 +43,7 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 	return routerWithContextPath, mgmtRouterWithContextPath
 }
 
-func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig, configHealthCheckSource status.HealthCheckSource) error {
+func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig, configHealthCheckSource healthstatus.HealthCheckSource) error {
 	// add debugging endpoint to management router
 	if err := addDebuggingRoutes(mgmtRouterWithContextPath); err != nil {
 		return werror.Wrap(err, "failed to register debugging routes")
@@ -52,7 +52,7 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	statusResource := wresource.New("status", mgmtRouterWithContextPath)
 
 	// add health endpoints
-	if err := routes.AddHealthRoutes(statusResource, status.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager, configHealthCheckSource)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
+	if err := routes.AddHealthRoutes(statusResource, healthstatus.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager, configHealthCheckSource)...), refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
 		return in.(config.Runtime).HealthChecks.SharedSecret
 	})), s.healthStatusChangeHandlers); err != nil {
 		return werror.Wrap(err, "failed to register health routes")

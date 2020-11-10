@@ -19,8 +19,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
-	"github.com/palantir/witchcraft-go-server/v2/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/stretchr/testify/assert"
 )
