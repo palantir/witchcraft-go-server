@@ -11,7 +11,7 @@ break:
     witchcraft-go-server/status -> witchcraft-go-health/status
     ```
 
-    Note that for the `/status`, the package was split up and only the APIs and
+    Note that the `/status` package was split up and only the APIs and
     health check sources were migrated to witchcraft-go-health. The HTTP handler
     code for reporting health remains in witchcraft-go-server.
   links:
