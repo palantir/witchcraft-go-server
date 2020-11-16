@@ -3,15 +3,8 @@
 package health
 
 import (
-	"regexp"
 	"strings"
-
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
-	werror "github.com/palantir/witchcraft-go-error"
-	wparams "github.com/palantir/witchcraft-go-params"
 )
-
-var enumValuePattern = regexp.MustCompile("^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$")
 
 type HealthState struct {
 	val HealthState_Value
@@ -73,9 +66,6 @@ func (e HealthState) MarshalText() ([]byte, error) {
 func (e *HealthState) UnmarshalText(data []byte) error {
 	switch v := strings.ToUpper(string(data)); v {
 	default:
-		if !enumValuePattern.MatchString(v) {
-			return werror.Convert(errors.NewInvalidArgument(wparams.NewSafeAndUnsafeParamStorer(map[string]interface{}{"enumType": "HealthState", "message": "enum value must match pattern ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"}, map[string]interface{}{"enumValue": string(data)})))
-		}
 		*e = New_HealthState(HealthState_Value(v))
 	case "HEALTHY":
 		*e = New_HealthState(HealthState_HEALTHY)
