@@ -34,6 +34,11 @@ import (
 const (
 	headerKeyContentType  = "Content-Type"
 	headerKeySafeLoggable = "Safe-Loggable"
+
+	DiagnosticTypeThreadDumpV1    DiagnosticType = "threaddump.v1"
+	DiagnosticTypeCPUProfileV1    DiagnosticType = "go.profile.cpu.v1"
+	DiagnosticTypeHeapProfileV1   DiagnosticType = "go.profile.heap.v1"
+	DiagnosticTypeAllocsProfileV1 DiagnosticType = "go.profile.allocs.v1"
 )
 
 type DiagnosticType string
@@ -78,13 +83,13 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 
 func (r *debugResource) writeDiagnostic(ctx context.Context, diagnosticType DiagnosticType, rw http.ResponseWriter) error {
 	switch diagnosticType {
-	case "threaddump.v1":
+	case DiagnosticTypeThreadDumpV1:
 		return r.getThreadDumpV1(ctx, rw)
-	case "go.profile.cpu.v1":
+	case DiagnosticTypeCPUProfileV1:
 		return r.getCPUProfileV1(ctx, rw)
-	case "go.profile.heap.v1":
+	case DiagnosticTypeHeapProfileV1:
 		return r.getHeapProfileV1(ctx, rw)
-	case "go.profile.allocs.v1":
+	case DiagnosticTypeAllocsProfileV1:
 		return r.getAllocsProfileV1(ctx, rw)
 	default:
 		return errors.WrapWithInvalidArgument(werror.ErrorWithContextParams(ctx, "unsupported diagnosticType", werror.SafeParam("diagnosticType", diagnosticType)))

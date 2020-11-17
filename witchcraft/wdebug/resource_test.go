@@ -44,7 +44,7 @@ func TestDebugResource(t *testing.T) {
 		Verify         func(t *testing.T, resp *http.Response)
 	}{
 		{
-			DiagnosticType: "threaddump.v1",
+			DiagnosticType: DiagnosticTypeThreadDumpV1,
 			Verify: func(t *testing.T, resp *http.Response) {
 				require.Equal(t, 200, resp.StatusCode)
 				require.Equal(t, "application/json", resp.Header.Get("Content-Type"))
