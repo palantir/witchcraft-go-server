@@ -45,8 +45,8 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 }
 
 func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshableBaseRuntimeConfig, configHealthCheckSource healthstatus.HealthCheckSource) error {
-	// add debugging endpoint to management router
-	if err := addDebuggingRoutes(mgmtRouterWithContextPath); err != nil {
+	// add debugging endpoints to management router
+	if err := addPprofRoutes(mgmtRouterWithContextPath); err != nil {
 		return werror.Wrap(err, "failed to register debugging routes")
 	}
 	if err := wdebug.RegisterRoute(mgmtRouterWithContextPath, refreshable.NewString(runtimeCfg.Map(func(in interface{}) interface{} {
@@ -136,7 +136,7 @@ func createRouter(routerImpl wrouter.RouterImpl, ctxPath string) wrouter.Router 
 	return routerWithContextPath
 }
 
-func addDebuggingRoutes(router wrouter.Router) error {
+func addPprofRoutes(router wrouter.Router) error {
 	debugger := wresource.New("debug", router.Subrouter("/debug"))
 	if err := debugger.Get("pprofIndex", "/pprof/", http.HandlerFunc(netpprof.Index)); err != nil {
 		return err
