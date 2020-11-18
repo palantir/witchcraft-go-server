@@ -26,6 +26,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
+	wparams "github.com/palantir/witchcraft-go-params"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -114,7 +115,10 @@ func (r *debugResource) getCPUProfileV1(ctx context.Context, rw http.ResponseWri
 	rw.Header().Set(headerKeySafeLoggable, "true")
 
 	if err := pprof.StartCPUProfile(rw); err != nil {
-		return werror.WrapWithContextParams(ctx, err, "failed to start CPU profile")
+		err = werror.WrapWithContextParams(ctx, err, "failed to start CPU profile")
+		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]interface{}{
+			"message": err.Error(),
+		}))
 	}
 	defer pprof.StopCPUProfile()
 	select {
