@@ -49,10 +49,10 @@ type debugResource struct {
 }
 
 func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error {
-	debugResource := debugResource{SharedSecret: sharedSecret}
+	r := &debugResource{SharedSecret: sharedSecret}
 	if err := wresource.New("witchcraftdebugservice", router).
 		Get("GetDiagnostic", "/debug/diagnostic/{diagnosticType}",
-			httpserver.NewJSONHandler(debugResource.ServeHTTP, httpserver.StatusCodeMapper, httpserver.ErrHandler),
+			httpserver.NewJSONHandler(r.ServeHTTP, httpserver.StatusCodeMapper, httpserver.ErrHandler),
 		); err != nil {
 		return werror.Wrap(err, "failed to register WitchcraftDebugService")
 	}
