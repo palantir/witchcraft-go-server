@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
@@ -44,13 +43,14 @@ func TestDebugResource(t *testing.T) {
 		Verify         func(t *testing.T, resp *http.Response)
 	}{
 		{
-			DiagnosticType: DiagnosticTypeThreadDumpV1,
+			DiagnosticType: DiagnosticTypeGoroutinesV1,
 			Verify: func(t *testing.T, resp *http.Response) {
 				require.Equal(t, 200, resp.StatusCode)
-				require.Equal(t, "application/json", resp.Header.Get("Content-Type"))
-				var threads logging.ThreadDumpV1
-				require.NoError(t, codecs.JSON.Decode(resp.Body, &threads))
-				require.NotEmpty(t, threads.Threads)
+				require.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
+				var goroutines string
+				require.NoError(t, codecs.Plain.Decode(resp.Body, &goroutines))
+				require.NotEmpty(t, goroutines)
+				require.Contains(t, goroutines, "github.com/palantir/witchcraft-go-server")
 			},
 		},
 	} {
