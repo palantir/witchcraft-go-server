@@ -65,7 +65,7 @@ certificates for TLS but the status endpoints need to be served without requirin
 Witchcraft servers register a route on the management server at `/debug/diagnostic/{diagnosticType}`, where
 diagnosticType represents a payload used for debugging a running server node. The response's `Content-Type` header
 specifies the encoding and format of the response. The following types are currently supported:
-* `go.goroutines.v1`: JSON-formatted representation of all running goroutines and their stacktraces
+* `go.goroutines.v1`: Plaintext representation of all running goroutines and their stacktraces
 * `go.profile.cpu.1minute.v1`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
 * `go.profile.heap.v1`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
 * `go.profile.allocs.v1`: Returns the pprof-formatted allocs profile for all allocations in the process lifetime. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
