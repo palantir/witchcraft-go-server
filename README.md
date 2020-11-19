@@ -60,9 +60,20 @@ configuration, then `witchcraft-server` starts a second management server on the
 endpoints on that port. This can be useful in scenarios where all of the traffic to the main endpoints require client
 certificates for TLS but the status endpoints need to be served without requiring client TLS certificates.
 
-### Debug Routes
+### Debug & Diagnostic Routes
+
+Witchcraft servers register a route on the management server at `/debug/diagnostic/{diagnosticType}`, where
+diagnosticType represents a payload used for debugging a running server node. The response's `Content-Type` header
+specifies the encoding and format of the response. The following types are currently supported:
+* `go.goroutines.v1`: Plaintext representation of all running goroutines and their stacktraces
+* `go.profile.cpu.1minute.v1`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
+* `go.profile.heap.v1`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
+* `go.profile.allocs.v1`: Returns the pprof-formatted allocs profile for all allocations in the process lifetime. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
+* `metric.names.v1`: Records all metric names and tag sets in the process's metric registry.
+
+#### \[Deprecated] Pprof routes
 The following routes are registered on the management server (if enabled, otherwise the main server) to aid in debugging
-and telemetry collection:
+and telemetry collection. These are generally deprecated in favor of the diagnostic routes described above.
 * `/debug/pprof`: Provides an HTML index of the other endpoints at this route.
 * `/debug/pprof/profile`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
 * `/debug/pprof/heap`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
