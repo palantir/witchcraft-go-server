@@ -15,18 +15,12 @@
 package wdebug
 
 import (
-	"bytes"
-	"context"
 	"net/http"
-	"runtime/pprof"
-	"time"
+	"strconv"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
-	wparams "github.com/palantir/witchcraft-go-params"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -35,11 +29,6 @@ import (
 const (
 	headerKeyContentType  = "Content-Type"
 	headerKeySafeLoggable = "Safe-Loggable"
-
-	DiagnosticTypeThreadDumpV1        DiagnosticType = "thread.dump.v1"
-	DiagnosticTypeCPUProfile1MinuteV1 DiagnosticType = "go.profile.cpu.1minute.v1"
-	DiagnosticTypeHeapProfileV1       DiagnosticType = "go.profile.heap.v1"
-	DiagnosticTypeAllocsProfileV1     DiagnosticType = "go.profile.allocs.v1"
 )
 
 type DiagnosticType string
@@ -79,70 +68,12 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	}
 	diagnosticType := DiagnosticType(diagnosticTypeStr)
 
-	return r.writeDiagnostic(ctx, diagnosticType, rw)
-}
-
-func (r *debugResource) writeDiagnostic(ctx context.Context, diagnosticType DiagnosticType, rw http.ResponseWriter) error {
-	switch diagnosticType {
-	case DiagnosticTypeThreadDumpV1:
-		return getThreadDumpV1(ctx, rw)
-	case DiagnosticTypeCPUProfile1MinuteV1:
-		return getCPUProfileV1(ctx, rw, time.Minute)
-	case DiagnosticTypeHeapProfileV1:
-		return getHeapProfileV1(ctx, rw)
-	case DiagnosticTypeAllocsProfileV1:
-		return getAllocsProfileV1(ctx, rw)
-	default:
+	handler, ok := diagnosticHandlers[diagnosticType]
+	if !ok {
 		return errors.WrapWithInvalidArgument(werror.ErrorWithContextParams(ctx, "unsupported diagnosticType", werror.SafeParam("diagnosticType", diagnosticType)))
 	}
-}
 
-func getThreadDumpV1(ctx context.Context, rw http.ResponseWriter) error {
-	var buf bytes.Buffer
-	_ = pprof.Lookup("goroutine").WriteTo(&buf, 2) // bytes.Buffer's Write never returns an error, so we swallow it
-	threads := diag1log.ThreadDumpV1FromGoroutines(buf.Bytes())
-
-	rw.Header().Set(headerKeyContentType, codecs.JSON.ContentType())
-	rw.Header().Set(headerKeySafeLoggable, "true")
-	if err := codecs.JSON.Encode(rw, threads); err != nil {
-		return werror.WrapWithContextParams(ctx, err, "failed to write goroutine dump")
-	}
-	return nil
-}
-
-func getCPUProfileV1(ctx context.Context, rw http.ResponseWriter, dur time.Duration) error {
-	rw.Header().Set(headerKeyContentType, codecs.Binary.ContentType())
-	rw.Header().Set(headerKeySafeLoggable, "true")
-
-	if err := pprof.StartCPUProfile(rw); err != nil {
-		err = werror.WrapWithContextParams(ctx, err, "failed to start CPU profile")
-		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]interface{}{
-			"message": err.Error(),
-		}))
-	}
-	defer pprof.StopCPUProfile()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(dur):
-	}
-	return nil
-}
-
-func getHeapProfileV1(ctx context.Context, rw http.ResponseWriter) error {
-	rw.Header().Set(headerKeyContentType, codecs.Binary.ContentType())
-	rw.Header().Set(headerKeySafeLoggable, "true")
-	if err := pprof.Lookup("heap").WriteTo(rw, 0); err != nil {
-		return werror.WrapWithContextParams(ctx, err, "failed to write heap in-use profile")
-	}
-	return nil
-}
-
-func getAllocsProfileV1(ctx context.Context, rw http.ResponseWriter) error {
-	rw.Header().Set(headerKeyContentType, codecs.Binary.ContentType())
-	rw.Header().Set(headerKeySafeLoggable, "true")
-	if err := pprof.Lookup("allocs").WriteTo(rw, 0); err != nil {
-		return werror.WrapWithContextParams(ctx, err, "failed to write heap allocs profile")
-	}
-	return nil
+	rw.Header().Set(headerKeyContentType, handler.ContentType())
+	rw.Header().Set(headerKeySafeLoggable, strconv.FormatBool(handler.SafeLoggable()))
+	return handler.WriteDiagnostic(ctx, rw)
 }
