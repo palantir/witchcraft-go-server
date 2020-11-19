@@ -36,10 +36,10 @@ const (
 	headerKeyContentType  = "Content-Type"
 	headerKeySafeLoggable = "Safe-Loggable"
 
-	DiagnosticTypeThreadDumpV1    DiagnosticType = "threaddump.v1"
-	DiagnosticTypeCPUProfileV1    DiagnosticType = "go.profile.cpu.v1"
-	DiagnosticTypeHeapProfileV1   DiagnosticType = "go.profile.heap.v1"
-	DiagnosticTypeAllocsProfileV1 DiagnosticType = "go.profile.allocs.v1"
+	DiagnosticTypeThreadDumpV1        DiagnosticType = "thread.dump.v1"
+	DiagnosticTypeCPUProfile1MinuteV1 DiagnosticType = "go.profile.cpu.1minute.v1"
+	DiagnosticTypeHeapProfileV1       DiagnosticType = "go.profile.heap.v1"
+	DiagnosticTypeAllocsProfileV1     DiagnosticType = "go.profile.allocs.v1"
 )
 
 type DiagnosticType string
@@ -85,32 +85,32 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 func (r *debugResource) writeDiagnostic(ctx context.Context, diagnosticType DiagnosticType, rw http.ResponseWriter) error {
 	switch diagnosticType {
 	case DiagnosticTypeThreadDumpV1:
-		return r.getThreadDumpV1(ctx, rw)
-	case DiagnosticTypeCPUProfileV1:
-		return r.getCPUProfileV1(ctx, rw)
+		return getThreadDumpV1(ctx, rw)
+	case DiagnosticTypeCPUProfile1MinuteV1:
+		return getCPUProfileV1(ctx, rw, time.Minute)
 	case DiagnosticTypeHeapProfileV1:
-		return r.getHeapProfileV1(ctx, rw)
+		return getHeapProfileV1(ctx, rw)
 	case DiagnosticTypeAllocsProfileV1:
-		return r.getAllocsProfileV1(ctx, rw)
+		return getAllocsProfileV1(ctx, rw)
 	default:
 		return errors.WrapWithInvalidArgument(werror.ErrorWithContextParams(ctx, "unsupported diagnosticType", werror.SafeParam("diagnosticType", diagnosticType)))
 	}
 }
 
-func (r *debugResource) getThreadDumpV1(ctx context.Context, rw http.ResponseWriter) error {
+func getThreadDumpV1(ctx context.Context, rw http.ResponseWriter) error {
 	var buf bytes.Buffer
 	_ = pprof.Lookup("goroutine").WriteTo(&buf, 2) // bytes.Buffer's Write never returns an error, so we swallow it
 	threads := diag1log.ThreadDumpV1FromGoroutines(buf.Bytes())
 
 	rw.Header().Set(headerKeyContentType, codecs.JSON.ContentType())
 	rw.Header().Set(headerKeySafeLoggable, "true")
-	return codecs.JSON.Encode(rw, threads)
+	if err := codecs.JSON.Encode(rw, threads); err != nil {
+		return werror.WrapWithContextParams(ctx, err, "failed to write goroutine dump")
+	}
+	return nil
 }
 
-func (r *debugResource) getCPUProfileV1(ctx context.Context, rw http.ResponseWriter) error {
-	// If diagnostics ever support parameters, this can be configurable
-	const defaultDuration = 30 * time.Second
-
+func getCPUProfileV1(ctx context.Context, rw http.ResponseWriter, dur time.Duration) error {
 	rw.Header().Set(headerKeyContentType, codecs.Binary.ContentType())
 	rw.Header().Set(headerKeySafeLoggable, "true")
 
@@ -124,12 +124,12 @@ func (r *debugResource) getCPUProfileV1(ctx context.Context, rw http.ResponseWri
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-time.After(defaultDuration):
+	case <-time.After(dur):
 	}
 	return nil
 }
 
-func (r *debugResource) getHeapProfileV1(ctx context.Context, rw http.ResponseWriter) error {
+func getHeapProfileV1(ctx context.Context, rw http.ResponseWriter) error {
 	rw.Header().Set(headerKeyContentType, codecs.Binary.ContentType())
 	rw.Header().Set(headerKeySafeLoggable, "true")
 	if err := pprof.Lookup("heap").WriteTo(rw, 0); err != nil {
@@ -138,7 +138,7 @@ func (r *debugResource) getHeapProfileV1(ctx context.Context, rw http.ResponseWr
 	return nil
 }
 
-func (r *debugResource) getAllocsProfileV1(ctx context.Context, rw http.ResponseWriter) error {
+func getAllocsProfileV1(ctx context.Context, rw http.ResponseWriter) error {
 	rw.Header().Set(headerKeyContentType, codecs.Binary.ContentType())
 	rw.Header().Set(headerKeySafeLoggable, "true")
 	if err := pprof.Lookup("allocs").WriteTo(rw, 0); err != nil {
