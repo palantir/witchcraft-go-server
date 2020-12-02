@@ -1,3 +1,17 @@
+// Copyright (c) 2020 Palantir Technologies. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package diagnosticsplugin
 
 import (
@@ -41,11 +55,10 @@ func Generate(ctx context.Context, pkgs []string, verify bool, projectDir string
 			if exists {
 				if verify {
 					return fmt.Errorf("%s should not exist as it would have no entries", diagnosticsJSONPath)
-				} else {
-					_, _ = fmt.Fprintf(stdout, "Removing %s as there are no DiagnosticHandler implementations\n", diagnosticsJSONPath)
-					if err := os.Remove(outputPath); err != nil {
-						return err
-					}
+				}
+				_, _ = fmt.Fprintf(stdout, "Removing %s as there are no DiagnosticHandler implementations\n", diagnosticsJSONPath)
+				if err := os.Remove(outputPath); err != nil {
+					return err
 				}
 			}
 			continue
@@ -58,7 +71,7 @@ func Generate(ctx context.Context, pkgs []string, verify bool, projectDir string
 		}
 		if verify {
 			if !exists {
-				return fmt.Errorf( "%s does not exist and must be regenerated\n", outputPath)
+				return fmt.Errorf("%s does not exist and must be regenerated", outputPath)
 			}
 			existingContent, err := ioutil.ReadFile(outputPath)
 			if err != nil {
