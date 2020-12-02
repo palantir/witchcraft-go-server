@@ -175,6 +175,9 @@ func renderPackageDiagnosticsJSON(impls []DiagnosticHandlerMetadata) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
+	if metadataJSON[len(metadataJSON)-1] != '\n' {
+		metadataJSON = append(metadataJSON, '\n')
+	}
 
 	return metadataJSON, nil
 }
