@@ -1,0 +1,193 @@
+# github.com/VividCortex/ewma v1.1.1
+github.com/VividCortex/ewma
+# github.com/cheggaaa/pb/v3 v3.0.5
+## explicit
+github.com/cheggaaa/pb/v3
+github.com/cheggaaa/pb/v3/termutil
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/fatih/color v1.10.0
+## explicit
+github.com/fatih/color
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/julienschmidt/httprouter v1.3.0
+github.com/julienschmidt/httprouter
+# github.com/mattn/go-colorable v0.1.8
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.12
+github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.9
+## explicit
+github.com/mattn/go-runewidth
+# github.com/nmiyake/pkg v1.0.0
+github.com/nmiyake/pkg
+# github.com/nmiyake/pkg/errorstringer v1.0.2
+## explicit
+github.com/nmiyake/pkg/errorstringer
+# github.com/openzipkin/zipkin-go v0.2.2
+github.com/openzipkin/zipkin-go
+github.com/openzipkin/zipkin-go/idgenerator
+github.com/openzipkin/zipkin-go/model
+github.com/openzipkin/zipkin-go/propagation
+github.com/openzipkin/zipkin-go/reporter
+# github.com/palantir/conjure-go-runtime/v2 v2.5.0
+github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
+github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
+github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
+# github.com/palantir/go-encrypted-config-value v1.1.0
+github.com/palantir/go-encrypted-config-value/encryptedconfigvalue
+github.com/palantir/go-encrypted-config-value/encryption
+# github.com/palantir/go-metrics v1.1.0
+github.com/palantir/go-metrics
+# github.com/palantir/godel/v2 v2.25.0
+## explicit
+github.com/palantir/godel/v2/framework/artifactresolver
+github.com/palantir/godel/v2/framework/builtintasks/installupdate/layout
+github.com/palantir/godel/v2/framework/godel
+github.com/palantir/godel/v2/framework/godel/config
+github.com/palantir/godel/v2/framework/godel/config/internal/v0
+github.com/palantir/godel/v2/framework/godellauncher
+github.com/palantir/godel/v2/framework/internal/pathsinternal
+github.com/palantir/godel/v2/framework/internal/pluginsinternal
+github.com/palantir/godel/v2/framework/pluginapi
+github.com/palantir/godel/v2/framework/pluginapi/v2/pluginapi
+github.com/palantir/godel/v2/framework/verifyorder
+github.com/palantir/godel/v2/godelgetter
+github.com/palantir/godel/v2/pkg/osarch
+github.com/palantir/godel/v2/pkg/versionedconfig
+# github.com/palantir/pkg v1.0.1
+github.com/palantir/pkg
+# github.com/palantir/pkg/cobracli v1.0.1
+## explicit
+github.com/palantir/pkg/cobracli
+# github.com/palantir/pkg/datetime v1.0.1
+github.com/palantir/pkg/datetime
+# github.com/palantir/pkg/matcher v1.0.1
+## explicit
+github.com/palantir/pkg/matcher
+# github.com/palantir/pkg/metrics v1.0.1
+github.com/palantir/pkg/metrics
+# github.com/palantir/pkg/pkgpath v1.0.1
+## explicit
+github.com/palantir/pkg/pkgpath
+# github.com/palantir/pkg/safejson v1.0.1
+github.com/palantir/pkg/safejson
+# github.com/palantir/pkg/safelong v1.0.1
+github.com/palantir/pkg/safelong
+# github.com/palantir/pkg/safeyaml v1.0.1
+github.com/palantir/pkg/safeyaml
+# github.com/palantir/pkg/signals v1.0.1
+## explicit
+github.com/palantir/pkg/signals
+# github.com/palantir/pkg/specdir v1.0.1
+github.com/palantir/pkg/specdir
+# github.com/palantir/pkg/tlsconfig v1.0.1
+github.com/palantir/pkg/tlsconfig
+# github.com/palantir/pkg/transform v1.0.0
+github.com/palantir/pkg/transform
+# github.com/palantir/pkg/uuid v1.0.1
+github.com/palantir/pkg/uuid
+github.com/palantir/pkg/uuid/internal/uuid
+# github.com/palantir/witchcraft-go-error v1.4.3
+## explicit
+github.com/palantir/witchcraft-go-error
+github.com/palantir/witchcraft-go-error/internal/errors
+# github.com/palantir/witchcraft-go-health v1.1.0
+github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
+github.com/palantir/witchcraft-go-health/sources
+github.com/palantir/witchcraft-go-health/status
+# github.com/palantir/witchcraft-go-logging v1.9.0
+github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
+github.com/palantir/witchcraft-go-logging/internal/gopath
+github.com/palantir/witchcraft-go-logging/wlog
+github.com/palantir/witchcraft-go-logging/wlog-zap
+github.com/palantir/witchcraft-go-logging/wlog-zap/internal
+github.com/palantir/witchcraft-go-logging/wlog-zap/internal/marshalers
+github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log
+github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log
+github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log
+github.com/palantir/witchcraft-go-logging/wlog/extractor
+github.com/palantir/witchcraft-go-logging/wlog/internal
+github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log
+github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log
+github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
+github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
+github.com/palantir/witchcraft-go-logging/wlog/wapp
+# github.com/palantir/witchcraft-go-params v1.1.0
+github.com/palantir/witchcraft-go-params
+# github.com/palantir/witchcraft-go-server/v2 v2.2.0 => ../
+## explicit
+github.com/palantir/witchcraft-go-server/v2/config
+github.com/palantir/witchcraft-go-server/v2/status
+github.com/palantir/witchcraft-go-server/v2/status/routes
+github.com/palantir/witchcraft-go-server/v2/witchcraft
+github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/metricloggers
+github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware
+github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/negroni
+github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable
+github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/wdebug
+github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable
+github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource
+github.com/palantir/witchcraft-go-server/v2/wrouter
+github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter
+# github.com/palantir/witchcraft-go-tracing v1.2.0
+github.com/palantir/witchcraft-go-tracing/wtracing
+github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
+github.com/palantir/witchcraft-go-tracing/wzipkin
+# github.com/pkg/errors v0.9.1
+## explicit
+github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/satori/go.uuid v1.2.0
+github.com/satori/go.uuid
+# github.com/spf13/cobra v1.1.1
+## explicit
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.5
+github.com/spf13/pflag
+# github.com/stretchr/testify v1.4.0
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
+# go.uber.org/atomic v1.6.0
+go.uber.org/atomic
+# go.uber.org/multierr v1.5.0
+go.uber.org/multierr
+# go.uber.org/zap v1.15.0
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
+go.uber.org/zap/zapcore
+# golang.org/x/mod v0.4.0
+## explicit
+golang.org/x/mod/semver
+# golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3
+## explicit
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
+# golang.org/x/tools v0.0.0-20201201210846-92771a23d8e3
+## explicit
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/packages
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/typesinternal
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
+# gopkg.in/natefinch/lumberjack.v2 v2.0.0
+gopkg.in/natefinch/lumberjack.v2
+# gopkg.in/yaml.v2 v2.4.0
+## explicit
+gopkg.in/yaml.v2
+# github.com/palantir/witchcraft-go-server/v2 => ../

@@ -1,0 +1,4 @@
+github.com/nmiyake/pkg v1.0.0 h1:HLaVYtHDMpgvKKudovOE4lFaiudQNL+8Imr89hWrSZg=
+github.com/nmiyake/pkg v1.0.0/go.mod h1:078BHtQj5Tk8Im6EpMHR0/Stp79lwL3FIRiGaC9hTDM=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

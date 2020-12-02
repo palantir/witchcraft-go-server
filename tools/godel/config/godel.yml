@@ -1,0 +1,38 @@
+environment:
+  GO111MODULE: "on"
+  GOFLAGS: "-mod=vendor"
+  GOPRIVATE: "github.palantir.build/*,github.com/palantir/go-palantir"
+  GOPROXY: "https://gomod.palantir.build"
+  GONOPROXY: "none"
+exclude:
+  names:
+    - \..+
+    - vendor
+  paths:
+    - godel
+plugins:
+  resolvers:
+    - https://artifactory.palantir.build/artifactory/internal-dist-release/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz
+    - https://palantir.bintray.com/releases/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz
+  plugins:
+    - locator:
+        id: "com.palantir.godel-changelog-plugin:changelog-plugin:1.4.0"
+        checksums:
+          darwin-amd64: 6076b49099f897bbe360ef0ce2140231830eeb04baf0100a147e0a686a9d067a
+          linux-amd64: 6f92f8a90b6597062d4541ef7d238d51626e17137efd517f7121fc533f545162
+    - locator:
+        id: "com.palantir.godel-mod-plugin:mod-plugin:1.1.0"
+        checksums:
+          darwin-amd64: e819a8738bbe6356b8d544a8b45a2d1157339f0d9f019323b0b26d4f1176ea4d
+          linux-amd64: c820d4fcdcf338641bf8e9b4b72d238395538f7f3d1dd86855cb38cfb93465dc
+default-tasks:
+  resolvers:
+    - https://artifactory.palantir.build/artifactory/internal-dist-release/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz
+  tasks:
+    com.palantir.distgo:dist-plugin:
+      assets:
+        - locator:
+            id: "com.palantir.godel-distgo-asset-dist-metadata:dist-metadata-asset:0.2.1"
+            checksums:
+              darwin-amd64: 115107d86baf1be70929cc32d4fc21165da7972980d3626ecd0192646441df60
+              linux-amd64: 2d01219055df06f4007207bc2b3130601b71e5348b864d11ce71626dbaf658ff

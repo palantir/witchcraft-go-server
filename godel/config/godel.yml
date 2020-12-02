@@ -8,6 +8,11 @@ plugins:
           darwin-amd64: c666d42a157fc2ee715f290a0c115ab7a92c56368c6437cad5f4bf971c484cd1
           linux-amd64: a88eb4fc59b32e98d21eab37d71f3333049df9f002998915e7429313185b2005
     - locator:
+        id: com.palantir.godel-generate-plugin:generate-plugin:1.1.0
+        checksums:
+          darwin-amd64: be89b3de1b3cb99c577497b30b2c218ea88aa6f0872f395e32ac62840e14734e
+          linux-amd64: 77274293668e1d4a0399e0e606ac6479ee5cb3ee328d51ffb3cffa18f7e07475
+    - locator:
         id: com.palantir.godel-mod-plugin:mod-plugin:1.1.0
         checksums:
           darwin-amd64: e819a8738bbe6356b8d544a8b45a2d1157339f0d9f019323b0b26d4f1176ea4d

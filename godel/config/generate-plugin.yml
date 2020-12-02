@@ -1,0 +1,6 @@
+generators:
+  sls-diagnostics:
+    go-generate-dir: tools/godel-sls-diagnostics-generator
+    gen-paths:
+      names:
+        - sls-diagnostic.json
