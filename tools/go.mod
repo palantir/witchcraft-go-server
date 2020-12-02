@@ -15,7 +15,6 @@ require (
 	github.com/palantir/witchcraft-go-error v1.4.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.1
-	github.com/stretchr/testify v1.4.0
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3 // indirect
 	golang.org/x/tools v0.0.0-20201201210846-92771a23d8e3

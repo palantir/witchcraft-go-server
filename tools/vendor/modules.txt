@@ -4,8 +4,6 @@ github.com/VividCortex/ewma
 ## explicit
 github.com/cheggaaa/pb/v3
 github.com/cheggaaa/pb/v3/termutil
-# github.com/davecgh/go-spew v1.1.1
-github.com/davecgh/go-spew/spew
 # github.com/fatih/color v1.10.0
 ## explicit
 github.com/fatih/color
@@ -64,17 +62,11 @@ github.com/palantir/witchcraft-go-params
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pmezard/go-difflib v1.0.0
-github.com/pmezard/go-difflib/difflib
 # github.com/spf13/cobra v1.1.1
 ## explicit
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.4.0
-## explicit
-github.com/stretchr/testify/assert
-github.com/stretchr/testify/require
 # golang.org/x/mod v0.4.0
 ## explicit
 golang.org/x/mod/semver
