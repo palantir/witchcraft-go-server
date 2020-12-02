@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/palantir/witchcraft-go-server/tools/godel-sls-diagnostics-generator/diagnosticsplugin"
-	_ "github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/stretchr/testify/require"
 )
 

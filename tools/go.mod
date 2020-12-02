@@ -13,7 +13,6 @@ require (
 	github.com/palantir/pkg/pkgpath v1.0.1
 	github.com/palantir/pkg/signals v1.0.1
 	github.com/palantir/witchcraft-go-error v1.4.3
-	github.com/palantir/witchcraft-go-server/v2 v2.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.4.0
@@ -22,5 +21,3 @@ require (
 	golang.org/x/tools v0.0.0-20201201210846-92771a23d8e3
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-replace github.com/palantir/witchcraft-go-server/v2 => ../
