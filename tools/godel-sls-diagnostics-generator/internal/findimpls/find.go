@@ -40,20 +40,16 @@ type Query struct {
 	Methods []string
 }
 
-type ResultImplementation struct {
-	ImplType types.Type
-	Methods  map[string]*ResultMethod
-}
+type ResultPackages map[*packages.Package]ResultTypes
 
-type ResultMethod struct {
-	TypesFunc *types.Func
-	ASTFunc   *ast.FuncDecl
-}
+type ResultTypes map[types.Type]ResultMethods
+
+type ResultMethods map[string]*ast.FuncDecl
 
 // Find searches through packages specified in the Query for the InterfacePackage/InterfaceName provided.
 // Once the interface is found, all packages are searched for struct types which implement the interface.
 // The returned map has a possibly-empty entry for all packages so that absence can be easily asserted.
-func Find(ctx context.Context, query Query) (map[*packages.Package][]ResultImplementation, error) {
+func Find(ctx context.Context, query Query) (ResultPackages, error) {
 	loadedPkgs, err := packages.Load(&packages.Config{
 		Mode:    packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedDeps,
 		Context: ctx,
@@ -70,13 +66,13 @@ func Find(ctx context.Context, query Query) (map[*packages.Package][]ResultImple
 		return nil, err
 	}
 
-	result := make(map[*packages.Package][]ResultImplementation)
+	result := make(ResultPackages, len(loadedPkgs))
 	for _, pkg := range loadedPkgs {
 		impls, err := findInterfaceImplementations(ifaceType.Underlying().(*types.Interface), pkg)
 		if err != nil {
 			return nil, err
 		}
-		pkgResult, err := loadImplMetadata(impls, pkg, query.Methods)
+		pkgResult, err := loadPkgTypeMethodASTs(impls, pkg, query.Methods)
 		if err != nil {
 			return nil, err
 		}
@@ -132,10 +128,13 @@ func findInterfaceImplementations(iface *types.Interface, pkg *packages.Package)
 	return results, nil
 }
 
-func loadImplMetadata(impls []types.Type, pkg *packages.Package, methodNames []string) ([]ResultImplementation, error) {
-	var result []ResultImplementation
+func loadPkgTypeMethodASTs(impls []types.Type, pkg *packages.Package, methodNames []string) (ResultTypes, error) {
+	// Find all the methods in the package
+	methodDecls := pkgMethodBodyDecls(pkg)
+
+	result := make(ResultTypes, len(impls))
 	for _, impl := range impls {
-		methods := make(map[string]*ResultMethod, len(methodNames))
+		result[impl] = make(ResultMethods, len(methodNames))
 		for _, methodName := range methodNames {
 			methodObj, _, _ := types.LookupFieldOrMethod(impl, true, pkg.Types, methodName)
 			if methodObj == nil {
@@ -145,35 +144,25 @@ func loadImplMetadata(impls []types.Type, pkg *packages.Package, methodNames []s
 			if !ok {
 				return nil, fmt.Errorf("field %s on type %s should be a function", method, impl.String())
 			}
-			// Sets incomplete ResultMethod structs (they do not have ASTFunc populated yet)
-			methods[methodName] = &ResultMethod{
-				TypesFunc: method,
+			methodDecl, ok := methodDecls[method.Scope().Pos()]
+			if !ok {
+				return nil, fmt.Errorf("method %s on type %s not found in AST with matching body position", method, impl.String())
 			}
+			result[impl][methodName] = methodDecl
 		}
-		result = append(result, ResultImplementation{
-			ImplType: impl,
-			Methods:  methods,
-		})
 	}
+	return result, nil
+}
 
-	var allMethodDecls []*ast.FuncDecl
+func pkgMethodBodyDecls(pkg *packages.Package) map[token.Pos]*ast.FuncDecl {
+	allMethodDecls := map[token.Pos]*ast.FuncDecl{}
 	for _, astFile := range pkg.Syntax {
 		for _, decl := range astFile.Decls {
 			declFunc, ok := decl.(*ast.FuncDecl)
 			if ok && declFunc.Recv != nil {
-				allMethodDecls = append(allMethodDecls, declFunc)
+				allMethodDecls[declFunc.Body.Pos()] = declFunc
 			}
 		}
 	}
-
-	for _, r := range result {
-		for _, m := range r.Methods {
-			for _, d := range allMethodDecls {
-				if m.TypesFunc.Scope().Pos() == d.Body.Pos() {
-					m.ASTFunc = d
-				}
-			}
-		}
-	}
-	return result, nil
+	return allMethodDecls
 }

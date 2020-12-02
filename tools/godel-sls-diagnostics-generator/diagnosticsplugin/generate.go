@@ -105,32 +105,21 @@ func LoadDiagnosticHandlerImpls(ctx context.Context, pkgs []string, projectDir s
 	result := make(map[*packages.Package][]DiagnosticHandlerMetadata)
 	for pkg, pkgResults := range findResult {
 		result[pkg] = nil
-		for _, impl := range pkgResults {
-			typeMethod, ok := impl.Methods["Type"]
-			if !ok {
-				return nil, fmt.Errorf("method Type() was not found on the impl %s", impl.ImplType.String())
-			}
-			typeValue, err := getStringFromFuncBody(typeMethod.ASTFunc.Body)
+		for typ, methods := range pkgResults {
+			typeValue, err := getStringFromFuncBody(methods, "Type")
 			if err != nil {
-				return nil, fmt.Errorf("failed to extract return value from Type() method for impl %s: %v", impl.ImplType.String(), err)
+				return nil, fmt.Errorf("failed to extract return value from Type() method for impl %s: %v", typ.String(), err)
 			}
-
-			docsMethod, ok := impl.Methods["Documentation"]
-			if !ok {
-				return nil, fmt.Errorf("method Documentation() was not found on the impl %s", impl.ImplType.String())
-			}
-			docsValue, err := getStringFromFuncBody(docsMethod.ASTFunc.Body)
+			docsValue, err := getStringFromFuncBody(methods, "Documentation")
 			if err != nil {
-				return nil, fmt.Errorf("failed to extract return value from Documentation() method for impl %s: %v", impl.ImplType.String(), err)
+				return nil, fmt.Errorf("failed to extract return value from Documentation() method for impl %s: %v", typ.String(), err)
 			}
-
 			result[pkg] = append(result[pkg], DiagnosticHandlerMetadata{
 				DiagnosticType: typeValue,
 				DiagnosticDocs: docsValue,
 			})
 		}
 	}
-
 	return result, nil
 }
 
@@ -147,13 +136,19 @@ func getPackageDiagnosticsOutputPath(pkg *packages.Package) (string, error) {
 	return filepath.Join(outputDir, diagnosticsJSONPath), nil
 }
 
-func getStringFromFuncBody(body *ast.BlockStmt) (string, error) {
-	if len(body.List) != 1 {
-		return "", fmt.Errorf("expected single-line method body, got %v", body.List)
-	}
-	returnStmt, ok := body.List[0].(*ast.ReturnStmt)
+func getStringFromFuncBody(methods findimpls.ResultMethods, methodName string) (string, error) {
+	methodAST, ok := methods[methodName]
 	if !ok {
-		return "", fmt.Errorf("expected return statement, got %T %v", body.List[0], body.List[0])
+		return "", fmt.Errorf("method %s() not found", methodName)
+	}
+	bodyList := methodAST.Body.List
+	if len(bodyList) != 1 {
+		return "", fmt.Errorf("expected single-line method body, got %v", bodyList)
+	}
+	body := bodyList[0]
+	returnStmt, ok := body.(*ast.ReturnStmt)
+	if !ok {
+		return "", fmt.Errorf("expected return statement, got %T %v", body, body)
 	}
 	return derefStringValue(returnStmt.Results[0])
 }
