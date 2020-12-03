@@ -26,6 +26,7 @@ type SLSDiagnosticsWrapper struct {
 }
 
 type DiagnosticHandlerMetadata struct {
-	DiagnosticType string `json:"type"`
-	DiagnosticDocs string `json:"docs"`
+	Type string `json:"type"`
+	Docs string `json:"docs"`
+	Safe *bool  `json:"safe,omitempty"`
 }

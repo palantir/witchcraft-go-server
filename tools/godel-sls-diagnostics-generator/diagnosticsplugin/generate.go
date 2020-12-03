@@ -18,16 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go/ast"
-	"go/token"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 
-	"github.com/palantir/witchcraft-go-server/tools/godel-sls-diagnostics-generator/internal/findimpls"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -90,39 +86,6 @@ func Generate(ctx context.Context, pkgs []string, verify bool, projectDir string
 	return nil
 }
 
-func LoadDiagnosticHandlerImpls(ctx context.Context, pkgs []string, projectDir string) (map[*packages.Package][]DiagnosticHandlerMetadata, error) {
-	findResult, err := findimpls.Find(ctx, findimpls.Query{
-		WorkDir:          projectDir,
-		Packages:         pkgs,
-		InterfacePackage: wdebugImportPath,
-		InterfaceName:    wdebugInterfaceName,
-		Methods:          []string{"Type", "Documentation"},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make(map[*packages.Package][]DiagnosticHandlerMetadata)
-	for pkg, pkgResults := range findResult {
-		result[pkg] = nil
-		for typ, methods := range pkgResults {
-			typeValue, err := getStringFromFuncBody(methods, "Type")
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract return value from Type() method for impl %s: %v", typ.String(), err)
-			}
-			docsValue, err := getStringFromFuncBody(methods, "Documentation")
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract return value from Documentation() method for impl %s: %v", typ.String(), err)
-			}
-			result[pkg] = append(result[pkg], DiagnosticHandlerMetadata{
-				DiagnosticType: typeValue,
-				DiagnosticDocs: docsValue,
-			})
-		}
-	}
-	return result, nil
-}
-
 func getPackageDiagnosticsOutputPath(pkg *packages.Package) (string, error) {
 	var outputDir string
 	if len(pkg.GoFiles) > 0 {
@@ -136,47 +99,9 @@ func getPackageDiagnosticsOutputPath(pkg *packages.Package) (string, error) {
 	return filepath.Join(outputDir, diagnosticsJSONPath), nil
 }
 
-func getStringFromFuncBody(methods findimpls.ResultMethods, methodName string) (string, error) {
-	methodAST, ok := methods[methodName]
-	if !ok {
-		return "", fmt.Errorf("method %s() not found", methodName)
-	}
-	bodyList := methodAST.Body.List
-	if len(bodyList) != 1 {
-		return "", fmt.Errorf("expected single-line method body, got %v", bodyList)
-	}
-	body := bodyList[0]
-	returnStmt, ok := body.(*ast.ReturnStmt)
-	if !ok {
-		return "", fmt.Errorf("expected return statement, got %T %v", body, body)
-	}
-	return derefStringValue(returnStmt.Results[0])
-}
-
-func derefStringValue(expr ast.Expr) (string, error) {
-	switch v := expr.(type) {
-	default:
-		return "", fmt.Errorf("expected literal or constant return value, got %T %v", expr, expr)
-	case *ast.BasicLit:
-		if v.Kind != token.STRING {
-			return "", fmt.Errorf("expected basic value to be string, got %v", v.Kind.String())
-		}
-		return strconv.Unquote(v.Value)
-	case *ast.Ident:
-		valueSpec, ok := v.Obj.Decl.(*ast.ValueSpec)
-		if !ok {
-			return "", fmt.Errorf("expected ident value to have a value, got %T", v.Obj.Decl)
-		}
-		if len(valueSpec.Values) != 1 {
-			return "", fmt.Errorf("expected ident value to have a single value, got %v", valueSpec.Values)
-		}
-		return derefStringValue(valueSpec.Values[0])
-	}
-}
-
 func renderPackageDiagnosticsJSON(impls []DiagnosticHandlerMetadata) ([]byte, error) {
 	sort.Slice(impls, func(i, j int) bool {
-		return impls[i].DiagnosticType < impls[j].DiagnosticType
+		return impls[i].Type < impls[j].Type
 	})
 
 	metadataJSON, err := json.MarshalIndent(SLSDiagnosticsWrapper{impls}, "", "  ")

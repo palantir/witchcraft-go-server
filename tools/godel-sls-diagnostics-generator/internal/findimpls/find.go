@@ -15,7 +15,6 @@
 package findimpls
 
 import (
-	"context"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -27,9 +26,8 @@ import (
 
 type Query struct {
 	// packages.Load options
-	WorkDir  string // if unset, use cwd
-	Tests    bool
-	Packages []string
+	LoadConfig *packages.Config
+	Packages   []string
 
 	// interface to find implementations
 
@@ -49,14 +47,13 @@ type ResultMethods map[string]*ast.FuncDecl
 // Find searches through packages specified in the Query for the InterfacePackage/InterfaceName provided.
 // Once the interface is found, all packages are searched for struct types which implement the interface.
 // The returned map has a possibly-empty entry for all packages so that absence can be easily asserted.
-func Find(ctx context.Context, query Query) (ResultPackages, error) {
-	loadedPkgs, err := packages.Load(&packages.Config{
-		Mode:    packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedDeps,
-		Context: ctx,
-		Dir:     query.WorkDir,
-		Fset:    token.NewFileSet(),
-		Tests:   false,
-	}, query.Packages...)
+func Find(query *Query) (ResultPackages, error) {
+	// ensure we have all the required modes
+	query.LoadConfig.Mode |= packages.NeedDeps | packages.NeedImports | packages.NeedFiles | packages.NeedName | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo
+	if query.LoadConfig.Fset == nil {
+		query.LoadConfig.Fset = token.NewFileSet()
+	}
+	loadedPkgs, err := packages.Load(query.LoadConfig, query.Packages...)
 	if err != nil {
 		return nil, werror.Wrap(err, "failed to load project packages")
 	}
@@ -110,6 +107,7 @@ func findInterface(loadedPkgs []*packages.Package, ifaceImportPath, ifaceName st
 	return ifaceType, nil
 }
 
+// For every struct type definition in the package, check if it implements the interface and collect all matches.
 func findInterfaceImplementations(iface *types.Interface, pkg *packages.Package) ([]types.Type, error) {
 	var results []types.Type
 	for ident, object := range pkg.TypesInfo.Defs {
@@ -128,6 +126,7 @@ func findInterfaceImplementations(iface *types.Interface, pkg *packages.Package)
 	return results, nil
 }
 
+// Returns a mapping from each impl type to its methods
 func loadPkgTypeMethodASTs(impls []types.Type, pkg *packages.Package, methodNames []string) (ResultTypes, error) {
 	// Find all the methods in the package
 	methodDecls := pkgMethodBodyDecls(pkg)
@@ -136,22 +135,31 @@ func loadPkgTypeMethodASTs(impls []types.Type, pkg *packages.Package, methodName
 	for _, impl := range impls {
 		result[impl] = make(ResultMethods, len(methodNames))
 		for _, methodName := range methodNames {
-			methodObj, _, _ := types.LookupFieldOrMethod(impl, true, pkg.Types, methodName)
-			if methodObj == nil {
-				return nil, fmt.Errorf("did not find method %s on type %s", methodName, impl.String())
-			}
-			method, ok := methodObj.(*types.Func)
-			if !ok {
-				return nil, fmt.Errorf("field %s on type %s should be a function", method, impl.String())
-			}
-			methodDecl, ok := methodDecls[method.Scope().Pos()]
-			if !ok {
-				return nil, fmt.Errorf("method %s on type %s not found in AST with matching body position", method, impl.String())
+			methodDecl, err := findMethodDeclAST(impl, pkg, methodName, methodDecls)
+			if err != nil {
+				return nil, err
 			}
 			result[impl][methodName] = methodDecl
 		}
 	}
 	return result, nil
+}
+
+func findMethodDeclAST(impl types.Type, pkg *packages.Package, methodName string, pkgMethodDecls map[token.Pos]*ast.FuncDecl) (*ast.FuncDecl, error) {
+	methodObj, _, _ := types.LookupFieldOrMethod(impl, true, pkg.Types, methodName)
+	if methodObj == nil {
+		return nil, fmt.Errorf("did not find method %s on type %s", methodName, impl.String())
+	}
+	method, ok := methodObj.(*types.Func)
+	if !ok {
+		return nil, fmt.Errorf("field %s on type %s should be a function", method, impl.String())
+	}
+	methodDecl, ok := pkgMethodDecls[method.Scope().Pos()]
+	if !ok {
+		return nil, fmt.Errorf("method %s on type %s not found in AST with matching body position", method, impl.String())
+	}
+
+	return methodDecl, nil
 }
 
 func pkgMethodBodyDecls(pkg *packages.Package) map[token.Pos]*ast.FuncDecl {
