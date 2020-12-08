@@ -27,3 +27,4 @@ exclude:
   paths:
     - godel
     - conjure
+    - tools
