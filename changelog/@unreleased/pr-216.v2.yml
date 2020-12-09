@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Update the witchcraft-go-health dependency to v1.3.0
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/235

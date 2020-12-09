@@ -15,24 +15,27 @@
 package sources
 
 import (
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 )
 
 // UnhealthyHealthCheckResult returns an unhealthy health check result with type checkType and message message.
-func UnhealthyHealthCheckResult(checkType health.CheckType, message string) health.HealthCheckResult {
+func UnhealthyHealthCheckResult(checkType health.CheckType, message string, params map[string]interface{}) health.HealthCheckResult {
 	return health.HealthCheckResult{
 		Type:    checkType,
 		State:   health.New_HealthState(health.HealthState_ERROR),
 		Message: &message,
+		Params:  params,
 	}
 }
 
 // RepairingHealthCheckResult returns an repairing health check result with type checkType and message message.
-func RepairingHealthCheckResult(checkType health.CheckType, message string) health.HealthCheckResult {
+func RepairingHealthCheckResult(checkType health.CheckType, message string, params map[string]interface{}) health.HealthCheckResult {
 	return health.HealthCheckResult{
 		Type:    checkType,
 		State:   health.New_HealthState(health.HealthState_REPAIRING),
 		Message: &message,
+		Params:  params,
 	}
 }
 
@@ -42,4 +45,10 @@ func HealthyHealthCheckResult(checkType health.CheckType) health.HealthCheckResu
 		Type:  checkType,
 		State: health.New_HealthState(health.HealthState_HEALTHY),
 	}
+}
+
+// SafeParamsFromError returns the safeParam map from the given error
+func SafeParamsFromError(err error) map[string]interface{} {
+	safeParams, _ := werror.ParamsFromError(err)
+	return safeParams
 }
