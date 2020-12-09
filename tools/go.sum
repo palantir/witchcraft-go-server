@@ -199,10 +199,6 @@ github.com/palantir/pkg/signals v1.0.1 h1:WDapfUO/vq6DoN4hHmowy2kEDaCQxNCZUhORUn
 github.com/palantir/pkg/signals v1.0.1/go.mod h1:L5/ZeqXa2QjdxpjqcMQ4LtZL3xCp1FMEhGjMHyLDb2g=
 github.com/palantir/pkg/specdir v1.0.1 h1:h3FxhAYZHUAuvZXF5O40pyhjKjm4JlcHYRogIVNw3Ew=
 github.com/palantir/pkg/specdir v1.0.1/go.mod h1:RJN42E0F1s4wHrNuXoT0cG4erUigMs0pjpBpmpijb0c=
-github.com/palantir/witchcraft-go-error v1.4.3 h1:coynUoBOhfvd/vsH7gu2v4dlSO+hvlazHh6HMh/jF1U=
-github.com/palantir/witchcraft-go-error v1.4.3/go.mod h1:/cl2dMkuBbnfxDtFiC//8JfvZxmRkYRhgv3bBux9AD0=
-github.com/palantir/witchcraft-go-params v1.1.0 h1:siRqQv9TuJ0qY2JK5Svd3/rGQQCWvNnjI2OGAftm8gc=
-github.com/palantir/witchcraft-go-params v1.1.0/go.mod h1:HH+l5b0binfqBJ21qVvQVOJp6s2/I6ld0NEWnaEgWvI=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pierrec/lz4 v2.0.5+incompatible h1:2xWsjqPFWcplujydGg4WmhC/6fZqK42wMM8aXeqhl0I=

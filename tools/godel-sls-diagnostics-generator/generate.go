@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 
 	"github.com/palantir/pkg/signals"
-	"github.com/palantir/witchcraft-go-server/tools/godel-sls-diagnostics-generator/cmd"
 	"github.com/palantir/witchcraft-go-server/tools/godel-sls-diagnostics-generator/diagnosticsplugin"
+	"github.com/palantir/witchcraft-go-server/tools/godel-sls-diagnostics-generator/internal/godelproject"
 )
 
 func main() {
@@ -46,11 +46,7 @@ func doGenerate(ctx context.Context) error {
 		return err
 	}
 
-	godelPackageMatcher, err := cmd.GodelConfigPackageMatcher("godel/config/godel.yml")
-	if err != nil {
-		return err
-	}
-	pkgs, err := diagnosticsplugin.PkgsInProject(projectDir, godelPackageMatcher)
+	pkgs, err := godelproject.PkgsInProject(projectDir, "godel/config/godel.yml")
 	if err != nil {
 		return err
 	}

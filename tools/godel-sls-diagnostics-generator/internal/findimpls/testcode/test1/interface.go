@@ -12,21 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package diagnosticsplugin
+package test1
 
-const (
-	wdebugImportPath    = "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/wdebug"
-	wdebugInterfaceName = "DiagnosticHandler"
-
-	diagnosticsJSONPath = "sls-diagnostics.json"
-)
-
-type SLSDiagnosticsWrapper struct {
-	Diagnostics []DiagnosticEntry `json:"diagnostics"`
+type MyInterface interface {
+	String() string
+	Int() int
 }
 
-type DiagnosticEntry struct {
-	Type string `json:"type"`
-	Docs string `json:"docs"`
-	Safe *bool  `json:"safe,omitempty"`
+var _ = myPrivateInterface(nil)
+
+type myPrivateInterface interface {
+	PublicString() string
+}
+
+var _ = myPrivateInterfaceWithPrivateMethod(nil)
+
+type myPrivateInterfaceWithPrivateMethod interface {
+	myPrivateInterface
+	privateString() string
 }

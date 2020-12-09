@@ -99,7 +99,7 @@ func getPackageDiagnosticsOutputPath(pkg *packages.Package) (string, error) {
 	return filepath.Join(outputDir, diagnosticsJSONPath), nil
 }
 
-func renderPackageDiagnosticsJSON(impls []DiagnosticHandlerMetadata) ([]byte, error) {
+func renderPackageDiagnosticsJSON(impls []DiagnosticEntry) ([]byte, error) {
 	sort.Slice(impls, func(i, j int) bool {
 		return impls[i].Type < impls[j].Type
 	})

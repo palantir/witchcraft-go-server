@@ -20,7 +20,6 @@ import (
 	"go/token"
 	"go/types"
 
-	werror "github.com/palantir/witchcraft-go-error"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -45,7 +44,7 @@ type ResultTypes map[types.Type]ResultMethods
 type ResultMethods map[string]*ast.FuncDecl
 
 // Find searches through packages specified in the Query for the InterfacePackage/InterfaceName provided.
-// Once the interface is found, all packages are searched for struct types which implement the interface.
+// Once the interface is found, all packages are searched for types which implement the interface.
 // The returned map has a possibly-empty entry for all packages so that absence can be easily asserted.
 func Find(query *Query) (ResultPackages, error) {
 	// ensure we have all the required modes
@@ -55,7 +54,7 @@ func Find(query *Query) (ResultPackages, error) {
 	}
 	loadedPkgs, err := packages.Load(query.LoadConfig, query.Packages...)
 	if err != nil {
-		return nil, werror.Wrap(err, "failed to load project packages")
+		return nil, fmt.Errorf("failed to load project packages: %v", err)
 	}
 
 	ifaceType, err := findInterface(loadedPkgs, query.InterfacePackage, query.InterfaceName)
@@ -94,26 +93,27 @@ func findInterface(loadedPkgs []*packages.Package, ifaceImportPath, ifaceName st
 				}
 			}
 			if ifaceIdent == nil {
-				return nil, werror.Error("did not find interface type in loaded packages")
+				return nil, fmt.Errorf("did not find interface type %q in loaded package %q", ifaceName, ifaceImportPath)
 			}
 			break
 		}
 	}
 	if ifacePkg == nil {
-		return nil, werror.Error("did not find interface package")
+		return nil, fmt.Errorf("did not find interface package %q", ifaceImportPath)
 	}
 
 	ifaceType := ifaceObject.Type().(*types.Named)
 	return ifaceType, nil
 }
 
-// For every struct type definition in the package, check if it implements the interface and collect all matches.
+// For every non-interface type definition in the package, check if it implements the interface and collect all matches.
 func findInterfaceImplementations(iface *types.Interface, pkg *packages.Package) ([]types.Type, error) {
 	var results []types.Type
 	for ident, object := range pkg.TypesInfo.Defs {
 		if ident != nil && ident.Obj != nil && ident.Obj.Kind == ast.Typ {
 			typ := object.Type()
-			if _, ok := typ.Underlying().(*types.Struct); !ok {
+			// Skip other interfaces
+			if _, ok := typ.Underlying().(*types.Interface); ok {
 				continue
 			}
 			if types.Implements(typ, iface) {

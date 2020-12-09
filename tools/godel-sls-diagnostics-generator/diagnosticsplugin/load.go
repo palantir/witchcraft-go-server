@@ -25,7 +25,16 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func LoadDiagnosticHandlerImpls(ctx context.Context, pkgs []string, projectDir string) (map[*packages.Package][]DiagnosticHandlerMetadata, error) {
+// LoadDiagnosticHandlerImpls returns a mapping from each package to metadata describing its implementations
+// of wdebug.DiagnosticHandler. It loads all go packages specified in pkgs, finds the interface type and its methods,
+// then searches all packages for types that implement the interface. For each implementing type, a DiagnosticEntry
+// describes the type, documentation, and whether it is safe-loggable. These values are extracted from the methods'
+// implementations. Only methods returning basic types (literals or declared constants) are supported. More complex
+// function bodies will result in an error.
+//
+// Note that packages are loaded based on the build flags existing in our process's environment (e.g. GOOS, GOARCH).
+// Files with build constraints that are excluded under these parameters will be ignored.
+func LoadDiagnosticHandlerImpls(ctx context.Context, pkgs []string, projectDir string) (map[*packages.Package][]DiagnosticEntry, error) {
 	findResult, err := findimpls.Find(&findimpls.Query{
 		LoadConfig: &packages.Config{
 			Context: ctx,
@@ -41,7 +50,7 @@ func LoadDiagnosticHandlerImpls(ctx context.Context, pkgs []string, projectDir s
 		return nil, err
 	}
 
-	result := make(map[*packages.Package][]DiagnosticHandlerMetadata)
+	result := make(map[*packages.Package][]DiagnosticEntry)
 	for pkg, pkgResults := range findResult {
 		result[pkg] = nil
 		for typ, methods := range pkgResults {
@@ -57,7 +66,7 @@ func LoadDiagnosticHandlerImpls(ctx context.Context, pkgs []string, projectDir s
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract return value from SafeLoggable() method for impl %s: %v", typ.String(), err)
 			}
-			result[pkg] = append(result[pkg], DiagnosticHandlerMetadata{
+			result[pkg] = append(result[pkg], DiagnosticEntry{
 				Type: typeValue,
 				Docs: docsValue,
 				Safe: &safeValue,
