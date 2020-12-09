@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Add godel-sls-diagnostics-generator
+
+    This PR adds a `tools/` module which includes a godel plugin for generated a `sls-diagnostics.json` manifest file in every package with types that implement `wdebug.DiagnosticHandler`. Consuming products can read these files to know what diagnostics are implemented in each pacakge.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/233
