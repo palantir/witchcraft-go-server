@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/sources"
 	"github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 )
@@ -202,6 +203,7 @@ func newDefaultHealthCheckSource(checkType health.CheckType, poll func() error) 
 						Type:    checkType,
 						State:   health.New_HealthState(health.HealthState_ERROR),
 						Message: stringPtr(err.Error()),
+						Params:  sources.SafeParamsFromError(err),
 					}
 				}
 				return &health.HealthCheckResult{
