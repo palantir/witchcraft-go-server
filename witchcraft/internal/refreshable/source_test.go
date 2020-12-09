@@ -58,6 +58,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 				Type:    testHealthCheckType,
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errorMsg,
+				Params:  map[string]interface{}{},
 			},
 		},
 	}))
