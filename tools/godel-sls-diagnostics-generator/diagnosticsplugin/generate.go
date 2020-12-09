@@ -32,22 +32,44 @@ func Generate(ctx context.Context, pkgs []string, verify bool, projectDir string
 	if err != nil {
 		return err
 	}
+	fileContent, err := generateDiagnosticEntriesFileContent(metadata)
+	if err != nil {
+		return err
+	}
+	return writeDiagnosticEntriesFileContent(fileContent, verify, stdout)
+}
 
-	for pkg, impls := range metadata {
+func generateDiagnosticEntriesFileContent(entries map[*packages.Package][]DiagnosticEntry) (map[string][]byte, error) {
+	files := map[string][]byte{}
+	for pkg, impls := range entries {
 		outputPath, err := getPackageDiagnosticsOutputPath(pkg)
 		if err != nil {
 			if len(impls) > 0 {
-				return fmt.Errorf("package contained interface implementations but no detectable files: %v", err)
+				return nil, fmt.Errorf("package contained interface implementations but no detectable files: %v", err)
 			}
 			continue
 		}
+
+		if len(impls) == 0 {
+			files[outputPath] = nil
+		} else {
+			outputContent, err := renderPackageDiagnosticsJSON(impls)
+			if err != nil {
+				return nil, err
+			}
+			files[outputPath] = outputContent
+		}
+	}
+	return files, nil
+}
+
+func writeDiagnosticEntriesFileContent(files map[string][]byte, verify bool, stdout io.Writer) error {
+	for outputPath, outputContent := range files {
 		exists := false
 		if _, err := os.Stat(outputPath); err == nil {
 			exists = true
 		}
-
-		// If there should be no content, ensure the file does not exist then continue
-		if len(impls) == 0 {
+		if len(outputContent) == 0 {
 			if exists {
 				if verify {
 					return fmt.Errorf("%s should not exist as it would have no entries", diagnosticsJSONPath)
@@ -61,10 +83,6 @@ func Generate(ctx context.Context, pkgs []string, verify bool, projectDir string
 		}
 
 		// Write package file
-		metadataJSON, err := renderPackageDiagnosticsJSON(impls)
-		if err != nil {
-			return err
-		}
 		if verify {
 			if !exists {
 				return fmt.Errorf("%s does not exist and must be regenerated", outputPath)
@@ -73,16 +91,15 @@ func Generate(ctx context.Context, pkgs []string, verify bool, projectDir string
 			if err != nil {
 				return fmt.Errorf("failed to read existing path: %v", err)
 			}
-			if string(metadataJSON) != string(existingContent) {
+			if string(outputContent) != string(existingContent) {
 				return fmt.Errorf("%s content differs from what is on disk and must be regenerated", outputPath)
 			}
 		} else {
-			if err := ioutil.WriteFile(outputPath, metadataJSON, 0644); err != nil {
+			if err := ioutil.WriteFile(outputPath, outputContent, 0644); err != nil {
 				return fmt.Errorf("failed to write %s: %v", diagnosticsJSONPath, err)
 			}
 		}
 	}
-
 	return nil
 }
 
