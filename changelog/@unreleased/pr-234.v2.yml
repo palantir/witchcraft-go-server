@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Rename `debug.shared-secret` (introduced in 2.2.0) to `diagnostics.debug-shared-secret`
+    in runtime configuration.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/234
