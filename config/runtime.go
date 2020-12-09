@@ -23,7 +23,7 @@ import (
 // Runtime specifies the base runtime configuration fields that should be included in all witchcraft-server-go
 // server runtime configurations.
 type Runtime struct {
-	DiagnosticsConfig DiagnosticsConfig  `yaml:"debug,omitempty"`
+	DiagnosticsConfig DiagnosticsConfig  `yaml:"diagnostics,omitempty"`
 	HealthChecks      HealthChecksConfig `yaml:"health-checks,omitempty"`
 	LoggerConfig      *LoggerConfig      `yaml:"logging,omitempty"`
 }
