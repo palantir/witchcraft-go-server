@@ -37,7 +37,9 @@ func (v *validatingRefreshableHealthCheckSource) HealthStatus(ctx context.Contex
 	if err := v.refreshable.LastValidateErr(); err != nil {
 		svc1log.FromContext(ctx).Error("Refreshable validation failed", svc1log.Stacktrace(err))
 		healthCheckResult = sources.UnhealthyHealthCheckResult(v.healthCheckType,
-			"Refreshable validation failed, please look at service logs for more information.")
+			"Refreshable validation failed, please look at service logs for more information.",
+			map[string]interface{}{},
+		)
 	}
 
 	return health.HealthStatus{

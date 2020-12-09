@@ -50,7 +50,7 @@ func TestLoggingChangeHandler(t *testing.T) {
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message"),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]interface{}{}),
 				},
 			},
 			expected: &expectedLog{
@@ -62,7 +62,7 @@ func TestLoggingChangeHandler(t *testing.T) {
 			name: "log info when new status code is 200",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message"),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]interface{}{}),
 				},
 			},
 			curr: health.HealthStatus{
