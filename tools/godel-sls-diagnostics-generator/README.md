@@ -7,7 +7,7 @@ This allows downstream projects to identify at build-time what diagnostics are s
 This operation happens in three steps:
 1. Load all packages managed by the godel project and find the wdebug.DiagnosticHandler interface type.
 1. Iterate through all loaded packages and check whether each declared type implements the interface. If so, store the type to a list.
-1. In each package containing interface implemenatations, render the sls-diagnosics.json file. If the file exists in a package which no longer contains implementing types, delete the file.
+1. In each package containing interface implementations, render the sls-diagnosics.json file. If the file exists in a package which no longer contains implementing types, delete the file.
 
 Example JSON content:
 ```json
