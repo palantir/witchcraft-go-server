@@ -39,7 +39,7 @@ github.com/palantir/pkg/safelong
 github.com/palantir/pkg/safeyaml
 # github.com/palantir/pkg/signals v1.0.1
 github.com/palantir/pkg/signals
-# github.com/palantir/pkg/tlsconfig v1.0.1
+# github.com/palantir/pkg/tlsconfig v1.0.2
 github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.0.0
 github.com/palantir/pkg/transform
