@@ -13,7 +13,7 @@ require (
 	github.com/palantir/pkg/objmatcher v1.0.1
 	github.com/palantir/pkg/safejson v1.0.1
 	github.com/palantir/pkg/signals v1.0.1
-	github.com/palantir/pkg/tlsconfig v1.0.1
+	github.com/palantir/pkg/tlsconfig v1.0.2
 	github.com/palantir/witchcraft-go-error v1.4.3
 	github.com/palantir/witchcraft-go-health v1.5.0
 	github.com/palantir/witchcraft-go-logging v1.9.0
