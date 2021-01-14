@@ -17,7 +17,7 @@ require (
 	github.com/palantir/witchcraft-go-error v1.4.3
 	github.com/palantir/witchcraft-go-health v1.5.0
 	github.com/palantir/witchcraft-go-logging v1.9.0
-	github.com/palantir/witchcraft-go-params v1.1.0
+	github.com/palantir/witchcraft-go-params v1.2.0
 	github.com/palantir/witchcraft-go-tracing v1.2.0
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
