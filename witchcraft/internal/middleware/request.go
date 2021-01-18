@@ -33,6 +33,19 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 )
 
+// NewRequestPanicRecovery returns a middleware which recovers panics in the wrapped handler.
+// It accepts loggers as arguments, as we are not guaranteed they have been set on the request context.
+// These loggers are only used in the case of a panic.
+// When this is the outermost middleware, some request information (e.g. trace ids) will not be set.
+func NewRequestPanicRecovery(svcLogger svc1log.Logger, evtLogger evt2log.Logger) wrouter.RequestHandlerMiddleware {
+	return func(rw http.ResponseWriter, req *http.Request, next http.Handler) {
+		lrw := toLoggingResponseWriter(rw)
+		panicRecoveryMiddleware(lrw, req, svcLogger, evtLogger, func() {
+			next.ServeHTTP(lrw, req)
+		})
+	}
+}
+
 // NewRequestContextLoggers is request middleware that sets loggers that can be retrieved from a context on the request
 // context.
 func NewRequestContextLoggers(
@@ -164,18 +177,5 @@ func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerM
 		if lrw.Status()/100 == 5 {
 			mr.Meter(serverResponseErrorMetricName, tags...).Mark(1)
 		}
-	}
-}
-
-// NewRequestPanicRecovery returns a middleware which recovers panics in the wrapped handler.
-// It accepts loggers as arguments, as we are not guaranteed they have been set on the request context.
-// These loggers are only used in the case of a panic.
-// When this is the outermost middleware, some request information (e.g. trace ids) will not be set.
-func NewRequestPanicRecovery(svcLogger svc1log.Logger, evtLogger evt2log.Logger) wrouter.RequestHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, next http.Handler) {
-		lrw := toLoggingResponseWriter(rw)
-		panicRecoveryMiddleware(lrw, req, svcLogger, evtLogger, func() {
-			next.ServeHTTP(lrw, req)
-		})
 	}
 }
