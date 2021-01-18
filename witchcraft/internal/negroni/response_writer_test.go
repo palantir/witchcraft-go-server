@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type closeNotifyingRecorder struct {
@@ -50,8 +52,8 @@ func TestResponseWriterBeforeWrite(t *testing.T) {
 	rec := httptest.NewRecorder()
 	rw := NewResponseWriter(rec)
 
-	expect(t, rw.Status(), 200) // Defaults to 200 when not set
-	expect(t, rw.Written(), false)
+	assert.Equal(t, rw.Status(), 200) // Defaults to 200 when not set
+	assert.Equal(t, rw.Written(), false)
 }
 
 func TestResponseWriterBeforeFuncHasAccessToStatus(t *testing.T) {
@@ -65,7 +67,7 @@ func TestResponseWriterBeforeFuncHasAccessToStatus(t *testing.T) {
 	})
 	rw.WriteHeader(http.StatusCreated)
 
-	expect(t, status, http.StatusCreated)
+	assert.Equal(t, status, http.StatusCreated)
 }
 
 func TestResponseWriterWritingString(t *testing.T) {
@@ -74,11 +76,11 @@ func TestResponseWriterWritingString(t *testing.T) {
 
 	_, _ = rw.Write([]byte("Hello world"))
 
-	expect(t, rec.Code, rw.Status())
-	expect(t, rec.Body.String(), "Hello world")
-	expect(t, rw.Status(), http.StatusOK)
-	expect(t, rw.Size(), 11)
-	expect(t, rw.Written(), true)
+	assert.Equal(t, rec.Code, rw.Status())
+	assert.Equal(t, rec.Body.String(), "Hello world")
+	assert.Equal(t, rw.Status(), http.StatusOK)
+	assert.Equal(t, rw.Size(), 11)
+	assert.Equal(t, rw.Written(), true)
 }
 
 func TestResponseWriterWritingStrings(t *testing.T) {
@@ -88,10 +90,10 @@ func TestResponseWriterWritingStrings(t *testing.T) {
 	_, _ = rw.Write([]byte("Hello world"))
 	_, _ = rw.Write([]byte("foo bar bat baz"))
 
-	expect(t, rec.Code, rw.Status())
-	expect(t, rec.Body.String(), "Hello worldfoo bar bat baz")
-	expect(t, rw.Status(), http.StatusOK)
-	expect(t, rw.Size(), 26)
+	assert.Equal(t, rec.Code, rw.Status())
+	assert.Equal(t, rec.Body.String(), "Hello worldfoo bar bat baz")
+	assert.Equal(t, rw.Status(), http.StatusOK)
+	assert.Equal(t, rw.Size(), 26)
 }
 
 func TestResponseWriterWritingHeader(t *testing.T) {
@@ -100,10 +102,10 @@ func TestResponseWriterWritingHeader(t *testing.T) {
 
 	rw.WriteHeader(http.StatusNotFound)
 
-	expect(t, rec.Code, rw.Status())
-	expect(t, rec.Body.String(), "")
-	expect(t, rw.Status(), http.StatusNotFound)
-	expect(t, rw.Size(), 0)
+	assert.Equal(t, rec.Code, rw.Status())
+	assert.Equal(t, rec.Body.String(), "")
+	assert.Equal(t, rw.Status(), http.StatusNotFound)
+	assert.Equal(t, rw.Size(), 0)
 }
 
 func TestResponseWriterBefore(t *testing.T) {
@@ -120,33 +122,33 @@ func TestResponseWriterBefore(t *testing.T) {
 
 	rw.WriteHeader(http.StatusNotFound)
 
-	expect(t, rec.Code, rw.Status())
-	expect(t, rec.Body.String(), "")
-	expect(t, rw.Status(), http.StatusNotFound)
-	expect(t, rw.Size(), 0)
-	expect(t, result, "barfoo")
+	assert.Equal(t, rec.Code, rw.Status())
+	assert.Equal(t, rec.Body.String(), "")
+	assert.Equal(t, rw.Status(), http.StatusNotFound)
+	assert.Equal(t, rw.Size(), 0)
+	assert.Equal(t, result, "barfoo")
 }
 
 func TestResponseWriterHijack(t *testing.T) {
 	hijackable := newHijackableResponse()
 	rw := NewResponseWriter(hijackable)
 	hijacker, ok := rw.(http.Hijacker)
-	expect(t, ok, true)
+	assert.Equal(t, ok, true)
 	_, _, err := hijacker.Hijack()
 	if err != nil {
 		t.Error(err)
 	}
-	expect(t, hijackable.Hijacked, true)
+	assert.Equal(t, hijackable.Hijacked, true)
 }
 
 func TestResponseWriteHijackNotOK(t *testing.T) {
 	hijackable := new(http.ResponseWriter)
 	rw := NewResponseWriter(*hijackable)
 	hijacker, ok := rw.(http.Hijacker)
-	expect(t, ok, true)
+	assert.Equal(t, ok, true)
 	_, _, err := hijacker.Hijack()
 
-	refute(t, err, nil)
+	assert.Error(t, err)
 }
 
 func TestResponseWriterCloseNotify(t *testing.T) {
@@ -160,13 +162,13 @@ func TestResponseWriterCloseNotify(t *testing.T) {
 		closed = true
 	case <-time.After(time.Second):
 	}
-	expect(t, closed, true)
+	assert.Equal(t, closed, true)
 }
 
 func TestResponseWriterNonCloseNotify(t *testing.T) {
 	rw := NewResponseWriter(httptest.NewRecorder())
 	_, ok := rw.(http.CloseNotifier)
-	expect(t, ok, false)
+	assert.Equal(t, ok, false)
 }
 
 func TestResponseWriterFlusher(t *testing.T) {
@@ -174,7 +176,7 @@ func TestResponseWriterFlusher(t *testing.T) {
 	rw := NewResponseWriter(rec)
 
 	_, ok := rw.(http.Flusher)
-	expect(t, ok, true)
+	assert.Equal(t, ok, true)
 }
 
 func TestResponseWriter_Flush_marksWritten(t *testing.T) {
@@ -182,6 +184,6 @@ func TestResponseWriter_Flush_marksWritten(t *testing.T) {
 	rw := NewResponseWriter(rec)
 
 	rw.Flush()
-	expect(t, rw.Status(), http.StatusOK)
-	expect(t, rw.Written(), true)
+	assert.Equal(t, rw.Status(), http.StatusOK)
+	assert.Equal(t, rw.Written(), true)
 }

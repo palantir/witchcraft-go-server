@@ -15,10 +15,16 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/negroni"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -79,6 +85,8 @@ type loggingResponseWriter interface {
 	Status() int
 	// Size returns the size of the response body.
 	Size() int
+	// Written returns whether or not the ResponseWriter has been written.
+	Written() bool
 }
 
 func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
@@ -105,5 +113,39 @@ func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
 		b3.SpanInjector(req)(span.Context())
 
 		next(rw, req, reqVals)
+	}
+}
+
+// NewRoutePanicRecovery returns a middleware which recovers panics within the inner route handler.
+// This is distinct from NewRequestPanicRecovery in that it runs when all logging/telemetry are configured on the request.
+func NewRoutePanicRecovery() wrouter.RouteHandlerMiddleware {
+	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+		lrw := toLoggingResponseWriter(rw)
+		panicRecoveryMiddleware(lrw, req, nil, nil, func() {
+			next(lrw, req, reqVals)
+		})
+	}
+}
+
+func panicRecoveryMiddleware(lrw loggingResponseWriter, req *http.Request, svcLogger svc1log.Logger, evtLogger evt2log.Logger, nextFunc func()) {
+	ctx := req.Context() // ctx changes are used within this middleware but not stored to the request
+	if svcLogger != nil {
+		ctx = svc1log.WithLogger(ctx, svcLogger)
+	}
+	if evtLogger != nil {
+		ctx = evt2log.WithLogger(ctx, evtLogger)
+	}
+
+	if err := wapp.RunWithRecoveryLoggingWithError(ctx, func(ctx context.Context) error {
+		nextFunc()
+		return nil
+	}); err != nil {
+		cerr := errors.WrapWithInternal(err)
+		httpserver.ErrHandler(ctx, cerr.Code().StatusCode(), cerr)
+
+		// Only write to response if we have not written anything yet
+		if !lrw.Written() {
+			errors.WriteErrorResponse(lrw, cerr)
+		}
 	}
 }

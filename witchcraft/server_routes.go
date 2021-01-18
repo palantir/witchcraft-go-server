@@ -84,8 +84,8 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 
 func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, tracerOptions []wtracing.TracerOption) {
 	rootRouter.AddRequestHandlerMiddleware(
-		// add middleware that recovers from panics
-		middleware.NewRequestPanicRecovery(),
+		// add middleware that recovers from panics in request middleware
+		middleware.NewRequestPanicRecovery(s.svcLogger, s.evtLogger),
 		// add middleware that injects metrics registry into request context
 		middleware.NewRequestContextMetricsRegistry(registry),
 		// add middleware that injects loggers into request context
@@ -115,6 +115,9 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	// add route middleware
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog(s.reqLogger, nil))
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteLogTraceSpan())
+
+	// add a second, inner panic recovery middleware so panics within handler logic are correctly configured with logging, trace IDs, etc.
+	rootRouter.AddRouteHandlerMiddleware(middleware.NewRoutePanicRecovery())
 
 	// add not found handler
 	rootRouter.RegisterNotFoundHandler(httpserver.NewJSONHandler(
