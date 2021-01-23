@@ -13,6 +13,8 @@ github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
 # github.com/palantir/conjure-go-runtime/v2 v2.8.0
+github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
+github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
@@ -23,6 +25,8 @@ github.com/palantir/go-encrypted-config-value/encryption
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
 github.com/palantir/pkg
+# github.com/palantir/pkg/bytesbuffers v1.0.1
+github.com/palantir/pkg/bytesbuffers
 # github.com/palantir/pkg/datetime v1.0.1
 github.com/palantir/pkg/datetime
 # github.com/palantir/pkg/httpserver v1.0.1
@@ -31,6 +35,8 @@ github.com/palantir/pkg/httpserver
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.0.1
 github.com/palantir/pkg/objmatcher
+# github.com/palantir/pkg/retry v1.1.1
+github.com/palantir/pkg/retry
 # github.com/palantir/pkg/safejson v1.0.1
 github.com/palantir/pkg/safejson
 # github.com/palantir/pkg/safelong v1.0.1
@@ -98,6 +104,18 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
+# golang.org/x/net v0.0.0-20201021035429-f5854403a974
+golang.org/x/net/http/httpguts
+golang.org/x/net/http2
+golang.org/x/net/http2/hpack
+golang.org/x/net/idna
+golang.org/x/net/internal/socks
+golang.org/x/net/proxy
+# golang.org/x/text v0.3.3
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.3.0

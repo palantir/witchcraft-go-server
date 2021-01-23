@@ -27,19 +27,21 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/negroni"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 )
 
-func NewRequestPanicRecovery() wrouter.RequestHandlerMiddleware {
+// NewRequestPanicRecovery returns a middleware which recovers panics in the wrapped handler.
+// It accepts loggers as arguments, as we are not guaranteed they have been set on the request context.
+// These loggers are only used in the case of a panic.
+// When this is the outermost middleware, some request information (e.g. trace ids) will not be set.
+func NewRequestPanicRecovery(svcLogger svc1log.Logger, evtLogger evt2log.Logger) wrouter.RequestHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, next http.Handler) {
-		recovery := negroni.NewRecovery()
-		recovery.PrintStack = false
-		recovery.ServeHTTP(rw, req, func(rw http.ResponseWriter, req *http.Request) {
-			next.ServeHTTP(rw, req)
+		lrw := toLoggingResponseWriter(rw)
+		panicRecoveryMiddleware(lrw, req, svcLogger, evtLogger, func() {
+			next.ServeHTTP(lrw, req)
 		})
 	}
 }
