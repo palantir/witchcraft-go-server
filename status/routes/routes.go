@@ -18,9 +18,9 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 )
 

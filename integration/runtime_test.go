@@ -25,11 +25,12 @@ import (
 
 	"github.com/nmiyake/pkg/dirs"
 	"github.com/palantir/pkg/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -503,7 +504,7 @@ exclamations: 4
 }
 
 func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable {
-	r, err := refreshable.NewFileRefreshableWithDuration(context.Background(), "var/conf/runtime.yml", time.Millisecond*30)
+	r, err := refreshablefile.NewFileRefreshableWithDuration(context.Background(), "var/conf/runtime.yml", time.Millisecond*30)
 	assert.NoError(t, err)
 	return r
 }

@@ -32,6 +32,7 @@ import (
 
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
@@ -49,7 +50,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -329,7 +330,7 @@ func (s *Server) WithRuntimeConfigProvider(r refreshable.Refreshable) *Server {
 // configuration based on updates to the file).
 func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 	s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-		return refreshable.NewFileRefreshable(ctx, fpath)
+		return refreshablefile.NewFileRefreshable(ctx, fpath)
 	}
 	return s
 }
@@ -774,7 +775,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-			return refreshable.NewFileRefreshable(ctx, runtimeConfigPath)
+			return refreshablefile.NewFileRefreshable(ctx, runtimeConfigPath)
 		}
 	}
 

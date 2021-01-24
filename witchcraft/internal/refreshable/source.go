@@ -17,11 +17,11 @@ package refreshable
 import (
 	"context"
 
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/sources"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 )
 
 type validatingRefreshableHealthCheckSource struct {

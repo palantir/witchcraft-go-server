@@ -35,6 +35,8 @@ github.com/palantir/pkg/httpserver
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.0.1
 github.com/palantir/pkg/objmatcher
+# github.com/palantir/pkg/refreshable v0.0.0-20210124193640-504fd8af43a2
+github.com/palantir/pkg/refreshable
 # github.com/palantir/pkg/retry v1.1.1
 github.com/palantir/pkg/retry
 # github.com/palantir/pkg/safejson v1.0.1
@@ -90,7 +92,7 @@ github.com/pkg/errors
 github.com/pmezard/go-difflib/difflib
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
-# github.com/stretchr/testify v1.4.0
+# github.com/stretchr/testify v1.7.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.uber.org/atomic v1.6.0
@@ -120,3 +122,5 @@ golang.org/x/text/unicode/norm
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3

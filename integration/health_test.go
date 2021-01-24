@@ -27,13 +27,13 @@ import (
 	"time"
 
 	"github.com/palantir/pkg/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/reporter"
 	"github.com/palantir/witchcraft-go-health/sources/periodic"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
