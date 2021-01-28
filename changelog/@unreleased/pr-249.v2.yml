@@ -1,0 +1,5 @@
+type: deprecation
+deprecation:
+  description: Deprecate `github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable` package in favor of `github.com/palantir/pkg/refreshable`.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/249
