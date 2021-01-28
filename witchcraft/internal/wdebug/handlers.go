@@ -48,6 +48,7 @@ type DiagnosticHandler interface {
 	Documentation() string
 	ContentType() string
 	SafeLoggable() bool
+	Extension() string
 	WriteDiagnostic(ctx context.Context, w io.Writer) error
 }
 
@@ -67,6 +68,10 @@ func (h handlerGoroutinesV1) Documentation() string {
 
 func (h handlerGoroutinesV1) SafeLoggable() bool {
 	return true
+}
+
+func (h handlerGoroutinesV1) Extension() string {
+	return "txt"
 }
 
 func (h handlerGoroutinesV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
@@ -92,6 +97,10 @@ func (h handlerCPUProfile1MinuteV1) Documentation() string {
 
 func (h handlerCPUProfile1MinuteV1) SafeLoggable() bool {
 	return true
+}
+
+func (h handlerCPUProfile1MinuteV1) Extension() string {
+	return "prof"
 }
 
 func (h handlerCPUProfile1MinuteV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
@@ -130,6 +139,10 @@ func (h handlerHeapProfileV1) SafeLoggable() bool {
 	return true
 }
 
+func (h handlerHeapProfileV1) Extension() string {
+	return "prof"
+}
+
 func (h handlerHeapProfileV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
 	if err := pprof.Lookup("heap").WriteTo(w, 0); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to write heap in-use profile")
@@ -155,6 +168,10 @@ func (h handlerAllocsProfileV1) SafeLoggable() bool {
 	return true
 }
 
+func (h handlerAllocsProfileV1) Extension() string {
+	return "prof"
+}
+
 func (h handlerAllocsProfileV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
 	if err := pprof.Lookup("allocs").WriteTo(w, 0); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to write heap allocs profile")
@@ -178,6 +195,10 @@ func (h handlerMetricNamesV1) Documentation() string {
 
 func (h handlerMetricNamesV1) SafeLoggable() bool {
 	return true
+}
+
+func (h handlerMetricNamesV1) Extension() string {
+	return "json"
 }
 
 func (h handlerMetricNamesV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
