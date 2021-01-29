@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/stretchr/testify/require"

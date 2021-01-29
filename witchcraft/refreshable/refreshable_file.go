@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
@@ -27,7 +28,7 @@ import (
 )
 
 type fileRefreshable struct {
-	innerRefreshable *DefaultRefreshable
+	innerRefreshable *refreshable.DefaultRefreshable
 
 	filePath     string
 	fileChecksum [sha256.Size]byte
@@ -38,7 +39,7 @@ const (
 )
 
 // NewFileRefreshable is identical to NewFileRefreshableWithDuration except it defaults to use defaultRefreshableSyncPeriod for how often the file is checked
-func NewFileRefreshable(ctx context.Context, filePath string) (Refreshable, error) {
+func NewFileRefreshable(ctx context.Context, filePath string) (refreshable.Refreshable, error) {
 	return NewFileRefreshableWithDuration(ctx, filePath, defaultRefreshableSyncPeriod)
 }
 
@@ -47,13 +48,13 @@ func NewFileRefreshable(ctx context.Context, filePath string) (Refreshable, erro
 // Calling this function also starts a goroutine which updates the value of the refreshable whenever the specified file
 // is changed. The goroutine will terminate when the provided context is done or when the returned cancel function is
 // called.
-func NewFileRefreshableWithDuration(ctx context.Context, filePath string, duration time.Duration) (Refreshable, error) {
+func NewFileRefreshableWithDuration(ctx context.Context, filePath string, duration time.Duration) (refreshable.Refreshable, error) {
 	initialBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, werror.WrapWithContextParams(ctx, err, "failed to create file-based Refreshable because file could not be read", werror.SafeParam("filePath", filePath))
 	}
 	fRefreshable := &fileRefreshable{
-		innerRefreshable: NewDefaultRefreshable(initialBytes),
+		innerRefreshable: refreshable.NewDefaultRefreshable(initialBytes),
 		filePath:         filePath,
 		fileChecksum:     sha256.Sum256(initialBytes),
 	}
@@ -106,6 +107,6 @@ func (d *fileRefreshable) Subscribe(consumer func(interface{})) (unsubscribe fun
 	return d.innerRefreshable.Subscribe(consumer)
 }
 
-func (d *fileRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
+func (d *fileRefreshable) Map(mapFn func(interface{}) interface{}) refreshable.Refreshable {
 	return d.innerRefreshable.Map(mapFn)
 }

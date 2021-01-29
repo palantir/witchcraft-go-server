@@ -24,10 +24,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"

@@ -229,8 +229,8 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
@@ -353,9 +353,9 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
@@ -419,9 +419,9 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
@@ -484,9 +484,9 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
@@ -570,9 +570,9 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 

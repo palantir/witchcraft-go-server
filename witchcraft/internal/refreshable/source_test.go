@@ -19,9 +19,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

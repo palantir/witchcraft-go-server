@@ -19,9 +19,9 @@ import (
 	"sync/atomic"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 )
 
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and

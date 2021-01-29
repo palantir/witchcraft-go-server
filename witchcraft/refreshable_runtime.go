@@ -15,8 +15,8 @@
 package witchcraft
 
 import (
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 )
 
 type refreshableBaseRuntimeConfig interface {
