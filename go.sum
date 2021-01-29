@@ -65,8 +65,8 @@ github.com/palantir/pkg/metrics v1.0.1/go.mod h1:nbKCQCZecI4XdBWpFPVesEDNzB0FLZb
 github.com/palantir/pkg/objmatcher v1.0.0/go.mod h1:r/JGd9x5OOgTCoaHt7qSSRX7jAheaJ88nAWytWsrwN0=
 github.com/palantir/pkg/objmatcher v1.0.1 h1:rzKVO2LXVR2ND7t9Hi3Q+sfFh1RZ5Liq/zmsz0vlgdw=
 github.com/palantir/pkg/objmatcher v1.0.1/go.mod h1:rTHUAN1LduHN+5fMTPkO5w+JHTidSmn5AsK885x2mvs=
-github.com/palantir/pkg/refreshable v0.0.0-20210124193640-504fd8af43a2 h1:kWN5BiGWp45dXZCAkbMd522mo1Wk28iKPzbv0ZX0Q2c=
-github.com/palantir/pkg/refreshable v0.0.0-20210124193640-504fd8af43a2/go.mod h1:CMUW6KQ4AKC9bO0v3wglgZu7VYFGcT+u8w/6F6y2WRA=
+github.com/palantir/pkg/refreshable v1.0.0 h1:pfNYjvpNHUE/bUDZM/O1FRK6uNY5StvStWqU+oQYHak=
+github.com/palantir/pkg/refreshable v1.0.0/go.mod h1:92rISykbd0wXVYpkT41CU7nZstnLsPwT8iFDCdlJoJM=
 github.com/palantir/pkg/retry v1.0.0/go.mod h1:/LJ8kSqgmyNvUKVU0ZSkNLfQ47ufKIZKhEk211pQZ7s=
 github.com/palantir/pkg/retry v1.1.1 h1:rwZ4rrOpudvWFeSrkWvXVLgZKRsp+D8digPJUXZMmw8=
 github.com/palantir/pkg/retry v1.1.1/go.mod h1:TdzhQIVAaNwpezz4OSibhZAFBYuAoJ16yZXyhJEQ9h8=
@@ -124,6 +124,7 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
+github.com/stretchr/testify v1.6.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 go.uber.org/atomic v1.5.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=

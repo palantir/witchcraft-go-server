@@ -72,7 +72,7 @@ func NewDuration(in Refreshable) Duration {
 	}
 }
 
-func NewDurationPtr(in Refreshable) Duration {
+func NewDurationPtr(in Refreshable) DurationPtr {
 	return refreshableTyped{
 		Refreshable: in,
 	}
@@ -108,14 +108,16 @@ func NewIntPtr(in Refreshable) IntPtr {
 	}
 }
 
-var _ Bool = (*refreshableTyped)(nil)
-var _ BoolPtr = (*refreshableTyped)(nil)
-var _ Duration = (*refreshableTyped)(nil)
-var _ Int = (*refreshableTyped)(nil)
-var _ IntPtr = (*refreshableTyped)(nil)
-var _ String = (*refreshableTyped)(nil)
-var _ StringPtr = (*refreshableTyped)(nil)
-var _ StringSlice = (*refreshableTyped)(nil)
+var (
+	_ Bool        = (*refreshableTyped)(nil)
+	_ BoolPtr     = (*refreshableTyped)(nil)
+	_ Duration    = (*refreshableTyped)(nil)
+	_ Int         = (*refreshableTyped)(nil)
+	_ IntPtr      = (*refreshableTyped)(nil)
+	_ String      = (*refreshableTyped)(nil)
+	_ StringPtr   = (*refreshableTyped)(nil)
+	_ StringSlice = (*refreshableTyped)(nil)
+)
 
 type refreshableTyped struct {
 	Refreshable
@@ -151,4 +153,8 @@ func (rt refreshableTyped) CurrentBoolPtr() *bool {
 
 func (rt refreshableTyped) CurrentDuration() time.Duration {
 	return rt.Current().(time.Duration)
+}
+
+func (rt refreshableTyped) CurrentDurationPtr() *time.Duration {
+	return rt.Current().(*time.Duration)
 }

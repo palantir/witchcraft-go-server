@@ -11,7 +11,7 @@ require (
 	github.com/palantir/pkg/httpserver v1.0.1
 	github.com/palantir/pkg/metrics v1.0.1
 	github.com/palantir/pkg/objmatcher v1.0.1
-	github.com/palantir/pkg/refreshable v0.0.0-20210124193640-504fd8af43a2
+	github.com/palantir/pkg/refreshable v1.0.0
 	github.com/palantir/pkg/safejson v1.0.1
 	github.com/palantir/pkg/signals v1.0.1
 	github.com/palantir/pkg/tlsconfig v1.0.2
