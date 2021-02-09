@@ -34,39 +34,47 @@ const (
 // In the case of servers in a service-mesh, requests will never be retried and the mesh URI will only be returned on the
 // first call to GetNextURI
 type RequestRetrier struct {
-	currentURI string
-	retrier    retry.Retrier
-	uris       []string
-	offset     int
-	failedURIs map[string]struct{}
-	maxRetries int
-	retryCount int
+	currentURI   string
+	retrier      retry.Retrier
+	uris         []string
+	offset       int
+	failedURIs   map[string]struct{}
+	maxAttempts  int
+	attemptCount int
 }
 
 // NewRequestRetrier creates a new request retrier.
-// Regardless of maxRetries, mesh URIs will never be retried.
-func NewRequestRetrier(uris []string, retrier retry.Retrier, maxRetries int) *RequestRetrier {
+// Regardless of maxAttempts, mesh URIs will never be retried.
+func NewRequestRetrier(uris []string, retrier retry.Retrier, maxAttempts int) *RequestRetrier {
 	offset := rand.Intn(len(uris))
 	return &RequestRetrier{
-		currentURI: uris[offset],
-		retrier:    retrier,
-		uris:       uris,
-		offset:     offset,
-		failedURIs: map[string]struct{}{},
-		maxRetries: maxRetries,
-		retryCount: 0,
+		currentURI:   uris[offset],
+		retrier:      retrier,
+		uris:         uris,
+		offset:       offset,
+		failedURIs:   map[string]struct{}{},
+		maxAttempts:  maxAttempts,
+		attemptCount: 0,
 	}
 }
 
 // ShouldGetNextURI returns true if GetNextURI has never been called or if the request and its corresponding error
 // indicate the request should be retried.
 func (r *RequestRetrier) ShouldGetNextURI(resp *http.Response, respErr error) bool {
-	if r.retryCount == 0 {
+	if r.attemptCount == 0 {
 		return true
 	}
-	return r.retryCount <= r.maxRetries &&
+	return r.attemptsRemaining() &&
 		!r.isMeshURI(r.currentURI) &&
 		r.responseAndErrRetriable(resp, respErr)
+}
+
+func (r *RequestRetrier) attemptsRemaining() bool {
+	// maxAttempts of 0 indicates no limit
+	if r.maxAttempts == 0 {
+		return true
+	}
+	return r.attemptCount < r.maxAttempts
 }
 
 // GetNextURI returns the next URI a client should use, or an error if there's no suitable URI.
@@ -74,9 +82,9 @@ func (r *RequestRetrier) ShouldGetNextURI(resp *http.Response, respErr error) bo
 // an error will never be returned.
 func (r *RequestRetrier) GetNextURI(ctx context.Context, resp *http.Response, respErr error) (string, error) {
 	defer func() {
-		r.retryCount++
+		r.attemptCount++
 	}()
-	if r.retryCount == 0 {
+	if r.attemptCount == 0 {
 		return r.removeMeshSchemeIfPresent(r.currentURI), nil
 	} else if !r.ShouldGetNextURI(resp, respErr) {
 		return "", r.getErrorForUnretriableResponse(ctx, resp, respErr)
@@ -164,8 +172,8 @@ func (r *RequestRetrier) isMeshURI(uri string) bool {
 func (r *RequestRetrier) getErrorForUnretriableResponse(ctx context.Context, resp *http.Response, respErr error) error {
 	message := "GetNextURI called, but retry should not be attempted"
 	params := []werror.Param{
-		werror.SafeParam("retryCount", r.retryCount),
-		werror.SafeParam("maxRetries", r.maxRetries),
+		werror.SafeParam("attemptCount", r.attemptCount),
+		werror.SafeParam("maxAttempts", r.maxAttempts),
 		werror.SafeParam("statusCodeRetriable", r.responseAndErrRetriable(resp, respErr)),
 		werror.SafeParam("uriInMesh", r.isMeshURI(r.currentURI)),
 	}

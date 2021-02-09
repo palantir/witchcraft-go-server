@@ -42,8 +42,8 @@ github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/openzipkin/zipkin-go v0.2.2 h1:nY8Hti+WKaP0cRsSeQ026wU03QsM762XBeCXBb9NAWI=
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/palantir/conjure-go-runtime/v2 v2.2.0/go.mod h1:k4+u7YJwBAO6Kk7SGvFCQR7vrkVW8vgQxO8rPZGuS5g=
-github.com/palantir/conjure-go-runtime/v2 v2.8.0 h1:PRfYLJ2LSq0GaIKlgbtUkq2AO+XeRNv3mpJL0hHXpJQ=
-github.com/palantir/conjure-go-runtime/v2 v2.8.0/go.mod h1:tTeTRoO23DHx/3E3HLfhbwh98Byrmp1cdk8m9kcZ2M4=
+github.com/palantir/conjure-go-runtime/v2 v2.9.1 h1:3C2q+fbTbBAymd2B55jHVGgskOyR7yduslb0ySGmp4o=
+github.com/palantir/conjure-go-runtime/v2 v2.9.1/go.mod h1:rhOuZSp5lge3JKD5gzAFRb93uA1/jfmeefpH2evRAug=
 github.com/palantir/go-encrypted-config-value v1.1.0 h1:GwyTWSEthp3dRII2AL+lgdM5ajc8uBVQdv7dZSG91hY=
 github.com/palantir/go-encrypted-config-value v1.1.0/go.mod h1:6c5zDN0XqZLxJiV3yLZmoEkUpaB4W3xJdKY6UPn24qI=
 github.com/palantir/go-metrics v1.1.0 h1:gf6W9EBvzREheH/3wNLPmJD8pe+xtag3TjePZe4hUTQ=
@@ -82,8 +82,6 @@ github.com/palantir/pkg/safeyaml v1.0.1/go.mod h1:rwADKpvXsYupKvXJg4pOuPrwK8F4Ki
 github.com/palantir/pkg/signals v1.0.1 h1:WDapfUO/vq6DoN4hHmowy2kEDaCQxNCZUhORUn2L4Ig=
 github.com/palantir/pkg/signals v1.0.1/go.mod h1:L5/ZeqXa2QjdxpjqcMQ4LtZL3xCp1FMEhGjMHyLDb2g=
 github.com/palantir/pkg/tlsconfig v1.0.0/go.mod h1:pyDZXpSYm5J6r/4Fm6mjDV25Oe1aMsrgTjkCccKt8MM=
-github.com/palantir/pkg/tlsconfig v1.0.1 h1:QlOLCSsUnrZJrNnWMIegDBULVjsyAgFJ8q6Q+8ukizU=
-github.com/palantir/pkg/tlsconfig v1.0.1/go.mod h1:GmXODSYyPva3huR2pEaAknSGIcyRPy08Hvr38WP5+W4=
 github.com/palantir/pkg/tlsconfig v1.0.2 h1:N6yw9WPkoYpO1lXF58W1cmYK0nEoek5MZswFqpKOoc4=
 github.com/palantir/pkg/tlsconfig v1.0.2/go.mod h1:GmXODSYyPva3huR2pEaAknSGIcyRPy08Hvr38WP5+W4=
 github.com/palantir/pkg/transform v1.0.0 h1:21MzkUg9fQgIdadTYMM1Z1qrml2MVdpNY5ai27G15LM=
