@@ -116,7 +116,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 	client, err := httpclient.NewClient(
 		httpclient.WithBaseURLs([]string{fmt.Sprintf("https://localhost:%d/example", port)}),
 		httpclient.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),
-		httpclient.WithMaxRetries(-1))
+		httpclient.WithMaxRetries(0))
 	require.NoError(t, err)
 
 	for _, test := range []struct {
