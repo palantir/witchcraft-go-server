@@ -41,7 +41,7 @@ const (
 // initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
-func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
+func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
@@ -61,6 +61,9 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 
 	logWriterFn := func(slsFilename string) io.Writer {
 		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		if tcpWriter != nil {
+			internalWriter = io.MultiWriter(internalWriter, tcpWriter)
+		}
 		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
 
