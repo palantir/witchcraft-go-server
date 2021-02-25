@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: |-
+    Add service discovery configuration for generating clients
+
+    Services can now declare all dependent client configurations in a single location and share common settings across all clients. Although the new service-discovery block is in the runtime configuration, it is not currently live-reloadable.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/252
