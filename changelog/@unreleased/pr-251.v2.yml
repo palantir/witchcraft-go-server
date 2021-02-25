@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: |-
+    Add support to write JSON encoded log lines to a TCP socket and expose service-discovery runtime config.
+
+    Services can now declare an "sls-log-tcp-json-receiver" service-discovery block, where logs will be multiplexed between the TCP receiver and the default log output destination. The log lines will be wrapped in an envelope that contains metadata about the source origin, including hostname, product, product version, etc. The TCP receiver is expected to use TLS authentication so valid security material must also be configured under the service-discovery block.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/251
