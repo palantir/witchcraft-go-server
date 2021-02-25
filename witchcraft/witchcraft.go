@@ -602,6 +602,9 @@ func (s *Server) Start() (rErr error) {
 	defer metricsDeferFn()
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
+	// initialize loggers
+	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
+
 	// load runtime configuration
 	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
 	if err != nil {
@@ -611,7 +614,6 @@ func (s *Server) Start() (rErr error) {
 	// extract the TCP JSON receiver from the runtime config
 	servicesCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery
 	receiverCfg, err := servicesCfg.MustClientConfig("sls-log-tcp-json-receiver")
-	var tcpWriter io.WriteCloser
 	if err == nil && len(receiverCfg.URIs) > 0 {
 		tlsConfig, err := tlsconfig.NewClientConfig(
 			tlsconfig.ClientRootCAFiles(receiverCfg.Security.CAFiles...),
@@ -625,14 +627,13 @@ func (s *Server) Start() (rErr error) {
 			return err
 		}
 		envelopeMetadata := tcpjson.GetEnvelopeMetadata()
-		tcpWriter = tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
+		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
 		defer func() {
 			_ = tcpWriter.Close()
 		}()
+		// re-initialize the loggers with the TCP writer
+		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
 	}
-
-	// initialize loggers
-	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
 
 	// add loggers to context
 	ctx = s.withLoggers(ctx)
