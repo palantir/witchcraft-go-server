@@ -608,19 +608,19 @@ func (s *Server) Start() (rErr error) {
 		return err
 	}
 
-	// extract network log targets from the runtime config
+	// extract the TCP JSON receiver from the runtime config
 	servicesCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery
-	nltServicesCfg, err := servicesCfg.MustClientConfig("sls-log-tcp-json-receiver")
-	var tcpWriter *tcpjson.TCPWriter
-	if err == nil && len(nltServicesCfg.URIs) > 0 {
+	receiverCfg, err := servicesCfg.MustClientConfig("sls-log-tcp-json-receiver")
+	var tcpWriter io.WriteCloser
+	if err == nil && len(receiverCfg.URIs) > 0 {
 		tlsConfig, err := tlsconfig.NewClientConfig(
-			tlsconfig.ClientRootCAFiles(nltServicesCfg.Security.CAFiles...),
-			tlsconfig.ClientKeyPairFiles(nltServicesCfg.Security.CertFile, nltServicesCfg.Security.KeyFile),
+			tlsconfig.ClientRootCAFiles(receiverCfg.Security.CAFiles...),
+			tlsconfig.ClientKeyPairFiles(receiverCfg.Security.CertFile, receiverCfg.Security.KeyFile),
 		)
 		if err != nil {
 			return err
 		}
-		connProvider, err := tcpjson.NewTCPConnProvider(nltServicesCfg.URIs, tlsConfig)
+		connProvider, err := tcpjson.NewTCPConnProvider(receiverCfg.URIs, tlsConfig)
 		if err != nil {
 			return err
 		}

@@ -55,7 +55,7 @@ func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (*TCPConnProvider, er
 	for _, uri := range uris {
 		u, err := url.Parse(uri)
 		if err != nil {
-			return nil, werror.Wrap(err, ErrFailedParsingURI, werror.SafeParam("uri", uri))
+			return nil, werror.Error(ErrFailedParsingURI)
 		}
 		hosts = append(hosts, u.Host)
 	}

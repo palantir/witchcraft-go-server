@@ -61,7 +61,7 @@ func TestClosedWriter(t *testing.T) {
 	tcpWriter := tcpjson.NewTCPWriter(testMetadata, provider)
 
 	n, err := tcpWriter.Write(logPayload)
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.Equal(t, len(expectedEnvelope), n)
 
 	err = tcpWriter.Close()
@@ -99,6 +99,7 @@ func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
 // bytes buffer instead of to the net.Conn.
 type bufferedConnProvider struct {
 	net.Conn
+	err    error
 	buffer bytes.Buffer
 }
 
@@ -108,4 +109,8 @@ func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
 
 func (t *bufferedConnProvider) Write(d []byte) (int, error) {
 	return t.buffer.Write(d)
+}
+
+func (t *bufferedConnProvider) Close() error {
+	return t.err
 }
