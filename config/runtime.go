@@ -17,15 +17,17 @@ package config
 import (
 	"strings"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
 
 // Runtime specifies the base runtime configuration fields that should be included in all witchcraft-server-go
 // server runtime configurations.
 type Runtime struct {
-	DiagnosticsConfig DiagnosticsConfig  `yaml:"diagnostics,omitempty"`
-	HealthChecks      HealthChecksConfig `yaml:"health-checks,omitempty"`
-	LoggerConfig      *LoggerConfig      `yaml:"logging,omitempty"`
+	DiagnosticsConfig DiagnosticsConfig         `yaml:"diagnostics,omitempty"`
+	HealthChecks      HealthChecksConfig        `yaml:"health-checks,omitempty"`
+	LoggerConfig      *LoggerConfig             `yaml:"logging,omitempty"`
+	ServiceDiscovery  httpclient.ServicesConfig `yaml:"service-discovery,omitempty"`
 }
 
 type DiagnosticsConfig struct {
