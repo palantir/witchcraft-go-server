@@ -90,9 +90,10 @@ func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
 		ProductVersion: testMetadata.ProductVersion,
 		Payload:        payload,
 	}
-	b, err := json.Marshal(&e)
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(&e)
 	require.NoError(t, err)
-	return b
+	return buf.Bytes()
 }
 
 // bufferedConnProvider is a mock ConnProvider that writes to an internal

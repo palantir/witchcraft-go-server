@@ -15,6 +15,7 @@
 package tcpjson
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net"
@@ -67,10 +68,11 @@ func (d *TCPWriter) Write(logPayload []byte) (int, error) {
 		ProductVersion: d.metadata.ProductVersion,
 		Payload:        logPayload,
 	}
-	b, err := json.Marshal(envelopeToWrite)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(&envelopeToWrite); err != nil {
 		return 0, err
 	}
+	b := buf.Bytes()
 
 	conn, err := d.getConn()
 	if err != nil {
