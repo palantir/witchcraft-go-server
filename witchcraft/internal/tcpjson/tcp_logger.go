@@ -77,22 +77,19 @@ func (d *TCPWriter) Write(logPayload []byte) (int, error) {
 		return 0, err
 	}
 
-	var totalWritten int
-	for {
-		n, err := conn.Write(b)
+	var total int
+	for total < len(b) {
+		n, err := conn.Write(b[total:])
+		total += n
 		if err != nil {
 			if nerr, ok := err.(net.Error); !(ok && (nerr.Temporary() || nerr.Timeout())) {
 				// permanent error so close the connection
-				return n, d.closeConn()
+				return total, d.closeConn()
 			}
-			return n, err
-		}
-		totalWritten += n
-		if totalWritten >= len(b) {
-			break
+			return total, err
 		}
 	}
-	return totalWritten, nil
+	return total, nil
 }
 
 func (d *TCPWriter) getConn() (net.Conn, error) {
