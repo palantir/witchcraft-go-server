@@ -91,7 +91,7 @@ func (d *TCPWriter) Write(logPayload []byte) (int, error) {
 			return total, err
 		}
 	}
-	return total, nil
+	return len(logPayload), nil
 }
 
 func (d *TCPWriter) getConn() (net.Conn, error) {
