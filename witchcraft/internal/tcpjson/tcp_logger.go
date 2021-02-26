@@ -25,14 +25,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var _ io.Writer = (*TCPWriter)(nil)
+var _ io.WriteCloser = (*TCPWriter)(nil)
 
 const errWriterClosed = "writer is closed"
 
 // envelopeSerializerFunc provides a way to change the serialization method for the provided payload.
 type envelopeSerializerFunc func(payload []byte) ([]byte, error)
 
-// TCPWriter writes logs to a TCP socket and wraps them with envelope metadata.
 type TCPWriter struct {
 	provider           ConnProvider
 	envelopeSerializer envelopeSerializerFunc
@@ -44,6 +43,9 @@ type TCPWriter struct {
 	conn net.Conn
 }
 
+// NewTCPWriter returns an io.WriteCloser that writes logs to a TCP socket and wraps
+// them with the provided envelope metadata. TCP connections are retrieved using the
+// ConnProvider and connection state is managed internally.
 func NewTCPWriter(metadata LogEnvelopeMetadata, provider ConnProvider) *TCPWriter {
 	return newTCPWriterInternal(provider, zerologSerializer(metadata))
 }
@@ -57,6 +59,10 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 	}
 }
 
+// Write implements the io.Writer interface for use with TCP sockets.
+// The provided input is wrapped in a LogEnvelopeV1 and serialized as JSON before writing to the underlying socket.
+// If there is a connection error before or during writing, the connection will be closed and an error will be returned.
+// If a subsequent Write is called after Close, then this will return immediately with an error.
 func (d *TCPWriter) Write(p []byte) (int, error) {
 	if d.closed() {
 		return 0, werror.Error(errWriterClosed)

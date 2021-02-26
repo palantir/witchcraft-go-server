@@ -26,7 +26,7 @@ import (
 // ConnProvider defines the behavior to retrieve an established net.Conn.
 type ConnProvider interface {
 	// GetConn returns a net.Conn or an error if there is no connection established.
-	// It is the callers responsibility to close the returned net.Conn and
+	// It is the caller's responsibility to close the returned net.Conn and
 	// gracefully handle any closed connection errors if the net.Conn is shared across clients.
 	GetConn() (net.Conn, error)
 }
@@ -48,6 +48,9 @@ type tcpConnProvider struct {
 	tlsConfig   *tls.Config
 }
 
+// NewTCPConnProvider returns a new ConnProvider that provides TCP connections.
+// The provided uris must not be empty and must be able to be parsed as URIs. Refer to the documentation for url.Parse.
+// If the provided TLS config is nil, then the default config will be used.
 func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (ConnProvider, error) {
 	if len(uris) < 1 {
 		return nil, werror.Error(ErrNoURIs)
