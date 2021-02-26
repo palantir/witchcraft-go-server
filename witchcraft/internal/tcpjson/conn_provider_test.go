@@ -72,6 +72,7 @@ func TestNewTCPConnProvider(t *testing.T) {
 	}
 }
 
+// TestGetConn verifies that GetConn can successfully dial a TCP server and a valid net.Conn is returned for use.
 func TestGetConn(t *testing.T) {
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	server.TLS = &tls.Config{InsecureSkipVerify: true}

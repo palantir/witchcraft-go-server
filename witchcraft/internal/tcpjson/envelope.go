@@ -19,34 +19,24 @@ import (
 	"os"
 )
 
-type SlsEnvelopeV1 struct {
-	Type           string          `json:"type"`
-	Deployment     string          `json:"deployment"`
-	Environment    string          `json:"environment"`
-	EnvironmentID  string          `json:"environmentId"`
-	Host           string          `json:"host"`
-	NodeID         string          `json:"nodeId"`
-	Service        string          `json:"service"`
-	ServiceID      string          `json:"serviceId"`
-	Stack          string          `json:"stack"`
-	StackID        string          `json:"stackId"`
-	Product        string          `json:"product"`
-	ProductVersion string          `json:"productVersion"`
-	Payload        json.RawMessage `json:"payload"`
+type LogEnvelopeV1 struct {
+	Metadata LogEnvelopeMetadata `json:",inline"`
+	Payload  json.RawMessage     `json:"payload"`
 }
 
 type LogEnvelopeMetadata struct {
-	Deployment     string
-	Environment    string
-	EnvironmentID  string
-	Host           string
-	NodeID         string
-	Product        string
-	ProductVersion string
-	Service        string
-	ServiceID      string
-	Stack          string
-	StackID        string
+	Type           string `json:"type"`
+	Deployment     string `json:"deployment"`
+	Environment    string `json:"environment"`
+	EnvironmentID  string `json:"environmentId"`
+	Host           string `json:"host"`
+	NodeID         string `json:"nodeId"`
+	Service        string `json:"service"`
+	ServiceID      string `json:"serviceId"`
+	Stack          string `json:"stack"`
+	StackID        string `json:"stackId"`
+	Product        string `json:"product"`
+	ProductVersion string `json:"productVersion"`
 }
 
 func GetEnvelopeMetadata() LogEnvelopeMetadata {

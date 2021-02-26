@@ -605,6 +605,9 @@ func (s *Server) Start() (rErr error) {
 	// initialize loggers
 	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
 
+	// add loggers to context
+	ctx = s.withLoggers(ctx)
+
 	// load runtime configuration
 	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
 	if err != nil {
@@ -620,7 +623,7 @@ func (s *Server) Start() (rErr error) {
 			tlsconfig.ClientKeyPairFiles(receiverCfg.Security.CertFile, receiverCfg.Security.KeyFile),
 		)
 		if err != nil {
-			return err
+			return werror.Wrap(err, "tls client config could be created for the TCP JSON reciever")
 		}
 		connProvider, err := tcpjson.NewTCPConnProvider(receiverCfg.URIs, tlsConfig)
 		if err != nil {
@@ -631,12 +634,10 @@ func (s *Server) Start() (rErr error) {
 		defer func() {
 			_ = tcpWriter.Close()
 		}()
-		// re-initialize the loggers with the TCP writer
+		// re-initialize the loggers with the TCP writer and overwrite the context
 		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
+		ctx = s.withLoggers(ctx)
 	}
-
-	// add loggers to context
-	ctx = s.withLoggers(ctx)
 
 	// Set the service log level if configured
 	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {

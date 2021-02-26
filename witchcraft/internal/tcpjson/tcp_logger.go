@@ -16,7 +16,6 @@ package tcpjson
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net"
@@ -80,7 +79,8 @@ func (d *TCPWriter) Write(p []byte) (int, error) {
 		if err != nil {
 			if nerr, ok := err.(net.Error); !(ok && (nerr.Temporary() || nerr.Timeout())) {
 				// permanent error so close the connection
-				return total, d.closeConn()
+				_ = d.closeConn()
+				return total, err
 			}
 			return total, err
 		}
@@ -134,7 +134,7 @@ func (d *TCPWriter) Close() error {
 	return d.closeConn()
 }
 
-func zerologSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, error) {
+func zerologSerializer(metadata LogEnvelopeMetadata) envelopeSerializerFunc {
 	// create a new top level logger with no a scratch output since each
 	// serialization will write to it's own local buffer instead of a single writer.
 	logger := zerolog.New(ioutil.Discard).With().
@@ -153,44 +153,11 @@ func zerologSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, err
 		Logger()
 	return func(p []byte) ([]byte, error) {
 		var buf bytes.Buffer
-		l := logger.Output(&buf).With().RawJSON("payload", p).Logger()
+		l := logger.Output(&buf)
+		if p != nil {
+			l = l.With().RawJSON("payload", p).Logger()
+		}
 		l.Log().Send()
 		return buf.Bytes(), nil
-	}
-}
-
-func jsonEncoderSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, error) {
-	return func(p []byte) ([]byte, error) {
-		var buf bytes.Buffer
-		envelopeToWrite := getEnvelopeWithPayload(metadata, p)
-		if err := json.NewEncoder(&buf).Encode(&envelopeToWrite); err != nil {
-			return nil, err
-		}
-		return buf.Bytes(), nil
-	}
-}
-
-func jsonMarshalSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, error) {
-	return func(p []byte) ([]byte, error) {
-		envelopeToWrite := getEnvelopeWithPayload(metadata, p)
-		return json.Marshal(&envelopeToWrite)
-	}
-}
-
-func getEnvelopeWithPayload(metadata LogEnvelopeMetadata, payload []byte) SlsEnvelopeV1 {
-	return SlsEnvelopeV1{
-		Type:           "envelope.1",
-		Deployment:     metadata.Deployment,
-		Environment:    metadata.Environment,
-		EnvironmentID:  metadata.EnvironmentID,
-		Host:           metadata.Host,
-		NodeID:         metadata.NodeID,
-		Service:        metadata.Service,
-		ServiceID:      metadata.ServiceID,
-		Stack:          metadata.Stack,
-		StackID:        metadata.StackID,
-		Product:        metadata.Product,
-		ProductVersion: metadata.ProductVersion,
-		Payload:        payload,
 	}
 }

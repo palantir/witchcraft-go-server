@@ -26,7 +26,8 @@ import (
 // ConnProvider defines the behavior to retrieve an established net.Conn.
 type ConnProvider interface {
 	// GetConn returns a net.Conn or an error if there is no connection established.
-	// It is the users responsibility to close the returned net.Conn.
+	// It is the callers responsibility to close the returned net.Conn and
+	// gracefully handle any closed connection errors if the net.Conn is shared across clients.
 	GetConn() (net.Conn, error)
 }
 
@@ -36,16 +37,18 @@ const (
 	ErrFailedDial       = "failed to dial the host:port"
 )
 
-var _ ConnProvider = (*TCPConnProvider)(nil)
+var _ ConnProvider = (*tcpConnProvider)(nil)
 
-// TCPConnProvider implements a ConnProvider that will round-robin TCP connections to a specific set of hosts.
-type TCPConnProvider struct {
-	hostIdx   int32
-	hosts     []string
-	tlsConfig *tls.Config
+// tcpConnProvider implements a ConnProvider that will round-robin TCP connections to a specific set of hosts.
+type tcpConnProvider struct {
+	// nextHostIdx contains the index of the next host to connect to from the hosts slice below.
+	// The index will be reset to 0 when len(hosts) is reached to facilitate round-robin connections.
+	nextHostIdx int32
+	hosts       []string
+	tlsConfig   *tls.Config
 }
 
-func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (*TCPConnProvider, error) {
+func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (ConnProvider, error) {
 	if len(uris) < 1 {
 		return nil, werror.Error(ErrNoURIs)
 	}
@@ -55,24 +58,24 @@ func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (*TCPConnProvider, er
 	for _, uri := range uris {
 		u, err := url.Parse(uri)
 		if err != nil {
-			return nil, werror.Error(ErrFailedParsingURI)
+			return nil, werror.Error(ErrFailedParsingURI, werror.SafeParam("uri", uri))
 		}
 		hosts = append(hosts, u.Host)
 	}
 
-	return &TCPConnProvider{
-		hostIdx:   0,
-		hosts:     hosts,
-		tlsConfig: tlsCfg,
+	return &tcpConnProvider{
+		nextHostIdx: 0,
+		hosts:       hosts,
+		tlsConfig:   tlsCfg,
 	}, nil
 }
 
-func (s *TCPConnProvider) GetConn() (net.Conn, error) {
-	oldIdx := atomic.LoadInt32(&s.hostIdx)
-	nextHostIdx := int(oldIdx) % len(s.hosts)
-	atomic.CompareAndSwapInt32(&s.hostIdx, oldIdx, oldIdx+1)
+func (s *tcpConnProvider) GetConn() (net.Conn, error) {
+	hostIdx := atomic.LoadInt32(&s.nextHostIdx)
+	nextHostIdx := int(hostIdx+1) % len(s.hosts)
+	atomic.CompareAndSwapInt32(&s.nextHostIdx, hostIdx, int32(nextHostIdx))
 
-	tlsConn, err := tls.Dial("tcp", s.hosts[nextHostIdx], s.tlsConfig)
+	tlsConn, err := tls.Dial("tcp", s.hosts[hostIdx], s.tlsConfig)
 	if err != nil {
 		return nil, werror.Wrap(err, ErrFailedDial)
 	}
