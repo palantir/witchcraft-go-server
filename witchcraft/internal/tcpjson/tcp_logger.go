@@ -18,20 +18,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net"
 	"sync"
 
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/rs/zerolog"
 )
 
 var _ io.Writer = (*TCPWriter)(nil)
 
-const ErrWriterClosed = "writer is closed"
+const errWriterClosed = "writer is closed"
+
+// envelopeSerializerFunc provides a way to change the serialization method for the provided payload.
+type envelopeSerializerFunc func(payload []byte) ([]byte, error)
 
 // TCPWriter writes logs to a TCP socket and wraps them with envelope metadata.
 type TCPWriter struct {
-	metadata LogEnvelopeMetadata
-	provider ConnProvider
+	provider           ConnProvider
+	envelopeSerializer envelopeSerializerFunc
 
 	// closedChan is used to signal that the writer is shutting down
 	closedChan chan struct{}
@@ -41,38 +46,27 @@ type TCPWriter struct {
 }
 
 func NewTCPWriter(metadata LogEnvelopeMetadata, provider ConnProvider) *TCPWriter {
+	return newTCPWriterInternal(provider, zerologSerializer(metadata))
+}
+
+func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializerFunc) *TCPWriter {
 	return &TCPWriter{
-		metadata:   metadata,
-		provider:   provider,
-		closedChan: make(chan struct{}),
-		conn:       nil,
+		envelopeSerializer: serializerFunc,
+		provider:           provider,
+		closedChan:         make(chan struct{}),
+		conn:               nil,
 	}
 }
 
-func (d *TCPWriter) Write(logPayload []byte) (int, error) {
+func (d *TCPWriter) Write(p []byte) (int, error) {
 	if d.closed() {
-		return 0, werror.Error(ErrWriterClosed)
+		return 0, werror.Error(errWriterClosed)
 	}
-	envelopeToWrite := SlsEnvelopeV1{
-		Type:           "envelope.1",
-		Deployment:     d.metadata.Deployment,
-		Environment:    d.metadata.Environment,
-		EnvironmentID:  d.metadata.EnvironmentID,
-		Host:           d.metadata.Host,
-		NodeID:         d.metadata.NodeID,
-		Service:        d.metadata.Service,
-		ServiceID:      d.metadata.ServiceID,
-		Stack:          d.metadata.Stack,
-		StackID:        d.metadata.StackID,
-		Product:        d.metadata.Product,
-		ProductVersion: d.metadata.ProductVersion,
-		Payload:        logPayload,
+
+	envelope, err := d.envelopeSerializer(p)
+	if err != nil {
+		return 0, werror.Wrap(err, "failed to serialize the envelope")
 	}
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(&envelopeToWrite); err != nil {
-		return 0, err
-	}
-	b := buf.Bytes()
 
 	conn, err := d.getConn()
 	if err != nil {
@@ -80,8 +74,8 @@ func (d *TCPWriter) Write(logPayload []byte) (int, error) {
 	}
 
 	var total int
-	for total < len(b) {
-		n, err := conn.Write(b[total:])
+	for total < len(envelope) {
+		n, err := conn.Write(envelope[total:])
 		total += n
 		if err != nil {
 			if nerr, ok := err.(net.Error); !(ok && (nerr.Temporary() || nerr.Timeout())) {
@@ -91,7 +85,7 @@ func (d *TCPWriter) Write(logPayload []byte) (int, error) {
 			return total, err
 		}
 	}
-	return len(logPayload), nil
+	return len(p), nil
 }
 
 func (d *TCPWriter) getConn() (net.Conn, error) {
@@ -138,4 +132,65 @@ func (d *TCPWriter) closed() bool {
 func (d *TCPWriter) Close() error {
 	close(d.closedChan)
 	return d.closeConn()
+}
+
+func zerologSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, error) {
+	// create a new top level logger with no a scratch output since each
+	// serialization will write to it's own local buffer instead of a single writer.
+	logger := zerolog.New(ioutil.Discard).With().
+		Str("type", "envelope.1").
+		Str("deployment", metadata.Deployment).
+		Str("environment", metadata.Environment).
+		Str("environmentId", metadata.EnvironmentID).
+		Str("host", metadata.Host).
+		Str("nodeId", metadata.NodeID).
+		Str("service", metadata.Service).
+		Str("serviceId", metadata.ServiceID).
+		Str("stack", metadata.Stack).
+		Str("stackId", metadata.StackID).
+		Str("product", metadata.Product).
+		Str("productVersion", metadata.ProductVersion).
+		Logger()
+	return func(p []byte) ([]byte, error) {
+		var buf bytes.Buffer
+		l := logger.Output(&buf).With().RawJSON("payload", p).Logger()
+		l.Log().Send()
+		return buf.Bytes(), nil
+	}
+}
+
+func jsonEncoderSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, error) {
+	return func(p []byte) ([]byte, error) {
+		var buf bytes.Buffer
+		envelopeToWrite := getEnvelopeWithPayload(metadata, p)
+		if err := json.NewEncoder(&buf).Encode(&envelopeToWrite); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+}
+
+func jsonMarshalSerializer(metadata LogEnvelopeMetadata) func(p []byte) ([]byte, error) {
+	return func(p []byte) ([]byte, error) {
+		envelopeToWrite := getEnvelopeWithPayload(metadata, p)
+		return json.Marshal(&envelopeToWrite)
+	}
+}
+
+func getEnvelopeWithPayload(metadata LogEnvelopeMetadata, payload []byte) SlsEnvelopeV1 {
+	return SlsEnvelopeV1{
+		Type:           "envelope.1",
+		Deployment:     metadata.Deployment,
+		Environment:    metadata.Environment,
+		EnvironmentID:  metadata.EnvironmentID,
+		Host:           metadata.Host,
+		NodeID:         metadata.NodeID,
+		Service:        metadata.Service,
+		ServiceID:      metadata.ServiceID,
+		Stack:          metadata.Stack,
+		StackID:        metadata.StackID,
+		Product:        metadata.Product,
+		ProductVersion: metadata.ProductVersion,
+		Payload:        payload,
+	}
 }

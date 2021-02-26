@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tcpjson_test
+package tcpjson
 
 import (
 	"bytes"
-	"encoding/json"
 	"net"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/tcpjson"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	testMetadata = tcpjson.LogEnvelopeMetadata{
+	testMetadata = LogEnvelopeMetadata{
 		Deployment:     "test-deployment",
 		Environment:    "test-environment",
 		EnvironmentID:  "test-environment-id",
@@ -45,10 +43,10 @@ func TestWrite(t *testing.T) {
 	expectedEnvelope := getEnvelopeBytes(t, logPayload)
 
 	provider := new(bufferedConnProvider)
-	tcpWriter := tcpjson.NewTCPWriter(testMetadata, provider)
+	tcpWriter := NewTCPWriter(testMetadata, provider)
 	n, err := tcpWriter.Write(logPayload)
 	require.NoError(t, err)
-	require.Equal(t, len(expectedEnvelope), n)
+	require.Equal(t, len(logPayload), n)
 
 	require.True(t, bytes.Equal(provider.buffer.Bytes(), expectedEnvelope))
 }
@@ -58,7 +56,7 @@ func TestClosedWriter(t *testing.T) {
 	expectedEnvelope := getEnvelopeBytes(t, logPayload)
 
 	provider := new(bufferedConnProvider)
-	tcpWriter := tcpjson.NewTCPWriter(testMetadata, provider)
+	tcpWriter := NewTCPWriter(testMetadata, provider)
 
 	n, err := tcpWriter.Write(logPayload)
 	require.NoError(t, err)
@@ -70,30 +68,34 @@ func TestClosedWriter(t *testing.T) {
 	// Attempt a write and expect that the writer is closed
 	n, err = tcpWriter.Write(logPayload)
 	require.Error(t, err)
-	require.EqualError(t, err, tcpjson.ErrWriterClosed)
+	require.EqualError(t, err, errWriterClosed)
 	require.True(t, n == 0)
 }
 
-func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
-	e := tcpjson.SlsEnvelopeV1{
-		Type:           "envelope.1",
-		Deployment:     testMetadata.Deployment,
-		Environment:    testMetadata.Environment,
-		EnvironmentID:  testMetadata.EnvironmentID,
-		Host:           testMetadata.Host,
-		NodeID:         testMetadata.NodeID,
-		Service:        testMetadata.Service,
-		ServiceID:      testMetadata.ServiceID,
-		Stack:          testMetadata.Stack,
-		StackID:        testMetadata.StackID,
-		Product:        testMetadata.Product,
-		ProductVersion: testMetadata.ProductVersion,
-		Payload:        payload,
+// BenchmarkEnvelopeSerializer records the total time and memory allocations for each envelope serializer.
+func BenchmarkEnvelopeSerializer(b *testing.B) {
+	for _, tc := range []struct {
+		name           string
+		serializerFunc func([]byte) ([]byte, error)
+	}{
+		{"zerolog", zerologSerializer(testMetadata)},
+		{"JSON-Encoder", jsonEncoderSerializer(testMetadata)},
+		{"JSON-Marshaler", jsonMarshalSerializer(testMetadata)},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			b.ResetTimer()
+			b.ReportAllocs()
+			for n := 0; n < b.N; n++ {
+				_, _ = tc.serializerFunc(logPayload)
+			}
+		})
 	}
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(&e)
+}
+
+func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
+	envelope, err := zerologSerializer(testMetadata)(payload)
 	require.NoError(t, err)
-	return buf.Bytes()
+	return envelope
 }
 
 // bufferedConnProvider is a mock ConnProvider that writes to an internal
