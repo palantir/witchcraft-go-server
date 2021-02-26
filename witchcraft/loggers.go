@@ -41,6 +41,7 @@ const (
 // initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
+// If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
 func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
 	var originParam svc1log.Param
 	switch {

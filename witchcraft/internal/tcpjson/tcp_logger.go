@@ -150,8 +150,8 @@ func (d *TCPWriter) Close() error {
 }
 
 func zerologSerializer(metadata LogEnvelopeMetadata) envelopeSerializerFunc {
-	// create a new top level logger with no a scratch output since each
-	// serialization will write to it's own local buffer instead of a single writer.
+	// create a new top-level logger that writes to ioutil.Discard since each
+	// serialization will write to its own local buffer instead of a single writer
 	logger := zerolog.New(ioutil.Discard).With().
 		Str("type", "envelope.1").
 		Str("deployment", metadata.Deployment).
