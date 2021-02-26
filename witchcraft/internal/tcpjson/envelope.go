@@ -20,8 +20,8 @@ import (
 )
 
 type LogEnvelopeV1 struct {
-	LogEnvelopeMetadata `json:",inline"`
-	Payload             json.RawMessage `json:"payload"`
+	LogEnvelopeMetadata
+	Payload json.RawMessage `json:"payload"`
 }
 
 type LogEnvelopeMetadata struct {

@@ -52,7 +52,7 @@ func TestWrite(t *testing.T) {
 		payload []byte
 	}{
 		{"payload-with-newline", logPayload},
-		{"payload-without-newline", trimNewLine(logPayload)},
+		{"payload-without-newline", bytes.TrimSuffix(logPayload, []byte("\n"))},
 		{"no-payload", nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
