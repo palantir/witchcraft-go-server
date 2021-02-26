@@ -62,7 +62,8 @@ func (d *TCPWriter) Write(p []byte) (int, error) {
 		return 0, werror.Error(errWriterClosed)
 	}
 
-	envelope, err := d.envelopeSerializer(p)
+	// remove the trailing new-line delimiter if it exists before wrapping in the envelope
+	envelope, err := d.envelopeSerializer(trimNewLine(p))
 	if err != nil {
 		return 0, werror.Wrap(err, "failed to serialize the envelope")
 	}
@@ -86,6 +87,14 @@ func (d *TCPWriter) Write(p []byte) (int, error) {
 		}
 	}
 	return len(p), nil
+}
+
+// trimNewLine will remove a trailing new line character and return a new byte slice.
+func trimNewLine(b []byte) []byte {
+	if len(b) >= 1 && b[len(b)-1] == '\n' {
+		return b[:len(b)-1]
+	}
+	return b
 }
 
 func (d *TCPWriter) getConn() (net.Conn, error) {

@@ -21,11 +21,16 @@ import (
 	"testing"
 
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	"github.com/palantir/witchcraft-go-logging/wlog"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	testMetadata = LogEnvelopeMetadata{
+		Type:           "envelope.1",
 		Deployment:     "test-deployment",
 		Environment:    "test-environment",
 		EnvironmentID:  "test-environment-id",
@@ -38,19 +43,64 @@ var (
 		Stack:          "test-stack",
 		StackID:        "test-stack-id",
 	}
-	logPayload = []byte(`{"type": "service.1","message":"test","level":"INFO"}`)
+	logPayload = []byte(`{"type": "service.1","message":"test","level":"INFO"}\n`)
 )
 
 func TestWrite(t *testing.T) {
-	expectedEnvelope := getEnvelopeBytes(t, logPayload)
+	for _, tc := range []struct {
+		name    string
+		payload []byte
+	}{
+		{"payload-with-newline", logPayload},
+		{"payload-without-newline", trimNewLine(logPayload)},
+		{"no-payload", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			expectedEnvelope := getEnvelopeBytes(t, tc.payload)
+			provider := new(bufferedConnProvider)
+			tcpWriter := NewTCPWriter(testMetadata, provider)
+			n, err := tcpWriter.Write(tc.payload)
+			require.NoError(t, err)
+			require.Equal(t, len(tc.payload), n)
+			buf := provider.buffer.Bytes()
+			require.True(t, bytes.Equal(buf, expectedEnvelope))
+		})
+	}
+}
 
+// TestWriteFromSvc1log is more of an integration style test which verifies the envelopes written
+// are as expected when using the TCPWriter as an io.Writer for svc1log.
+func TestWriteFromSvc1log(t *testing.T) {
 	provider := new(bufferedConnProvider)
 	tcpWriter := NewTCPWriter(testMetadata, provider)
-	n, err := tcpWriter.Write(logPayload)
-	require.NoError(t, err)
-	require.Equal(t, len(logPayload), n)
+	logger := svc1log.NewFromCreator(tcpWriter, wlog.DebugLevel, wlog.NewJSONMarshalLoggerProvider().NewLeveledLogger)
+	logger.Debug("this is a test")
 
-	require.True(t, bytes.Equal(provider.buffer.Bytes(), expectedEnvelope))
+	buf := provider.buffer.Bytes()
+	var gotEnvelope LogEnvelopeV1
+	err := json.Unmarshal(buf, &gotEnvelope)
+	require.NoError(t, err)
+
+	// Verify all envelope metadata
+	assert.Equal(t, testMetadata.Type, gotEnvelope.Type)
+	assert.Equal(t, testMetadata.Deployment, gotEnvelope.Deployment)
+	assert.Equal(t, testMetadata.Environment, gotEnvelope.Environment)
+	assert.Equal(t, testMetadata.EnvironmentID, gotEnvelope.EnvironmentID)
+	assert.Equal(t, testMetadata.Host, gotEnvelope.Host)
+	assert.Equal(t, testMetadata.NodeID, gotEnvelope.NodeID)
+	assert.Equal(t, testMetadata.Product, gotEnvelope.Product)
+	assert.Equal(t, testMetadata.ProductVersion, gotEnvelope.ProductVersion)
+	assert.Equal(t, testMetadata.Service, gotEnvelope.Service)
+	assert.Equal(t, testMetadata.ServiceID, gotEnvelope.ServiceID)
+	assert.Equal(t, testMetadata.Stack, gotEnvelope.Stack)
+	assert.Equal(t, testMetadata.StackID, gotEnvelope.StackID)
+
+	// Verify the payload
+	gotPayload := new(logging.ServiceLogV1)
+	err = gotPayload.UnmarshalJSON(gotEnvelope.Payload)
+	require.NoError(t, err)
+	assert.Equal(t, "this is a test", gotPayload.Message)
+	assert.Equal(t, logging.LogLevelDebug, gotPayload.Level)
 }
 
 // TestClosedWriter verifies the behavior of attempting to write when the writer is closed.
@@ -162,7 +212,7 @@ func manualSerializer(metadata LogEnvelopeMetadata) envelopeSerializerFunc {
 
 func getEnvelopeWithPayload(metadata LogEnvelopeMetadata, payload []byte) LogEnvelopeV1 {
 	return LogEnvelopeV1{
-		Metadata: LogEnvelopeMetadata{
+		LogEnvelopeMetadata: LogEnvelopeMetadata{
 			Type:           "envelope.1",
 			Deployment:     metadata.Deployment,
 			Environment:    metadata.Environment,
