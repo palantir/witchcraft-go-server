@@ -55,14 +55,12 @@ func TestWrite(t *testing.T) {
 
 // TestClosedWriter verifies the behavior of attempting to write when the writer is closed.
 func TestClosedWriter(t *testing.T) {
-	expectedEnvelope := getEnvelopeBytes(t, logPayload)
-
 	provider := new(bufferedConnProvider)
 	tcpWriter := NewTCPWriter(testMetadata, provider)
 
 	n, err := tcpWriter.Write(logPayload)
 	require.NoError(t, err)
-	require.Equal(t, len(expectedEnvelope), n)
+	require.Equal(t, len(logPayload), n)
 
 	err = tcpWriter.Close()
 	require.NoError(t, err)
