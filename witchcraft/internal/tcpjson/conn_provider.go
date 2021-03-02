@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/url"
 	"sync/atomic"
+	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
 )
@@ -45,7 +46,7 @@ type tcpConnProvider struct {
 	// The index will be reset to 0 when len(hosts) is reached to facilitate round-robin connections.
 	nextHostIdx int32
 	hosts       []string
-	tlsConfig   *tls.Config
+	tlsDialer   *tls.Dialer
 }
 
 // NewTCPConnProvider returns a new ConnProvider that provides TCP connections.
@@ -69,7 +70,13 @@ func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (ConnProvider, error)
 	return &tcpConnProvider{
 		nextHostIdx: 0,
 		hosts:       hosts,
-		tlsConfig:   tlsCfg,
+		tlsDialer: &tls.Dialer{
+			NetDialer: &net.Dialer{
+				// Dial timeout is set to the http.DefaultTransport setting of 30 sec.
+				Timeout: 30 * time.Second,
+			},
+			Config: tlsCfg,
+		},
 	}, nil
 }
 
@@ -78,7 +85,7 @@ func (s *tcpConnProvider) GetConn() (net.Conn, error) {
 	nextHostIdx := int(hostIdx+1) % len(s.hosts)
 	atomic.CompareAndSwapInt32(&s.nextHostIdx, hostIdx, int32(nextHostIdx))
 
-	tlsConn, err := tls.Dial("tcp", s.hosts[hostIdx], s.tlsConfig)
+	tlsConn, err := s.tlsDialer.Dial("tcp", s.hosts[hostIdx])
 	if err != nil {
 		return nil, werror.Wrap(err, ErrFailedDial)
 	}
