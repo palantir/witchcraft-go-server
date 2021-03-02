@@ -90,6 +90,10 @@ github.com/palantir/witchcraft-go-tracing/wzipkin
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/rs/zerolog v1.20.0
+github.com/rs/zerolog
+github.com/rs/zerolog/internal/cbor
+github.com/rs/zerolog/internal/json
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
 # github.com/stretchr/testify v1.7.0

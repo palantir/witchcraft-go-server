@@ -20,6 +20,7 @@ require (
 	github.com/palantir/witchcraft-go-logging v1.9.0
 	github.com/palantir/witchcraft-go-params v1.2.0
 	github.com/palantir/witchcraft-go-tracing v1.2.0
+	github.com/rs/zerolog v1.20.0
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.3.0

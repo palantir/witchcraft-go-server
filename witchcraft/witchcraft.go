@@ -34,6 +34,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/pkg/signals"
+	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
@@ -50,6 +51,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/tcpjson"
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
@@ -541,7 +543,7 @@ func (s *Server) Start() (rErr error) {
 
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
+				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
 			}
 
 			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
@@ -551,7 +553,7 @@ func (s *Server) Start() (rErr error) {
 		if rErr != nil {
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
+				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
 			}
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}
@@ -601,7 +603,7 @@ func (s *Server) Start() (rErr error) {
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// initialize loggers
-	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry)
+	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
 
 	// add loggers to context
 	ctx = s.withLoggers(ctx)
@@ -612,6 +614,32 @@ func (s *Server) Start() (rErr error) {
 		return err
 	}
 
+	// extract the TCP JSON receiver from the runtime config
+	servicesCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery
+	receiverCfg, err := servicesCfg.MustClientConfig("sls-log-tcp-json-receiver")
+	if err == nil && len(receiverCfg.URIs) > 0 {
+		tlsConfig, err := tlsconfig.NewClientConfig(
+			tlsconfig.ClientRootCAFiles(receiverCfg.Security.CAFiles...),
+			tlsconfig.ClientKeyPairFiles(receiverCfg.Security.CertFile, receiverCfg.Security.KeyFile),
+		)
+		if err != nil {
+			return werror.Wrap(err, "tls client config could be created for the TCP JSON reciever")
+		}
+		connProvider, err := tcpjson.NewTCPConnProvider(receiverCfg.URIs, tlsConfig)
+		if err != nil {
+			return err
+		}
+		envelopeMetadata := tcpjson.GetEnvelopeMetadata()
+		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
+		defer func() {
+			_ = tcpWriter.Close()
+		}()
+		// re-initialize the loggers with the TCP writer and overwrite the context
+		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
+		ctx = s.withLoggers(ctx)
+	}
+
+	// Set the service log level if configured
 	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {
 		s.svcLogger.SetLevel(loggerCfg.Level)
 	}
