@@ -613,6 +613,7 @@ func (s *Server) Start() (rErr error) {
 	if err != nil {
 		return err
 	}
+	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
 
 	// extract the TCP JSON receiver from the runtime config
 	servicesCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery
@@ -708,10 +709,12 @@ func (s *Server) Start() (rErr error) {
 		}
 	}
 
+	// add all internally defined health check sources to the user supplied ones after running the initFn.
+	s.healthCheckSources = append(s.healthCheckSources, internalHealthCheckSources...)
+
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
-	// health/liveness/readiness configuration updated by initFn is applied. Includes the
-	// configReloadHealthCheckSource, which is always appended to s.healthCheckSources.
-	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg, configReloadHealthCheckSource); err != nil {
+	// health/liveness/readiness configuration updated by initFn is applied.
+	if err := s.addRoutes(mgmtRouter, baseRefreshableRuntimeCfg); err != nil {
 		return err
 	}
 
