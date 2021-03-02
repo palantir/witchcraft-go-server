@@ -46,7 +46,7 @@ type tcpConnProvider struct {
 	// The index will be reset to 0 when len(hosts) is reached to facilitate round-robin connections.
 	nextHostIdx int32
 	hosts       []string
-	tlsDialer   *tls.Dialer
+	tlsConfig   *tls.Config
 }
 
 // NewTCPConnProvider returns a new ConnProvider that provides TCP connections.
@@ -70,22 +70,23 @@ func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (ConnProvider, error)
 	return &tcpConnProvider{
 		nextHostIdx: 0,
 		hosts:       hosts,
-		tlsDialer: &tls.Dialer{
-			NetDialer: &net.Dialer{
-				// Dial timeout is set to the http.DefaultTransport setting of 30 sec.
-				Timeout: 30 * time.Second,
-			},
-			Config: tlsCfg,
-		},
+		tlsConfig:   tlsCfg,
 	}, nil
 }
+
+var (
+	defaultDialer = &net.Dialer{
+		// Dial timeout is set to the http.DefaultTransport setting of 30 sec.
+		Timeout: 30 * time.Second,
+	}
+)
 
 func (s *tcpConnProvider) GetConn() (net.Conn, error) {
 	hostIdx := atomic.LoadInt32(&s.nextHostIdx)
 	nextHostIdx := int(hostIdx+1) % len(s.hosts)
 	atomic.CompareAndSwapInt32(&s.nextHostIdx, hostIdx, int32(nextHostIdx))
 
-	tlsConn, err := s.tlsDialer.Dial("tcp", s.hosts[hostIdx])
+	tlsConn, err := tls.DialWithDialer(defaultDialer, "tcp", s.hosts[hostIdx], s.tlsConfig)
 	if err != nil {
 		return nil, werror.Wrap(err, ErrFailedDial)
 	}
