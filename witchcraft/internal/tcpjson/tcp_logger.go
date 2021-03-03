@@ -52,7 +52,7 @@ type TCPWriter struct {
 
 	mu   sync.RWMutex // guards all fields below
 	conn net.Conn
-	// started will be set to true when the first connection has been established
+	// started is set to true when the first connection has been established
 	// and is used to ensure the initial health status is not in an ERROR state
 	started bool
 }
@@ -158,9 +158,9 @@ func (d *TCPWriter) Close() error {
 }
 
 // HealthStatus implements the status.HealthCheckSource interface for the TCPWriter.
-// An ERROR health status will be returned if attempts have been made to establish a connection but none
+// An ERROR health status is returned if attempts have been made to establish a connection but none
 // currently exist and the writer is not in the process of shutting down.
-// A HEALTHY health status will be returned otherwise, meaning there is an active TCP connection or
+// A HEALTHY health status is returned otherwise, meaning there is an active TCP connection or
 // the TCPWriter has not yet attempted to retrieve a connection.
 func (d *TCPWriter) HealthStatus(_ context.Context) health.HealthStatus {
 	d.mu.RLock()
