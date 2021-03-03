@@ -635,6 +635,8 @@ func (s *Server) Start() (rErr error) {
 		defer func() {
 			_ = tcpWriter.Close()
 		}()
+		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
+
 		// re-initialize the loggers with the TCP writer and overwrite the context
 		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
 		ctx = s.withLoggers(ctx)
