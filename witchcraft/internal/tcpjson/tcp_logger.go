@@ -16,18 +16,30 @@ package tcpjson
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"net"
 	"sync"
 
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/sources/window"
+	"github.com/palantir/witchcraft-go-health/status"
 	"github.com/rs/zerolog"
 )
 
-var _ io.WriteCloser = (*TCPWriter)(nil)
+var (
+	_ io.WriteCloser           = (*TCPWriter)(nil)
+	_ status.HealthCheckSource = (*TCPWriter)(nil)
+)
 
-const errWriterClosed = "writer is closed"
+const (
+	errWriterClosed = "writer is closed"
+
+	// tcpWriterHealthCheckName is the name used for the external health check
+	tcpWriterHealthCheckName = "TCP_LOGGER_CONNECTION_STATUS"
+)
 
 // envelopeSerializerFunc provides a way to change the serialization method for the provided payload.
 type envelopeSerializerFunc func(payload []byte) ([]byte, error)
@@ -41,6 +53,8 @@ type TCPWriter struct {
 
 	mu   sync.RWMutex // guards conn below
 	conn net.Conn
+
+	health window.ErrorHealthCheckSource
 }
 
 // NewTCPWriter returns an io.WriteCloser that writes logs to a TCP socket and wraps
@@ -56,6 +70,7 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 		provider:           provider,
 		closedChan:         make(chan struct{}),
 		conn:               nil,
+		health:             window.MustNewErrorHealthCheckSource(tcpWriterHealthCheckName, window.HealthyIfNoRecentErrors),
 	}
 }
 
@@ -63,7 +78,11 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 // The provided input is wrapped in a LogEnvelopeV1 and serialized as JSON before writing to the underlying socket.
 // If there is a connection error before or during writing, the connection will be closed and an error will be returned.
 // If a subsequent Write is called after Close, then this will return immediately with an error.
-func (d *TCPWriter) Write(p []byte) (int, error) {
+func (d *TCPWriter) Write(p []byte) (n int, err error) {
+	defer func() {
+		d.health.Submit(err)
+	}()
+
 	if d.closed() {
 		return 0, werror.Error(errWriterClosed)
 	}
@@ -139,6 +158,10 @@ func (d *TCPWriter) closed() bool {
 func (d *TCPWriter) Close() error {
 	close(d.closedChan)
 	return d.closeConn()
+}
+
+func (d *TCPWriter) HealthStatus(ctx context.Context) health.HealthStatus {
+	return d.health.HealthStatus(ctx)
 }
 
 func zerologSerializer(metadata LogEnvelopeMetadata) envelopeSerializerFunc {
