@@ -16,18 +16,29 @@ package tcpjson
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"net"
 	"sync"
 
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/status"
 	"github.com/rs/zerolog"
 )
 
-var _ io.WriteCloser = (*TCPWriter)(nil)
+var (
+	_ io.WriteCloser           = (*TCPWriter)(nil)
+	_ status.HealthCheckSource = (*TCPWriter)(nil)
+)
 
-const errWriterClosed = "writer is closed"
+const (
+	errWriterClosed = "writer is closed"
+
+	// tcpWriterHealthCheckName is the name used for the external health check
+	tcpWriterHealthCheckName = "TCP_LOGGER_CONNECTION_STATUS"
+)
 
 // envelopeSerializerFunc provides a way to change the serialization method for the provided payload.
 type envelopeSerializerFunc func(payload []byte) ([]byte, error)
@@ -39,8 +50,11 @@ type TCPWriter struct {
 	// closedChan is used to signal that the writer is shutting down
 	closedChan chan struct{}
 
-	mu   sync.RWMutex // guards conn below
+	mu   sync.RWMutex // guards all fields below
 	conn net.Conn
+	// started will be set to true when the first connection has been established
+	// and is used to ensure the initial health status is not in an ERROR state
+	started bool
 }
 
 // NewTCPWriter returns an io.WriteCloser that writes logs to a TCP socket and wraps
@@ -56,6 +70,7 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 		provider:           provider,
 		closedChan:         make(chan struct{}),
 		conn:               nil,
+		started:            false,
 	}
 }
 
@@ -107,6 +122,7 @@ func (d *TCPWriter) getConn() (net.Conn, error) {
 	// No active connection, so use the provider to get a new net.Conn, and cache it.
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	d.started = true
 	newConn, err := d.provider.GetConn()
 	if err != nil {
 		return nil, err
@@ -139,6 +155,34 @@ func (d *TCPWriter) closed() bool {
 func (d *TCPWriter) Close() error {
 	close(d.closedChan)
 	return d.closeConn()
+}
+
+// HealthStatus implements the status.HealthCheckSource interface for the TCPWriter.
+// An ERROR health status will be returned if attempts have been made to establish a connection but none
+// currently exist and the writer is not in the process of shutting down.
+// A HEALTHY health status will be returned otherwise, meaning there is an active TCP connection or
+// the TCPWriter has not yet attempted to retrieve a connection.
+func (d *TCPWriter) HealthStatus(_ context.Context) health.HealthStatus {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	state := health.New_HealthState(health.HealthState_HEALTHY)
+
+	// only set an ERROR health state if all of the following is true:
+	//  1. the writer has been started (no attempts to establish a connection)
+	//  2. the writer is not shut down
+	//  3. there is no current connection
+	if d.started && !d.closed() && d.conn == nil {
+		state = health.New_HealthState(health.HealthState_ERROR)
+	}
+	return health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			tcpWriterHealthCheckName: {
+				Type:  tcpWriterHealthCheckName,
+				State: state,
+			},
+		},
+	}
 }
 
 func zerologSerializer(metadata LogEnvelopeMetadata) envelopeSerializerFunc {

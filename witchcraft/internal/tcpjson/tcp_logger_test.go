@@ -16,11 +16,13 @@ package tcpjson
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net"
 	"testing"
 
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
@@ -120,6 +122,59 @@ func TestClosedWriter(t *testing.T) {
 	require.Error(t, err)
 	require.EqualError(t, err, errWriterClosed)
 	require.True(t, n == 0)
+}
+
+func TestHealthStatus(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		tcpWriterFunc func() *TCPWriter
+		expected      health.HealthState_Value
+	}{
+		{
+			name: "not started",
+			tcpWriterFunc: func() *TCPWriter {
+				return NewTCPWriter(LogEnvelopeMetadata{}, &bufferedConnProvider{})
+			},
+			expected: health.HealthState_HEALTHY,
+		},
+		{
+			name: "shutting down",
+			tcpWriterFunc: func() *TCPWriter {
+				w := NewTCPWriter(LogEnvelopeMetadata{}, &bufferedConnProvider{})
+				_ = w.Close()
+				return w
+			},
+			expected: health.HealthState_HEALTHY,
+		},
+		{
+			name: "established connection",
+			tcpWriterFunc: func() *TCPWriter {
+				w := NewTCPWriter(LogEnvelopeMetadata{}, &bufferedConnProvider{})
+				_, err := w.Write(logPayload)
+				require.NoError(t, err)
+				return w
+			},
+			expected: health.HealthState_HEALTHY,
+		},
+		{
+			name: "no connection, but started and not shutdown",
+			tcpWriterFunc: func() *TCPWriter {
+				w := NewTCPWriter(LogEnvelopeMetadata{}, &bufferedConnProvider{})
+				w.started = true
+				w.conn = nil
+				return w
+			},
+			expected: health.HealthState_ERROR,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tcpWriter := tc.tcpWriterFunc()
+			gotHealthState := tcpWriter.HealthStatus(context.Background())
+			assert.NotNil(t, gotHealthState)
+			assert.Len(t, gotHealthState.Checks, 1)
+			assert.Equal(t, tc.expected, gotHealthState.Checks[tcpWriterHealthCheckName].State.Value())
+		})
+	}
 }
 
 func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
