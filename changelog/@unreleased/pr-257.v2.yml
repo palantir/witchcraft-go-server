@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Skip logging telemetry on liveness and readiness routes.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/257
