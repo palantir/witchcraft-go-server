@@ -22,14 +22,15 @@ import (
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
 func AddLivenessRoutes(resource wresource.Resource, source healthstatus.Source) error {
-	return resource.Get("liveness", status.LivenessEndpoint, handler(source))
+	return resource.Get("liveness", status.LivenessEndpoint, handler(source), wrouter.SkipTelemetry(true))
 }
 
 func AddReadinessRoutes(resource wresource.Resource, source healthstatus.Source) error {
-	return resource.Get("readiness", status.ReadinessEndpoint, handler(source))
+	return resource.Get("readiness", status.ReadinessEndpoint, handler(source), wrouter.SkipTelemetry(true))
 }
 
 func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {

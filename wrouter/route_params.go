@@ -21,6 +21,7 @@ import (
 type RouteParam interface {
 	perms() RouteParamPerms
 	metricTags() metrics.Tags
+	skipTelemetry() bool
 }
 
 type requestParamPermsFunc func() RouteParamPerms
@@ -31,6 +32,10 @@ func (f requestParamPermsFunc) perms() RouteParamPerms {
 
 func (f requestParamPermsFunc) metricTags() metrics.Tags {
 	return nil
+}
+
+func (f requestParamPermsFunc) skipTelemetry() bool {
+	return false
 }
 
 func RouteParamPermsParam(perms RouteParamPerms) RouteParam {
@@ -122,6 +127,10 @@ func (f requestMetricTagsFunc) metricTags() metrics.Tags {
 	return f()
 }
 
+func (f requestMetricTagsFunc) skipTelemetry() bool {
+	return false
+}
+
 func MetricTags(tags metrics.Tags) RouteParam {
 	return requestMetricTagsFunc(func() metrics.Tags {
 		return tags
@@ -134,4 +143,34 @@ func toMetricTags(params []RouteParam) metrics.Tags {
 		tags = append(tags, param.metricTags()...)
 	}
 	return tags
+}
+
+type requestSkipTelemetryFunc func() bool
+
+func (f requestSkipTelemetryFunc) perms() RouteParamPerms {
+	return nil
+}
+
+func (f requestSkipTelemetryFunc) metricTags() metrics.Tags {
+	return nil
+}
+
+func (f requestSkipTelemetryFunc) skipTelemetry() bool {
+	return f()
+}
+
+// SkipTelemetry is a RouterParam that will disable telemetry logging for a route.
+func SkipTelemetry(skip bool) RouteParam {
+	return requestSkipTelemetryFunc(func() bool {
+		return skip
+	})
+}
+
+func toSkipTelemetry(params []RouteParam) bool {
+	for _, param := range params {
+		if param.skipTelemetry() {
+			return true
+		}
+	}
+	return false
 }

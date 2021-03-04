@@ -161,6 +161,9 @@ func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerM
 		serverResponseSizeMetricName  = "server.response.size"
 	)
 	return func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+		if reqVals.SkipTelemetry {
+			return
+		}
 		// add capability to store tags on the context
 		r = r.WithContext(metrics.AddTags(r.Context()))
 

@@ -81,6 +81,7 @@ type RequestVals struct {
 	PathParamVals map[string]string
 	ParamPerms    RouteParamPerms
 	MetricTags    metrics.Tags
+	SkipTelemetry bool
 }
 
 type ResponseVals struct {

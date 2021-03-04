@@ -141,6 +141,7 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 			PathParamVals: pathParamVals,
 			ParamPerms:    toRequestParamPerms(params),
 			MetricTags:    metricTags,
+			SkipTelemetry: toSkipTelemetry(params),
 		})
 	}))
 	return nil
