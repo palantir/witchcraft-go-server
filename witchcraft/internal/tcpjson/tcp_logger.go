@@ -37,8 +37,8 @@ var (
 const (
 	errWriterClosed = "writer is closed"
 
-	// tcpWriterHealthCheckName is the name used for the external health check
-	tcpWriterHealthCheckName = "TCP_LOGGER_CONNECTION_STATUS"
+	// TCPWriterHealthCheckName is the name used for the external health check
+	TCPWriterHealthCheckName health.CheckType = "TCP_LOGGER_CONNECTION_STATUS"
 )
 
 // envelopeSerializerFunc provides a way to change the serialization method for the provided payload.
@@ -70,7 +70,7 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 		provider:           provider,
 		closedChan:         make(chan struct{}),
 		conn:               nil,
-		health:             window.MustNewErrorHealthCheckSource(tcpWriterHealthCheckName, window.HealthyIfNoRecentErrors),
+		health:             window.MustNewErrorHealthCheckSource(TCPWriterHealthCheckName, window.HealthyIfNoRecentErrors),
 	}
 }
 

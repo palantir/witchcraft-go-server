@@ -36,6 +36,7 @@ import (
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -615,10 +616,20 @@ func (s *Server) Start() (rErr error) {
 	}
 	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
 
-	// extract the TCP JSON receiver from the runtime config
-	servicesCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery
-	receiverCfg, err := servicesCfg.MustClientConfig("sls-log-tcp-json-receiver")
-	if err == nil && len(receiverCfg.URIs) > 0 {
+	// enable TCP logging if the envelope metadata and the TCP receiver are both configured
+	receiverCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery.ClientConfig("sls-log-tcp-json-receiver")
+	envelopeMetadata, err := tcpjson.GetEnvelopeMetadata()
+	if err != nil {
+		if len(receiverCfg.URIs) > 0 {
+			s.svcLogger.Warn("TCP logging will not be enabled since all environment variables are not set.", svc1log.Stacktrace(err))
+		}
+	} else if len(receiverCfg.URIs) <= 0 {
+		internalHealthCheckSources = append(internalHealthCheckSources,
+			newAlwaysWarnHealthCheckSource(tcpjson.TCPWriterHealthCheckName,
+				"TCP logging is disabled. No TCP JSON receiver URIs are configured but log envelope metadata exists."),
+		)
+	} else {
+		// enable TCP logging since the metadata and receiver are both configured
 		tlsConfig, err := tlsconfig.NewClientConfig(
 			tlsconfig.ClientRootCAFiles(receiverCfg.Security.CAFiles...),
 			tlsconfig.ClientKeyPairFiles(receiverCfg.Security.CertFile, receiverCfg.Security.KeyFile),
@@ -630,7 +641,6 @@ func (s *Server) Start() (rErr error) {
 		if err != nil {
 			return err
 		}
-		envelopeMetadata := tcpjson.GetEnvelopeMetadata()
 		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
 		defer func() {
 			_ = tcpWriter.Close()
@@ -1017,3 +1027,25 @@ func traceSamplerFromSampleRate(sampleRate float64) wtracing.Sampler {
 func neverSample(id uint64) bool { return false }
 
 func alwaysSample(id uint64) bool { return true }
+
+type alwaysWarnHealthCheckSource struct {
+	healthStatus health.HealthStatus
+}
+
+func newAlwaysWarnHealthCheckSource(checkType health.CheckType, message string) healthstatus.HealthCheckSource {
+	return &alwaysWarnHealthCheckSource{
+		healthStatus: health.HealthStatus{
+			Checks: map[health.CheckType]health.HealthCheckResult{
+				checkType: {
+					Type:    checkType,
+					State:   health.New_HealthState(health.HealthState_WARNING),
+					Message: &message,
+				},
+			},
+		},
+	}
+}
+
+func (a *alwaysWarnHealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus {
+	return a.healthStatus
+}
