@@ -621,9 +621,17 @@ func (s *Server) Start() (rErr error) {
 	envelopeMetadata, err := tcpjson.GetEnvelopeMetadata()
 	if err != nil {
 		if len(receiverCfg.URIs) > 0 {
+			// Presence of TCP receiver config without envelope metadata may indicate a mis-configuration,
+			// but can also be expected in environments where the config is always hard-coded.
+			// In this case we emit a warning log to help debug potential issues, but otherwise proceed as normal.
 			s.svcLogger.Warn("TCP logging will not be enabled since all environment variables are not set.", svc1log.Stacktrace(err))
 		}
-	} else if len(receiverCfg.URIs) <= 0 {
+		// If both the envelope metadata and the TCP receiver are not configured, then it is expected
+		// that TCP logging should not be enabled and thus it is safe to proceed without any warning logs.
+	} else if len(receiverCfg.URIs) == 0 {
+		// The existence of envelope metadata means TCP logging was expected to be enabled, but the TCP receiver must be mis-configured.
+		// Since the server may otherwise be functional, the TCP writer health check is set to a
+		// permanent warning state to indicate the logging issues.
 		internalHealthCheckSources = append(internalHealthCheckSources,
 			newAlwaysWarnHealthCheckSource(tcpjson.TCPWriterHealthCheckName,
 				"TCP logging is disabled. No TCP JSON receiver URIs are configured but log envelope metadata exists."),

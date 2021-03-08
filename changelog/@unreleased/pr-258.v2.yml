@@ -1,5 +1,8 @@
 type: improvement
 improvement:
-  description: Only enable TCP logging if both log metadata and receiver are configured
+  description: |-
+    Only enable TCP logging if both log metadata and receiver are configured
+
+    TCP logging will now only be enabled if both envelope metadata and the TCP reciever are properly configured. If the TCP receiver is configured without the envelope metadata then a warning log line will be produced to indicate a possible mis-configuration, but will otherwise proceed as normal. Some environments use hard-coded config, where it may be expected that the TCP receiver is configured, but the envelope metadata is not. Conversely, if the envelope metadata is configured and the TCP receiver is not, then the `TCP_LOGGER_CONNECTION_STATUS` health check will be set to a permanent warning state to indicate that TCP logging is disabled, since the reciever must be mis-configured.
   links:
   - https://github.com/palantir/witchcraft-go-server/pull/258
