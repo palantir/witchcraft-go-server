@@ -173,7 +173,7 @@ func TestHealthStatus(t *testing.T) {
 			gotHealthState := tcpWriter.HealthStatus(context.Background())
 			assert.NotNil(t, gotHealthState)
 			assert.Len(t, gotHealthState.Checks, 1)
-			assert.Equal(t, tc.expected, gotHealthState.Checks[tcpWriterHealthCheckName].State.Value())
+			assert.Equal(t, tc.expected, gotHealthState.Checks[TCPWriterHealthCheckName].State.Value())
 		})
 	}
 }
