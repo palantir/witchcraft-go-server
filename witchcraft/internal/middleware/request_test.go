@@ -295,7 +295,7 @@ func TestRequestSkipTelemetry(t *testing.T) {
 	})
 
 	metricRegistry.Each(metrics.MetricVisitor(func(_ string, _ metrics.Tags, metric metrics.MetricVal) {
-		assert.Empty(t, metric.Values(), "expect no metrics to be written when telemetry is skipped")
+		assert.Empty(t, metric.Values(), "expected no metrics to be written when Skiptelemetry is true")
 	}))
 
 	assert.Empty(t, reqOutput.Bytes(), "expected request log to be empty when SkipTelemetry is true")

@@ -162,6 +162,7 @@ func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerM
 	)
 	return func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 		if reqVals.SkipTelemetry {
+			next(rw, r, reqVals)
 			return
 		}
 		// add capability to store tags on the context

@@ -34,7 +34,7 @@ func AddReadinessRoutes(resource wresource.Resource, source healthstatus.Source)
 }
 
 func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {
-	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers))
+	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers), wrouter.SkipTelemetry(true))
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response
