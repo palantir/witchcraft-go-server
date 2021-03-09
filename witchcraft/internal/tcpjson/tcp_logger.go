@@ -70,7 +70,10 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 		provider:           provider,
 		closedChan:         make(chan struct{}),
 		conn:               nil,
-		health:             window.MustNewErrorHealthCheckSource(TCPWriterHealthCheckName, window.HealthyIfNoRecentErrors),
+		health: window.MustNewErrorHealthCheckSource(
+			TCPWriterHealthCheckName,
+			window.HealthyIfNoRecentErrors,
+			window.WithFailingHealthStateValue(health.HealthState_WARNING)),
 	}
 }
 

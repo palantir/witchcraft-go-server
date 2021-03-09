@@ -165,7 +165,7 @@ func TestHealthStatus(t *testing.T) {
 				assert.Error(t, err)
 				return w
 			},
-			expected: health.HealthState_ERROR,
+			expected: health.HealthState_WARNING,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
