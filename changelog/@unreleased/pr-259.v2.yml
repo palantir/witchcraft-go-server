@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Refactor RouteParam interface to use builder pattern. Now all RouteParam options are applied to an underlying routeParamBuilder at instantiation.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/259
