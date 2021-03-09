@@ -161,7 +161,7 @@ func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerM
 		serverResponseSizeMetricName  = "server.response.size"
 	)
 	return func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.SkipTelemetry {
+		if reqVals.DisableTelemetry {
 			next(rw, r, reqVals)
 			return
 		}

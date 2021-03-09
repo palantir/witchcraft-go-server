@@ -19,9 +19,9 @@ import (
 )
 
 type routeParamBuilder struct {
-	paramPerms    RouteParamPerms
-	metricTags    metrics.Tags
-	skipTelemetry bool
+	paramPerms       RouteParamPerms
+	metricTags       metrics.Tags
+	disableTelemetry bool
 }
 
 type RouteParam interface {
@@ -101,10 +101,10 @@ func MetricTags(tags metrics.Tags) RouteParam {
 	})
 }
 
-// SkipTelemetry is a RouterParam that will disable telemetry logging for a route.
-func SkipTelemetry(skip bool) RouteParam {
+// DisableTelemetry is a RouterParam that will disable telemetry logging for a route.
+func DisableTelemetry() RouteParam {
 	return routeParamFunc(func(b *routeParamBuilder) error {
-		b.skipTelemetry = skip
+		b.disableTelemetry = true
 		return nil
 	})
 }

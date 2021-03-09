@@ -26,15 +26,15 @@ import (
 )
 
 func AddLivenessRoutes(resource wresource.Resource, source healthstatus.Source) error {
-	return resource.Get("liveness", status.LivenessEndpoint, handler(source), wrouter.SkipTelemetry(true))
+	return resource.Get("liveness", status.LivenessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
 func AddReadinessRoutes(resource wresource.Resource, source healthstatus.Source) error {
-	return resource.Get("readiness", status.ReadinessEndpoint, handler(source), wrouter.SkipTelemetry(true))
+	return resource.Get("readiness", status.ReadinessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
 func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {
-	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers), wrouter.SkipTelemetry(true))
+	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers), wrouter.DisableTelemetry())
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response

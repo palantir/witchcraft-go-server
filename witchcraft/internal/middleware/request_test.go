@@ -264,7 +264,7 @@ func getTimerObjectMatcher(count int) map[string]objmatcher.Matcher {
 	})
 }
 
-func TestRequestSkipTelemetry(t *testing.T) {
+func TestRequestDisableTelemetry(t *testing.T) {
 	var reqOutput bytes.Buffer
 	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
 
@@ -284,13 +284,13 @@ func TestRequestSkipTelemetry(t *testing.T) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
 
-	reqMetricMiddleware(w, req, wrouter.RequestVals{SkipTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	reqMetricMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
-	reqRequstLogMiddleware(w, req, wrouter.RequestVals{SkipTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	reqRequstLogMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
-	reqSpanMiddleware(w, req, wrouter.RequestVals{SkipTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	reqSpanMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 
@@ -298,6 +298,6 @@ func TestRequestSkipTelemetry(t *testing.T) {
 		assert.Empty(t, metric.Values(), "expected no metrics to be written when Skiptelemetry is true")
 	}))
 
-	assert.Empty(t, reqOutput.Bytes(), "expected request log to be empty when SkipTelemetry is true")
-	assert.Empty(t, spanOutput.Bytes(), "expected trace span log to be empty when SkipTelemetry is true")
+	assert.Empty(t, reqOutput.Bytes(), "expected request log to be empty when DisableTelemetry is true")
+	assert.Empty(t, spanOutput.Bytes(), "expected trace span log to be empty when DisableTelemetry is true")
 }

@@ -148,11 +148,11 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 		}, r.routeHandlers)
 
 		wrappedHandlerFn(w, req, RequestVals{
-			Spec:          routeSpec,
-			PathParamVals: pathParamVals,
-			ParamPerms:    requestParamPerms,
-			MetricTags:    metricTags,
-			SkipTelemetry: b.skipTelemetry,
+			Spec:             routeSpec,
+			PathParamVals:    pathParamVals,
+			ParamPerms:       requestParamPerms,
+			MetricTags:       metricTags,
+			DisableTelemetry: b.disableTelemetry,
 		})
 	}))
 	return nil
