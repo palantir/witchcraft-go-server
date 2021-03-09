@@ -49,6 +49,7 @@ type errorHealthCheckSource struct {
 	repairingGracePeriod time.Duration
 	repairingDeadline    time.Time
 	maxErrorAge          time.Duration
+	healthState          health.HealthState_Value
 }
 
 // MustNewErrorHealthCheckSource creates a new ErrorHealthCheckSource which will panic if any error is encountered.
@@ -93,6 +94,7 @@ func NewErrorHealthCheckSource(checkType health.CheckType, errorMode ErrorMode, 
 		repairingGracePeriod: conf.repairingGracePeriod,
 		repairingDeadline:    conf.timeProvider.Now(),
 		maxErrorAge:          conf.maxErrorAge,
+		healthState:          conf.healthState,
 	}
 
 	// If requireFirstFullWindow, extend the repairing deadline to one windowSize from now.
@@ -165,7 +167,7 @@ func (e *errorHealthCheckSource) getFailureResult() health.HealthCheckResult {
 	}
 	healthCheckResult := health.HealthCheckResult{
 		Type:    e.checkType,
-		State:   health.New_HealthState(health.HealthState_ERROR),
+		State:   health.New_HealthState(e.healthState),
 		Message: &e.checkMessage,
 		Params:  params,
 	}
