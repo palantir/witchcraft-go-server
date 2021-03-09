@@ -23,6 +23,21 @@ type routeParamBuilder struct {
 	metricTags metrics.Tags
 }
 
+func (b *routeParamBuilder) toRequestParamPerms() RouteParamPerms {
+	if b.paramPerms != nil {
+		return b.paramPerms
+	}
+	return &requestParamPermsImpl{}
+}
+
+func (b *routeParamBuilder) toMetricTags() metrics.Tags {
+	var tags metrics.Tags
+	if b.metricTags != nil {
+		tags = append(tags, b.metricTags...)
+	}
+	return tags
+}
+
 type RouteParam interface {
 	apply(*routeParamBuilder) error
 }
@@ -98,18 +113,4 @@ func MetricTags(tags metrics.Tags) RouteParam {
 		b.metricTags = tags
 		return nil
 	})
-}
-
-func toRequestParamPerms(b *routeParamBuilder) RouteParamPerms {
-	if b.paramPerms != nil {
-		return b.paramPerms
-	}
-	return &requestParamPermsImpl{}
-}
-
-func toMetricTags(b *routeParamBuilder) metrics.Tags {
-	if b.metricTags != nil {
-		return b.metricTags
-	}
-	return metrics.Tags{}
 }
