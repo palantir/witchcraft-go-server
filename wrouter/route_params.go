@@ -18,120 +18,98 @@ import (
 	"github.com/palantir/pkg/metrics"
 )
 
+type routeParamBuilder struct {
+	paramPerms RouteParamPerms
+	metricTags metrics.Tags
+}
+
 type RouteParam interface {
-	perms() RouteParamPerms
-	metricTags() metrics.Tags
+	apply(*routeParamBuilder) error
 }
 
-type requestParamPermsFunc func() RouteParamPerms
+type routeParamFunc func(*routeParamBuilder) error
 
-func (f requestParamPermsFunc) perms() RouteParamPerms {
-	return f()
-}
-
-func (f requestParamPermsFunc) metricTags() metrics.Tags {
-	return nil
+func (f routeParamFunc) apply(b *routeParamBuilder) error {
+	return f(b)
 }
 
 func RouteParamPermsParam(perms RouteParamPerms) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return perms
+	return routeParamFunc(func(b *routeParamBuilder) error {
+		var pathParamPerms []ParamPerms
+		var queryParamPerms []ParamPerms
+		var headerParamPerms []ParamPerms
+		if b.paramPerms != nil {
+			pathParamPerms = append(pathParamPerms, b.paramPerms.PathParamPerms())
+			queryParamPerms = append(queryParamPerms, b.paramPerms.QueryParamPerms())
+			headerParamPerms = append(headerParamPerms, b.paramPerms.HeaderParamPerms())
+		}
+
+		pathParamPerms = append(pathParamPerms, perms.PathParamPerms())
+		queryParamPerms = append(queryParamPerms, perms.QueryParamPerms())
+		headerParamPerms = append(headerParamPerms, perms.HeaderParamPerms())
+
+		b.paramPerms = &requestParamPermsImpl{
+			pathParamPerms:   NewCombinedParamPerms(pathParamPerms...),
+			queryParamPerms:  NewCombinedParamPerms(queryParamPerms...),
+			headerParamPerms: NewCombinedParamPerms(headerParamPerms...),
+		}
+		return nil
 	})
 }
 
 func SafePathParams(safeParams ...string) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return &requestParamPermsImpl{
-			pathParamPerms: newSafeParamPerms(safeParams...),
-		}
+	return RouteParamPermsParam(&requestParamPermsImpl{
+		pathParamPerms: newSafeParamPerms(safeParams...),
 	})
 }
 
 func ForbiddenPathParams(forbiddenParams ...string) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return &requestParamPermsImpl{
-			pathParamPerms: newForbiddenParamPerms(forbiddenParams...),
-		}
+	return RouteParamPermsParam(&requestParamPermsImpl{
+		pathParamPerms: newForbiddenParamPerms(forbiddenParams...),
 	})
 }
 
 func SafeQueryParams(safeParams ...string) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return &requestParamPermsImpl{
-			queryParamPerms: newSafeParamPerms(safeParams...),
-		}
+	return RouteParamPermsParam(&requestParamPermsImpl{
+		queryParamPerms: newSafeParamPerms(safeParams...),
 	})
 }
 
 func ForbiddenQueryParams(forbiddenParams ...string) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return &requestParamPermsImpl{
-			queryParamPerms: newForbiddenParamPerms(forbiddenParams...),
-		}
+	return RouteParamPermsParam(&requestParamPermsImpl{
+		queryParamPerms: newForbiddenParamPerms(forbiddenParams...),
 	})
 }
 
 func SafeHeaderParams(safeParams ...string) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return &requestParamPermsImpl{
-			headerParamPerms: newSafeParamPerms(safeParams...),
-		}
+	return RouteParamPermsParam(&requestParamPermsImpl{
+		headerParamPerms: newSafeParamPerms(safeParams...),
 	})
 }
 
 func ForbiddenHeaderParams(forbiddenParams ...string) RouteParam {
-	return requestParamPermsFunc(func() RouteParamPerms {
-		return &requestParamPermsImpl{
-			headerParamPerms: newForbiddenParamPerms(forbiddenParams...),
-		}
+	return RouteParamPermsParam(&requestParamPermsImpl{
+		headerParamPerms: newForbiddenParamPerms(forbiddenParams...),
 	})
-}
-
-func toRequestParamPerms(params []RouteParam) RouteParamPerms {
-	var pathParamPerms []ParamPerms
-	var queryParamPerms []ParamPerms
-	var headerParamPerms []ParamPerms
-
-	for _, p := range params {
-		if p == nil {
-			continue
-		}
-
-		perms := p.perms()
-		if perms != nil {
-			pathParamPerms = append(pathParamPerms, perms.PathParamPerms())
-			queryParamPerms = append(queryParamPerms, perms.QueryParamPerms())
-			headerParamPerms = append(headerParamPerms, perms.HeaderParamPerms())
-		}
-	}
-
-	return &requestParamPermsImpl{
-		pathParamPerms:   NewCombinedParamPerms(pathParamPerms...),
-		queryParamPerms:  NewCombinedParamPerms(queryParamPerms...),
-		headerParamPerms: NewCombinedParamPerms(headerParamPerms...),
-	}
-}
-
-type requestMetricTagsFunc func() metrics.Tags
-
-func (f requestMetricTagsFunc) perms() RouteParamPerms {
-	return nil
-}
-
-func (f requestMetricTagsFunc) metricTags() metrics.Tags {
-	return f()
 }
 
 func MetricTags(tags metrics.Tags) RouteParam {
-	return requestMetricTagsFunc(func() metrics.Tags {
-		return tags
+	return routeParamFunc(func(b *routeParamBuilder) error {
+		b.metricTags = tags
+		return nil
 	})
 }
 
-func toMetricTags(params []RouteParam) metrics.Tags {
-	var tags metrics.Tags
-	for _, param := range params {
-		tags = append(tags, param.metricTags()...)
+func toRequestParamPerms(b *routeParamBuilder) RouteParamPerms {
+	if b.paramPerms != nil {
+		return b.paramPerms
 	}
-	return tags
+	return &requestParamPermsImpl{}
+}
+
+func toMetricTags(b *routeParamBuilder) metrics.Tags {
+	if b.metricTags != nil {
+		return b.metricTags
+	}
+	return metrics.Tags{}
 }

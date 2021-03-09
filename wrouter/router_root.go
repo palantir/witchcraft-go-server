@@ -104,6 +104,16 @@ func (r *rootRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *rootRouter) Register(method, path string, handler http.Handler, params ...RouteParam) error {
+	b := &routeParamBuilder{}
+	for _, param := range params {
+		if param == nil {
+			continue
+		}
+		if err := param.apply(b); err != nil {
+			return err
+		}
+	}
+
 	pathTemplate, err := NewPathTemplate(path)
 	if err != nil {
 		return err
@@ -124,7 +134,8 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 	r.routes = append(r.routes, routeSpec)
 	sort.Sort(routeSpecs(r.routes))
 
-	metricTags := toMetricTags(params)
+	requestParamPerms := toRequestParamPerms(b)
+	metricTags := toMetricTags(b)
 
 	// wrap provided handler with a handler that registers the path parameter information in the context
 	r.impl.Register(method, pathTemplate.Segments(), http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -139,7 +150,7 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 		wrappedHandlerFn(w, req, RequestVals{
 			Spec:          routeSpec,
 			PathParamVals: pathParamVals,
-			ParamPerms:    toRequestParamPerms(params),
+			ParamPerms:    requestParamPerms,
 			MetricTags:    metricTags,
 		})
 	}))
