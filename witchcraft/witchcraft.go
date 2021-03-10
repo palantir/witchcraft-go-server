@@ -36,7 +36,6 @@ import (
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -1032,25 +1031,3 @@ func traceSamplerFromSampleRate(sampleRate float64) wtracing.Sampler {
 func neverSample(id uint64) bool { return false }
 
 func alwaysSample(id uint64) bool { return true }
-
-type alwaysWarnHealthCheckSource struct {
-	healthStatus health.HealthStatus
-}
-
-func newAlwaysWarnHealthCheckSource(checkType health.CheckType, message string) healthstatus.HealthCheckSource {
-	return &alwaysWarnHealthCheckSource{
-		healthStatus: health.HealthStatus{
-			Checks: map[health.CheckType]health.HealthCheckResult{
-				checkType: {
-					Type:    checkType,
-					State:   health.New_HealthState(health.HealthState_WARNING),
-					Message: &message,
-				},
-			},
-		},
-	}
-}
-
-func (a *alwaysWarnHealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus {
-	return a.healthStatus
-}
