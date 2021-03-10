@@ -36,6 +36,7 @@ import (
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -615,10 +616,28 @@ func (s *Server) Start() (rErr error) {
 	}
 	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
 
-	// extract the TCP JSON receiver from the runtime config
-	servicesCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery
-	receiverCfg, err := servicesCfg.MustClientConfig("sls-log-tcp-json-receiver")
-	if err == nil && len(receiverCfg.URIs) > 0 {
+	// enable TCP logging if the envelope metadata and the TCP receiver are both configured
+	receiverCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery.ClientConfig("sls-log-tcp-json-receiver")
+	envelopeMetadata, err := tcpjson.GetEnvelopeMetadata()
+	if err != nil {
+		if len(receiverCfg.URIs) > 0 {
+			// Presence of TCP receiver config without envelope metadata may indicate a mis-configuration,
+			// but can also be expected in environments where the config is always hard-coded.
+			// In this case we emit a warning log to help debug potential issues, but otherwise proceed as normal.
+			s.svcLogger.Warn("TCP logging will not be enabled since all environment variables are not set.", svc1log.Stacktrace(err))
+		}
+		// If both the envelope metadata and the TCP receiver are not configured, then it is expected
+		// that TCP logging should not be enabled and thus it is safe to proceed without any warning logs.
+	} else if len(receiverCfg.URIs) == 0 {
+		// The existence of envelope metadata means TCP logging was expected to be enabled, but the TCP receiver must be mis-configured.
+		// Since the server may otherwise be functional, the TCP writer health check is set to a
+		// permanent warning state to indicate the logging issues.
+		internalHealthCheckSources = append(internalHealthCheckSources,
+			newAlwaysWarnHealthCheckSource(tcpjson.TCPWriterHealthCheckName,
+				"TCP logging is disabled. No TCP JSON receiver URIs are configured but log envelope metadata exists."),
+		)
+	} else {
+		// enable TCP logging since the metadata and receiver are both configured
 		tlsConfig, err := tlsconfig.NewClientConfig(
 			tlsconfig.ClientRootCAFiles(receiverCfg.Security.CAFiles...),
 			tlsconfig.ClientKeyPairFiles(receiverCfg.Security.CertFile, receiverCfg.Security.KeyFile),
@@ -630,11 +649,12 @@ func (s *Server) Start() (rErr error) {
 		if err != nil {
 			return err
 		}
-		envelopeMetadata := tcpjson.GetEnvelopeMetadata()
 		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
 		defer func() {
 			_ = tcpWriter.Close()
 		}()
+		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
+
 		// re-initialize the loggers with the TCP writer and overwrite the context
 		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
 		ctx = s.withLoggers(ctx)
@@ -1015,3 +1035,25 @@ func traceSamplerFromSampleRate(sampleRate float64) wtracing.Sampler {
 func neverSample(id uint64) bool { return false }
 
 func alwaysSample(id uint64) bool { return true }
+
+type alwaysWarnHealthCheckSource struct {
+	healthStatus health.HealthStatus
+}
+
+func newAlwaysWarnHealthCheckSource(checkType health.CheckType, message string) healthstatus.HealthCheckSource {
+	return &alwaysWarnHealthCheckSource{
+		healthStatus: health.HealthStatus{
+			Checks: map[health.CheckType]health.HealthCheckResult{
+				checkType: {
+					Type:    checkType,
+					State:   health.New_HealthState(health.HealthState_WARNING),
+					Message: &message,
+				},
+			},
+		},
+	}
+}
+
+func (a *alwaysWarnHealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus {
+	return a.healthStatus
+}

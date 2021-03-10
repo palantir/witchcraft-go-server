@@ -24,6 +24,21 @@ type routeParamBuilder struct {
 	disableTelemetry bool
 }
 
+func (b *routeParamBuilder) toRequestParamPerms() RouteParamPerms {
+	if b.paramPerms != nil {
+		return b.paramPerms
+	}
+	return &requestParamPermsImpl{}
+}
+
+func (b *routeParamBuilder) toMetricTags() metrics.Tags {
+	var tags metrics.Tags
+	if b.metricTags != nil {
+		tags = append(tags, b.metricTags...)
+	}
+	return tags
+}
+
 type RouteParam interface {
 	apply(*routeParamBuilder) error
 }
@@ -101,24 +116,9 @@ func MetricTags(tags metrics.Tags) RouteParam {
 	})
 }
 
-// DisableTelemetry is a RouterParam that will disable telemetry logging for a route.
 func DisableTelemetry() RouteParam {
 	return routeParamFunc(func(b *routeParamBuilder) error {
 		b.disableTelemetry = true
 		return nil
 	})
-}
-
-func toRequestParamPerms(b *routeParamBuilder) RouteParamPerms {
-	if b.paramPerms != nil {
-		return b.paramPerms
-	}
-	return &requestParamPermsImpl{}
-}
-
-func toMetricTags(b *routeParamBuilder) metrics.Tags {
-	if b.metricTags != nil {
-		return b.metricTags
-	}
-	return metrics.Tags{}
 }

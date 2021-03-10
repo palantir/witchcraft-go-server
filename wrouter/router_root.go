@@ -134,8 +134,8 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 	r.routes = append(r.routes, routeSpec)
 	sort.Sort(routeSpecs(r.routes))
 
-	requestParamPerms := toRequestParamPerms(b)
-	metricTags := toMetricTags(b)
+	requestParamPerms := b.toRequestParamPerms()
+	metricTags := b.toMetricTags()
 
 	// wrap provided handler with a handler that registers the path parameter information in the context
 	r.impl.Register(method, pathTemplate.Segments(), http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
