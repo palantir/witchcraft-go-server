@@ -16,6 +16,7 @@ package middleware_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -30,11 +31,13 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
+	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -259,4 +262,42 @@ func getTimerObjectMatcher(count int) map[string]objmatcher.Matcher {
 		"p95":      objmatcher.NewAnyMatcher(),
 		"p99":      objmatcher.NewAnyMatcher(),
 	})
+}
+
+func TestRequestDisableTelemetry(t *testing.T) {
+	var reqOutput bytes.Buffer
+	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
+
+	var spanOutput bytes.Buffer
+	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
+
+	metricRegistry := metrics.NewRootMetricsRegistry()
+	reqMetricMiddleware := middleware.NewRequestMetricRequestMeter(metricRegistry)
+	reqSpanMiddleware := middleware.NewRouteLogTraceSpan()
+	reqRequstLogMiddleware := middleware.NewRouteRequestLog(reqLog, nil)
+
+	tracer, err := wzipkin.NewTracer(spanLog)
+	require.NoError(t, err)
+	ctx := wtracing.ContextWithTracer(context.Background(), tracer)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
+	require.NoError(t, err)
+
+	reqMetricMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+		_, _ = fmt.Fprint(rw, "ok")
+	})
+	reqRequstLogMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+		_, _ = fmt.Fprint(rw, "ok")
+	})
+	reqSpanMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+		_, _ = fmt.Fprint(rw, "ok")
+	})
+
+	metricRegistry.Each(metrics.MetricVisitor(func(_ string, _ metrics.Tags, metric metrics.MetricVal) {
+		assert.Empty(t, metric.Values(), "expected no metrics to be written when Skiptelemetry is true")
+	}))
+
+	assert.Empty(t, reqOutput.Bytes(), "expected request log to be empty when DisableTelemetry is true")
+	assert.Empty(t, spanOutput.Bytes(), "expected trace span log to be empty when DisableTelemetry is true")
 }

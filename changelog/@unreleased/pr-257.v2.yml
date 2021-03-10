@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Remove request, metric, and trace logging telemetry on liveness, readiness,
+    and health routes. These endpoints are hit at high frequency producing a
+    large number of low signals logs. Telemetry for other routes can be
+    removed by using the new DisableTelemetry RouteParam.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/257

@@ -22,18 +22,19 @@ import (
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
+	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
 func AddLivenessRoutes(resource wresource.Resource, source healthstatus.Source) error {
-	return resource.Get("liveness", status.LivenessEndpoint, handler(source))
+	return resource.Get("liveness", status.LivenessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
 func AddReadinessRoutes(resource wresource.Resource, source healthstatus.Source) error {
-	return resource.Get("readiness", status.ReadinessEndpoint, handler(source))
+	return resource.Get("readiness", status.ReadinessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
 func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {
-	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers))
+	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers), wrouter.DisableTelemetry())
 }
 
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response

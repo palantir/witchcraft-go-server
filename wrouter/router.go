@@ -81,6 +81,9 @@ type RequestVals struct {
 	PathParamVals map[string]string
 	ParamPerms    RouteParamPerms
 	MetricTags    metrics.Tags
+	// DisableTelemetry instructs the logging middleware to skip over
+	// generating metrics, request, and trace logs for a request.
+	DisableTelemetry bool
 }
 
 type ResponseVals struct {

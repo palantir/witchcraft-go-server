@@ -33,6 +33,11 @@ import (
 
 func NewRouteRequestLog(reqLogger req2log.Logger, baseParamPerms req2log.RequestParamPerms) wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+		if reqVals.DisableTelemetry {
+			next(rw, req, reqVals)
+			return
+		}
+
 		lrw := toLoggingResponseWriter(rw)
 		start := time.Now()
 		next(lrw, req, reqVals)
@@ -91,6 +96,11 @@ type loggingResponseWriter interface {
 
 func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+		if reqVals.DisableTelemetry {
+			next(rw, req, reqVals)
+			return
+		}
+
 		tracer := wtracing.TracerFromContext(req.Context())
 		if tracer == nil {
 			next(rw, req, reqVals)

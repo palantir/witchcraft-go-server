@@ -19,8 +19,9 @@ import (
 )
 
 type routeParamBuilder struct {
-	paramPerms RouteParamPerms
-	metricTags metrics.Tags
+	paramPerms       RouteParamPerms
+	metricTags       metrics.Tags
+	disableTelemetry bool
 }
 
 func (b *routeParamBuilder) toRequestParamPerms() RouteParamPerms {
@@ -111,6 +112,13 @@ func ForbiddenHeaderParams(forbiddenParams ...string) RouteParam {
 func MetricTags(tags metrics.Tags) RouteParam {
 	return routeParamFunc(func(b *routeParamBuilder) error {
 		b.metricTags = tags
+		return nil
+	})
+}
+
+func DisableTelemetry() RouteParam {
+	return routeParamFunc(func(b *routeParamBuilder) error {
+		b.disableTelemetry = true
 		return nil
 	})
 }
