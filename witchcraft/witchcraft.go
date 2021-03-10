@@ -36,7 +36,6 @@ import (
 	"github.com/palantir/pkg/signals"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -630,12 +629,9 @@ func (s *Server) Start() (rErr error) {
 		// that TCP logging should not be enabled and thus it is safe to proceed without any warning logs.
 	} else if len(receiverCfg.URIs) == 0 {
 		// The existence of envelope metadata means TCP logging was expected to be enabled, but the TCP receiver must be mis-configured.
-		// Since the server may otherwise be functional, the TCP writer health check is set to a
-		// permanent warning state to indicate the logging issues.
-		internalHealthCheckSources = append(internalHealthCheckSources,
-			newAlwaysWarnHealthCheckSource(tcpjson.TCPWriterHealthCheckName,
-				"TCP logging is disabled. No TCP JSON receiver URIs are configured but log envelope metadata exists."),
-		)
+		// Since the server may otherwise be functional, an error log is emitted to indicate logging issues, rather
+		// than setting the TCP writer health to a state that can cause pages.
+		s.svcLogger.Error("TCP logging is disabled. No TCP JSON receiver URIs are configured but log envelope metadata exists.")
 	} else {
 		// enable TCP logging since the metadata and receiver are both configured
 		tlsConfig, err := tlsconfig.NewClientConfig(
@@ -1035,25 +1031,3 @@ func traceSamplerFromSampleRate(sampleRate float64) wtracing.Sampler {
 func neverSample(id uint64) bool { return false }
 
 func alwaysSample(id uint64) bool { return true }
-
-type alwaysWarnHealthCheckSource struct {
-	healthStatus health.HealthStatus
-}
-
-func newAlwaysWarnHealthCheckSource(checkType health.CheckType, message string) healthstatus.HealthCheckSource {
-	return &alwaysWarnHealthCheckSource{
-		healthStatus: health.HealthStatus{
-			Checks: map[health.CheckType]health.HealthCheckResult{
-				checkType: {
-					Type:    checkType,
-					State:   health.New_HealthState(health.HealthState_WARNING),
-					Message: &message,
-				},
-			},
-		},
-	}
-}
-
-func (a *alwaysWarnHealthCheckSource) HealthStatus(_ context.Context) health.HealthStatus {
-	return a.healthStatus
-}
