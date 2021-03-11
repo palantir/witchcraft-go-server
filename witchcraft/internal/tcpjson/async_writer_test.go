@@ -22,6 +22,7 @@ import (
 
 	"github.com/palantir/pkg/metrics"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAsyncWriter(t *testing.T) {
@@ -41,4 +42,10 @@ func TestAsyncWriter(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		assert.Contains(t, written, strconv.Itoa(i))
 	}
+
+	t.Run("fails when closed", func(t *testing.T) {
+		require.NoError(t, w.Close())
+		_, err := w.Write([]byte("will fail!"))
+		require.EqualError(t, err, "write to closed asyncWriter")
+	})
 }
