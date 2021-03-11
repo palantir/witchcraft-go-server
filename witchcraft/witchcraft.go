@@ -646,13 +646,15 @@ func (s *Server) Start() (rErr error) {
 			return err
 		}
 		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
+		asyncTCPWriter := tcpjson.StartAsyncWriter(tcpWriter, metricsRegistry)
 		defer func() {
+			_ = asyncTCPWriter.Close()
 			_ = tcpWriter.Close()
 		}()
 		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
 
 		// re-initialize the loggers with the TCP writer and overwrite the context
-		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
+		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
 		ctx = s.withLoggers(ctx)
 	}
 

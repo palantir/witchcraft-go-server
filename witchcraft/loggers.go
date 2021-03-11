@@ -30,7 +30,6 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/metricloggers"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/tcpjson"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -64,8 +63,7 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 	logWriterFn := func(slsFilename string) io.Writer {
 		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
 		if tcpWriter != nil {
-			asyncTCPWriter := tcpjson.StartAsyncWriter(tcpWriter, registry)
-			internalWriter = io.MultiWriter(internalWriter, asyncTCPWriter)
+			internalWriter = io.MultiWriter(internalWriter, tcpWriter)
 		}
 		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
