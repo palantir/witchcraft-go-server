@@ -2,7 +2,5 @@ type: feature
 feature:
   description: |-
     TCP writer uses a buffered channel to queue messages
-
-    In the case that the TCP logger connection is slow or failing, we do not want to block the primary process from continuing. We may consider using this for the file based logger(s) as well, though disk IO speed has never been a problem.
   links:
   - https://github.com/palantir/witchcraft-go-server/pull/262
