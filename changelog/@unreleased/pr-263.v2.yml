@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Revert async logging
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/263
