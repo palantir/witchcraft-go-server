@@ -646,17 +646,16 @@ func (s *Server) Start() (rErr error) {
 			return err
 		}
 
-		// Create a TCP connection and an asynchronous buffered wrapper.
-		// Note that we intentionally do not call their Close() methods.
+		// Create a TCP connection and initialize logger wrapper.
+		// Note that we intentionally do not call its Close() method.
 		// While this does leak the resources of the open connection, we want every possible message to reach the output.
 		// Closing early at any point before program termination risks other operations' last log messages being lost.
 		// The resource leak has been deemed acceptable given server.Start() is typically a singleton and the main execution thread.
 		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
-		asyncTCPWriter := tcpjson.StartAsyncWriter(tcpWriter, metricsRegistry)
 		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
 
 		// re-initialize the loggers with the TCP writer and overwrite the context
-		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
+		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, tcpWriter)
 		ctx = s.withLoggers(ctx)
 	}
 
