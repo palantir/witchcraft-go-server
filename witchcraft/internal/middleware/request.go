@@ -16,6 +16,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/palantir/pkg/metrics"
