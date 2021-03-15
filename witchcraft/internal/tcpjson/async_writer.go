@@ -63,7 +63,11 @@ func (w *asyncWriter) Write(b []byte) (int, error) {
 	case <-w.stop:
 		return 0, werror.Error("write to closed asyncWriter")
 	default:
-		w.buffer <- b
+		// copy the provided byte slice before pushing it into the buffer channel so the original
+		// byte slice is not retained and thus still compliant with the io.Writer contract
+		bb := make([]byte, len(b))
+		copy(bb, b)
+		w.buffer <- bb
 		return len(b), nil
 	}
 }
