@@ -131,7 +131,10 @@ func NewRequestExtractIDs(
 		reqSpanContext := b3.SpanExtractor(req)()
 		span := tracer.StartSpan("witchcraft-go-server request middleware",
 			wtracing.WithParentSpanContext(reqSpanContext),
-			wtracing.WithSpanTag("http.method", req.Method))
+			wtracing.WithSpanTag("http.method", req.Method),
+			wtracing.WithSpanTag("http.url", req.URL.String()),
+			wtracing.WithSpanTag("http.useragent", req.UserAgent()),
+		)
 		defer span.Finish()
 
 		ctx = wtracing.ContextWithSpan(ctx, span)
