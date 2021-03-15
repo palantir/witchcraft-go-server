@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sync/atomic"
 	"testing"
 
 	werror "github.com/palantir/witchcraft-go-error"
@@ -188,8 +189,9 @@ func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
 // bytes buffer instead of to the net.Conn.
 type bufferedConnProvider struct {
 	net.Conn
-	err    error
-	buffer bytes.Buffer
+	err        error
+	buffer     bytes.Buffer
+	writeCount int32
 }
 
 func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
@@ -197,6 +199,7 @@ func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
 }
 
 func (t *bufferedConnProvider) Write(d []byte) (int, error) {
+	atomic.AddInt32(&t.writeCount, 1)
 	return t.buffer.Write(d)
 }
 
