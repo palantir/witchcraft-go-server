@@ -134,7 +134,22 @@ func NewRequestExtractIDs(
 			wtracing.WithSpanTag("http.method", req.Method),
 			wtracing.WithSpanTag("http.url", req.URL.String()),
 			wtracing.WithSpanTag("http.useragent", req.UserAgent()),
+			wtracing.WithSpanTag("http.url_details.host", req.URL.Host),
+			wtracing.WithSpanTag("http.url_details.port", req.URL.Port()),
+			wtracing.WithSpanTag("http.url_details.path", req.URL.Path),
+			wtracing.WithSpanTag("http.url_details.scheme", req.URL.Scheme),
 		)
+		first := true
+		for k, values := range req.URL.Query() {
+			valueStr := ""
+			for _, v := range values {
+				if !first {
+					valueStr = valueStr + ","
+				}
+				valueStr = valueStr + v
+			}
+			span.Tag(k, valueStr)
+		}
 		defer span.Finish()
 
 		ctx = wtracing.ContextWithSpan(ctx, span)
