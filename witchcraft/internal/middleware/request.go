@@ -141,9 +141,10 @@ func NewRequestExtractIDs(
 		req = req.WithContext(ctx)
 
 		// delegate to the next handler
-		next.ServeHTTP(rw, req)
+		lrw := toLoggingResponseWriter(rw)
+		next.ServeHTTP(lrw, req)
 		// tag the status_code
-		span.Tag("http.status_code", strconv.Itoa(req.Response.StatusCode))
+		span.Tag("http.status_code", strconv.Itoa(lrw.Status()))
 	}
 }
 
