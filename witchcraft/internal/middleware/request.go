@@ -128,7 +128,9 @@ func NewRequestExtractIDs(
 
 		// retrieve existing trace info from request and create a span
 		reqSpanContext := b3.SpanExtractor(req)()
-		span := tracer.StartSpan("witchcraft-go-server request middleware", wtracing.WithParentSpanContext(reqSpanContext))
+		span := tracer.StartSpan("witchcraft-go-server request middleware",
+			wtracing.WithParentSpanContext(reqSpanContext),
+			wtracing.WithSpanTag("http.method", req.Method))
 		defer span.Finish()
 
 		ctx = wtracing.ContextWithSpan(ctx, span)
@@ -139,6 +141,8 @@ func NewRequestExtractIDs(
 
 		// delegate to the next handler
 		next.ServeHTTP(rw, req)
+		// tag the status_code
+		span.Tag("http.status_code", strconv.Itoa(req.Response.StatusCode))
 	}
 }
 
