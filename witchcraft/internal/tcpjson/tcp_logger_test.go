@@ -189,8 +189,10 @@ func getEnvelopeBytes(t *testing.T, payload []byte) []byte {
 // bytes buffer instead of to the net.Conn.
 type bufferedConnProvider struct {
 	net.Conn
-	err        error
-	buffer     bytes.Buffer
+	err    error
+	buffer bytes.Buffer
+	// writeCount tracks the total number of writes that are called.
+	// This field should only be used in testing and should only be updated/read with atomic operations.
 	writeCount int32
 }
 
