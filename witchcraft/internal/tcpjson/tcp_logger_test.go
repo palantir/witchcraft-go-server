@@ -101,6 +101,8 @@ func TestWrite_Timeout(t *testing.T) {
 	n, err := tcpWriter.Write(logPayload)
 	require.NoError(t, err)
 	require.Equal(t, len(logPayload), n)
+	// conn is cached since it's active
+	require.NotNil(t, tcpWriter.conn)
 
 	// set a deadline which should cause the Write to timeout
 	err = conn.SetDeadline(time.Now())
@@ -109,6 +111,8 @@ func TestWrite_Timeout(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, isTimeoutError(err))
 	require.False(t, isTemporaryError(err))
+	// conn is nil, since it should be closed
+	require.Nil(t, tcpWriter.conn)
 
 	// subsequent writes should error since the connection should be closed
 	_, err = tcpWriter.Write(logPayload)
@@ -119,6 +123,8 @@ func TestWrite_Timeout(t *testing.T) {
 		strings.Contains(err.Error(), "use of closed network connection") ||
 			strings.Contains(err.Error(), "tls: use of closed connection"),
 	)
+	// conn is nil, since it should be closed
+	require.Nil(t, tcpWriter.conn)
 }
 
 func isTimeoutError(err error) bool {
