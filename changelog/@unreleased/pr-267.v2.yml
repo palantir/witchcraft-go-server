@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Close TCP connections if there are network timeouts
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/267
