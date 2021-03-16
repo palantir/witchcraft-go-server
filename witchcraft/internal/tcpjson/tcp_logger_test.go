@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -114,14 +115,18 @@ func TestWrite_Timeout(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, isTimeoutError(err))
 	require.False(t, isTemporaryError(err))
-	closedNetworkErrors := map[string]struct{}{
+	var found bool
+	for errStr := range map[string]struct{}{
 		// go1.16
 		"use of closed network connection": {},
 		// go1.15
 		"use of closed connection": {},
+	} {
+		if strings.HasSuffix(err.Error(), errStr) {
+			found = true
+		}
 	}
-	_, ok := closedNetworkErrors[err.Error()]
-	assert.True(t, ok)
+	assert.True(t, found)
 }
 
 func isTimeoutError(err error) bool {
