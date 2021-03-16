@@ -106,8 +106,8 @@ func (d *TCPWriter) Write(p []byte) (n int, err error) {
 		n, err := conn.Write(envelope[total:])
 		total += n
 		if err != nil {
-			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-				// permanent error so close the connection
+			if nerr, ok := err.(net.Error); !ok || nerr.Timeout() || !nerr.Temporary() {
+				// permanent error or timeout so close the connection
 				_ = d.closeConn()
 				return total, err
 			}
