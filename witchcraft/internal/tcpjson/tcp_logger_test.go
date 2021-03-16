@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sync/atomic"
 	"testing"
 
 	werror "github.com/palantir/witchcraft-go-error"
@@ -190,6 +191,9 @@ type bufferedConnProvider struct {
 	net.Conn
 	err    error
 	buffer bytes.Buffer
+	// writeCount tracks the total number of writes that are called.
+	// This field should only be used in testing and should only be updated/read with atomic operations.
+	writeCount int32
 }
 
 func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
@@ -197,6 +201,7 @@ func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
 }
 
 func (t *bufferedConnProvider) Write(d []byte) (int, error) {
+	atomic.AddInt32(&t.writeCount, 1)
 	return t.buffer.Write(d)
 }
 
