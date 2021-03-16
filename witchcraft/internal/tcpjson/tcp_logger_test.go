@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"sync/atomic"
 	"testing"
 
 	werror "github.com/palantir/witchcraft-go-error"
@@ -104,7 +103,7 @@ func TestWriteFromSvc1log(t *testing.T) {
 	err = gotPayload.UnmarshalJSON(gotEnvelope.Payload)
 	require.NoError(t, err)
 	assert.Equal(t, "this is a test", gotPayload.Message)
-	assert.Equal(t, logging.LogLevelDebug, gotPayload.Level)
+	assert.Equal(t, logging.New_LogLevel(logging.LogLevel_DEBUG), gotPayload.Level)
 }
 
 // TestClosedWriter verifies the behavior of attempting to write when the writer is closed.
@@ -191,9 +190,6 @@ type bufferedConnProvider struct {
 	net.Conn
 	err    error
 	buffer bytes.Buffer
-	// writeCount tracks the total number of writes that are called.
-	// This field should only be used in testing and should only be updated/read with atomic operations.
-	writeCount int32
 }
 
 func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
@@ -201,7 +197,6 @@ func (t *bufferedConnProvider) GetConn() (net.Conn, error) {
 }
 
 func (t *bufferedConnProvider) Write(d []byte) (int, error) {
-	atomic.AddInt32(&t.writeCount, 1)
 	return t.buffer.Write(d)
 }
 

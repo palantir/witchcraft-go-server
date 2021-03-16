@@ -49,6 +49,20 @@ func marshalWTracingSpanModel(key string, val interface{}) zapcore.Field {
 				}
 			}
 		}
+		if tags := span.Tags; len(tags) > 0 {
+			if err := encodeSpanTags(enc, tags); err != nil {
+				return err
+			}
+		}
+		return nil
+	}))
+}
+
+func encodeSpanTags(enc zapcore.ObjectEncoder, tags map[string]string) error {
+	return enc.AddObject(trc1log.SpanTagsKey, zapcore.ObjectMarshalerFunc(func(objEnc zapcore.ObjectEncoder) error {
+		for k, v := range tags {
+			objEnc.AddString(k, v)
+		}
 		return nil
 	}))
 }
