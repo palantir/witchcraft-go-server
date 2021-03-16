@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: |-
+    Upgrade withccraft-go-logging to 1.10
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/266
