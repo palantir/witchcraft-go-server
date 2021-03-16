@@ -117,9 +117,9 @@ func TestCombinedMiddleware(t *testing.T) {
 				"duration":  objmatcher.NewAnyMatcher(),
 				"tags": objmatcher.MapMatcher(
 					map[string]objmatcher.Matcher{
-						"http.status_code":      objmatcher.NewEqualsMatcher("200"),
-						"http.method":           objmatcher.NewEqualsMatcher("GET"),
-						"http.useragent":        objmatcher.NewRegExpMatcher(".*"),
+						"http.status_code": objmatcher.NewEqualsMatcher("200"),
+						"http.method":      objmatcher.NewEqualsMatcher("GET"),
+						"http.useragent":   objmatcher.NewRegExpMatcher(".*"),
 					},
 				),
 			}),
