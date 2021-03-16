@@ -108,6 +108,7 @@ func TestWrite_Timeout(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, isTimeoutError(err))
 	require.False(t, isTemporaryError(err))
+	assert.Nil(t, tcpWriter.conn)
 
 	// subsequent writes should error since the connection should be closed
 	_, err = tcpWriter.Write(logPayload)
