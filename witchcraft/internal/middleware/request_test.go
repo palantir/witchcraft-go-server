@@ -117,10 +117,10 @@ func TestCombinedMiddleware(t *testing.T) {
 				"duration":  objmatcher.NewAnyMatcher(),
 				"tags": objmatcher.MapMatcher(
 					map[string]objmatcher.Matcher{
-						"http.status_code": objmatcher.NewEqualsMatcher("200"),
-						"http.method": objmatcher.NewEqualsMatcher("GET"),
-						"http.url": objmatcher.NewEqualsMatcher("/"),
-						"http.useragent": objmatcher.NewRegExpMatcher(".*"),
+						"http.status_code":      objmatcher.NewEqualsMatcher("200"),
+						"http.method":           objmatcher.NewEqualsMatcher("GET"),
+						"http.url":              objmatcher.NewEqualsMatcher("/"),
+						"http.useragent":        objmatcher.NewRegExpMatcher(".*"),
 						"http.url_details.path": objmatcher.NewEqualsMatcher("/"),
 					},
 				),
@@ -130,7 +130,6 @@ func TestCombinedMiddleware(t *testing.T) {
 		assert.NoError(t, err, "unexpected error when unmarshalling trace output")
 		assert.NoError(t, matcher.Matches(map[string]interface{}(entries[0])), "unexpected content in trace output")
 	}()
-
 
 	req, err := http.NewRequest(http.MethodGet, server.URL+"/", nil)
 	require.NoError(t, err)
