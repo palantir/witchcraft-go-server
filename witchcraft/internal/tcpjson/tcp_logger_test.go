@@ -108,17 +108,20 @@ func TestWrite_Timeout(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, isTimeoutError(err))
 	require.False(t, isTemporaryError(err))
-	assert.Nil(t, tcpWriter.conn)
 
 	// subsequent writes should error since the connection should be closed
 	_, err = tcpWriter.Write(logPayload)
 	require.Error(t, err)
 	require.False(t, isTimeoutError(err))
 	require.False(t, isTemporaryError(err))
-	// We check the internal conn since the returned error is a single string, "use of closed network connection",
-	// which can change across go versions, and thus brittle to assert against. The internal conn, is expected to be
-	// reset to nil when the connection is closed.
-	assert.Nil(t, tcpWriter.conn)
+	closedNetworkErrors := map[string]struct{}{
+		// go1.16
+		"use of closed network connection": {},
+		// go1.15
+		"use of closed connection": {},
+	}
+	_, ok := closedNetworkErrors[err.Error()]
+	assert.True(t, ok)
 }
 
 func isTimeoutError(err error) bool {
