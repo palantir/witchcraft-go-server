@@ -17,9 +17,9 @@ require (
 	github.com/palantir/pkg/tlsconfig v1.0.2
 	github.com/palantir/witchcraft-go-error v1.4.3
 	github.com/palantir/witchcraft-go-health v1.6.0
-	github.com/palantir/witchcraft-go-logging v1.9.0
+	github.com/palantir/witchcraft-go-logging v1.10.0
 	github.com/palantir/witchcraft-go-params v1.2.0
-	github.com/palantir/witchcraft-go-tracing v1.2.0
+	github.com/palantir/witchcraft-go-tracing v1.3.0
 	github.com/rs/zerolog v1.20.0
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

@@ -66,6 +66,7 @@ func fromZipkinSpanModel(spanModel model.SpanModel) wtracing.SpanModel {
 		Duration:       spanModel.Duration,
 		LocalEndpoint:  fromZipkinEndpoint(spanModel.LocalEndpoint),
 		RemoteEndpoint: fromZipkinEndpoint(spanModel.RemoteEndpoint),
+		Tags:           spanModel.Tags,
 	}
 }
 
@@ -82,6 +83,9 @@ func toZipkinSpanOptions(impl *wtracing.SpanOptionImpl) []zipkin.SpanOption {
 	}
 	if parent := impl.ParentSpan; parent != nil {
 		zipkinSpanOptions = append(zipkinSpanOptions, zipkin.Parent(toZipkinSpanContext(*parent)))
+	}
+	if tags := impl.Tags; tags != nil {
+		zipkinSpanOptions = append(zipkinSpanOptions, zipkin.Tags(tags))
 	}
 	return zipkinSpanOptions
 }

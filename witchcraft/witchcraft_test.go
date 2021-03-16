@@ -61,7 +61,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				require.Equal(t, 1, len(svc1LogLines), "Expected exactly 1 service log line to be output")
 				var log logging.ServiceLogV1
 				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
-				assert.Equal(t, logging.LogLevelError, log.Level)
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
 				assert.Equal(t, "oops", log.Message)
 				assert.Equal(t, "v", log.Params["k"], "safe param not preserved")
 				assert.NotEmpty(t, log.Stacktrace)
@@ -77,7 +77,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				require.Equal(t, 1, len(svc1LogLines), "Expected exactly 1 service log line to be output")
 				var log logging.ServiceLogV1
 				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
-				assert.Equal(t, logging.LogLevelError, log.Level)
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
 				assert.Equal(t, "panic recovered", log.Message)
 				assert.Equal(t, "v", log.Params["k"], "safe param not preserved")
 				assert.NotEmpty(t, log.Stacktrace)
@@ -93,7 +93,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				require.Equal(t, 1, len(svc1LogLines), "Expected exactly 1 service log line to be output")
 				var log logging.ServiceLogV1
 				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
-				assert.Equal(t, logging.LogLevelError, log.Level)
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
 				assert.Equal(t, "panic recovered", log.Message)
 				assert.Equal(t, map[string]interface{}{"k": "v"}, log.UnsafeParams["recovered"])
 				assert.NotEmpty(t, log.Stacktrace)
@@ -157,7 +157,7 @@ func TestServer_WithOriginFromCallLine(t *testing.T) {
 
 				var log2 logging.ServiceLogV1
 				require.NoError(t, json.Unmarshal(svc1LogLines[1], &log2))
-				assert.Equal(t, logging.LogLevelError, log2.Level)
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log2.Level)
 				assert.Equal(t, "oops", log2.Message)
 				assert.Equal(t, "v", log2.Params["k"], "safe param not preserved")
 				assert.NotEmpty(t, log2.Stacktrace)

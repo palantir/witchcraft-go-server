@@ -117,6 +117,6 @@ func TestAsyncWriteWithSvc1log(t *testing.T) {
 		err = gotPayload.UnmarshalJSON(gotEnvelope.Payload)
 		require.NoError(t, err)
 		assert.Equal(t, strconv.Itoa(i), gotPayload.Message)
-		assert.Equal(t, logging.LogLevelDebug, gotPayload.Level)
+		assert.Equal(t, logging.New_LogLevel(logging.LogLevel_DEBUG), gotPayload.Level)
 	}
 }
