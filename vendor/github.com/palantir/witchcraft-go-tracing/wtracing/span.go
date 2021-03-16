@@ -25,6 +25,11 @@ type SpanID string
 type Span interface {
 	Context() SpanContext
 
+	// Tag sets Tag with given key and value to the Span. If key already exists in
+	// the Span the value will be overridden except for error tags where the first
+	// value is persisted.
+	Tag(key string, value string)
+
 	// Finish the Span and send to Reporter.
 	Finish()
 }

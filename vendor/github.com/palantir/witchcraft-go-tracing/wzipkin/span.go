@@ -37,6 +37,10 @@ func (s *spanImpl) Context() wtracing.SpanContext {
 	return fromZipkinSpanContext(s.span.Context())
 }
 
+func (s *spanImpl) Tag(key string, value string) {
+	s.span.Tag(key, value)
+}
+
 func (s *spanImpl) Finish() {
 	s.span.Finish()
 }

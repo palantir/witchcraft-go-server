@@ -76,6 +76,7 @@ github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log
 github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log
 github.com/palantir/witchcraft-go-logging/wlog/extractor
 github.com/palantir/witchcraft-go-logging/wlog/internal
+github.com/palantir/witchcraft-go-logging/wlog/logreader
 github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log
 github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log
 github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
@@ -83,7 +84,7 @@ github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 # github.com/palantir/witchcraft-go-params v1.2.0
 github.com/palantir/witchcraft-go-params
-# github.com/palantir/witchcraft-go-tracing v1.3.0
+# github.com/palantir/witchcraft-go-tracing v1.4.0
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
 github.com/palantir/witchcraft-go-tracing/wzipkin

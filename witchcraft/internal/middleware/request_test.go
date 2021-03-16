@@ -29,6 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	wlogzap "github.com/palantir/witchcraft-go-logging/wlog-zap"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
+	"github.com/palantir/witchcraft-go-logging/wlog/logreader"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
@@ -61,6 +62,8 @@ func TestCombinedMiddleware(t *testing.T) {
 	svcLog := svc1log.NewFromCreator(&svcOutput, wlog.InfoLevel, wlogzap.LoggerProvider().NewLeveledLogger, svc1log.Origin("origin"))
 	var reqOutput bytes.Buffer
 	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
+	var trcOutput bytes.Buffer
+	trcLog := trc1log.NewFromCreator(&trcOutput, wlog.DefaultLoggerProvider().NewLogger)
 
 	metricsRegistry := metrics.NewRootMetricsRegistry()
 
@@ -78,7 +81,7 @@ func TestCombinedMiddleware(t *testing.T) {
 			),
 			middleware.NewRequestExtractIDs(
 				svcLog,
-				nil,
+				trcLog,
 				nil,
 				extractor.NewDefaultIDsExtractor(),
 			),
@@ -102,6 +105,29 @@ func TestCombinedMiddleware(t *testing.T) {
 	// start server
 	server := httptest.NewServer(r)
 	defer server.Close()
+	defer func() {
+		matcher := objmatcher.MapMatcher{
+			"type": objmatcher.NewEqualsMatcher("trace.1"),
+			"time": objmatcher.NewRegExpMatcher(".+"),
+			"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+				"name":      objmatcher.NewEqualsMatcher("witchcraft-go-server request middleware"),
+				"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+				"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+				"timestamp": objmatcher.NewAnyMatcher(),
+				"duration":  objmatcher.NewAnyMatcher(),
+				"tags": objmatcher.MapMatcher(
+					map[string]objmatcher.Matcher{
+						"http.status_code": objmatcher.NewEqualsMatcher("200"),
+						"http.method":      objmatcher.NewEqualsMatcher("GET"),
+						"http.useragent":   objmatcher.NewRegExpMatcher(".*"),
+					},
+				),
+			}),
+		}
+		entries, err := logreader.EntriesFromContent(trcOutput.Bytes())
+		assert.NoError(t, err, "unexpected error when unmarshalling trace output")
+		assert.NoError(t, matcher.Matches(map[string]interface{}(entries[0])), "unexpected content in trace output")
+	}()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL+"/", nil)
 	require.NoError(t, err)
