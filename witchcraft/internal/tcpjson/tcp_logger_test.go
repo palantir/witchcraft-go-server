@@ -103,7 +103,7 @@ func TestWriteFromSvc1log(t *testing.T) {
 	err = gotPayload.UnmarshalJSON(gotEnvelope.Payload)
 	require.NoError(t, err)
 	assert.Equal(t, "this is a test", gotPayload.Message)
-	assert.Equal(t, logging.LogLevelDebug, gotPayload.Level)
+	assert.Equal(t, logging.New_LogLevel(logging.LogLevel_DEBUG), gotPayload.Level)
 }
 
 // TestClosedWriter verifies the behavior of attempting to write when the writer is closed.
