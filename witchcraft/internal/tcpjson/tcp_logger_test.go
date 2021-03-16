@@ -115,18 +115,10 @@ func TestWrite_Timeout(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, isTimeoutError(err))
 	require.False(t, isTemporaryError(err))
-	var found bool
-	for errStr := range map[string]struct{}{
-		// go1.16
-		"use of closed network connection": {},
-		// go1.15
-		"use of closed connection": {},
-	} {
-		if strings.HasSuffix(err.Error(), errStr) {
-			found = true
-		}
-	}
-	assert.True(t, found)
+	require.True(t,
+		strings.Contains(err.Error(), "use of closed network connection") ||
+			strings.Contains(err.Error(), "tls: use of closed connection"),
+	)
 }
 
 func isTimeoutError(err error) bool {
