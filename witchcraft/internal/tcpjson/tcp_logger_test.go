@@ -80,15 +80,12 @@ func TestWrite(t *testing.T) {
 // TestWrite_Timeout asserts that the connection is closed on a timeout error.
 func TestWrite_Timeout(t *testing.T) {
 	// startup an in-memory TLS server to write TCP logs to
-	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	server.TLS = tlsConfig.Clone()
-	server.StartTLS()
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer server.Close()
 
 	// get a TCP connection using the TCPConnProvider
 	uris := []string{fmt.Sprintf("%s://%s", server.Listener.Addr().Network(), server.Listener.Addr().String())}
-	connProvider, err := NewTCPConnProvider(uris, tlsConfig.Clone())
+	connProvider, err := NewTCPConnProvider(uris, &tls.Config{InsecureSkipVerify: true})
 	require.NoError(t, err)
 	conn, err := connProvider.GetConn()
 	require.NoError(t, err)
