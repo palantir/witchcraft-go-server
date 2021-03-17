@@ -17,11 +17,16 @@ package tcpjson
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
@@ -70,6 +75,67 @@ func TestWrite(t *testing.T) {
 			require.True(t, bytes.Equal(buf, expectedEnvelope))
 		})
 	}
+}
+
+// TestWrite_Timeout asserts that the connection is closed on a timeout error.
+func TestWrite_Timeout(t *testing.T) {
+	// startup an in-memory TLS server to write TCP logs to
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer server.Close()
+
+	// get a TCP connection using the TCPConnProvider
+	uris := []string{fmt.Sprintf("%s://%s", server.Listener.Addr().Network(), server.Listener.Addr().String())}
+	connProvider, err := NewTCPConnProvider(uris, &tls.Config{InsecureSkipVerify: true})
+	require.NoError(t, err)
+	conn, err := connProvider.GetConn()
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }()
+
+	// create the TCPWriter with a small net conn wrapper so that we can control the state of the connection below.
+	tcpWriter := NewTCPWriter(testMetadata, &netConnProvider{conn: conn})
+
+	// initial write should succeed
+	n, err := tcpWriter.Write(logPayload)
+	require.NoError(t, err)
+	require.Equal(t, len(logPayload), n)
+	// conn is cached since it's active
+	require.NotNil(t, tcpWriter.conn)
+
+	// set a deadline which should cause the Write to timeout
+	err = conn.SetDeadline(time.Now())
+	require.NoError(t, err)
+	_, err = tcpWriter.Write(logPayload)
+	require.Error(t, err)
+	require.True(t, isTimeoutError(err))
+	require.False(t, isTemporaryError(err))
+	// conn is nil, since it should be closed
+	require.Nil(t, tcpWriter.conn)
+
+	// subsequent writes should error since the connection should be closed
+	_, err = tcpWriter.Write(logPayload)
+	require.Error(t, err)
+	require.False(t, isTimeoutError(err))
+	require.False(t, isTemporaryError(err))
+	require.True(t,
+		strings.Contains(err.Error(), "use of closed network connection") ||
+			strings.Contains(err.Error(), "tls: use of closed connection"),
+	)
+	// conn is nil, since it should be closed
+	require.Nil(t, tcpWriter.conn)
+}
+
+func isTimeoutError(err error) bool {
+	if ne, ok := err.(net.Error); ok {
+		return ne.Timeout()
+	}
+	return false
+}
+
+func isTemporaryError(err error) bool {
+	if ne, ok := err.(net.Error); ok {
+		return ne.Temporary()
+	}
+	return false
 }
 
 // TestWriteFromSvc1log is more of an integration style test which verifies the envelopes written
@@ -215,6 +281,14 @@ type failingConnProvider struct {
 
 func (t *failingConnProvider) GetConn() (net.Conn, error) {
 	return nil, t.err
+}
+
+type netConnProvider struct {
+	conn net.Conn
+}
+
+func (n *netConnProvider) GetConn() (net.Conn, error) {
+	return n.conn, nil
 }
 
 // BenchmarkEnvelopeSerializer records the total time and memory allocations for each envelope serializer.
