@@ -25,7 +25,7 @@ import (
 const (
 	// asyncWriterBufferCap is an arbitrarily high limit for the number of messages allowed to queue before writes will block.
 	asyncWriterBufferCapacity = 1000
-	asyncWriterBufferLenGauge = "sls.logging.queued"
+	asyncWriterBufferLenGauge = "logging.queue"
 )
 
 type asyncWriter struct {
