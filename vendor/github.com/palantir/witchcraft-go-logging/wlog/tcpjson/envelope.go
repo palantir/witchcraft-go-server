@@ -15,19 +15,16 @@
 package tcpjson
 
 import (
-	"encoding/json"
 	"os"
 
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
-type LogEnvelopeV1 struct {
-	LogEnvelopeMetadata
-	Payload json.RawMessage `json:"payload"`
-}
+const (
+	logEnvelopeV1Type = "envelope.1"
+)
 
 type LogEnvelopeMetadata struct {
-	Type           string `json:"type"`
 	Deployment     string `json:"deployment"`
 	Environment    string `json:"environment"`
 	EnvironmentID  string `json:"environmentId"`
