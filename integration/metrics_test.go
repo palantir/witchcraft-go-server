@@ -198,6 +198,132 @@ func TestEmitMetrics(t *testing.T) {
 	}
 }
 
+// TestEmitMetricsZeroValue verifies that for meter, timer and histogram metrics, a zero value metric log entry is
+// emitted before a regular entry is emitted.
+func TestEmitMetricsZeroValue(t *testing.T) {
+	logOutputBuffer := &bytes.Buffer{}
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	// ensure that registry used in this test is unique/does not have any past metrics registered on it
+	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
+		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
+		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.WriteHeader(500)
+		}))
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
+		return createTestServer(t, initFn, installCfg, logOutputBuffer)
+	})
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	// Allow the metric emitter to do its thing.
+	time.Sleep(150 * time.Millisecond)
+
+	parts := strings.Split(logOutputBuffer.String(), "\n")
+	var metricLogs []logging.MetricLogV1
+	for _, curr := range parts {
+		if strings.Contains(curr, `"metric.1"`) {
+			var currLog logging.MetricLogV1
+			require.NoError(t, json.Unmarshal([]byte(curr), &currLog))
+			metricLogs = append(metricLogs, currLog)
+		}
+	}
+
+	var (
+		seenLoggingSLSMeterZero,
+		seenLoggingSLSMeter,
+		seenLoggingSLSLengthHistogramZero,
+		seenLoggingSLSLengthHistogram,
+		seenResponseTimerZero,
+		seenResponseTimer bool
+	)
+	for _, metricLog := range metricLogs {
+		switch metricLog.MetricName {
+		case "logging.sls":
+			assert.Equal(t, "meter", metricLog.MetricType, "logging.sls metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
+
+			if metricLog.Values["count"] == json.Number("0") {
+				seenLoggingSLSMeterZero = true
+			} else {
+				seenLoggingSLSMeter = true
+				if !seenLoggingSLSMeterZero {
+					assert.Fail(t, "encountered non-zero logging.sls meter value before the zero value")
+				}
+			}
+			metricTagLevel := metricLog.Tags["level"]
+			if metricLog.Tags["type"] == "service.1" {
+				assert.NotEqual(t, "", metricTagLevel)
+			} else {
+				assert.Equal(t, "", metricTagLevel)
+			}
+		case "logging.sls.length":
+			assert.Equal(t, "histogram", metricLog.MetricType, "logging.sls.length metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
+
+			if metricLog.Values["count"] == json.Number("0") {
+				seenLoggingSLSLengthHistogramZero = true
+			} else {
+				seenLoggingSLSLengthHistogram = true
+				if !seenLoggingSLSLengthHistogramZero {
+					assert.Fail(t, "encountered non-zero logging.sls meter value before the zero value")
+				}
+			}
+		case "server.response":
+			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["1m"])
+			assert.Nil(t, metricLog.Values["5m"])
+			assert.Nil(t, metricLog.Values["15m"])
+			assert.Nil(t, metricLog.Values["meanRate"])
+			assert.Nil(t, metricLog.Values["min"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+
+			if metricLog.Values["count"] == json.Number("0") {
+				seenResponseTimerZero = true
+			} else {
+				seenResponseTimer = true
+				if !seenResponseTimerZero {
+					assert.Fail(t, "encountered non-zero server.response timer value before the zero value")
+				}
+			}
+		default:
+			// do nothing (okay if extra metrics are emitted)
+		}
+	}
+
+	assert.True(t, seenLoggingSLSMeterZero, "logging.sls metric zero value was not emitted")
+	assert.True(t, seenLoggingSLSMeter, "logging.sls metric was not emitted")
+	assert.True(t, seenLoggingSLSLengthHistogramZero, "logging.sls.length metric zero value was not emitted")
+	assert.True(t, seenLoggingSLSLengthHistogram, "logging.sls.length metric was not emitted")
+	assert.True(t, seenResponseTimerZero, "server.response metric zero value was not emitted")
+	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
 // TestMetricWriter verifies that logs backed by MetricWriters produces exactly one sls.logging.length metric per log line.
 // While initializing the testServer, we don't expect any other Audit logs to occur, so we log one line
 // and ensure we only see one sls.logging.length metric for each.
@@ -243,12 +369,15 @@ func TestMetricWriter(t *testing.T) {
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
 		case "logging.sls.length":
-			fmt.Println(metricLog)
 			assert.Equal(t, "histogram", metricLog.MetricType, "logging.sls.length metric had incorrect type")
 			assert.NotNil(t, metricLog.Values["max"])
 			assert.NotNil(t, metricLog.Values["count"])
 			assert.NotNil(t, metricLog.Tags["type"])
 			if metricLog.Tags["type"] == "audit" {
+				// skip log entry that emits "0", as it is the auto-generated zero value entry
+				if metricLog.Values["count"] == json.Number("0") {
+					continue
+				}
 				require.Equal(t, json.Number("1"), metricLog.Values["count"])
 
 				maxJSON, ok := metricLog.Values["max"].(json.Number)

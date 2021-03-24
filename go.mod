@@ -8,6 +8,7 @@ require (
 	github.com/nmiyake/pkg/dirs v1.0.0
 	github.com/palantir/conjure-go-runtime/v2 v2.10.0
 	github.com/palantir/go-encrypted-config-value v1.1.0
+	github.com/palantir/go-metrics v1.1.0
 	github.com/palantir/pkg/httpserver v1.0.1
 	github.com/palantir/pkg/metrics v1.0.1
 	github.com/palantir/pkg/objmatcher v1.0.1
