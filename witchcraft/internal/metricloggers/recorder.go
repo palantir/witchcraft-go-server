@@ -21,6 +21,7 @@ import (
 
 const (
 	slsLoggingMeterName       = "logging.sls"
+	slsLogBytesCounterName    = "logging.sls.bytes"
 	slsLogLengthHistogramName = "logging.sls.length"
 )
 
@@ -66,6 +67,8 @@ func newMetricRecorder(registry metrics.Registry, typ string) metricRecorder {
 
 func (m *defaultMetricRecorder) RecordSLSLogLength(len int) {
 	m.registry.Histogram(slsLogLengthHistogramName, m.typeTag).Update(int64(len))
+	// We use a second counter for total length because the standard metric emitter blocks the .sum value.
+	m.registry.Counter(slsLogBytesCounterName, m.typeTag).Inc(int64(len))
 }
 
 func (m *defaultMetricRecorder) RecordSLSLog() {
