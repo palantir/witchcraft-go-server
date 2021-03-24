@@ -16,9 +16,11 @@ package witchcraft
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"time"
 
+	gometrics "github.com/palantir/go-metrics"
 	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
@@ -78,6 +80,9 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		metricTypeValuesBlacklist = defaultMetricTypeValuesBlacklist()
 	}
 
+	// records metrics that have been logged. Key consists of "{metricID}-{metricType}-{tags}".
+	seenMetrics := make(map[string]struct{})
+
 	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
 		if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
 			// skip emitting metric if it is blacklisted
@@ -86,12 +91,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 
 		valuesToUse := metricVal.Values()
 		metricType := metricVal.Type()
-		if metricTypeValueBlacklist, ok := metricTypeValuesBlacklist[metricType]; ok {
-			// remove blacklisted keys
-			for blacklistedKey := range metricTypeValueBlacklist {
-				delete(valuesToUse, blacklistedKey)
-			}
-		}
+		removeDisallowedKeys(metricType, valuesToUse, metricTypeValuesBlacklist)
 		if len(valuesToUse) == 0 {
 			// do not record metric if it does not have any values
 			return
@@ -101,7 +101,32 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		// most up-to-date metric logger is used (s.metricLogger may be updated during initialization).
 		// s.metricLogger is not guaranteed to be non-nil at this point.
 		if s.metricLogger != nil {
-			s.metricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tags.ToMap()))
+			metricTagsParam := metric1log.Tags(tags.ToMap())
+
+			if metricType == "meter" || metricType == "timer" || metricType == "histogram" {
+				mapKey := fmt.Sprintf("%s:%s:%v", metricID, metricType, tags)
+				if _, ok := seenMetrics[mapKey]; !ok {
+					var zeroMetric interface{}
+					switch metricType {
+					case "meter":
+						zeroMetric = gometrics.NewMeter()
+					case "timer":
+						zeroMetric = gometrics.NewTimer()
+					case "histogram":
+						zeroMetric = gometrics.NewHistogram(metrics.DefaultSample())
+					}
+
+					zeroValuesToUse := metrics.ToMetricVal(zeroMetric).Values()
+					removeDisallowedKeys(metricType, zeroValuesToUse, metricTypeValuesBlacklist)
+					if len(zeroValuesToUse) != 0 {
+						fmt.Println("logging zero val for", mapKey)
+						// metric not seen before: emit zero-value and record
+						s.metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
+						seenMetrics[mapKey] = struct{}{}
+					}
+				}
+			}
+			s.metricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metricTagsParam)
 		}
 	}
 
@@ -114,6 +139,17 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		// emit all metrics a final time on termination
 		metricsRegistry.Each(emitFn)
 	}, nil
+}
+
+func removeDisallowedKeys(metricType string, metricVals map[string]interface{}, disallowedKeys map[string]map[string]struct{}) {
+	disallowedKeysForType, ok := disallowedKeys[metricType]
+	if ! ok {
+		return
+	}
+	// remove disallowed keys
+	for blacklistedKey := range disallowedKeysForType {
+		delete(metricVals, blacklistedKey)
+	}
 }
 
 func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {

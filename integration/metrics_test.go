@@ -198,6 +198,159 @@ func TestEmitMetrics(t *testing.T) {
 	}
 }
 
+// TestEmitMetricsZeroValue verifies that for meter, timer and histogram metrics, a zero value metric log entry is
+// emitted before a regular entry is emitted.
+func TestEmitMetricsZeroValue(t *testing.T) {
+	logOutputBuffer := &bytes.Buffer{}
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	// ensure that registry used in this test is unique/does not have any past metrics registered on it
+	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
+		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
+		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.WriteHeader(500)
+		}))
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
+		return createTestServer(t, initFn, installCfg, logOutputBuffer)
+	})
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	//// Make POST that will 404 to trigger request size and error rate metrics
+	//_, err = testServerClient().Post(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, "error"), "application/json", strings.NewReader("{}"))
+	//require.NoError(t, err)
+
+	// Allow the metric emitter to do its thing.
+	time.Sleep(150 * time.Millisecond)
+
+	parts := strings.Split(logOutputBuffer.String(), "\n")
+	var metricLogs []logging.MetricLogV1
+	for _, curr := range parts {
+		if strings.Contains(curr, `"metric.1"`) {
+			var currLog logging.MetricLogV1
+			require.NoError(t, json.Unmarshal([]byte(curr), &currLog))
+			metricLogs = append(metricLogs, currLog)
+		}
+	}
+
+	var (
+		seenLoggingSLSMeterZero,
+		seenLoggingSLSMeter,
+		seenLoggingSLSHistogramZero,
+		seenLoggingSLSHistogramLength,
+		seenResponseTimerZero,
+		seenResponseTimer bool
+	)
+	for _, metricLog := range metricLogs {
+		switch metricLog.MetricName {
+		case "logging.sls":
+			assert.Equal(t, "meter", metricLog.MetricType, "logging.sls metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Tags["type"])
+
+			if metricLog.Values["count"] == 0 {
+				seenLoggingSLSMeterZero = true
+			} else {
+				seenLoggingSLSMeter = true
+				if !seenLoggingSLSMeterZero {
+					assert.Fail(t, "encountered non-zero logging.sls meter value before the zero value")
+				}
+			}
+			metricTagLevel := metricLog.Tags["level"]
+			if metricLog.Tags["type"] == "service.1" {
+				assert.NotEqual(t, "", metricTagLevel)
+			} else {
+				assert.Equal(t, "", metricTagLevel)
+			}
+		case "server.response":
+			seenResponseTimer = true
+			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["1m"])
+			assert.Nil(t, metricLog.Values["5m"])
+			assert.Nil(t, metricLog.Values["15m"])
+			assert.Nil(t, metricLog.Values["meanRate"])
+			assert.Nil(t, metricLog.Values["min"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+		case "server.request.size":
+			seenRequestSize = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["min"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+		case "server.response.size":
+			seenResponseSize = true
+			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["max"])
+			assert.NotNil(t, metricLog.Values["p95"])
+			assert.NotNil(t, metricLog.Values["p99"])
+			assert.NotNil(t, metricLog.Values["count"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["min"])
+			assert.Nil(t, metricLog.Values["mean"])
+			assert.Nil(t, metricLog.Values["stddev"])
+			assert.Nil(t, metricLog.Values["p50"])
+		case "server.response.error":
+			seenResponseError = true
+			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+
+			// keys are part of the default blacklist and should thus be nil
+			assert.Nil(t, metricLog.Values["1m"])
+			assert.Nil(t, metricLog.Values["5m"])
+			assert.Nil(t, metricLog.Values["15m"])
+			assert.Nil(t, metricLog.Values["mean"])
+		case "server.uptime":
+			seenUptime = true
+			assert.Equal(t, "gauge", metricLog.MetricType, "server.uptime metric had incorrect type")
+			assert.Equal(t, map[string]string{
+				"go_os":      runtime.GOOS,
+				"go_arch":    runtime.GOARCH,
+				"go_version": runtime.Version(),
+			}, metricLog.Tags)
+			assert.NotZero(t, metricLog.Values["value"])
+		default:
+			assert.Fail(t, "unexpected metric encountered", "%s", metricLog.MetricName)
+		}
+	}
+
+	assert.True(t, seenLoggingSLS, "logging.sls metric was not emitted")
+	assert.True(t, seenLoggingSLSLength, "logging.sls.length metric was not emitted")
+	assert.True(t, seenMyCounter, "my-counter metric was not emitted")
+	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
+	assert.True(t, seenRequestSize, "server.request.size metric was not emitted")
+	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
+	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
+	assert.True(t, seenUptime, "server.uptime metric was not emitted")
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
 // TestMetricWriter verifies that logs backed by MetricWriters produces exactly one sls.logging.length metric per log line.
 // While initializing the testServer, we don't expect any other Audit logs to occur, so we log one line
 // and ensure we only see one sls.logging.length metric for each.
