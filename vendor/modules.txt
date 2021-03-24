@@ -12,7 +12,7 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v2 v2.9.1
+# github.com/palantir/conjure-go-runtime/v2 v2.10.0
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
@@ -47,7 +47,7 @@ github.com/palantir/pkg/safelong
 github.com/palantir/pkg/safeyaml
 # github.com/palantir/pkg/signals v1.0.1
 github.com/palantir/pkg/signals
-# github.com/palantir/pkg/tlsconfig v1.0.2
+# github.com/palantir/pkg/tlsconfig v1.1.0
 github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.0.0
 github.com/palantir/pkg/transform
@@ -64,7 +64,7 @@ github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
-# github.com/palantir/witchcraft-go-logging v1.10.0
+# github.com/palantir/witchcraft-go-logging v1.11.0
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog

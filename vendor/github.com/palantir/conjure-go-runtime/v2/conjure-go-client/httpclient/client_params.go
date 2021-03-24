@@ -302,6 +302,15 @@ func WithTLSConfig(conf *tls.Config) ClientOrHTTPClientParam {
 	})
 }
 
+// WithTLSInsecureSkipVerify sets the InsecureSkipVerify field for the HTTP client's tls config.
+// This option should only be used in clients that have way to establish trust with servers.
+func WithTLSInsecureSkipVerify() ClientOrHTTPClientParam {
+	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
+		b.TLSClientConfig.InsecureSkipVerify = true
+		return nil
+	})
+}
+
 // WithDialTimeout sets the timeout on the Dialer.
 // If unset, the client defaults to 30 seconds.
 func WithDialTimeout(timeout time.Duration) ClientOrHTTPClientParam {

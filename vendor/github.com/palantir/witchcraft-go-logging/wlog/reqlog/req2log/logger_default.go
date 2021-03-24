@@ -16,6 +16,7 @@ package req2log
 
 import (
 	"strings"
+	"time"
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
@@ -43,6 +44,7 @@ func (l *defaultLogger) Request(r Request) {
 
 	l.logger.Log(
 		wlog.StringParam(wlog.TypeKey, TypeValue),
+		wlog.StringParam(wlog.TimeKey, time.Now().Format(time.RFC3339Nano)),
 		wlog.OptionalStringParam(methodKey, r.Request.Method),
 		wlog.StringParam(protocolKey, r.Request.Proto),
 		wlog.StringParam(pathKey, reqPath),

@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -33,7 +32,6 @@ type loggerProvider struct{}
 
 func (lp *loggerProvider) NewLogger(w io.Writer) wlog.Logger {
 	logger, atomicLevel := newZapLogger(w, wlog.InfoLevel, zapcore.EncoderConfig{
-		TimeKey:        wlog.TimeKey,
 		EncodeTime:     rfc3339NanoTimeEncoder,
 		EncodeDuration: zapcore.NanosDurationEncoder,
 	})
@@ -45,12 +43,9 @@ func (lp *loggerProvider) NewLogger(w io.Writer) wlog.Logger {
 
 func (lp *loggerProvider) NewLeveledLogger(w io.Writer, level wlog.LogLevel) wlog.LeveledLogger {
 	logger, atomicLevel := newZapLogger(w, level, zapcore.EncoderConfig{
-		TimeKey:        wlog.TimeKey,
 		EncodeTime:     rfc3339NanoTimeEncoder,
 		EncodeDuration: zapcore.NanosDurationEncoder,
-		LevelKey:       svc1log.LevelKey,
 		EncodeLevel:    zapcore.CapitalLevelEncoder,
-		MessageKey:     svc1log.MessageKey,
 	})
 	return &zapLogger{
 		logger: logger,

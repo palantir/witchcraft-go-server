@@ -15,6 +15,8 @@
 package evt2log
 
 import (
+	"time"
+
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
 
@@ -39,5 +41,6 @@ func toParams(evtName string, inParams []Param) []wlog.Param {
 var defaultTypeParam = []wlog.Param{
 	wlog.NewParam(func(entry wlog.LogEntry) {
 		entry.StringValue(wlog.TypeKey, TypeValue)
+		entry.StringValue(wlog.TimeKey, time.Now().Format(time.RFC3339Nano))
 	}),
 }

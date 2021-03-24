@@ -16,6 +16,7 @@ package trc1log
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -32,6 +33,7 @@ func (l *defaultLogger) Log(span wtracing.SpanModel, params ...Param) {
 		append([]wlog.Param{
 			wlog.NewParam(func(entry wlog.LogEntry) {
 				entry.StringValue(wlog.TypeKey, TypeValue)
+				entry.StringValue(wlog.TimeKey, time.Now().Format(time.RFC3339Nano))
 				entry.ObjectValue(SpanKey, span, spanType)
 			}),
 		}, l.toParams(params)...)...,
