@@ -18,6 +18,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal"
 	"github.com/palantir/pkg/bytesbuffers"
@@ -127,8 +128,11 @@ func (c *clientImpl) doOnce(ctx context.Context, baseURI string, params ...Reque
 	if b.method == "" {
 		return nil, werror.Error("httpclient: use WithRequestMethod() to specify HTTP method")
 	}
-
-	req, err := http.NewRequest(b.method, baseURI+b.path, nil)
+	reqURI, err := joinURIAndPath(baseURI, b.path)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(b.method, reqURI, nil)
 	if err != nil {
 		return nil, werror.Wrap(err, "failed to build new HTTP request")
 	}
@@ -208,4 +212,17 @@ func (c *clientImpl) initializeRequestHeaders(ctx context.Context) http.Header {
 		}
 	}
 	return headers
+}
+
+func joinURIAndPath(baseURI, reqPath string) (string, error) {
+	uri, err := url.Parse(baseURI)
+	if err != nil {
+		return "", werror.Wrap(err, "failed to parse request URL")
+	}
+
+	if reqPath != "" {
+		uri.Path = strings.TrimRight(uri.Path, "/") + "/" + strings.TrimLeft(reqPath, "/")
+	}
+
+	return uri.String(), nil
 }
