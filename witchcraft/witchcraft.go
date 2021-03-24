@@ -46,12 +46,12 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/tcpjson"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/tcpjson"
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
@@ -641,7 +641,7 @@ func (s *Server) Start() (rErr error) {
 		if err != nil {
 			return werror.Wrap(err, "tls client config could be created for the TCP JSON reciever")
 		}
-		connProvider, err := tcpjson.NewTCPConnProvider(receiverCfg.URIs, tlsConfig)
+		connProvider, err := tcpjson.NewTCPConnProvider(receiverCfg.URIs, tcpjson.WithTLSConfig(tlsConfig))
 		if err != nil {
 			return err
 		}
