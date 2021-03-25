@@ -51,8 +51,7 @@ type tcpConnProvider struct {
 
 // NewTCPConnProvider returns a new ConnProvider that provides TCP connections.
 // The provided uris must not be empty and must be able to be parsed as URIs. Refer to the documentation for url.Parse.
-// If the provided TLS config is nil, then the default config will be used.
-func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (ConnProvider, error) {
+func NewTCPConnProvider(uris []string, options ...ConnProviderOption) (ConnProvider, error) {
 	if len(uris) < 1 {
 		return nil, werror.Error(ErrNoURIs)
 	}
@@ -67,11 +66,15 @@ func NewTCPConnProvider(uris []string, tlsCfg *tls.Config) (ConnProvider, error)
 		hosts = append(hosts, u.Host)
 	}
 
-	return &tcpConnProvider{
+	provider := &tcpConnProvider{
 		nextHostIdx: 0,
 		hosts:       hosts,
-		tlsConfig:   tlsCfg,
-	}, nil
+	}
+
+	for _, option := range options {
+		option.apply(provider)
+	}
+	return provider, nil
 }
 
 var (

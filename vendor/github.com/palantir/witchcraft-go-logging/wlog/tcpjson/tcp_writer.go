@@ -60,12 +60,12 @@ type TCPWriter struct {
 // NewTCPWriter returns an io.WriteCloser that writes logs to a TCP socket and wraps
 // them with the provided envelope metadata. TCP connections are retrieved using the
 // ConnProvider and connection state is managed internally.
-func NewTCPWriter(metadata LogEnvelopeMetadata, provider ConnProvider) *TCPWriter {
-	return newTCPWriterInternal(provider, zerologSerializer(metadata))
+func NewTCPWriter(metadata LogEnvelopeMetadata, provider ConnProvider, options ...WriterOption) *TCPWriter {
+	return newTCPWriterInternal(provider, zerologSerializer(metadata), options...)
 }
 
-func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializerFunc) *TCPWriter {
-	return &TCPWriter{
+func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializerFunc, options ...WriterOption) *TCPWriter {
+	tcpWriter := &TCPWriter{
 		envelopeSerializer: serializerFunc,
 		provider:           provider,
 		closedChan:         make(chan struct{}),
@@ -75,6 +75,10 @@ func newTCPWriterInternal(provider ConnProvider, serializerFunc envelopeSerializ
 			window.HealthyIfNoRecentErrors,
 			window.WithFailingHealthStateValue(health.HealthState_WARNING)),
 	}
+	for _, option := range options {
+		option.apply(tcpWriter)
+	}
+	return tcpWriter
 }
 
 // Write implements the io.Writer interface for use with TCP sockets.
@@ -171,7 +175,7 @@ func zerologSerializer(metadata LogEnvelopeMetadata) envelopeSerializerFunc {
 	// create a new top-level logger that writes to ioutil.Discard since each
 	// serialization will write to its own local buffer instead of a single writer
 	logger := zerolog.New(ioutil.Discard).With().
-		Str("type", "envelope.1").
+		Str("type", logEnvelopeV1Type).
 		Str("deployment", metadata.Deployment).
 		Str("environment", metadata.Environment).
 		Str("environmentId", metadata.EnvironmentID).
