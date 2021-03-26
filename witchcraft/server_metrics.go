@@ -213,8 +213,7 @@ func logZeroValueMetric(
 	// metric not seen before: emit zero-value and record
 	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
 	seenMetrics.seenSet[mapKey] = struct{}{}
-	zeroValuesLogged = zeroValuesToUse
-	return zeroValuesLogged
+	return zeroValuesToUse
 }
 
 // tagMapKey returns a string that provides a unique key for the provided metricID, metricType and tagsMap. The content
