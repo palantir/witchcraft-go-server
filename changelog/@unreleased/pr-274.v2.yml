@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: "Log zero values for certain metric logger entry types\n    \nWhen logging \"meter\", \"timer\", or \"histogram\" metric logger entries,\nif an entry has not already been logged for a metric with a specific\nset of (id, type, tags), then emit a metric log entry for that metric\nwith zero values first."
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/274
