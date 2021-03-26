@@ -64,10 +64,10 @@ var (
 
 // seenMetricsSet pairs a set with a lock that can be used to control access to the set.
 type seenMetricsSet struct {
+	// protects access to seenSet
+	lock sync.Mutex
 	// records metrics that have been logged
 	seenSet map[string]struct{}
-	// protects access to seenSet
-	lock sync.RWMutex
 }
 
 func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
@@ -188,13 +188,16 @@ func logZeroValueMetric(
 	metricTagsParam metric1log.Param,
 ) (zeroValuesLogged map[string]interface{}) {
 
+	// Acquire lock to ensure that map access is safe. Safe to lock for the entirety of the function rather than
+	// selectively locking just the read and write of the map because this function will be called in a single goroutine
+	// in all instances except when the server shuts down.
+	seenMetrics.lock.Lock()
+	defer seenMetrics.lock.Unlock()
+
 	// if metric has been seen before, no need to log zero value
 	mapKey := tagMapKey(metricID, metricType, tags)
 
-	// only acquire read lock while checking because this should be true vast majority of the time
-	seenMetrics.lock.RLock()
 	_, metricSeen := seenMetrics.seenSet[mapKey]
-	seenMetrics.lock.RUnlock()
 	if metricSeen {
 		return nil
 	}
@@ -207,17 +210,10 @@ func logZeroValueMetric(
 		return nil
 	}
 
-	seenMetrics.lock.Lock()
-	// need to check again while under lock because read lock was only held during initial check to optimize for fact
-	// that it will return true vast majority of the time. However, want to ensure that only one zero-value log line is
-	// emitted, so check condition again while holding write lock.
-	if _, ok := seenMetrics.seenSet[mapKey]; !ok {
-		// metric not seen before: emit zero-value and record
-		metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
-		seenMetrics.seenSet[mapKey] = struct{}{}
-		zeroValuesLogged = zeroValuesToUse
-	}
-	seenMetrics.lock.Unlock()
+	// metric not seen before: emit zero-value and record
+	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
+	seenMetrics.seenSet[mapKey] = struct{}{}
+	zeroValuesLogged = zeroValuesToUse
 	return zeroValuesLogged
 }
 
