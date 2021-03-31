@@ -42,9 +42,9 @@ const (
 
 // initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
-// If useWrappedLoggers is true, all loggers will log using wrapped.1 format
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
+// If a valid wrappedLoggerCfg is provided, logs will be output in "wrapped.1" format.
 func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer, wrappedLoggerCfg config.WrappedLogger) {
 	var originParam svc1log.Param
 	useWrappedLoggers := isValidWrappedLoggerCfg(wrappedLoggerCfg)

@@ -250,7 +250,7 @@ func BenchmarkServer_Loggers(b *testing.B) {
 func TestServer_WithWrappedLoggers(t *testing.T) {
 	entityName, entityVersion := "entityName", "1.0.0"
 	for _, test := range []struct {
-		Name        string
+		Name      string
 		InitFn    witchcraft.InitFunc
 		VerifyLog func(t *testing.T, logOutput []byte)
 	}{
@@ -490,15 +490,15 @@ func getWrappedLogMessagesOfType(t *testing.T, entityName, entityVersion, typ st
 		assert.Equal(t, "wrapped.1", currEntry["type"])
 		assert.Equal(t, entityName, currEntry["entityName"])
 		assert.Equal(t, entityVersion, currEntry["entityVersion"])
-			if payload, ok := currEntry["payload"].(map[string]interface{}); ok {
-				if payloadLog, ok := payload[payload["type"].(string)].(map[string]interface{}); ok {
-					if payloadLogLineType, ok := payloadLog["type"]; ok && payloadLogLineType == typ {
-						if payloadBytes, err := json.Marshal(payloadLog); err == nil {
-							logLines = append(logLines, payloadBytes)
-						}
+		if payload, ok := currEntry["payload"].(map[string]interface{}); ok {
+			if payloadLog, ok := payload[payload["type"].(string)].(map[string]interface{}); ok {
+				if payloadLogLineType, ok := payloadLog["type"]; ok && payloadLogLineType == typ {
+					if payloadBytes, err := json.Marshal(payloadLog); err == nil {
+						logLines = append(logLines, payloadBytes)
 					}
 				}
 			}
+		}
 	}
 	return logLines
 }
