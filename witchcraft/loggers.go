@@ -29,6 +29,8 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/metricloggers"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -40,16 +42,23 @@ const (
 
 // initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
+// If useWrappedLoggers is true, all loggers will log using wrapped.1 format
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
+func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer, wrappedLoggerCfg config.WrappedLogger) {
 	var originParam svc1log.Param
+	useWrappedLoggers := isValidWrappedLoggerCfg(wrappedLoggerCfg)
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
 		originParam = svc1log.Origin(*s.svcLogOrigin)
 	case s.svcLogOriginFromCallLine:
-		// Skip two frames because we wrap the default logger in the metric logger
-		originParam = svc1log.OriginFromCallLineWithSkip(2)
+		if useWrappedLoggers {
+			// Wrapped five frames for wrapped logger
+			originParam = svc1log.OriginFromCallLineWithSkip(5)
+		} else {
+			// Skip two frames because we wrap the default logger in the metric logger
+			originParam = svc1log.OriginFromCallLineWithSkip(2)
+		}
 	default:
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
 		originParam = svc1log.Origin(svc1log.CallerPkg(2, 0))
@@ -69,8 +78,16 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 	}
 
 	// initialize instrumented loggers
-	s.svcLogger = metricloggers.NewSvc1Logger(
-		svc1log.New(logWriterFn("service"), logLevel, originParam), registry)
+	if useWrappedLoggers {
+		s.initWrappedLoggers(wrappedLoggerCfg.EntityName, wrappedLoggerCfg.EntityVersion, logWriterFn, logLevel, originParam, registry)
+	} else {
+		s.initDefaultLoggers(logWriterFn, logLevel, originParam, registry)
+	}
+}
+
+func (s *Server) initDefaultLoggers(logWriterFn func(string) io.Writer, logLevel wlog.LogLevel, originParam svc1log.Param, registry metrics.Registry) {
+	// initialize instrumented loggers
+	s.svcLogger = metricloggers.NewSvc1Logger(svc1log.New(logWriterFn("service"), logLevel, originParam), registry)
 	s.evtLogger = metricloggers.NewEvt2Logger(
 		evt2log.New(logWriterFn("event")), registry)
 	s.metricLogger = metricloggers.NewMetric1Logger(
@@ -81,6 +98,28 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 		audit2log.New(logWriterFn("audit")), registry)
 	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
+		req2log.Extractor(s.idsExtractor),
+		req2log.SafePathParams(s.safePathParams...),
+		req2log.SafeHeaderParams(s.safeHeaderParams...),
+		req2log.SafeQueryParams(s.safeQueryParams...),
+	), registry)
+}
+
+func (s *Server) initWrappedLoggers(entityName, entityVersion string, logWriterFn func(string) io.Writer, logLevel wlog.LogLevel, originParam svc1log.Param, registry metrics.Registry) {
+	// initialize instrumented wrapped loggers
+	s.svcLogger = metricloggers.NewSvc1Logger(
+		wrapped1log.New(logWriterFn("service"), logLevel, entityName, entityVersion).Service(originParam), registry)
+	s.evtLogger = metricloggers.NewEvt2Logger(
+		wrapped1log.New(logWriterFn("event"), logLevel, entityName, entityVersion).Event(), registry)
+	s.metricLogger = metricloggers.NewMetric1Logger(
+		wrapped1log.New(logWriterFn("metrics"), logLevel, entityName, entityVersion).Metric(), registry)
+	s.trcLogger = metricloggers.NewTrc1Logger(
+		wrapped1log.New(logWriterFn("trace"), logLevel, entityName, entityVersion).Trace(), registry)
+	s.auditLogger = metricloggers.NewAudit2Logger(
+		wrapped1log.New(logWriterFn("audit"), logLevel, entityName, entityVersion).Audit(), registry)
+	s.diagLogger = metricloggers.NewDiag1Logger(
+		wrapped1log.New(logWriterFn("diagnostic"), logLevel, entityName, entityVersion).Diagnostic(), registry)
+	s.reqLogger = metricloggers.NewReq2Logger(wrapped1log.New(logWriterFn("request"), logLevel, entityName, entityVersion).Request(
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
@@ -126,4 +165,8 @@ func isDocker() bool {
 func isJail() bool {
 	hostname, err := os.Hostname()
 	return err == nil && strings.Contains(hostname, "-jail-")
+}
+
+func isValidWrappedLoggerCfg(cfg config.WrappedLogger) bool {
+	return cfg.EntityName != "" && cfg.EntityVersion != ""
 }
