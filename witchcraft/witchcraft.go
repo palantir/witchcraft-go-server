@@ -369,8 +369,9 @@ func (s *Server) WithClientAuth(clientAuth tls.ClientAuthType) *Server {
 // WithHealth configures the server to use the specified health check sources to report the server's health. If multiple
 // healthSource's results have the same key, the result from the latest entry in healthSources will be used. These
 // results are combined with the server's built-in health source, which uses the `SERVER_STATUS` key.
+// Results are appended: multiple calls to WithHealth will not overwrite the previous value.
 func (s *Server) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server {
-	s.healthCheckSources = healthSources
+	s.healthCheckSources = append(s.healthCheckSources, healthSources...)
 	return s
 }
 
