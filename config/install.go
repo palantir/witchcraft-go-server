@@ -18,23 +18,17 @@ import (
 	"time"
 )
 
-// WrappedLogger defines the required fields to output logs using wrapped.1 format. When fully specified in Install
-// configuration, the server will output logs in wrapped.1 format.
-type WrappedLogger struct {
-	EntityName    string `yaml:"entity-name,omitempty"`
-	EntityVersion string `yaml:"entity-version,omitempty"`
-}
-
 // Install specifies the base install configuration fields that should be included in all witchcraft-go-server server
 // install configurations.
 type Install struct {
 	ProductName               string        `yaml:"product-name,omitempty"`
+	ProductVersion            string        `yaml:"product-version,omitempty"`
 	Server                    Server        `yaml:"server,omitempty"`
 	MetricsEmitFrequency      time.Duration `yaml:"metrics-emit-frequency,omitempty"`
 	TraceSampleRate           *float64      `yaml:"trace-sample-rate,omitempty"`
 	ManagementTraceSampleRate *float64      `yaml:"management-trace-sample-rate,omitempty"`
 	UseConsoleLog             bool          `yaml:"use-console-log,omitempty"`
-	WrappedLogger             WrappedLogger `yaml:"wrapped-logger,omitempty"`
+	UseWrappedLogs            bool          `yaml:"use-wrapped-logs,omitempty"`
 }
 
 type Server struct {

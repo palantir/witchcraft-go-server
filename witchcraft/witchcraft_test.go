@@ -248,7 +248,7 @@ func BenchmarkServer_Loggers(b *testing.B) {
 
 // TestServer_WithWrappedLoggers creates a server with wrapped loggers and validates wrapped payloads of each log type.
 func TestServer_WithWrappedLoggers(t *testing.T) {
-	entityName, entityVersion := "entityName", "1.0.0"
+	productName, productVersion := "productName", "1.0.0"
 	for _, test := range []struct {
 		Name      string
 		InitFn    witchcraft.InitFunc
@@ -261,7 +261,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
-				svc1LogLines := getWrappedLogMessagesOfType(t, entityName, entityVersion, "service.1", logOutput)
+				svc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "service.1", logOutput)
 				// An extra service log line is output when the server fails to start
 				require.Equal(t, 2, len(svc1LogLines), "Expected exactly 2 service log lines to be output")
 				var log logging.ServiceLogV1
@@ -277,7 +277,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
-				evt2LogLines := getWrappedLogMessagesOfType(t, entityName, entityVersion, "event.2", logOutput)
+				evt2LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "event.2", logOutput)
 				require.Equal(t, 1, len(evt2LogLines), "Expected exactly 1 event log line to be output")
 				var log logging.EventLogV2
 				require.NoError(t, json.Unmarshal(evt2LogLines[0], &log))
@@ -291,7 +291,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
-				metric1LogLines := getWrappedLogMessagesOfType(t, entityName, entityVersion, "metric.1", logOutput)
+				metric1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "metric.1", logOutput)
 				require.Equal(t, 1, len(metric1LogLines), "Expected exactly 1 metric log line to be output")
 				var log logging.MetricLogV1
 				require.NoError(t, json.Unmarshal(metric1LogLines[0], &log))
@@ -306,7 +306,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
-				trc1LogLines := getWrappedLogMessagesOfType(t, entityName, entityVersion, "trace.1", logOutput)
+				trc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "trace.1", logOutput)
 				require.Equal(t, 1, len(trc1LogLines), "Expected exactly 1 trace log line to be output")
 				var log logging.TraceLogV1
 				require.NoError(t, json.Unmarshal(trc1LogLines[0], &log))
@@ -320,7 +320,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
-				audit2LogLines := getWrappedLogMessagesOfType(t, entityName, entityVersion, "audit.2", logOutput)
+				audit2LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "audit.2", logOutput)
 				require.Equal(t, 1, len(audit2LogLines), "Expected exactly 1 audit log line to be output")
 				var log logging.AuditLogV2
 				require.NoError(t, json.Unmarshal(audit2LogLines[0], &log))
@@ -333,7 +333,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			logOutputBuffer := &bytes.Buffer{}
 			err := witchcraft.NewServer().
 				WithInitFunc(test.InitFn).
-				WithInstallConfig(config.Install{UseConsoleLog: true, WrappedLogger: config.WrappedLogger{EntityName: entityName, EntityVersion: entityVersion}}).
+				WithInstallConfig(config.Install{UseConsoleLog: true, UseWrappedLogs: true, ProductName: productName, ProductVersion: productVersion}).
 				WithRuntimeConfig(config.Runtime{}).
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
