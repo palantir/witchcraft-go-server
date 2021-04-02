@@ -44,7 +44,6 @@ const (
 // If useWrappedLogs is true, then all loggers log in wrapped.1 format.
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-// If a valid wrappedLoggerCfg is provided, logs will be output in "wrapped.1" format.
 func (s *Server) initLoggers(useConsoleLog, useWrappedLogs bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
 	var originParam svc1log.Param
 	switch {
