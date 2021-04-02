@@ -32,7 +32,23 @@ type defaultLogger struct {
 }
 
 func (l *defaultLogger) Request(r Request) {
-	safeParams, unsafeParams := l.parseRequestParams(r)
+	l.logger.Log(ToParams(r, l.idsExtractor, l.pathParamPerms, l.queryParamPerms, l.headerParamPerms)...)
+}
+
+func (l *defaultLogger) PathParamPerms() ParamPerms {
+	return l.pathParamPerms
+}
+
+func (l *defaultLogger) QueryParamPerms() ParamPerms {
+	return l.queryParamPerms
+}
+
+func (l *defaultLogger) HeaderParamPerms() ParamPerms {
+	return l.headerParamPerms
+}
+
+func ToParams(r Request, idsExtractor extractor.IDsFromRequest, pathParamPerms, queryParamPerms, headerParamPerms ParamPerms) []wlog.Param {
+	safeParams, unsafeParams := parseRequestParams(r, pathParamPerms, queryParamPerms, headerParamPerms)
 
 	reqPath := r.Request.URL.Path
 	if r.RouteInfo.Template != "" {
@@ -40,9 +56,9 @@ func (l *defaultLogger) Request(r Request) {
 	}
 
 	// extract IDs from request
-	idsMap := l.idsExtractor.ExtractIDs(r.Request)
+	idsMap := idsExtractor.ExtractIDs(r.Request)
 
-	l.logger.Log(
+	return []wlog.Param{
 		wlog.StringParam(wlog.TypeKey, TypeValue),
 		wlog.StringParam(wlog.TimeKey, time.Now().Format(time.RFC3339Nano)),
 		wlog.OptionalStringParam(methodKey, r.Request.Method),
@@ -58,44 +74,36 @@ func (l *defaultLogger) Request(r Request) {
 		wlog.OptionalStringParam(wlog.TokenIDKey, idsMap[wlog.TokenIDKey]),
 		wlog.OptionalStringParam(traceIDKey, idsMap[traceIDKey]),
 		unsafeParams,
-	)
-}
-
-func (l *defaultLogger) PathParamPerms() ParamPerms {
-	return l.pathParamPerms
-}
-
-func (l *defaultLogger) QueryParamPerms() ParamPerms {
-	return l.queryParamPerms
-}
-
-func (l *defaultLogger) HeaderParamPerms() ParamPerms {
-	return l.headerParamPerms
+	}
 }
 
 // parseRequestParams parses the path, header and query parameters. If any of the parameters are in a respective
 // "forbidden" list, they are not logged at all. Otherwise, if a parameter is whitelisted it is added to safeParams and
 // is added to unsafeParams otherwise. If a single key has multiple values, the value for that key in the returned field
 // will be a slice that contains all of the values for the key.
-func (l *defaultLogger) parseRequestParams(r Request) (safeParams wlog.Param, unsafeParams wlog.Param) {
+func parseRequestParams(r Request, pathParamPerms, queryParamPerms, headerParamPerms ParamPerms) (safeParams wlog.Param, unsafeParams wlog.Param) {
 	safeMap := make(map[string]interface{})
 	unsafeMap := make(map[string]interface{})
 
 	for pathParamKey, pathParamVal := range r.RouteInfo.PathParams {
-		processKeyValPair(pathParamKey, pathParamVal, safeMap, unsafeMap, l.pathParamPerms, r.PathParamPerms)
+		processKeyValPair(pathParamKey, pathParamVal, safeMap, unsafeMap, pathParamPerms, r.PathParamPerms)
 	}
 	for k, valSlice := range r.Request.URL.Query() {
 		for _, v := range valSlice {
-			processKeyValPair(k, v, safeMap, unsafeMap, l.queryParamPerms, r.QueryParamPerms)
+			processKeyValPair(k, v, safeMap, unsafeMap, queryParamPerms, r.QueryParamPerms)
 		}
 	}
 	for k := range r.Request.Header {
-		processKeyValPair(k, r.Request.Header.Get(k), safeMap, unsafeMap, l.headerParamPerms, r.HeaderParamPerms)
+		processKeyValPair(k, r.Request.Header.Get(k), safeMap, unsafeMap, headerParamPerms, r.HeaderParamPerms)
 	}
 	return wlog.NewParam(func(entry wlog.LogEntry) {
-			entry.AnyMapValue(paramsKey, safeMap)
+			if len(safeMap) > 0 {
+				entry.AnyMapValue(paramsKey, safeMap)
+			}
 		}), wlog.NewParam(func(entry wlog.LogEntry) {
-			entry.AnyMapValue(wlog.UnsafeParamsKey, unsafeMap)
+			if (len(unsafeMap)) > 0 {
+				entry.AnyMapValue(wlog.UnsafeParamsKey, unsafeMap)
+			}
 		})
 }
 

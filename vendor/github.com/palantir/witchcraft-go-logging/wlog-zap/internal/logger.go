@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	"github.com/palantir/witchcraft-go-logging/wlog-zap/internal/marshalers"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -66,12 +65,8 @@ func (e *zapLogEntry) IntValue(key string, value int32) {
 }
 
 func (e *zapLogEntry) ObjectValue(k string, v interface{}, marshalerType reflect.Type) {
-	if field, ok := marshalers.FieldForType(marshalerType, k, v); ok {
-		e.fields[k] = &field
-	} else {
-		s := zap.Reflect(k, v)
-		e.fields[k] = &s
-	}
+	s := zap.Reflect(k, v)
+	e.fields[k] = &s
 }
 
 func (e *zapLogEntry) Fields() []zapcore.Field {

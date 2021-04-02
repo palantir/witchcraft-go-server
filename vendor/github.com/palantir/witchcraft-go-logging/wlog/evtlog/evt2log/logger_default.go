@@ -25,10 +25,10 @@ type defaultLogger struct {
 }
 
 func (l *defaultLogger) Event(name string, params ...Param) {
-	l.logger.Log(toParams(name, params)...)
+	l.logger.Log(ToParams(name, params)...)
 }
 
-func toParams(evtName string, inParams []Param) []wlog.Param {
+func ToParams(evtName string, inParams []Param) []wlog.Param {
 	outParams := make([]wlog.Param, len(defaultTypeParam)+1+len(inParams))
 	copy(outParams, defaultTypeParam)
 	outParams[len(defaultTypeParam)] = wlog.NewParam(eventNameParam(evtName).apply)
