@@ -39,24 +39,18 @@ const (
 	containerEnvVariable   = "CONTAINER"
 )
 
-// initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
+// initDefaultLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
-// If useWrappedLogs is true, then all loggers log in wrapped.1 format.
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-func (s *Server) initLoggers(useConsoleLog, useWrappedLogs bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
+func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
 		originParam = svc1log.Origin(*s.svcLogOrigin)
 	case s.svcLogOriginFromCallLine:
-		if useWrappedLogs {
-			// Wrapped five frames for wrapped logger
-			originParam = svc1log.OriginFromCallLineWithSkip(5)
-		} else {
-			// Skip two frames because we wrap the default logger in the metric logger
-			originParam = svc1log.OriginFromCallLineWithSkip(2)
-		}
+		// Skip two frames because we wrap the default logger in the metric logger
+		originParam = svc1log.OriginFromCallLineWithSkip(2)
 	default:
 		// if origin param is not specified, use a param that uses the package name of the caller of Start()
 		originParam = svc1log.Origin(svc1log.CallerPkg(2, 0))
@@ -76,15 +70,6 @@ func (s *Server) initLoggers(useConsoleLog, useWrappedLogs bool, productName, pr
 	}
 
 	// initialize instrumented loggers
-	if useWrappedLogs {
-		s.initWrappedLoggers(productName, productVersion, logWriterFn, logLevel, originParam, registry)
-	} else {
-		s.initDefaultLoggers(logWriterFn, logLevel, originParam, registry)
-	}
-}
-
-func (s *Server) initDefaultLoggers(logWriterFn func(string) io.Writer, logLevel wlog.LogLevel, originParam svc1log.Param, registry metrics.Registry) {
-	// initialize instrumented loggers
 	s.svcLogger = metricloggers.NewSvc1Logger(svc1log.New(logWriterFn("service"), logLevel, originParam), registry)
 	s.evtLogger = metricloggers.NewEvt2Logger(
 		evt2log.New(logWriterFn("event")), registry)
@@ -103,7 +88,35 @@ func (s *Server) initDefaultLoggers(logWriterFn func(string) io.Writer, logLevel
 	), registry)
 }
 
-func (s *Server) initWrappedLoggers(productName, productVersion string, logWriterFn func(string) io.Writer, logLevel wlog.LogLevel, originParam svc1log.Param, registry metrics.Registry) {
+// initWrappedLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry
+// and emit logs in wrapped.1 format.
+// If useConsoleLog is true, then all loggers log to stdout.
+// The provided logLevel is used when initializing the service logs only.
+// productName is used as the entityName in wrapped.1 format logs
+// productVersion is used as the entityVersion in wrapped.1 format logs
+func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry) {
+	var originParam svc1log.Param
+	switch {
+	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
+		originParam = svc1log.Origin(*s.svcLogOrigin)
+	case s.svcLogOriginFromCallLine:
+		// Wrapped five frames for wrapped logger
+		originParam = svc1log.OriginFromCallLineWithSkip(5)
+	default:
+		// if origin param is not specified, use a param that uses the package name of the caller of Start()
+		originParam = svc1log.Origin(svc1log.CallerPkg(2, 0))
+	}
+
+	var loggerStdoutWriter io.Writer = os.Stdout
+	if s.loggerStdoutWriter != nil {
+		loggerStdoutWriter = s.loggerStdoutWriter
+	}
+
+	logWriterFn := func(slsFilename string) io.Writer {
+		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
+	}
+
 	// initialize instrumented wrapped loggers
 	s.svcLogger = metricloggers.NewSvc1Logger(
 		wrapped1log.New(logWriterFn("service"), logLevel, productName, productVersion).Service(originParam), registry)

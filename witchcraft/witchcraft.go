@@ -543,7 +543,7 @@ func (s *Server) Start() (rErr error) {
 
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, false, "", "", wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
+				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
 			}
 
 			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
@@ -553,7 +553,7 @@ func (s *Server) Start() (rErr error) {
 		if rErr != nil {
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, false, "", "", wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
+				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
 			}
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}
@@ -603,7 +603,11 @@ func (s *Server) Start() (rErr error) {
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// initialize loggers
-	s.initLoggers(baseInstallCfg.UseConsoleLog, baseInstallCfg.UseWrappedLogs, baseInstallCfg.ProductName, baseInstallCfg.ProductVersion, wlog.InfoLevel, metricsRegistry, nil)
+	if baseInstallCfg.UseWrappedLogs {
+		s.initWrappedLoggers(baseInstallCfg.UseConsoleLog, baseInstallCfg.ProductName, baseInstallCfg.ProductVersion, wlog.InfoLevel, metricsRegistry)
+	} else {
+		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
+	}
 
 	// add loggers to context
 	ctx = s.withLoggers(ctx)
@@ -656,8 +660,11 @@ func (s *Server) Start() (rErr error) {
 		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
 
 		// re-initialize the loggers with the TCP writer and overwrite the context
-		s.initLoggers(baseInstallCfg.UseConsoleLog, baseInstallCfg.UseWrappedLogs, baseInstallCfg.ProductName, baseInstallCfg.ProductVersion, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
+		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
 		ctx = s.withLoggers(ctx)
+		if baseInstallCfg.UseWrappedLogs {
+			s.svcLogger.Warn("wrapped loggers are not supported with the TCP writer, falling back to default")
+		}
 	}
 
 	// Set the service log level if configured
