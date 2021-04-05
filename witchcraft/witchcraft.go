@@ -650,6 +650,12 @@ func (s *Server) Start() (rErr error) {
 			return err
 		}
 
+		// Overwrite envelope fields from config if wrapped logging is enabled
+		if baseInstallCfg.UseWrappedLogs {
+			envelopeMetadata.Product = baseInstallCfg.ProductName
+			envelopeMetadata.ProductVersion = baseInstallCfg.ProductVersion
+		}
+
 		// Create a TCP connection and an asynchronous buffered wrapper.
 		// Note that we intentionally do not call their Close() methods.
 		// While this does leak the resources of the open connection, we want every possible message to reach the output.
@@ -662,9 +668,6 @@ func (s *Server) Start() (rErr error) {
 		// re-initialize the loggers with the TCP writer and overwrite the context
 		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
 		ctx = s.withLoggers(ctx)
-		if baseInstallCfg.UseWrappedLogs {
-			s.svcLogger.Warn("wrapped loggers are not supported with the TCP writer, falling back to default")
-		}
 	}
 
 	// Set the service log level if configured
