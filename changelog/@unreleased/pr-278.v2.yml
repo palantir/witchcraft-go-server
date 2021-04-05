@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add use-wrapped-logs configuration to enable wrapped logging
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/278

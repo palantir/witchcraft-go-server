@@ -29,6 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/metricloggers"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -38,11 +39,11 @@ const (
 	containerEnvVariable   = "CONTAINER"
 )
 
-// initLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
+// initDefaultLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
+func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
@@ -69,8 +70,7 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 	}
 
 	// initialize instrumented loggers
-	s.svcLogger = metricloggers.NewSvc1Logger(
-		svc1log.New(logWriterFn("service"), logLevel, originParam), registry)
+	s.svcLogger = metricloggers.NewSvc1Logger(svc1log.New(logWriterFn("service"), logLevel, originParam), registry)
 	s.evtLogger = metricloggers.NewEvt2Logger(
 		evt2log.New(logWriterFn("event")), registry)
 	s.metricLogger = metricloggers.NewMetric1Logger(
@@ -81,6 +81,56 @@ func (s *Server) initLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registr
 		audit2log.New(logWriterFn("audit")), registry)
 	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
+		req2log.Extractor(s.idsExtractor),
+		req2log.SafePathParams(s.safePathParams...),
+		req2log.SafeHeaderParams(s.safeHeaderParams...),
+		req2log.SafeQueryParams(s.safeQueryParams...),
+	), registry)
+}
+
+// initWrappedLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry
+// and emit logs in wrapped.1 format.
+// If useConsoleLog is true, then all loggers log to stdout.
+// The provided logLevel is used when initializing the service logs only.
+// productName is used as the entityName in wrapped.1 format logs
+// productVersion is used as the entityVersion in wrapped.1 format logs
+func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry) {
+	var originParam svc1log.Param
+	switch {
+	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
+		originParam = svc1log.Origin(*s.svcLogOrigin)
+	case s.svcLogOriginFromCallLine:
+		// Wrapped five frames for wrapped logger
+		originParam = svc1log.OriginFromCallLineWithSkip(5)
+	default:
+		// if origin param is not specified, use a param that uses the package name of the caller of Start()
+		originParam = svc1log.Origin(svc1log.CallerPkg(2, 0))
+	}
+
+	var loggerStdoutWriter io.Writer = os.Stdout
+	if s.loggerStdoutWriter != nil {
+		loggerStdoutWriter = s.loggerStdoutWriter
+	}
+
+	logWriterFn := func(slsFilename string) io.Writer {
+		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
+	}
+
+	// initialize instrumented wrapped loggers
+	s.svcLogger = metricloggers.NewSvc1Logger(
+		wrapped1log.New(logWriterFn("service"), logLevel, productName, productVersion).Service(originParam), registry)
+	s.evtLogger = metricloggers.NewEvt2Logger(
+		wrapped1log.New(logWriterFn("event"), logLevel, productName, productVersion).Event(), registry)
+	s.metricLogger = metricloggers.NewMetric1Logger(
+		wrapped1log.New(logWriterFn("metrics"), logLevel, productName, productVersion).Metric(), registry)
+	s.trcLogger = metricloggers.NewTrc1Logger(
+		wrapped1log.New(logWriterFn("trace"), logLevel, productName, productVersion).Trace(), registry)
+	s.auditLogger = metricloggers.NewAudit2Logger(
+		wrapped1log.New(logWriterFn("audit"), logLevel, productName, productVersion).Audit(), registry)
+	s.diagLogger = metricloggers.NewDiag1Logger(
+		wrapped1log.New(logWriterFn("diagnostic"), logLevel, productName, productVersion).Diagnostic(), registry)
+	s.reqLogger = metricloggers.NewReq2Logger(wrapped1log.New(logWriterFn("request"), logLevel, productName, productVersion).Request(
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),

@@ -129,13 +129,16 @@ func TestServer_StartFailsBeforeMetricRegistryInitialized(t *testing.T) {
 }
 
 func TestServer_WithOriginFromCallLine(t *testing.T) {
+	productName, productVersion := "productName", "1.0.0"
 	for _, test := range []struct {
 		Name      string
+		Install   config.Install
 		InitFn    witchcraft.InitFunc
 		VerifyLog func(t *testing.T, logOutput []byte)
 	}{
 		{
-			Name: "svc log in init function",
+			Name:    "svc log in init function",
+			Install: config.Install{UseConsoleLog: true},
 			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
 				svc1log.FromContext(ctx).Info("a message", svc1log.SafeParam("k", "v"))
 				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
@@ -164,13 +167,44 @@ func TestServer_WithOriginFromCallLine(t *testing.T) {
 				assert.Equal(t, "witchcraft.go", path.Base(strings.Split(*log2.Origin, ":")[0]), "Unexpected origin %s", *log2.Origin)
 			},
 		},
+		{
+			Name:    "wrapped svc log in init function",
+			Install: config.Install{ProductName: productName, ProductVersion: productVersion, UseWrappedLogs: true, UseConsoleLog: true},
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				svc1log.FromContext(ctx).Info("a message", svc1log.SafeParam("k", "v"))
+				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				_, file, line, _ := runtime.Caller(0)
+				file = path.Base(file) // janky way to trim gopath
+				line = line - 4        // janky way to refer to log line above
+				originSuffix := fmt.Sprintf("%s:%d", file, line)
+
+				svc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "service.1", logOutput)
+				require.Equal(t, 2, len(svc1LogLines), "Expected exactly 2 service log line to be output")
+
+				var log1 logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log1))
+				assert.Equal(t, "a message", log1.Message)
+				assert.True(t, strings.HasSuffix(*log1.Origin, originSuffix), "Expected origin %s to have suffix %s", *log1.Origin, originSuffix)
+				assert.Equal(t, "v", log1.Params["k"], "safe param not preserved")
+
+				var log2 logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[1], &log2))
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log2.Level)
+				assert.Equal(t, "oops", log2.Message)
+				assert.Equal(t, "v", log2.Params["k"], "safe param not preserved")
+				assert.NotEmpty(t, log2.Stacktrace)
+				assert.Equal(t, "witchcraft.go", path.Base(strings.Split(*log2.Origin, ":")[0]), "Unexpected origin %s", *log2.Origin)
+			},
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			logOutputBuffer := &bytes.Buffer{}
 			err := witchcraft.NewServer().
 				WithOriginFromCallLine().
 				WithInitFunc(test.InitFn).
-				WithInstallConfig(config.Install{UseConsoleLog: true}).
+				WithInstallConfig(test.Install).
 				WithRuntimeConfig(config.Runtime{}).
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
@@ -242,6 +276,112 @@ func BenchmarkServer_Loggers(b *testing.B) {
 
 			// Requires an error so that `Start` will return
 			require.Error(b, err)
+		})
+	}
+}
+
+// TestServer_WithWrappedLoggers creates a server with wrapped loggers and validates wrapped payloads of each log type.
+func TestServer_WithWrappedLoggers(t *testing.T) {
+	productName, productVersion := "productName", "1.0.0"
+	for _, test := range []struct {
+		Name      string
+		InitFn    witchcraft.InitFunc
+		VerifyLog func(t *testing.T, logOutput []byte)
+	}{
+		{
+			Name: "svc1log",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				svc1log.FromContext(ctx).Info("info!")
+				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				svc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "service.1", logOutput)
+				// An extra service log line is output when the server fails to start
+				require.Equal(t, 2, len(svc1LogLines), "Expected exactly 2 service log lines to be output")
+				var log logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_INFO), log.Level)
+				assert.Equal(t, "info!", log.Message)
+			},
+		},
+		{
+			Name: "evt2log",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				evt2log.FromContext(ctx).Event("info!")
+				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				evt2LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "event.2", logOutput)
+				require.Equal(t, 1, len(evt2LogLines), "Expected exactly 1 event log line to be output")
+				var log logging.EventLogV2
+				require.NoError(t, json.Unmarshal(evt2LogLines[0], &log))
+				assert.Equal(t, "info!", log.EventName)
+			},
+		},
+		{
+			Name: "metric1log",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
+				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				metric1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "metric.1", logOutput)
+				require.Equal(t, 1, len(metric1LogLines), "Expected exactly 1 metric log line to be output")
+				var log logging.MetricLogV1
+				require.NoError(t, json.Unmarshal(metric1LogLines[0], &log))
+				assert.Equal(t, "metric!", log.MetricName)
+				assert.Equal(t, metric1log.MetricTypeKey, log.MetricType)
+			},
+		},
+		{
+			Name: "trc1log",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				trc1log.FromContext(ctx).Log(wtracing.SpanModel{Name: "trace!"})
+				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				trc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "trace.1", logOutput)
+				require.Equal(t, 1, len(trc1LogLines), "Expected exactly 1 trace log line to be output")
+				var log logging.TraceLogV1
+				require.NoError(t, json.Unmarshal(trc1LogLines[0], &log))
+				assert.Equal(t, "trace!", log.Span.Name)
+			},
+		},
+		{
+			Name: "audit2log",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
+				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				audit2LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "audit.2", logOutput)
+				require.Equal(t, 1, len(audit2LogLines), "Expected exactly 1 audit log line to be output")
+				var log logging.AuditLogV2
+				require.NoError(t, json.Unmarshal(audit2LogLines[0], &log))
+				assert.Equal(t, "audit!", log.Name)
+				assert.Equal(t, logging.AuditResult_SUCCESS, log.Result.Value())
+			},
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			logOutputBuffer := &bytes.Buffer{}
+			err := witchcraft.NewServer().
+				WithInitFunc(test.InitFn).
+				WithInstallConfig(config.Install{UseConsoleLog: true, UseWrappedLogs: true, ProductName: productName, ProductVersion: productVersion}).
+				WithRuntimeConfig(config.Runtime{}).
+				WithLoggerStdoutWriter(logOutputBuffer).
+				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+				WithDisableGoRuntimeMetrics().
+				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}, "logging.sls": {}, "logging.sls.length": {}}).
+				WithSelfSignedCertificate().
+				Start()
+
+			require.Error(t, err)
+			test.VerifyLog(t, logOutputBuffer.Bytes())
+
+			// Requires an error so that `Start` will return
+			require.Error(t, err)
+			test.VerifyLog(t, logOutputBuffer.Bytes())
 		})
 	}
 }
@@ -364,6 +504,34 @@ func getLogMessagesOfType(t *testing.T, typ string, logOutput []byte) [][]byte {
 		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
 		if logLineType, ok := currEntry["type"]; ok && logLineType == typ {
 			logLines = append(logLines, line)
+		}
+	}
+	return logLines
+}
+
+// getWrappedLogMessagesOfType validates that the logOutput is in wrapped.1 format, has the right entityName and
+// entityVersion, and returns a slice of the content of all wrapped payloads of the given "type" that match the
+// provided value
+func getWrappedLogMessagesOfType(t *testing.T, entityName, entityVersion, typ string, logOutput []byte) [][]byte {
+	lines := bytes.Split(logOutput, []byte("\n"))
+	var logLines [][]byte
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		var currEntry map[string]interface{}
+		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
+		assert.Equal(t, "wrapped.1", currEntry["type"])
+		assert.Equal(t, entityName, currEntry["entityName"])
+		assert.Equal(t, entityVersion, currEntry["entityVersion"])
+		if payload, ok := currEntry["payload"].(map[string]interface{}); ok {
+			if payloadLog, ok := payload[payload["type"].(string)].(map[string]interface{}); ok {
+				if payloadLogLineType, ok := payloadLog["type"]; ok && payloadLogLineType == typ {
+					if payloadBytes, err := json.Marshal(payloadLog); err == nil {
+						logLines = append(logLines, payloadBytes)
+					}
+				}
+			}
 		}
 	}
 	return logLines

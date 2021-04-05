@@ -543,7 +543,7 @@ func (s *Server) Start() (rErr error) {
 
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
+				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
 			}
 
 			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
@@ -553,7 +553,7 @@ func (s *Server) Start() (rErr error) {
 		if rErr != nil {
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
+				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
 			}
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}
@@ -603,7 +603,11 @@ func (s *Server) Start() (rErr error) {
 	ctx = metrics.WithRegistry(ctx, metricsRegistry)
 
 	// initialize loggers
-	s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
+	if baseInstallCfg.UseWrappedLogs {
+		s.initWrappedLoggers(baseInstallCfg.UseConsoleLog, baseInstallCfg.ProductName, baseInstallCfg.ProductVersion, wlog.InfoLevel, metricsRegistry)
+	} else {
+		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
+	}
 
 	// add loggers to context
 	ctx = s.withLoggers(ctx)
@@ -646,6 +650,12 @@ func (s *Server) Start() (rErr error) {
 			return err
 		}
 
+		// Overwrite envelope fields from config if wrapped logging is enabled
+		if baseInstallCfg.UseWrappedLogs {
+			envelopeMetadata.Product = baseInstallCfg.ProductName
+			envelopeMetadata.ProductVersion = baseInstallCfg.ProductVersion
+		}
+
 		// Create a TCP connection and an asynchronous buffered wrapper.
 		// Note that we intentionally do not call their Close() methods.
 		// While this does leak the resources of the open connection, we want every possible message to reach the output.
@@ -656,7 +666,7 @@ func (s *Server) Start() (rErr error) {
 		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
 
 		// re-initialize the loggers with the TCP writer and overwrite the context
-		s.initLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
+		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
 		ctx = s.withLoggers(ctx)
 	}
 
