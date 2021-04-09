@@ -79,8 +79,8 @@ func NewTCPConnProvider(uris []string, options ...ConnProviderOption) (ConnProvi
 
 var (
 	defaultDialer = &net.Dialer{
-		// Dial timeout is set to the http.DefaultTransport setting of 30 sec.
-		Timeout: 30 * time.Second,
+		// Dial timeout is short - this connection is internal to the environment and slowness can cause logs to fall behind.
+		Timeout: 5 * time.Second,
 	}
 )
 
