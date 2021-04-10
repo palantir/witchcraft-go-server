@@ -781,7 +781,7 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	if !s.stateManager.compareAndSwapState(ServerInitializing, ServerRunning) {
-		return werror.ErrorWithContextParams(ctx, "server was shut down before it could start")
+		return werror.ErrorWithContextParams(ctx, "Server was shut down before it could start")
 	}
 	return svrStart()
 }

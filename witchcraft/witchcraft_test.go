@@ -113,7 +113,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				assert.Equal(t, "Shutting down server", log.Message)
 				require.NoError(t, json.Unmarshal(svc1LogLines[1], &log))
 				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
-				assert.Equal(t, "Sstop := stoperver was shut down before it could start", log.Message)
+				assert.Equal(t, "Server was shut down before it could start", log.Message)
 			},
 		},
 	} {
