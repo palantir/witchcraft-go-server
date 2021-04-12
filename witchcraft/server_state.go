@@ -51,7 +51,7 @@ type serverStateManager struct {
 
 func (s *serverStateManager) Start() error {
 	// state went from Idle to Initializing: OK
-	if atomic.CompareAndSwapInt32(&s.serverRunning, int32(ServerIdle), int32(ServerInitializing)) {
+	if s.compareAndSwapState(ServerIdle, ServerInitializing) {
 		return nil
 	}
 
@@ -76,6 +76,10 @@ func (s *serverStateManager) State() ServerState {
 
 func (s *serverStateManager) setState(state ServerState) {
 	atomic.StoreInt32(&s.serverRunning, int32(state))
+}
+
+func (s *serverStateManager) compareAndSwapState(oldState, newState ServerState) bool {
+	return atomic.CompareAndSwapInt32(&s.serverRunning, int32(oldState), int32(newState))
 }
 
 func (s *serverStateManager) Status() (int, interface{}) {
