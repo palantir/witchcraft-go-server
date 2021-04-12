@@ -42,8 +42,8 @@ github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/openzipkin/zipkin-go v0.2.2 h1:nY8Hti+WKaP0cRsSeQ026wU03QsM762XBeCXBb9NAWI=
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/palantir/conjure-go-runtime/v2 v2.2.0/go.mod h1:k4+u7YJwBAO6Kk7SGvFCQR7vrkVW8vgQxO8rPZGuS5g=
-github.com/palantir/conjure-go-runtime/v2 v2.10.0 h1:zjSOcFbsc+2xQZKP9DcfEH+Z6uZsv6FtRF9VIqQQ2P8=
-github.com/palantir/conjure-go-runtime/v2 v2.10.0/go.mod h1:rhOuZSp5lge3JKD5gzAFRb93uA1/jfmeefpH2evRAug=
+github.com/palantir/conjure-go-runtime/v2 v2.11.0 h1:SncjhJ1FS/uzJt+tkGVwGy8CGKhrDBFQGMEAlYRuWWU=
+github.com/palantir/conjure-go-runtime/v2 v2.11.0/go.mod h1:Hhmc+cJIK7AHbP0v6nuTMLYqBN76iXSPZal43DzR9zU=
 github.com/palantir/go-encrypted-config-value v1.1.0 h1:GwyTWSEthp3dRII2AL+lgdM5ajc8uBVQdv7dZSG91hY=
 github.com/palantir/go-encrypted-config-value v1.1.0/go.mod h1:6c5zDN0XqZLxJiV3yLZmoEkUpaB4W3xJdKY6UPn24qI=
 github.com/palantir/go-metrics v1.1.0 h1:gf6W9EBvzREheH/3wNLPmJD8pe+xtag3TjePZe4hUTQ=
@@ -65,8 +65,8 @@ github.com/palantir/pkg/metrics v1.0.1/go.mod h1:nbKCQCZecI4XdBWpFPVesEDNzB0FLZb
 github.com/palantir/pkg/objmatcher v1.0.0/go.mod h1:r/JGd9x5OOgTCoaHt7qSSRX7jAheaJ88nAWytWsrwN0=
 github.com/palantir/pkg/objmatcher v1.0.1 h1:rzKVO2LXVR2ND7t9Hi3Q+sfFh1RZ5Liq/zmsz0vlgdw=
 github.com/palantir/pkg/objmatcher v1.0.1/go.mod h1:rTHUAN1LduHN+5fMTPkO5w+JHTidSmn5AsK885x2mvs=
-github.com/palantir/pkg/refreshable v1.0.0 h1:pfNYjvpNHUE/bUDZM/O1FRK6uNY5StvStWqU+oQYHak=
-github.com/palantir/pkg/refreshable v1.0.0/go.mod h1:92rISykbd0wXVYpkT41CU7nZstnLsPwT8iFDCdlJoJM=
+github.com/palantir/pkg/refreshable v1.2.0 h1:ztsXllhx0dIx4qkdVEtIVvTXoVKnvAHxMCARnM6xfNA=
+github.com/palantir/pkg/refreshable v1.2.0/go.mod h1:92rISykbd0wXVYpkT41CU7nZstnLsPwT8iFDCdlJoJM=
 github.com/palantir/pkg/retry v1.0.0/go.mod h1:/LJ8kSqgmyNvUKVU0ZSkNLfQ47ufKIZKhEk211pQZ7s=
 github.com/palantir/pkg/retry v1.1.1 h1:rwZ4rrOpudvWFeSrkWvXVLgZKRsp+D8digPJUXZMmw8=
 github.com/palantir/pkg/retry v1.1.1/go.mod h1:TdzhQIVAaNwpezz4OSibhZAFBYuAoJ16yZXyhJEQ9h8=
@@ -82,7 +82,6 @@ github.com/palantir/pkg/safeyaml v1.0.1/go.mod h1:rwADKpvXsYupKvXJg4pOuPrwK8F4Ki
 github.com/palantir/pkg/signals v1.0.1 h1:WDapfUO/vq6DoN4hHmowy2kEDaCQxNCZUhORUn2L4Ig=
 github.com/palantir/pkg/signals v1.0.1/go.mod h1:L5/ZeqXa2QjdxpjqcMQ4LtZL3xCp1FMEhGjMHyLDb2g=
 github.com/palantir/pkg/tlsconfig v1.0.0/go.mod h1:pyDZXpSYm5J6r/4Fm6mjDV25Oe1aMsrgTjkCccKt8MM=
-github.com/palantir/pkg/tlsconfig v1.0.2/go.mod h1:GmXODSYyPva3huR2pEaAknSGIcyRPy08Hvr38WP5+W4=
 github.com/palantir/pkg/tlsconfig v1.1.0 h1:m4vn2v64qEjQ9clmEwa1lrZopR5F+gBbXjRA19JIqKo=
 github.com/palantir/pkg/tlsconfig v1.1.0/go.mod h1:296vFNnUdrZV3aFtufP9VFXMO4zVnjaMgnI3vt5l5ek=
 github.com/palantir/pkg/transform v1.0.0 h1:21MzkUg9fQgIdadTYMM1Z1qrml2MVdpNY5ai27G15LM=

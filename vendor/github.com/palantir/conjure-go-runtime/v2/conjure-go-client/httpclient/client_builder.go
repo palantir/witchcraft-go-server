@@ -125,7 +125,7 @@ func getDefaultHTTPClientBuilder() *httpClientBuilder {
 		// These values are primarily pulled from http.DefaultTransport.
 		TLSClientConfig:       defaultTLSConfig,
 		Timeout:               1 * time.Minute,
-		DialTimeout:           30 * time.Second,
+		DialTimeout:           10 * time.Second,
 		KeepAlive:             30 * time.Second,
 		EnableIPV6:            false,
 		DisableHTTP2:          false,
