@@ -35,7 +35,7 @@ github.com/palantir/pkg/httpserver
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.0.1
 github.com/palantir/pkg/objmatcher
-# github.com/palantir/pkg/refreshable v1.2.0
+# github.com/palantir/pkg/refreshable v1.3.1
 github.com/palantir/pkg/refreshable
 # github.com/palantir/pkg/retry v1.1.1
 github.com/palantir/pkg/retry
