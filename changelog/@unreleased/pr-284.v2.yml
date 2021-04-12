@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: >
+    Handle race condition when `ShutdownServer` is called before successful start.
+    Previously, if the server is told to shut down before it has started, the shutdown request errors and is ignored,
+    leaving the server to start up as if the shutdown was not requested.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/284

@@ -99,6 +99,43 @@ func TestFatalErrorLogging(t *testing.T) {
 				assert.NotEmpty(t, log.Stacktrace)
 			},
 		},
+		{
+			Name: "fails with shutdown server inside init func",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				return nil, info.ShutdownServer(ctx)
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
+				require.Len(t, svc1LogLines, 2, "Expected exactly 2 service log line to be output")
+				var log logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_INFO), log.Level)
+				assert.Equal(t, "Shutting down server", log.Message)
+				require.NoError(t, json.Unmarshal(svc1LogLines[1], &log))
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
+				assert.Equal(t, "server was shut down before it could start", log.Message)
+			},
+		},
+		{
+			Name: "fails with async shutdown server inside init func",
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				go func() {
+					_ = info.ShutdownServer(ctx)
+				}()
+				return nil, nil
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
+				require.Len(t, svc1LogLines, 2, "Expected exactly 2 service log line to be output")
+				var log logging.ServiceLogV1
+				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_INFO), log.Level)
+				assert.Equal(t, "Shutting down server", log.Message)
+				require.NoError(t, json.Unmarshal(svc1LogLines[1], &log))
+				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
+				assert.Equal(t, "server was shut down before it could start", log.Message)
+			},
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			logOutputBuffer := &bytes.Buffer{}
