@@ -15,6 +15,7 @@
 package tcpjson
 
 import (
+	"context"
 	"io"
 	"log"
 
@@ -34,33 +35,54 @@ type asyncWriter struct {
 	buffer  chan []byte
 	output  io.Writer
 	dropped gometrics.Counter
+	queued  gometrics.Gauge
 	stop    chan struct{}
+}
+
+type AsyncWriter interface {
+	io.WriteCloser
+	// Drain tries to gracefully drain the remaining buffered messages,
+	// blocking until the buffer is empty or the provided context is cancelled.
+	Drain(ctx context.Context)
 }
 
 // StartAsyncWriter creates a Writer whose Write method puts the submitted byte slice onto a channel.
 // In a separate goroutine, slices are pulled from the queue and written to the output writer.
 // The Close method stops the consumer goroutine and will cause future writes to fail.
-func StartAsyncWriter(output io.Writer, registry metrics.Registry) io.WriteCloser {
+func StartAsyncWriter(output io.Writer, registry metrics.Registry) AsyncWriter {
 	droppedCounter := registry.Counter(asyncWriterDroppedCounter)
 	buffer := make(chan []byte, asyncWriterBufferCapacity)
 	stop := make(chan struct{})
+	queued := registry.Gauge(asyncWriterBufferLenGauge)
+	w := &asyncWriter{buffer: buffer, output: output, dropped: droppedCounter, queued: queued, stop: stop}
 	go func() {
-		gauge := registry.Gauge(asyncWriterBufferLenGauge)
 		for {
+			// Ensure we stop when requested. Without the additional select,
+			// the loop could continue to run as long as there are items in the buffer.
+			select {
+			case <-stop:
+				return
+			default:
+			}
+
 			select {
 			case item := <-buffer:
-				gauge.Update(int64(len(buffer)))
-				if _, err := output.Write(item); err != nil {
-					// TODO(bmoylan): consider re-enqueuing message so it can be attempted again, which risks a thundering herd without careful handling.
-					log.Printf("write failed: %s", werror.GenerateErrorString(err, false))
-					droppedCounter.Inc(1)
-				}
+				w.write(item)
 			case <-stop:
 				return
 			}
 		}
 	}()
-	return &asyncWriter{buffer: buffer, output: output, dropped: droppedCounter, stop: stop}
+	return w
+}
+
+func (w *asyncWriter) write(item []byte) {
+	w.queued.Update(int64(len(w.buffer)))
+	if _, err := w.output.Write(item); err != nil {
+		// TODO(bmoylan): consider re-enqueuing message so it can be attempted again, which risks a thundering herd without careful handling.
+		log.Printf("write failed: %s", werror.GenerateErrorString(err, false))
+		w.dropped.Inc(1)
+	}
 }
 
 func (w *asyncWriter) Write(b []byte) (int, error) {
@@ -86,4 +108,18 @@ func (w *asyncWriter) Write(b []byte) (int, error) {
 func (w *asyncWriter) Close() (err error) {
 	close(w.stop)
 	return nil
+}
+
+func (w *asyncWriter) Drain(ctx context.Context) {
+	for {
+		select {
+		case item := <-w.buffer:
+			w.write(item)
+		case <-ctx.Done():
+			return
+		default:
+			// Nothing left in the buffer, time to return
+			return
+		}
+	}
 }
