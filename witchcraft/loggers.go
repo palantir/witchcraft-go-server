@@ -43,7 +43,7 @@ const (
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry, tcpWriter io.Writer) {
+func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
@@ -63,8 +63,8 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 
 	logWriterFn := func(slsFilename string) io.Writer {
 		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
-		if tcpWriter != nil {
-			internalWriter = io.MultiWriter(internalWriter, tcpWriter)
+		if s.asyncLogWriter != nil {
+			internalWriter = io.MultiWriter(internalWriter, s.asyncLogWriter)
 		}
 		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
