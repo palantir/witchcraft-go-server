@@ -540,7 +540,7 @@ func (s *Server) Start() (rErr error) {
 	defer func() {
 		if s.asyncLogWriter != nil {
 			// Allow up to 5 seconds to drain queued logs
-			drainCtx, drainCancel := context.WithTimeout(context.Background(), time.Second)
+			drainCtx, drainCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer drainCancel()
 			s.asyncLogWriter.Drain(drainCtx)
 		}
