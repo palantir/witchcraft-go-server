@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Drain async logger before exiting
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/290

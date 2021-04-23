@@ -205,6 +205,9 @@ type Server struct {
 	diagLogger   diag1log.Logger
 	reqLogger    req2log.Logger
 
+	// nil if not enabled
+	asyncLogWriter tcpjson.AsyncWriter
+
 	// the http.Server for the main server
 	httpServer *http.Server
 
@@ -535,6 +538,14 @@ const (
 // a non-nil error containing the recovered object (overwriting any existing error).
 func (s *Server) Start() (rErr error) {
 	defer func() {
+		if s.asyncLogWriter != nil {
+			// Allow up to 5 seconds to drain queued logs
+			drainCtx, drainCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer drainCancel()
+			s.asyncLogWriter.Drain(drainCtx)
+		}
+	}()
+	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
 				rErr = err
@@ -544,7 +555,7 @@ func (s *Server) Start() (rErr error) {
 
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
+				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
 			}
 
 			s.svcLogger.Error("panic recovered", svc1log.SafeParam("stack", diag1log.ThreadDumpV1FromGoroutines(debug.Stack())), svc1log.Stacktrace(rErr))
@@ -554,7 +565,7 @@ func (s *Server) Start() (rErr error) {
 		if rErr != nil {
 			if s.svcLogger == nil {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
-				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry, nil)
+				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
 			}
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}
@@ -607,7 +618,7 @@ func (s *Server) Start() (rErr error) {
 	if baseInstallCfg.UseWrappedLogs {
 		s.initWrappedLoggers(baseInstallCfg.UseConsoleLog, baseInstallCfg.ProductName, baseInstallCfg.ProductVersion, wlog.InfoLevel, metricsRegistry)
 	} else {
-		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, nil)
+		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry)
 	}
 
 	// add loggers to context
@@ -663,11 +674,11 @@ func (s *Server) Start() (rErr error) {
 		// Closing early at any point before program termination risks other operations' last log messages being lost.
 		// The resource leak has been deemed acceptable given server.Start() is typically a singleton and the main execution thread.
 		tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
-		asyncTCPWriter := tcpjson.StartAsyncWriter(tcpWriter, metricsRegistry)
+		s.asyncLogWriter = tcpjson.StartAsyncWriter(tcpWriter, metricsRegistry)
 		internalHealthCheckSources = append(internalHealthCheckSources, tcpWriter)
 
 		// re-initialize the loggers with the TCP writer and overwrite the context
-		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry, asyncTCPWriter)
+		s.initDefaultLoggers(baseInstallCfg.UseConsoleLog, wlog.InfoLevel, metricsRegistry)
 		ctx = s.withLoggers(ctx)
 	}
 
