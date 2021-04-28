@@ -34,6 +34,7 @@ The QosExceptions have a stable mapping to HTTP status codes and response header
 
 * throttle: 429 Too Many Requests, plus optional Retry-After header
 * retryOther: 308 Permanent Redirect, plus Location header indicating the target host
+* retryTemporaryRedirect: 307 Temporary Redirect, plus Location header indicating the target host
 * unavailable: 503 Unavailable
 
 http-remoting clients (both Retrofit2 and JaxRs) handle the above error codes and take the appropriate action:
@@ -52,13 +53,18 @@ The number of retries for 503 and connection errors can be configured via Client
 */
 
 const (
-	StatusCodeRetryOther  = http.StatusPermanentRedirect
-	StatusCodeThrottle    = http.StatusTooManyRequests
-	StatusCodeUnavailable = http.StatusServiceUnavailable
+	StatusCodeRetryOther             = http.StatusPermanentRedirect
+	StatusCodeRetryTemporaryRedirect = http.StatusTemporaryRedirect
+	StatusCodeThrottle               = http.StatusTooManyRequests
+	StatusCodeUnavailable            = http.StatusServiceUnavailable
 )
 
 func isRetryOtherResponse(resp *http.Response) (bool, *url.URL) {
-	if resp == nil || resp.StatusCode != StatusCodeRetryOther {
+	if resp == nil {
+		return false, nil
+	}
+	if resp.StatusCode != StatusCodeRetryOther &&
+		resp.StatusCode != StatusCodeRetryTemporaryRedirect {
 		return false, nil
 	}
 	locationStr := resp.Header.Get("Location")
