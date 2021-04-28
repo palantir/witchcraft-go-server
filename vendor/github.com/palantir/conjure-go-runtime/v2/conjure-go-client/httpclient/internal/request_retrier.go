@@ -116,7 +116,7 @@ func (r *RequestRetrier) getRetryFn(resp *http.Response, respErr error) func() {
 		// Or if we get a nil response, we can assume there is a problem with host and can move on to the next.
 		return r.nextURIOrBackoff
 	} else if shouldTryOther, otherURI := isRetryOtherResponse(resp); shouldTryOther {
-		// 308: go to next node, or particular node if provided.
+		// 307 or 308: go to next node, or particular node if provided.
 		if otherURI != nil {
 			return func() {
 				r.setURIAndResetBackoff(otherURI)
