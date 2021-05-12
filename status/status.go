@@ -15,6 +15,7 @@
 package status
 
 import (
+	"github.com/palantir/witchcraft-go-health/sources"
 	"net/http"
 	"sync/atomic"
 
@@ -23,6 +24,13 @@ import (
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
 )
+
+
+var healthStatusUnauthorized = health.HealthStatus{
+	Checks: map[health.CheckType]health.HealthCheckResult{
+		"HEALTH_STATUS_UNAUTHORIZED": sources.UnhealthyHealthCheckResult("HEALTH_STATUS_UNAUTHORIZED", "unauthorized to access health status; please verify the health-check-shared-secret", nil),
+	},
+}
 
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and
 // invoking a HealthCheckSource if the secret is correct or unset.
@@ -66,7 +74,7 @@ func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.He
 	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
 		token, err := httpserver.ParseBearerTokenHeader(req)
 		if err != nil || sharedSecret != token {
-			return health.HealthStatus{}, http.StatusUnauthorized
+			return healthStatusUnauthorized, http.StatusUnauthorized
 		}
 	}
 	metadata := h.check.HealthStatus(req.Context())
