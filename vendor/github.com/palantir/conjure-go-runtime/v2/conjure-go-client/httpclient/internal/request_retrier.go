@@ -34,13 +34,14 @@ const (
 // In the case of servers in a service-mesh, requests will never be retried and the mesh URI will only be returned on the
 // first call to GetNextURI
 type RequestRetrier struct {
-	currentURI   string
-	retrier      retry.Retrier
-	uris         []string
-	offset       int
-	failedURIs   map[string]struct{}
-	maxAttempts  int
-	attemptCount int
+	currentURI    string
+	retrier       retry.Retrier
+	uris          []string
+	offset        int
+	relocatedURIs map[string]struct{}
+	failedURIs    map[string]struct{}
+	maxAttempts   int
+	attemptCount  int
 }
 
 // NewRequestRetrier creates a new request retrier.
@@ -48,13 +49,14 @@ type RequestRetrier struct {
 func NewRequestRetrier(uris []string, retrier retry.Retrier, maxAttempts int) *RequestRetrier {
 	offset := rand.Intn(len(uris))
 	return &RequestRetrier{
-		currentURI:   uris[offset],
-		retrier:      retrier,
-		uris:         uris,
-		offset:       offset,
-		failedURIs:   map[string]struct{}{},
-		maxAttempts:  maxAttempts,
-		attemptCount: 0,
+		currentURI:    uris[offset],
+		retrier:       retrier,
+		uris:          uris,
+		offset:        offset,
+		relocatedURIs: map[string]struct{}{},
+		failedURIs:    map[string]struct{}{},
+		maxAttempts:   maxAttempts,
+		attemptCount:  0,
 	}
 }
 
@@ -111,11 +113,10 @@ func (r *RequestRetrier) getRetryFn(resp *http.Response, respErr error) func() {
 		// Immediately backoff and select the next URI.
 		// TODO(whickman): use the retry-after header once #81 is resolved
 		return r.nextURIAndBackoff
-	} else if isUnavailableResponse(resp, respErr) || resp == nil {
+	} else if isUnavailableResponse(resp, respErr) {
 		// 503: go to next node
-		// Or if we get a nil response, we can assume there is a problem with host and can move on to the next.
 		return r.nextURIOrBackoff
-	} else if shouldTryOther, otherURI := isRetryOtherResponse(resp); shouldTryOther {
+	} else if shouldTryOther, otherURI := isRetryOtherResponse(resp, respErr); shouldTryOther {
 		// 307 or 308: go to next node, or particular node if provided.
 		if otherURI != nil {
 			return func() {
@@ -123,12 +124,23 @@ func (r *RequestRetrier) getRetryFn(resp *http.Response, respErr error) func() {
 			}
 		}
 		return r.nextURIOrBackoff
+	} else if resp == nil {
+		// if we get a nil response, we can assume there is a problem with host and can move on to the next.
+		return r.nextURIOrBackoff
 	}
 	return nil
 }
 
 func (r *RequestRetrier) setURIAndResetBackoff(otherURI *url.URL) {
+	// If the URI returned by relocation header is a relative path
+	// We will resolve it with the current URI
+	if !otherURI.IsAbs() {
+		if currentURI := parseLocationURL(r.currentURI); currentURI != nil {
+			otherURI = currentURI.ResolveReference(otherURI)
+		}
+	}
 	nextURI := otherURI.String()
+	r.relocatedURIs[otherURI.String()] = struct{}{}
 	r.retrier.Reset()
 	r.currentURI = nextURI
 }
@@ -167,6 +179,12 @@ func (r *RequestRetrier) removeMeshSchemeIfPresent(uri string) string {
 
 func (r *RequestRetrier) isMeshURI(uri string) bool {
 	return strings.HasPrefix(uri, meshSchemePrefix)
+}
+
+// IsRelocatedURI is a helper function to identify if the provided URI is a relocated URI from response during retry
+func (r *RequestRetrier) IsRelocatedURI(uri string) bool {
+	_, relocatedURI := r.relocatedURIs[uri]
+	return relocatedURI
 }
 
 func (r *RequestRetrier) getErrorForUnretriableResponse(ctx context.Context, resp *http.Response, respErr error) error {
