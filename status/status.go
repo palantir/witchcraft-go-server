@@ -15,16 +15,15 @@
 package status
 
 import (
-	"github.com/palantir/witchcraft-go-health/sources"
 	"net/http"
 	"sync/atomic"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/sources"
 	"github.com/palantir/witchcraft-go-health/status"
 )
-
 
 var healthStatusUnauthorized = health.HealthStatus{
 	Checks: map[health.CheckType]health.HealthCheckResult{
