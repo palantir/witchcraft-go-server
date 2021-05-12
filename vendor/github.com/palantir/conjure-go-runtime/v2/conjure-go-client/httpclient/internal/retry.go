@@ -59,7 +59,15 @@ const (
 	StatusCodeUnavailable            = http.StatusServiceUnavailable
 )
 
-func isRetryOtherResponse(resp *http.Response) (bool, *url.URL) {
+func isRetryOtherResponse(resp *http.Response, err error) (bool, *url.URL) {
+	errCode, ok := StatusCodeFromError(err)
+	if ok && (errCode == StatusCodeRetryOther || errCode == StatusCodeRetryTemporaryRedirect) {
+		locationStr, ok := LocationFromError(err)
+		if ok {
+			return true, parseLocationURL(locationStr)
+		}
+	}
+
 	if resp == nil {
 		return false, nil
 	}
@@ -68,15 +76,19 @@ func isRetryOtherResponse(resp *http.Response) (bool, *url.URL) {
 		return false, nil
 	}
 	locationStr := resp.Header.Get("Location")
+	return true, parseLocationURL(locationStr)
+}
+
+func parseLocationURL(locationStr string) *url.URL {
 	if locationStr == "" {
-		return true, nil
+		return nil
 	}
 	locationURL, err := url.Parse(locationStr)
 	if err != nil {
-		// Unable to parse non-zero header as something we recognize...
-		return true, nil
+		// Unable to parse location as something we recognize
+		return nil
 	}
-	return true, locationURL
+	return locationURL
 }
 
 func isThrottleResponse(resp *http.Response, err error) (bool, time.Duration) {

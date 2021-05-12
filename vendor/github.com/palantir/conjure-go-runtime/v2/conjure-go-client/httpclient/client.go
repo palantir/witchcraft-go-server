@@ -96,7 +96,7 @@ func (c *clientImpl) Do(ctx context.Context, params ...RequestParam) (*http.Resp
 		if retryErr != nil {
 			return nil, retryErr
 		}
-		resp, err = c.doOnce(ctx, uri, params...)
+		resp, err = c.doOnce(ctx, uri, retrier.IsRelocatedURI(uri), params...)
 	}
 	if err != nil {
 		return nil, err
@@ -104,7 +104,12 @@ func (c *clientImpl) Do(ctx context.Context, params ...RequestParam) (*http.Resp
 	return resp, nil
 }
 
-func (c *clientImpl) doOnce(ctx context.Context, baseURI string, params ...RequestParam) (*http.Response, error) {
+func (c *clientImpl) doOnce(
+	ctx context.Context,
+	baseURI string,
+	useBaseURIOnly bool,
+	params ...RequestParam,
+) (*http.Response, error) {
 
 	// 1. create the request
 	b := &requestBuilder{
@@ -121,6 +126,10 @@ func (c *clientImpl) doOnce(ctx context.Context, baseURI string, params ...Reque
 			return nil, err
 		}
 	}
+	if useBaseURIOnly {
+		b.path = ""
+	}
+
 	for _, c := range b.configureCtx {
 		ctx = c(ctx)
 	}
