@@ -49,6 +49,7 @@ type keyedErrorHealthCheckSource struct {
 	checkType               health.CheckType
 	checkMessage            string
 	timeProvider            TimeProvider
+	healthState             health.HealthState_Value
 }
 
 // MustNewKeyedErrorHealthCheckSource creates a new KeyedErrorHealthCheckSource which will panic if any error is encountered.
@@ -96,6 +97,7 @@ func NewKeyedErrorHealthCheckSource(checkType health.CheckType, errorMode ErrorM
 		checkType:               conf.checkType,
 		checkMessage:            conf.checkMessage,
 		timeProvider:            conf.timeProvider,
+		healthState:             conf.healthState,
 	}
 
 	if conf.requireFirstFullWindow {
@@ -160,15 +162,7 @@ func (k *keyedErrorHealthCheckSource) HealthStatus(ctx context.Context) health.H
 	}
 
 	if len(params) > 0 {
-		healthCheckResult = health.HealthCheckResult{
-			Type:    k.checkType,
-			State:   health.New_HealthState(health.HealthState_REPAIRING),
-			Message: &k.checkMessage,
-			Params:  params,
-		}
-		if shouldError {
-			healthCheckResult.State = health.New_HealthState(health.HealthState_ERROR)
-		}
+		healthCheckResult = k.getFailureResult(shouldError, params)
 	} else {
 		healthCheckResult = sources.HealthyHealthCheckResult(k.checkType)
 	}
@@ -178,6 +172,19 @@ func (k *keyedErrorHealthCheckSource) HealthStatus(ctx context.Context) health.H
 			k.checkType: healthCheckResult,
 		},
 	}
+}
+
+func (k *keyedErrorHealthCheckSource) getFailureResult(shouldError bool, params map[string]interface{}) health.HealthCheckResult {
+	healthCheckResult := health.HealthCheckResult{
+		Type:    k.checkType,
+		State:   health.New_HealthState(health.HealthState_REPAIRING),
+		Message: &k.checkMessage,
+		Params:  params,
+	}
+	if shouldError {
+		healthCheckResult.State = health.New_HealthState(k.healthState)
+	}
+	return healthCheckResult
 }
 
 func (k *keyedErrorHealthCheckSource) shouldError(item TimedKey) bool {
