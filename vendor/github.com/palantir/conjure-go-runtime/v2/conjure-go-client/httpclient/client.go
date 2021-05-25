@@ -137,10 +137,7 @@ func (c *clientImpl) doOnce(
 	if b.method == "" {
 		return nil, werror.Error("httpclient: use WithRequestMethod() to specify HTTP method")
 	}
-	reqURI, err := joinURIAndPath(baseURI, b.path)
-	if err != nil {
-		return nil, err
-	}
+	reqURI := joinURIAndPath(baseURI, b.path)
 	req, err := http.NewRequest(b.method, reqURI, nil)
 	if err != nil {
 		return nil, werror.Wrap(err, "failed to build new HTTP request")
@@ -223,15 +220,10 @@ func (c *clientImpl) initializeRequestHeaders(ctx context.Context) http.Header {
 	return headers
 }
 
-func joinURIAndPath(baseURI, reqPath string) (string, error) {
-	uri, err := url.Parse(baseURI)
-	if err != nil {
-		return "", werror.Wrap(err, "failed to parse request URL")
-	}
-
+func joinURIAndPath(baseURI, reqPath string) string {
+	fullURI := strings.TrimRight(baseURI, "/")
 	if reqPath != "" {
-		uri.Path = strings.TrimRight(uri.Path, "/") + "/" + strings.TrimLeft(reqPath, "/")
+		fullURI += "/" + strings.TrimLeft(reqPath, "/")
 	}
-
-	return uri.String(), nil
+	return fullURI
 }
