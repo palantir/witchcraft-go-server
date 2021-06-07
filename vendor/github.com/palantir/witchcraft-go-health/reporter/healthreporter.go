@@ -52,6 +52,16 @@ func newHealthReporter() *healthReporter {
 	}
 }
 
+// MustInitializeHealthComponent is a convenience function that calls InitializeHealthComponent on the provided
+// HealthReporter and panics if an error would have occurred
+func MustInitializeHealthComponent(hr HealthReporter, name string) HealthComponent {
+	healthComponent, err := hr.InitializeHealthComponent(name)
+	if err != nil {
+		panic(err)
+	}
+	return healthComponent
+}
+
 // InitializeHealthComponent - Creates a health component for the given name where the component should be stated as
 // initializing until a future call modifies the initializing status. The created health component is stored in the
 // HealthReporter and can be fetched later by name via GetHealthComponent.

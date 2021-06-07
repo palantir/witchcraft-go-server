@@ -95,8 +95,8 @@ github.com/palantir/witchcraft-go-error v1.4.3/go.mod h1:/cl2dMkuBbnfxDtFiC//8Jf
 github.com/palantir/witchcraft-go-error v1.5.0 h1:N5Lp1NFKYTOKDNsZoTLrQkLr1xT1777r2w7zfkCPy+w=
 github.com/palantir/witchcraft-go-error v1.5.0/go.mod h1:QMolXxoxfg2Pd8KWyYAPNJhPL97/BlMGRnxtQrUPYwQ=
 github.com/palantir/witchcraft-go-health v1.6.0/go.mod h1:oOIMYzOgTJci1XwvmUTrxe4YAY1CmSprbeR6QdY+5w0=
-github.com/palantir/witchcraft-go-health v1.7.0 h1:kaaDXNshAN6YxFQQiYgTQ355W/efQq0jlMtiTopbR0c=
-github.com/palantir/witchcraft-go-health v1.7.0/go.mod h1:PeEa6GT2K0mzODEaGhq8N8fLsFcUvVpbkGabhPd9qME=
+github.com/palantir/witchcraft-go-health v1.8.0 h1:Hl6lzSTyP5/ZQmOvAtzo/4y1TT+gIvQzTvdfGKh0Taw=
+github.com/palantir/witchcraft-go-health v1.8.0/go.mod h1:PeEa6GT2K0mzODEaGhq8N8fLsFcUvVpbkGabhPd9qME=
 github.com/palantir/witchcraft-go-logging v1.5.2/go.mod h1:x2wqelmEPV2sqOgxnYpx7em44I2nzWuovl7d7cMv+pM=
 github.com/palantir/witchcraft-go-logging v1.9.0/go.mod h1:6hkyOVxxkoSOVSsL+ZoBVQiFzRSFthlnn47xFOnm6+w=
 github.com/palantir/witchcraft-go-logging v1.14.0 h1:T5P1I3QZOygcwcHK09a1fNQ/sTmXJFnT0/yHkX2xWhw=
