@@ -59,9 +59,8 @@ const (
 	StatusCodeUnavailable            = http.StatusServiceUnavailable
 )
 
-func isRetryOtherResponse(resp *http.Response, err error) (bool, *url.URL) {
-	errCode, ok := StatusCodeFromError(err)
-	if ok && (errCode == StatusCodeRetryOther || errCode == StatusCodeRetryTemporaryRedirect) {
+func isRetryOtherResponse(resp *http.Response, err error, errCode int) (bool, *url.URL) {
+	if errCode == StatusCodeRetryOther || errCode == StatusCodeRetryTemporaryRedirect {
 		locationStr, ok := LocationFromError(err)
 		if ok {
 			return true, parseLocationURL(locationStr)
@@ -91,9 +90,8 @@ func parseLocationURL(locationStr string) *url.URL {
 	return locationURL
 }
 
-func isThrottleResponse(resp *http.Response, err error) (bool, time.Duration) {
-	errCode, ok := StatusCodeFromError(err)
-	if ok && errCode == StatusCodeThrottle {
+func isThrottleResponse(resp *http.Response, errCode int) (bool, time.Duration) {
+	if errCode == StatusCodeThrottle {
 		return true, 0
 	}
 	if resp == nil || resp.StatusCode != StatusCodeThrottle {
@@ -115,9 +113,8 @@ func isThrottleResponse(resp *http.Response, err error) (bool, time.Duration) {
 	return true, time.Until(retryAfterDate)
 }
 
-func isUnavailableResponse(resp *http.Response, err error) bool {
-	errCode, ok := StatusCodeFromError(err)
-	if ok && errCode == StatusCodeUnavailable {
+func isUnavailableResponse(resp *http.Response, errCode int) bool {
+	if errCode == StatusCodeUnavailable {
 		return true
 	}
 	if resp == nil || resp.StatusCode != StatusCodeUnavailable {
