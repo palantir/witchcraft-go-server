@@ -17,6 +17,7 @@ package httpclient
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -34,13 +35,6 @@ const (
 	metricTagMethod      = "method"
 	metricRPCMethodName  = "method-name"
 
-	metricTagFamilyOther = "other"
-	metricTagFamily1xx   = "1xx"
-	metricTagFamily2xx   = "2xx"
-	metricTagFamily3xx   = "3xx"
-	metricTagFamily4xx   = "4xx"
-	metricTagFamily5xx   = "5xx"
-
 	MetricTLSHandshakeAttempt = "tls.handshake.attempt"
 	MetricTLSHandshakeFailure = "tls.handshake.failure"
 	MetricTLSHandshake        = "tls.handshake"
@@ -56,18 +50,33 @@ const (
 var (
 	MetricTagConnectionNew    = metrics.MustNewTag("reused", "false")
 	MetricTagConnectionReused = metrics.MustNewTag("reused", "true")
+
+	metricTagFamily1xx     = metrics.MustNewTag(metricTagFamily, "1xx")
+	metricTagFamily2xx     = metrics.MustNewTag(metricTagFamily, "2xx")
+	metricTagFamily3xx     = metrics.MustNewTag(metricTagFamily, "3xx")
+	metricTagFamily4xx     = metrics.MustNewTag(metricTagFamily, "4xx")
+	metricTagFamily5xx     = metrics.MustNewTag(metricTagFamily, "5xx")
+	metricTagFamilyOther   = metrics.MustNewTag(metricTagFamily, "other")
+	metricTagFamilyTimeout = metrics.MustNewTag(metricTagFamily, "timeout")
 )
 
 // A TagsProvider returns metrics tags based on an http round trip.
+// The 'error' argument is that returned from the request (if any).
 type TagsProvider interface {
-	Tags(*http.Request, *http.Response) metrics.Tags
+	Tags(*http.Request, *http.Response, error) metrics.Tags
 }
 
 // TagsProviderFunc is a convenience type that implements TagsProvider.
-type TagsProviderFunc func(*http.Request, *http.Response) metrics.Tags
+type TagsProviderFunc func(*http.Request, *http.Response, error) metrics.Tags
 
-func (f TagsProviderFunc) Tags(req *http.Request, resp *http.Response) metrics.Tags {
-	return f(req, resp)
+func (f TagsProviderFunc) Tags(req *http.Request, resp *http.Response, respErr error) metrics.Tags {
+	return f(req, resp, respErr)
+}
+
+type StaticTagsProvider metrics.Tags
+
+func (s StaticTagsProvider) Tags(_ *http.Request, _ *http.Response, _ error) metrics.Tags {
+	return metrics.Tags(s)
 }
 
 // MetricsMiddleware updates the "client.response" timer metric on every request.
@@ -86,7 +95,7 @@ func MetricsMiddleware(serviceName string, tagProviders ...TagsProvider) (Middle
 			TagsProviderFunc(tagStatusFamily),
 			TagsProviderFunc(tagRequestMethod),
 			TagsProviderFunc(tagRequestMethodName),
-			TagsProviderFunc(func(*http.Request, *http.Response) metrics.Tags { return metrics.Tags{serviceNameTag} }),
+			StaticTagsProvider(metrics.Tags{serviceNameTag}),
 		)}, nil
 }
 
@@ -107,37 +116,39 @@ func (h *metricsMiddleware) RoundTrip(req *http.Request, next http.RoundTripper)
 
 	var tags metrics.Tags
 	for _, tagProvider := range h.Tags {
-		tags = append(tags, tagProvider.Tags(req, resp)...)
+		tags = append(tags, tagProvider.Tags(req, resp, err)...)
 	}
 
 	metrics.FromContext(req.Context()).Timer(metricClientResponse, tags...).Update(duration / time.Microsecond)
 	return resp, err
 }
 
-func tagStatusFamily(_ *http.Request, resp *http.Response) metrics.Tags {
-	var tag metrics.Tag
+func tagStatusFamily(_ *http.Request, resp *http.Response, respErr error) metrics.Tags {
 	switch {
+	case isTimeoutError(respErr):
+		return metrics.Tags{metricTagFamilyTimeout}
 	case resp == nil, resp.StatusCode < 100, resp.StatusCode > 599:
-		tag = metrics.MustNewTag(metricTagFamily, metricTagFamilyOther)
+		return metrics.Tags{metricTagFamilyOther}
 	case resp.StatusCode < 200:
-		tag = metrics.MustNewTag(metricTagFamily, metricTagFamily1xx)
+		return metrics.Tags{metricTagFamily1xx}
 	case resp.StatusCode < 300:
-		tag = metrics.MustNewTag(metricTagFamily, metricTagFamily2xx)
+		return metrics.Tags{metricTagFamily2xx}
 	case resp.StatusCode < 400:
-		tag = metrics.MustNewTag(metricTagFamily, metricTagFamily3xx)
+		return metrics.Tags{metricTagFamily3xx}
 	case resp.StatusCode < 500:
-		tag = metrics.MustNewTag(metricTagFamily, metricTagFamily4xx)
+		return metrics.Tags{metricTagFamily4xx}
 	case resp.StatusCode < 600:
-		tag = metrics.MustNewTag(metricTagFamily, metricTagFamily5xx)
+		return metrics.Tags{metricTagFamily5xx}
 	}
-	return metrics.Tags{tag}
+	// unreachable
+	return metrics.Tags{}
 }
 
-func tagRequestMethod(req *http.Request, _ *http.Response) metrics.Tags {
+func tagRequestMethod(req *http.Request, _ *http.Response, _ error) metrics.Tags {
 	return metrics.Tags{metrics.MustNewTag(metricTagMethod, req.Method)}
 }
 
-func tagRequestMethodName(req *http.Request, _ *http.Response) metrics.Tags {
+func tagRequestMethodName(req *http.Request, _ *http.Response, _ error) metrics.Tags {
 	rpcMethodName := getRPCMethodName(req.Context())
 	if rpcMethodName == "" {
 		return metrics.Tags{metrics.MustNewTag(metricRPCMethodName, "RPCMethodNameMissing")}
@@ -221,4 +232,26 @@ type metricsWrappedConn struct {
 func (m *metricsWrappedConn) Close() error {
 	m.counter.Dec(1)
 	return m.Conn.Close()
+}
+
+func isTimeoutError(respErr error) bool {
+	if respErr == nil {
+		return false
+	}
+	rootErr := werror.RootCause(respErr)
+	if rootErr == nil {
+		return false
+	}
+
+	if nerr, ok := rootErr.(net.Error); ok && nerr.Timeout() {
+		return true
+	}
+	if errors.Is(rootErr, context.Canceled) || errors.Is(rootErr, context.DeadlineExceeded) {
+		return true
+	}
+	// N.B. the http package does not expose these error types
+	if rootErr.Error() == "net/http: request canceled" || rootErr.Error() == "net/http: request canceled while waiting for connection" {
+		return true
+	}
+	return false
 }

@@ -15,14 +15,12 @@
 package internal
 
 import (
-	"context"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/palantir/pkg/retry"
-	werror "github.com/palantir/witchcraft-go-error"
 )
 
 const (
@@ -60,17 +58,6 @@ func NewRequestRetrier(uris []string, retrier retry.Retrier, maxAttempts int) *R
 	}
 }
 
-// ShouldGetNextURI returns true if GetNextURI has never been called or if the request and its corresponding error
-// indicate the request should be retried.
-func (r *RequestRetrier) ShouldGetNextURI(resp *http.Response, respErr error) bool {
-	if r.attemptCount == 0 {
-		return true
-	}
-	return r.attemptsRemaining() &&
-		!r.isMeshURI(r.currentURI) &&
-		r.responseAndErrRetriable(resp, respErr)
-}
-
 func (r *RequestRetrier) attemptsRemaining() bool {
 	// maxAttempts of 0 indicates no limit
 	if r.maxAttempts == 0 {
@@ -79,48 +66,55 @@ func (r *RequestRetrier) attemptsRemaining() bool {
 	return r.attemptCount < r.maxAttempts
 }
 
-// GetNextURI returns the next URI a client should use, or an error if there's no suitable URI.
-// This should only be called after validating that there's a suitable URI to use via ShouldGetNextURI, in which case
-// an error will never be returned.
-func (r *RequestRetrier) GetNextURI(ctx context.Context, resp *http.Response, respErr error) (string, error) {
+// GetNextURI returns the next URI a client should use, or empty string if no suitable URI remaining to retry.
+// isRelocated is true when the URI comes from a redirect's Location header. In this case, it already includes the request path.
+func (r *RequestRetrier) GetNextURI(resp *http.Response, respErr error) (uri string, isRelocated bool) {
 	defer func() {
 		r.attemptCount++
 	}()
 	if r.attemptCount == 0 {
-		return r.removeMeshSchemeIfPresent(r.currentURI), nil
-	} else if !r.ShouldGetNextURI(resp, respErr) {
-		return "", r.getErrorForUnretriableResponse(ctx, resp, respErr)
+		// First attempt is always successful. Trigger the first retry so later calls have backoff
+		// but ignore the returned value to ensure that the client can instrument the request even
+		// if the context is done.
+		r.retrier.Next()
+		return r.removeMeshSchemeIfPresent(r.currentURI), false
 	}
-	return r.doRetrySelection(resp, respErr), nil
-}
-
-func (r *RequestRetrier) doRetrySelection(resp *http.Response, respErr error) string {
+	if !r.attemptsRemaining() {
+		// Retries exhausted
+		return "", false
+	}
+	if r.isMeshURI(r.currentURI) {
+		// Mesh uris don't get retried
+		return "", false
+	}
 	retryFn := r.getRetryFn(resp, respErr)
-	if retryFn != nil {
-		retryFn()
-		return r.currentURI
+	if retryFn == nil {
+		// The previous response was not retryable
+		return "", false
 	}
-	return ""
+	// Updates currentURI
+	if !retryFn() {
+		return "", false
+	}
+	return r.currentURI, r.isRelocatedURI(r.currentURI)
 }
 
-func (r *RequestRetrier) responseAndErrRetriable(resp *http.Response, respErr error) bool {
-	return r.getRetryFn(resp, respErr) != nil
-}
-
-func (r *RequestRetrier) getRetryFn(resp *http.Response, respErr error) func() {
-	if retryOther, _ := isThrottleResponse(resp, respErr); retryOther {
+func (r *RequestRetrier) getRetryFn(resp *http.Response, respErr error) func() bool {
+	errCode, _ := StatusCodeFromError(respErr)
+	if retryOther, _ := isThrottleResponse(resp, errCode); retryOther {
 		// 429: throttle
 		// Immediately backoff and select the next URI.
 		// TODO(whickman): use the retry-after header once #81 is resolved
 		return r.nextURIAndBackoff
-	} else if isUnavailableResponse(resp, respErr) {
+	} else if isUnavailableResponse(resp, errCode) {
 		// 503: go to next node
 		return r.nextURIOrBackoff
-	} else if shouldTryOther, otherURI := isRetryOtherResponse(resp, respErr); shouldTryOther {
+	} else if shouldTryOther, otherURI := isRetryOtherResponse(resp, respErr, errCode); shouldTryOther {
 		// 307 or 308: go to next node, or particular node if provided.
 		if otherURI != nil {
-			return func() {
+			return func() bool {
 				r.setURIAndResetBackoff(otherURI)
+				return true
 			}
 		}
 		return r.nextURIOrBackoff
@@ -147,19 +141,20 @@ func (r *RequestRetrier) setURIAndResetBackoff(otherURI *url.URL) {
 
 // If lastURI was already marked failed, we perform a backoff as determined by the retrier before returning the next URI and its offset.
 // Otherwise, we add lastURI to failedURIs and return the next URI and its offset immediately.
-func (r *RequestRetrier) nextURIOrBackoff() {
+func (r *RequestRetrier) nextURIOrBackoff() bool {
 	_, performBackoff := r.failedURIs[r.currentURI]
 	r.markFailedAndMoveToNextURI()
 	// If the URI has failed before, perform a backoff
 	if performBackoff || len(r.uris) == 1 {
-		r.retrier.Next()
+		return r.retrier.Next()
 	}
+	return true
 }
 
 // Marks the current URI as failed, gets the next URI, and performs a backoff as determined by the retrier.
-func (r *RequestRetrier) nextURIAndBackoff() {
+func (r *RequestRetrier) nextURIAndBackoff() bool {
 	r.markFailedAndMoveToNextURI()
-	r.retrier.Next()
+	return r.retrier.Next()
 }
 
 func (r *RequestRetrier) markFailedAndMoveToNextURI() {
@@ -181,22 +176,7 @@ func (r *RequestRetrier) isMeshURI(uri string) bool {
 	return strings.HasPrefix(uri, meshSchemePrefix)
 }
 
-// IsRelocatedURI is a helper function to identify if the provided URI is a relocated URI from response during retry
-func (r *RequestRetrier) IsRelocatedURI(uri string) bool {
+func (r *RequestRetrier) isRelocatedURI(uri string) bool {
 	_, relocatedURI := r.relocatedURIs[uri]
 	return relocatedURI
-}
-
-func (r *RequestRetrier) getErrorForUnretriableResponse(ctx context.Context, resp *http.Response, respErr error) error {
-	message := "GetNextURI called, but retry should not be attempted"
-	params := []werror.Param{
-		werror.SafeParam("attemptCount", r.attemptCount),
-		werror.SafeParam("maxAttempts", r.maxAttempts),
-		werror.SafeParam("statusCodeRetriable", r.responseAndErrRetriable(resp, respErr)),
-		werror.SafeParam("uriInMesh", r.isMeshURI(r.currentURI)),
-	}
-	if respErr != nil {
-		return werror.WrapWithContextParams(ctx, respErr, message, params...)
-	}
-	return werror.ErrorWithContextParams(ctx, message, params...)
 }

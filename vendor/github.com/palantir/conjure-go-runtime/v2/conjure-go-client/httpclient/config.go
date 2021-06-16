@@ -17,7 +17,6 @@ package httpclient
 import (
 	"bytes"
 	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/palantir/pkg/metrics"
@@ -249,10 +248,11 @@ func configToParams(c ClientConfig) ([]ClientParam, error) {
 	// Metrics (default enabled)
 
 	if c.Metrics.Enabled == nil || (c.Metrics.Enabled != nil && *c.Metrics.Enabled) {
-		configuredTags := TagsProviderFunc(func(*http.Request, *http.Response) metrics.Tags {
-			return metrics.MustNewTags(c.Metrics.Tags)
-		})
-		params = append(params, WithMetrics(configuredTags))
+		configuredTags, err := metrics.NewTags(c.Metrics.Tags)
+		if err != nil {
+			return nil, werror.Wrap(err, "invalid metrics configuration")
+		}
+		params = append(params, WithMetrics(StaticTagsProvider(configuredTags)))
 	}
 
 	// Proxy
