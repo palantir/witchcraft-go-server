@@ -80,6 +80,14 @@ type ClientConfig struct {
 	// fully writing the request headers if the request has an "Expect: 100-continue" header.
 	ExpectContinueTimeout *time.Duration `json:"expect-continue-timeout,omitempty" yaml:"expect-continue-timeout,omitempty"`
 
+	// HTTP2ReadIdleTimeout sets the maximum time to wait before sending periodic health checks (pings) for an HTTP/2 connection.
+	// If unset, the client defaults to 30s for HTTP/2 clients.
+	HTTP2ReadIdleTimeout *time.Duration `json:"http2-read-idle-timeout" yaml:"http2-read-idle-timeout"`
+	// HTTP2PingTimeout is the maximum time to wait for a ping response in an HTTP/2 connection,
+	// when health checking is enabled which is done by setting the HTTP2ReadIdleTimeout > 0.
+	// If unset, the client defaults to 15s if the HTTP2ReadIdleTimeout is > 0.
+	HTTP2PingTimeout *time.Duration `json:"http2-ping-timeout" yaml:"http2-ping-timeout"`
+
 	// MaxIdleConns sets the number of reusable TCP connections the client will maintain.
 	// If unset, the client defaults to 32.
 	MaxIdleConns *int `json:"max-idle-conns,omitempty" yaml:"max-idle-conns,omitempty"`
@@ -153,6 +161,12 @@ func (c ServicesConfig) ClientConfig(serviceName string) ClientConfig {
 	}
 	if conf.ExpectContinueTimeout == nil && c.Default.ExpectContinueTimeout != nil {
 		conf.ExpectContinueTimeout = c.Default.ExpectContinueTimeout
+	}
+	if conf.HTTP2ReadIdleTimeout == nil && c.Default.HTTP2ReadIdleTimeout != nil {
+		conf.HTTP2ReadIdleTimeout = c.Default.HTTP2ReadIdleTimeout
+	}
+	if conf.HTTP2PingTimeout == nil && c.Default.HTTP2PingTimeout != nil {
+		conf.HTTP2PingTimeout = c.Default.HTTP2PingTimeout
 	}
 	if conf.MaxIdleConns == nil && c.Default.MaxIdleConns != nil {
 		conf.MaxIdleConns = c.Default.MaxIdleConns
@@ -277,6 +291,12 @@ func configToParams(c ClientConfig) ([]ClientParam, error) {
 	}
 	if c.ExpectContinueTimeout != nil && *c.ExpectContinueTimeout != 0 {
 		params = append(params, WithExpectContinueTimeout(*c.ExpectContinueTimeout))
+	}
+	if c.HTTP2ReadIdleTimeout != nil && *c.HTTP2ReadIdleTimeout >= 0 {
+		params = append(params, WithHTTP2ReadIdleTimeout(*c.HTTP2ReadIdleTimeout))
+	}
+	if c.HTTP2PingTimeout != nil && *c.HTTP2PingTimeout >= 0 {
+		params = append(params, WithHTTP2PingTimeout(*c.HTTP2PingTimeout))
 	}
 
 	// Connections
