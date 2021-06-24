@@ -123,6 +123,7 @@ func getDefaultHTTPClientBuilder() *httpClientBuilder {
 	defaultTLSConfig, _ := tlsconfig.NewClientConfig()
 	return &httpClientBuilder{
 		// These values are primarily pulled from http.DefaultTransport.
+		Proxy:                 http.ProxyFromEnvironment,
 		TLSClientConfig:       defaultTLSConfig,
 		Timeout:               1 * time.Minute,
 		DialTimeout:           10 * time.Second,
