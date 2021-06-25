@@ -6,7 +6,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
-	github.com/palantir/conjure-go-runtime/v2 v2.16.0
+	github.com/palantir/conjure-go-runtime/v2 v2.17.0
 	github.com/palantir/go-encrypted-config-value v1.1.0
 	github.com/palantir/go-metrics v1.1.0
 	github.com/palantir/pkg/httpserver v1.0.1
