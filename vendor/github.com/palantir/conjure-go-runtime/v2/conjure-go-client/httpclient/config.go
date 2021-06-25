@@ -82,11 +82,11 @@ type ClientConfig struct {
 
 	// HTTP2ReadIdleTimeout sets the maximum time to wait before sending periodic health checks (pings) for an HTTP/2 connection.
 	// If unset, the client defaults to 30s for HTTP/2 clients.
-	HTTP2ReadIdleTimeout *time.Duration `json:"http2-read-idle-timeout" yaml:"http2-read-idle-timeout"`
+	HTTP2ReadIdleTimeout *time.Duration `json:"http2-read-idle-timeout,omitempty" yaml:"http2-read-idle-timeout,omitempty"`
 	// HTTP2PingTimeout is the maximum time to wait for a ping response in an HTTP/2 connection,
 	// when health checking is enabled which is done by setting the HTTP2ReadIdleTimeout > 0.
 	// If unset, the client defaults to 15s if the HTTP2ReadIdleTimeout is > 0.
-	HTTP2PingTimeout *time.Duration `json:"http2-ping-timeout" yaml:"http2-ping-timeout"`
+	HTTP2PingTimeout *time.Duration `json:"http2-ping-timeout,omitempty" yaml:"http2-ping-timeout,omitempty"`
 
 	// MaxIdleConns sets the number of reusable TCP connections the client will maintain.
 	// If unset, the client defaults to 32.
