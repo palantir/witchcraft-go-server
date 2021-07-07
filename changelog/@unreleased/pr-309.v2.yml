@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Upgrade runtime configuration reloaded message to info
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/309

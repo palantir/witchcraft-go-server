@@ -91,7 +91,7 @@ func (d *fileRefreshable) evaluateFileOnDisk(ctx context.Context) {
 	if loadedChecksum == d.fileChecksum {
 		return
 	}
-	svc1log.FromContext(ctx).Debug("Attempting to update file refreshable")
+	svc1log.FromContext(ctx).Info("Attempting to update file refreshable")
 	if err := d.innerRefreshable.Update(fileBytes); err != nil {
 		svc1log.FromContext(ctx).Error("Failed to update refreshable with new file bytes", svc1log.Stacktrace(err))
 		return
