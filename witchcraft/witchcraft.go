@@ -945,6 +945,8 @@ func (s *Server) initShutdownSignalHandler(ctx context.Context) {
 
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 		sig := <-shutdownSignal
+		s.svcLogger.Info("Received shutdown signal",
+			svc1log.SafeParam("signalName", sig.String()))
 		ctx = wparams.ContextWithSafeParam(ctx, "signal", sig.String())
 		if err := s.Shutdown(ctx); err != nil {
 			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
