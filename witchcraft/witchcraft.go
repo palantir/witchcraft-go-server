@@ -730,7 +730,7 @@ func (s *Server) Start() (rErr error) {
 		}
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
-		svc1log.FromContext(ctx).Debug("Running server initialization function.")
+		svc1log.FromContext(ctx).Info("Running server initialization function.")
 		cleanupFn, err := s.initFn(
 			ctx,
 			InitInfo{
@@ -747,6 +747,7 @@ func (s *Server) Start() (rErr error) {
 			return err
 		}
 		if cleanupFn != nil {
+			svc1log.FromContext(ctx).Info("Cleanup function is NOT nil, deferring")
 			defer cleanupFn()
 		}
 	}
@@ -794,6 +795,10 @@ func (s *Server) Start() (rErr error) {
 	if !s.stateManager.compareAndSwapState(ServerInitializing, ServerRunning) {
 		return werror.ErrorWithContextParams(ctx, "server was shut down before it could start")
 	}
+	defer func() {
+		svc1log.FromContext(ctx).Info("Start function is returning...Next function run should be cleanup...")
+	}()
+	svc1log.FromContext(ctx).Info("about to call svrStart...")
 	return svrStart()
 }
 
