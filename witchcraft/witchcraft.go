@@ -958,6 +958,7 @@ func (s *Server) initShutdownSignalHandler(ctx context.Context) {
 		if err := s.Shutdown(ctx); err != nil {
 			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
 		}
+		s.svcLogger.Info("Shutdown returned, http server was shut down")
 	})
 }
 
