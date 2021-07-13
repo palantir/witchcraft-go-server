@@ -799,7 +799,9 @@ func (s *Server) Start() (rErr error) {
 		svc1log.FromContext(ctx).Info("Start function is returning...Next function run should be cleanup...")
 	}()
 	svc1log.FromContext(ctx).Info("about to call svrStart...")
-	return svrStart()
+	err = svrStart()
+	svc1log.FromContext(ctx).Info("svrStart returned!")
+	return err
 }
 
 func (s *Server) withLoggers(ctx context.Context) context.Context {

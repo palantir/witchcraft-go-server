@@ -80,6 +80,7 @@ func newServerStartShutdownFns(
 
 		// cert and key specified in TLS config so no need to pass in here
 		if err := httpServer.ListenAndServeTLS("", ""); err != nil {
+			svcLogger.Info("server returned from ListenAndServeTLS")
 			if err == http.ErrServerClosed {
 				svcLogger.Info(fmt.Sprintf("%s was closed", serverName))
 				return nil
