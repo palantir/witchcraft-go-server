@@ -957,10 +957,10 @@ func (s *Server) initShutdownSignalHandler(ctx context.Context) {
 			svc1log.SafeParam("signalName", sig.String()))
 		ctx = wparams.ContextWithSafeParam(ctx, "signal", sig.String())
 		if err := s.Shutdown(ctx); err != nil {
-			fmt.Fprint(os.Stderr, "failed to gracefully shut down servier")
+			fmt.Fprintln(os.Stderr, "failed to gracefully shut down servier")
 			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
 		}
-		fmt.Fprint(os.Stderr, "successfully shut down server")
+		fmt.Fprintln(os.Stderr, "successfully shut down server")
 		s.svcLogger.Info("Shutdown returned, http server was shut down")
 	})
 }
@@ -982,9 +982,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
-		fmt.Fprint(os.Stderr, "running stop server function...")
+		fmt.Fprintln(os.Stderr, "running stop server function...")
 		err := svr.Shutdown(ctx)
-		fmt.Fprint(os.Stderr, "svr.Shutdown returned!")
+		fmt.Fprintln(os.Stderr, "svr.Shutdown returned!")
 		return err
 	})
 }
