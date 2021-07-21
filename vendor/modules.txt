@@ -1,10 +1,13 @@
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/gorilla/mux v1.7.3
+## explicit
 github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
+## explicit
 github.com/julienschmidt/httprouter
 # github.com/nmiyake/pkg/dirs v1.0.0
+## explicit
 github.com/nmiyake/pkg/dirs
 # github.com/openzipkin/zipkin-go v0.2.2
 github.com/openzipkin/zipkin-go
@@ -13,15 +16,18 @@ github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
 # github.com/palantir/conjure-go-runtime/v2 v2.17.0
+## explicit
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
 # github.com/palantir/go-encrypted-config-value v1.1.0
+## explicit
 github.com/palantir/go-encrypted-config-value/encryptedconfigvalue
 github.com/palantir/go-encrypted-config-value/encryption
 # github.com/palantir/go-metrics v1.1.0
+## explicit
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
 github.com/palantir/pkg
@@ -30,24 +36,31 @@ github.com/palantir/pkg/bytesbuffers
 # github.com/palantir/pkg/datetime v1.0.1
 github.com/palantir/pkg/datetime
 # github.com/palantir/pkg/httpserver v1.0.1
+## explicit
 github.com/palantir/pkg/httpserver
 # github.com/palantir/pkg/metrics v1.0.1
+## explicit
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.0.1
+## explicit
 github.com/palantir/pkg/objmatcher
 # github.com/palantir/pkg/refreshable v1.3.2
+## explicit
 github.com/palantir/pkg/refreshable
 # github.com/palantir/pkg/retry v1.1.1
 github.com/palantir/pkg/retry
 # github.com/palantir/pkg/safejson v1.0.1
+## explicit
 github.com/palantir/pkg/safejson
 # github.com/palantir/pkg/safelong v1.0.1
 github.com/palantir/pkg/safelong
 # github.com/palantir/pkg/safeyaml v1.0.1
 github.com/palantir/pkg/safeyaml
 # github.com/palantir/pkg/signals v1.0.1
+## explicit
 github.com/palantir/pkg/signals
 # github.com/palantir/pkg/tlsconfig v1.1.0
+## explicit
 github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.0.0
 github.com/palantir/pkg/transform
@@ -55,9 +68,11 @@ github.com/palantir/pkg/transform
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
 # github.com/palantir/witchcraft-go-error v1.5.0
+## explicit
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
 # github.com/palantir/witchcraft-go-health v1.8.0
+## explicit
 github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/reporter
 github.com/palantir/witchcraft-go-health/sources
@@ -65,6 +80,7 @@ github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
 # github.com/palantir/witchcraft-go-logging v1.16.0
+## explicit
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog
@@ -84,8 +100,10 @@ github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
 # github.com/palantir/witchcraft-go-params v1.2.0
+## explicit
 github.com/palantir/witchcraft-go-params
 # github.com/palantir/witchcraft-go-tracing v1.4.0
+## explicit
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
 github.com/palantir/witchcraft-go-tracing/wzipkin
@@ -100,6 +118,7 @@ github.com/rs/zerolog/internal/json
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
 # github.com/stretchr/testify v1.7.0
+## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.uber.org/atomic v1.6.0
@@ -126,8 +145,10 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
+## explicit
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.3.0
+## explicit
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
