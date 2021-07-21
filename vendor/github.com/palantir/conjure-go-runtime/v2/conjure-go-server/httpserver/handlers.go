@@ -17,7 +17,6 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
@@ -119,10 +118,7 @@ func ErrHandler(ctx context.Context, statusCode int, err error) {
 	if statusCode >= 500 {
 		logFn = logger.Error
 	}
-	logFn(
-		fmt.Sprintf("error handling request: %s", err.Error()),
-		svc1log.Stacktrace(err),
-	)
+	logFn("Error handling request", svc1log.Stacktrace(err))
 }
 
 func getSerializableCause(err error) error {
