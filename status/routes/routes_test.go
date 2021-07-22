@@ -26,6 +26,7 @@ import (
 
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/sources"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
@@ -224,7 +225,9 @@ func TestAddHealthRoute(t *testing.T) {
 			expectedChecks := test.metadata
 			// 401 does not return any health check data
 			if test.expectedStatus == 401 {
-				expectedChecks.Checks = map[health.CheckType]health.HealthCheckResult{}
+				expectedChecks.Checks = map[health.CheckType]health.HealthCheckResult{
+					"HEALTH_STATUS_UNAUTHORIZED": sources.UnhealthyHealthCheckResult("HEALTH_STATUS_UNAUTHORIZED", "unauthorized to access health status; please verify the health-check-shared-secret", map[string]interface{}{}),
+				}
 			}
 			assert.Equal(t, expectedChecks, gotObj)
 		})

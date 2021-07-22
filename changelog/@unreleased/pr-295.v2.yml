@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: If user is unauthorized to view health checks return an unauthorized error health check rather than no health check.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/295
