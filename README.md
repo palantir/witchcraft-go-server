@@ -97,7 +97,7 @@ traffic itself is still encrypted.
 
 ### Logging
 `witchcraft-server` is configured with service, event, metric, request and trace loggers from the 
-`witchcraft-go-logging` project and emits structured JSON logs using [`zap`](https://github.com/uber-go/zap) as the
+`witchcraft-go-logging` project and emits structured JSON logs using [`zerolog`](https://github.com/rs/zerolog) as the
 logger implementation. The default behavior emits logs to the `var/log` directory (`var/log/service.log`, 
 `var/log/request.log`, etc.) unless the server is run in a Docker container or has the environment variable `$CONTAINER` set, in which case the logs are always emitted to `stdout`. The `use-console-log` property in the install configuration can also be set to "true" to always output logs 
 to `stdout`. The runtime configuration supports configuring the log output level for service logs.

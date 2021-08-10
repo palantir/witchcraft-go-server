@@ -60,8 +60,8 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"gopkg.in/yaml.v2"
 
-	// Use zap as logger implementation: witchcraft-based applications are opinionated about the logging implementation used
-	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
+	// Use zerolog as logger implementation: witchcraft-based applications are opinionated about the logging implementation used
+	_ "github.com/palantir/witchcraft-go-logging/wlog-zerolog"
 )
 
 type Server struct {

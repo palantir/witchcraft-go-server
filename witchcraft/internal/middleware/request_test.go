@@ -27,7 +27,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/objmatcher"
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	wlogzap "github.com/palantir/witchcraft-go-logging/wlog-zap"
+	_ "github.com/palantir/witchcraft-go-logging/wlog-zerolog"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
 	"github.com/palantir/witchcraft-go-logging/wlog/logreader"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
@@ -59,11 +59,11 @@ func TestCombinedMiddleware(t *testing.T) {
 	}
 
 	var svcOutput bytes.Buffer
-	svcLog := svc1log.NewFromCreator(&svcOutput, wlog.InfoLevel, wlogzap.LoggerProvider().NewLeveledLogger, svc1log.Origin("origin"))
+	svcLog := svc1log.New(&svcOutput, wlog.InfoLevel, svc1log.Origin("origin"))
 	var reqOutput bytes.Buffer
-	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
+	reqLog := req2log.New(&reqOutput)
 	var trcOutput bytes.Buffer
-	trcLog := trc1log.NewFromCreator(&trcOutput, wlog.DefaultLoggerProvider().NewLogger)
+	trcLog := trc1log.New(&trcOutput)
 
 	metricsRegistry := metrics.NewRootMetricsRegistry()
 
@@ -292,10 +292,10 @@ func getTimerObjectMatcher(count int) map[string]objmatcher.Matcher {
 
 func TestRequestDisableTelemetry(t *testing.T) {
 	var reqOutput bytes.Buffer
-	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
+	reqLog := req2log.New(&reqOutput)
 
 	var spanOutput bytes.Buffer
-	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
+	spanLog := trc1log.New(&spanOutput)
 
 	metricRegistry := metrics.NewRootMetricsRegistry()
 	reqMetricMiddleware := middleware.NewRequestMetricRequestMeter(metricRegistry)
