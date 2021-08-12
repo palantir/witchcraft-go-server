@@ -31,6 +31,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	pkgserver "github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/refreshable"
+	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/stretchr/testify/assert"
