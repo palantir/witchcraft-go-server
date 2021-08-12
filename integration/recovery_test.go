@@ -153,10 +153,11 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewEqualsMatcher(fmt.Sprintf("error handling request: INTERNAL Default:Internal (%s)", err.InstanceID().String())),
+						"message": objmatcher.NewEqualsMatcher("Error handling request"),
 						"traceId": objmatcher.NewEqualsMatcher(traceID),
 						"params": objmatcher.MapMatcher{
 							"errorInstanceId": objmatcher.NewEqualsMatcher(err.InstanceID().String()),
+							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
 							"stacktrace":      objmatcher.NewAnyMatcher(),
 						},
 						"unsafeParams": objmatcher.MapMatcher{
@@ -213,10 +214,11 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewRegExpMatcher("error handling request: INTERNAL Default:Internal \\(.*\\)"),
+						"message": objmatcher.NewEqualsMatcher("Error handling request"),
 						"traceId": objmatcher.NewEqualsMatcher(traceID),
 						"params": objmatcher.MapMatcher{
 							"errorInstanceId": objmatcher.NewAnyMatcher(),
+							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
 							"stacktrace":      objmatcher.NewAnyMatcher(),
 						},
 						"unsafeParams": objmatcher.MapMatcher{
@@ -270,9 +272,10 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewEqualsMatcher(fmt.Sprintf("error handling request: INTERNAL Default:Internal (%s)", err.InstanceID().String())),
+						"message": objmatcher.NewEqualsMatcher("Error handling request"),
 						"params": objmatcher.MapMatcher{
 							"errorInstanceId": objmatcher.NewEqualsMatcher(err.InstanceID().String()),
+							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
 							"stacktrace":      objmatcher.NewAnyMatcher(),
 						},
 						"unsafeParams": objmatcher.MapMatcher{
@@ -314,9 +317,10 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewRegExpMatcher("error handling request: INTERNAL Default:Internal \\(.*\\)"),
+						"message": objmatcher.NewEqualsMatcher("Error handling request"),
 						"params": objmatcher.MapMatcher{
 							"errorInstanceId": objmatcher.NewAnyMatcher(),
+							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
 							"stacktrace":      objmatcher.NewAnyMatcher(),
 						},
 						"unsafeParams": objmatcher.MapMatcher{
