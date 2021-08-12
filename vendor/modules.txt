@@ -15,7 +15,7 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v2 v2.17.0
+# github.com/palantir/conjure-go-runtime/v2 v2.18.0
 ## explicit
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
@@ -71,7 +71,7 @@ github.com/palantir/pkg/uuid/internal/uuid
 ## explicit
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
-# github.com/palantir/witchcraft-go-health v1.8.0
+# github.com/palantir/witchcraft-go-health v1.9.0
 ## explicit
 github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/reporter

@@ -105,6 +105,7 @@ func (e genericError) safeParams() map[string]interface{} {
 		safeParams[k] = v
 	}
 	safeParams["errorInstanceId"] = e.errorInstanceID
+	safeParams["errorName"] = e.Name()
 	return safeParams
 }
 
