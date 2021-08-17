@@ -50,8 +50,9 @@ github.com/palantir/conjure-go-runtime/v2 v2.18.0 h1:XCDuSvkAexpD388FC6YDUG0QZSE
 github.com/palantir/conjure-go-runtime/v2 v2.18.0/go.mod h1:5fTZnavYX1CX73+yW6jYkcclLHL3A0oLTN3Ml3+Jlb8=
 github.com/palantir/go-encrypted-config-value v1.1.0 h1:GwyTWSEthp3dRII2AL+lgdM5ajc8uBVQdv7dZSG91hY=
 github.com/palantir/go-encrypted-config-value v1.1.0/go.mod h1:6c5zDN0XqZLxJiV3yLZmoEkUpaB4W3xJdKY6UPn24qI=
-github.com/palantir/go-metrics v1.1.0 h1:gf6W9EBvzREheH/3wNLPmJD8pe+xtag3TjePZe4hUTQ=
 github.com/palantir/go-metrics v1.1.0/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
+github.com/palantir/go-metrics v1.1.1 h1:YL/UmptBjrC6iSCTVr7vfuIcjL0M359Da3/gBGNny10=
+github.com/palantir/go-metrics v1.1.1/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
 github.com/palantir/pkg v1.0.1 h1:ZbGUcc14N7xcZSY9cehQoiHHTm/BAZO5RJdlsNEtSbk=
 github.com/palantir/pkg v1.0.1/go.mod h1:Eo6Jl0UXfT+65sLXJOcU9duu0WPvKsWFXCb0dE5VWZs=
 github.com/palantir/pkg/bytesbuffers v1.0.0/go.mod h1:JFWINutL8wfBpXOqastvJtuEXNEQhIVNnBVY0oeJFws=
@@ -64,8 +65,9 @@ github.com/palantir/pkg/httpserver v1.0.0/go.mod h1:SB44Ogix4t8LFq8eV57m8NYZgx0F
 github.com/palantir/pkg/httpserver v1.0.1 h1:50GykXrOIZ6U4OWz3o4jDCK4ql4h3TnldusqIi/75zs=
 github.com/palantir/pkg/httpserver v1.0.1/go.mod h1:e8lGJPRqfS7wyfYaTezWIHlcpkTLxFFevm1Bhh3LW94=
 github.com/palantir/pkg/metrics v1.0.0/go.mod h1:bQgc6o1wUY8hEamP/BX5IYUq9hCYVRGhcCWlxfcqNRw=
-github.com/palantir/pkg/metrics v1.0.1 h1:d3KLSlm5JVRH/y86XBZZazYufOKowij3pH5ry2YytKc=
 github.com/palantir/pkg/metrics v1.0.1/go.mod h1:nbKCQCZecI4XdBWpFPVesEDNzB0FLZb1jvayrHW6skM=
+github.com/palantir/pkg/metrics v1.1.0 h1:13PqqihYADltvT3vIGg8zTNhFOjSieuXzDJcej9bKBg=
+github.com/palantir/pkg/metrics v1.1.0/go.mod h1:VXEBop0IARoXx8ZncYYIUl0hQe64obXf6UNydFdRWCA=
 github.com/palantir/pkg/objmatcher v1.0.0/go.mod h1:r/JGd9x5OOgTCoaHt7qSSRX7jAheaJ88nAWytWsrwN0=
 github.com/palantir/pkg/objmatcher v1.0.1 h1:rzKVO2LXVR2ND7t9Hi3Q+sfFh1RZ5Liq/zmsz0vlgdw=
 github.com/palantir/pkg/objmatcher v1.0.1/go.mod h1:rTHUAN1LduHN+5fMTPkO5w+JHTidSmn5AsK885x2mvs=
