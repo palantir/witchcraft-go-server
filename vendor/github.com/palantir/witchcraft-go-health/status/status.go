@@ -59,6 +59,9 @@ func (c *combinedHealthCheckSource) HealthStatus(ctx context.Context) health.Hea
 		Checks: map[health.CheckType]health.HealthCheckResult{},
 	}
 	for _, healthCheckSource := range c.healthCheckSources {
+		if healthCheckSource == nil {
+			continue
+		}
 		for k, v := range healthCheckSource.HealthStatus(ctx).Checks {
 			result.Checks[k] = v
 		}
