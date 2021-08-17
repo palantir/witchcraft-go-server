@@ -26,7 +26,7 @@ github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
 ## explicit
 github.com/palantir/go-encrypted-config-value/encryptedconfigvalue
 github.com/palantir/go-encrypted-config-value/encryption
-# github.com/palantir/go-metrics v1.1.0
+# github.com/palantir/go-metrics v1.1.1
 ## explicit
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
@@ -38,7 +38,7 @@ github.com/palantir/pkg/datetime
 # github.com/palantir/pkg/httpserver v1.0.1
 ## explicit
 github.com/palantir/pkg/httpserver
-# github.com/palantir/pkg/metrics v1.0.1
+# github.com/palantir/pkg/metrics v1.1.0
 ## explicit
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.0.1
