@@ -23,5 +23,5 @@ require (
 	github.com/palantir/witchcraft-go-tracing v1.4.0
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 )
