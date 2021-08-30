@@ -1054,8 +1054,6 @@ func decryptNodeValues(n *yamlv3.Node, kwt *encryptedconfigvalue.KeyWithType) er
 	return nil
 }
 
-
-
 func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	if s.stateManager.State() == ServerIdle {
 		return werror.Error("server is not running")
