@@ -59,6 +59,7 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"gopkg.in/yaml.v2"
+	yamlv3 "gopkg.in/yaml.v3"
 
 	// Use zap as logger implementation: witchcraft-based applications are opinionated about the logging implementation used
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
@@ -983,6 +984,13 @@ func (s *Server) Close() error {
 	})
 }
 
+// decryptConfigBytes returns a version of the provided input bytes in which any values encrypted using the encrypted
+// configuration value library are decrypted. If the input bytes do not contain any encrypted configuration values, this
+// function is a noop and returns the provided bytes. Otherwise, the provided bytes are interpreted as YAML and any
+// encrypted configuration values are decrypted and the resulting bytes are returned.
+//
+// NOTE: as described in the function comment, if the provided bytes contain any encrypted configuration values, the
+//       bytes are assumed to be YAML and are treated as such.
 func (s *Server) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
 	if !encryptedconfigvalue.ContainsEncryptedConfigValueStringVars(cfgBytes) {
 		// Nothing to do
@@ -998,7 +1006,52 @@ func (s *Server) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
 	if ecvKey == nil {
 		return cfgBytes, werror.Error("No encryption key configured but config contains encrypted values")
 	}
-	return encryptedconfigvalue.DecryptAllEncryptedValueStringVars(cfgBytes, *ecvKey), nil
+	decryptedBytes, err := decryptECVYAMLNodes(cfgBytes, ecvKey)
+	if err != nil {
+		return cfgBytes, werror.Wrap(err, "Failed to decrypt values in YAML that contains encrypted values")
+	}
+	return decryptedBytes, nil
+}
+
+// decryptECVYAMLNodes takes the provided YAML bytes and returns equivalent YAML bytes where any scalar nodes with a
+// value that consisted of an encrypted configuration value are replaced with the equivalent value that is decrypted
+// using the provided key. Does this by unmarshaling the provided bytes into a yamlv3.Node, updating all of the relevant
+// values of the Nodes and then marshaling the updated node as bytes. It would be more efficient to decode the yaml.v3
+// Node directly to the destination type instead of marshaling it as bytes again, but the existing API requires
+// returning []byte so that callers can perform decryption on their own. Previously, ECV values were decrypted directly
+// as raw bytes, but this could result in invalid YAML if multi-line values were encrypted. Decrypting values in YAML
+// nodes and then writing the nodes back out ensures that the resulting bytes are always valid YAML.
+func decryptECVYAMLNodes(yamlBytes []byte, kwt *encryptedconfigvalue.KeyWithType) ([]byte, error) {
+	var yamlDocNode yamlv3.Node
+	if err := yamlv3.Unmarshal(yamlBytes, &yamlDocNode); err != nil {
+		return nil, werror.Wrap(err, "failed to unmarshal YAML into yaml.v3 node")
+	}
+	if err := decryptNodeValues(&yamlDocNode, kwt); err != nil {
+		return nil, err
+	}
+	return yamlv3.Marshal(&yamlDocNode)
+}
+
+// decryptNodeValues recursively modifies the provided node and all of its content nodes such that any nodes that have
+// the kind ScalarNode and have a value that contains an encrypted configuration value are modified such that their
+// value is the version of the value that is decrypted using the provided KeyWithType.
+func decryptNodeValues(n *yamlv3.Node, kwt *encryptedconfigvalue.KeyWithType) error {
+	if n == nil {
+		return nil
+	}
+	if n.Kind == yamlv3.ScalarNode && encryptedconfigvalue.ContainsEncryptedConfigValueStringVars([]byte(n.Value)) {
+		decrypted, err := encryptedconfigvalue.DecryptSingleEncryptedValueStringVarString(n.Value, *kwt)
+		if err != nil {
+			return werror.Error("failed to decrypt encrypted-config-value in YAML node")
+		}
+		n.Value = decrypted
+	}
+	for _, childNode := range n.Content {
+		if err := decryptNodeValues(childNode, kwt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func stopServer(s *Server, stopper func(s *http.Server) error) error {

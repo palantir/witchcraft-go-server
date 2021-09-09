@@ -30,10 +30,15 @@ import (
 )
 
 func TestEncryptedConfig(t *testing.T) {
-	var (
-		decryptedValue = "hello world"
-		encryptionKey  = "AES:T6H7a4WvQS9ITcNIihyUIj30K4SIrD6dB39ENJQ7oAo="
-		encryptedValue = "${enc:eyJ0eXBlIjoiQUVTIiwibW9kZSI6IkdDTSIsImNpcGhlcnRleHQiOiJqcGl0bThQRStRekd2YlE9IiwiaXYiOiJrTHlBOEZBNzFnTDVpdkswIiwidGFnIjoicmxpcXY3amYwbWVnaGU1N0pyQ3ZzZz09In0=}"
+	const (
+		decryptedValue          = "hello world"
+		encryptionKey           = "AES:T6H7a4WvQS9ITcNIihyUIj30K4SIrD6dB39ENJQ7oAo="
+		encryptedValue          = "${enc:eyJ0eXBlIjoiQUVTIiwibW9kZSI6IkdDTSIsImNpcGhlcnRleHQiOiJqcGl0bThQRStRekd2YlE9IiwiaXYiOiJrTHlBOEZBNzFnTDVpdkswIiwidGFnIjoicmxpcXY3amYwbWVnaGU1N0pyQ3ZzZz09In0=}"
+		decryptedMultilineValue = `-----BEGIN CERTIFICATE-----
+cert
+-----END CERTIFICATE-----
+`
+		encryptedMultilineValue = "${enc:eyJ0eXBlIjoiQUVTIiwibW9kZSI6IkdDTSIsImNpcGhlcnRleHQiOiJuTXNWOEV1L1JpWGN1TGFDbVNSRVVQUG1NbFpab0paMEN6QlNuL3BWUWwzWUhkWXlVSEZYaGY5c3N5NlFTbzVXYnp5bTlaTCtmQytxQTZNPSIsIml2IjoiRzNtSHp1SmRVU0NncXRLcyIsInRhZyI6IlI2UWZPb2UvS1hiSFZiTmZDaWNkVlE9PSJ9}"
 	)
 
 	type message struct {
@@ -65,6 +70,24 @@ func TestEncryptedConfig(t *testing.T) {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
 				if msg := info.RuntimeConfig.Current().(*message).Message; msg != decryptedValue {
+					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
+				}
+				return nil
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Equal(t, []string{"abort startup"}, getLogFileMessages(t, logOutput))
+			},
+		},
+		{
+			Name:          "encrypted multi-line value is decrypted properly",
+			ECVKeyContent: encryptionKey,
+			InstallConfig: fmt.Sprintf("message: %s\nuse-console-log: true\n", encryptedMultilineValue),
+			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", encryptedMultilineValue),
+			Verify: func(info witchcraft.InitInfo) error {
+				if msg := info.InstallConfig.(*messageInstall).Message; msg != decryptedMultilineValue {
+					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
+				}
+				if msg := info.RuntimeConfig.Current().(*message).Message; msg != decryptedMultilineValue {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
 				return nil

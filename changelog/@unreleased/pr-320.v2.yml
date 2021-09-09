@@ -1,0 +1,29 @@
+type: improvement
+improvement:
+  description: |-
+    Updates the way in which encrypted configuration values are handled
+    in configuration (both install and runtime configuration). Previously,
+    if configuration contained encrypted configuration values, the values
+    were decrypted in the raw bytes and the result was then unmarshaled as
+    YAML. This meant that it was possible for the content of the encrypted
+    configuration value to influence the structure of the YAML document.
+
+    This behavior has been modified such that, if configuration contains
+    an encrypted configuration value, the configuration is interpreted as
+    YAML, the encrypted configuration values are decrypted and set as the
+    value on the original YAML node, and the result is then unmarshaled.
+    This means that it is no longer possible for the content of an encrypted
+    configuration value to modify the structure of the configuration YAML,
+    with the result being that there should be better support for values such
+    as multiline strings. This also makes the behavior more consistent with
+    other existing implementations.
+
+    Although using the previous behavior to modify the structure of configuration
+    YAML using encrypted values was not recommended, this is a behavioral change:
+    any products that depended on the previous behavior of encrypted configuration
+    values modifying YAML structure on decryption will no longer work. Decrypting
+    encrypted configuration values in YAML is now done by doing an unmarshal/marshal
+    round-trip using yaml.v3, so this may add some extra overhead and there is a
+    small possibility that it could cause behavioral issues.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/320
