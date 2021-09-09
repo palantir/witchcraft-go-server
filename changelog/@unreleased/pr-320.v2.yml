@@ -1,7 +1,7 @@
 type: improvement
 improvement:
   description: |-
-    Updates the way in which encrypted configuraiton values are handled
+    Updates the way in which encrypted configuration values are handled
     in configuration (both install and runtime configuration). Previously,
     if configuration contained encrypted configuration values, the values
     were decrypted in the raw bytes and the result was then unmarshaled as
