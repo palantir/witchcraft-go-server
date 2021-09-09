@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: feature
+feature:
   description: |-
     Updates the way in which encrypted configuraiton values are handled
     in configuration (both install and runtime configuration). Previously,
