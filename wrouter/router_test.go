@@ -21,8 +21,8 @@ import (
 	"sort"
 	"testing"
 
-	// underscore import to use zap implementation
-	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
+	// underscore import to use zerolog implementation
+	_ "github.com/palantir/witchcraft-go-logging/wlog-zerolog"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/wgorillamux"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"

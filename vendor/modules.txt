@@ -84,8 +84,8 @@ github.com/palantir/witchcraft-go-health/status
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog
-github.com/palantir/witchcraft-go-logging/wlog-zap
-github.com/palantir/witchcraft-go-logging/wlog-zap/internal
+github.com/palantir/witchcraft-go-logging/wlog-zerolog
+github.com/palantir/witchcraft-go-logging/wlog-zerolog/internal
 github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log
 github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log
 github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log
@@ -121,17 +121,6 @@ github.com/satori/go.uuid
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# go.uber.org/atomic v1.6.0
-go.uber.org/atomic
-# go.uber.org/multierr v1.5.0
-go.uber.org/multierr
-# go.uber.org/zap v1.15.0
-go.uber.org/zap
-go.uber.org/zap/buffer
-go.uber.org/zap/internal/bufferpool
-go.uber.org/zap/internal/color
-go.uber.org/zap/internal/exit
-go.uber.org/zap/zapcore
 # golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2

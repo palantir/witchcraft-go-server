@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Default to zerolog instead of zap
+
+    Benchmarks show zerolog about 30% faster than zap with a smaller dependency tree.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/315

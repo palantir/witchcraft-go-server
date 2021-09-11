@@ -61,8 +61,8 @@ import (
 	"gopkg.in/yaml.v2"
 	yamlv3 "gopkg.in/yaml.v3"
 
-	// Use zap as logger implementation: witchcraft-based applications are opinionated about the logging implementation used
-	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
+	// Use zerolog as logger implementation: witchcraft-based applications are opinionated about the logging implementation used
+	_ "github.com/palantir/witchcraft-go-logging/wlog-zerolog"
 )
 
 type Server struct {
