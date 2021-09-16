@@ -76,6 +76,32 @@ func (u *Diagnostic) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
+func (u *Diagnostic) AcceptFuncs(genericFunc func(GenericDiagnostic) error, threadDumpFunc func(ThreadDumpV1) error, unknownFunc func(string) error) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return unknownFunc(u.typ)
+	case "generic":
+		return genericFunc(*u.generic)
+	case "threadDump":
+		return threadDumpFunc(*u.threadDump)
+	}
+}
+
+func (u *Diagnostic) GenericNoopSuccess(GenericDiagnostic) error {
+	return nil
+}
+
+func (u *Diagnostic) ThreadDumpNoopSuccess(ThreadDumpV1) error {
+	return nil
+}
+
+func (u *Diagnostic) ErrorOnUnknown(typeName string) error {
+	return fmt.Errorf("invalid value in union type. Type name: %s", typeName)
+}
+
 func (u *Diagnostic) Accept(v DiagnosticVisitor) error {
 	switch u.typ {
 	default:
@@ -188,6 +214,32 @@ func (u *RequestLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	return safejson.Unmarshal(jsonBytes, *&u)
+}
+
+func (u *RequestLog) AcceptFuncs(v1Func func(RequestLogV1) error, v2Func func(RequestLogV2) error, unknownFunc func(string) error) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return unknownFunc(u.typ)
+	case "v1":
+		return v1Func(*u.v1)
+	case "v2":
+		return v2Func(*u.v2)
+	}
+}
+
+func (u *RequestLog) V1NoopSuccess(RequestLogV1) error {
+	return nil
+}
+
+func (u *RequestLog) V2NoopSuccess(RequestLogV2) error {
+	return nil
+}
+
+func (u *RequestLog) ErrorOnUnknown(typeName string) error {
+	return fmt.Errorf("invalid value in union type. Type name: %s", typeName)
 }
 
 func (u *RequestLog) Accept(v RequestLogVisitor) error {
@@ -310,6 +362,38 @@ func (u *UnionEventLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	return safejson.Unmarshal(jsonBytes, *&u)
+}
+
+func (u *UnionEventLog) AcceptFuncs(eventLogFunc func(EventLogV1) error, eventLogV2Func func(EventLogV2) error, beaconLogFunc func(BeaconLogV1) error, unknownFunc func(string) error) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return unknownFunc(u.typ)
+	case "eventLog":
+		return eventLogFunc(*u.eventLog)
+	case "eventLogV2":
+		return eventLogV2Func(*u.eventLogV2)
+	case "beaconLog":
+		return beaconLogFunc(*u.beaconLog)
+	}
+}
+
+func (u *UnionEventLog) EventLogNoopSuccess(EventLogV1) error {
+	return nil
+}
+
+func (u *UnionEventLog) EventLogV2NoopSuccess(EventLogV2) error {
+	return nil
+}
+
+func (u *UnionEventLog) BeaconLogNoopSuccess(BeaconLogV1) error {
+	return nil
+}
+
+func (u *UnionEventLog) ErrorOnUnknown(typeName string) error {
+	return fmt.Errorf("invalid value in union type. Type name: %s", typeName)
 }
 
 func (u *UnionEventLog) Accept(v UnionEventLogVisitor) error {
@@ -469,6 +553,62 @@ func (u *WrappedLogV1Payload) UnmarshalYAML(unmarshal func(interface{}) error) e
 		return err
 	}
 	return safejson.Unmarshal(jsonBytes, *&u)
+}
+
+func (u *WrappedLogV1Payload) AcceptFuncs(serviceLogV1Func func(ServiceLogV1) error, requestLogV2Func func(RequestLogV2) error, traceLogV1Func func(TraceLogV1) error, eventLogV2Func func(EventLogV2) error, metricLogV1Func func(MetricLogV1) error, auditLogV2Func func(AuditLogV2) error, diagnosticLogV1Func func(DiagnosticLogV1) error, unknownFunc func(string) error) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return unknownFunc(u.typ)
+	case "serviceLogV1":
+		return serviceLogV1Func(*u.serviceLogV1)
+	case "requestLogV2":
+		return requestLogV2Func(*u.requestLogV2)
+	case "traceLogV1":
+		return traceLogV1Func(*u.traceLogV1)
+	case "eventLogV2":
+		return eventLogV2Func(*u.eventLogV2)
+	case "metricLogV1":
+		return metricLogV1Func(*u.metricLogV1)
+	case "auditLogV2":
+		return auditLogV2Func(*u.auditLogV2)
+	case "diagnosticLogV1":
+		return diagnosticLogV1Func(*u.diagnosticLogV1)
+	}
+}
+
+func (u *WrappedLogV1Payload) ServiceLogV1NoopSuccess(ServiceLogV1) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) RequestLogV2NoopSuccess(RequestLogV2) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) TraceLogV1NoopSuccess(TraceLogV1) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) EventLogV2NoopSuccess(EventLogV2) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) MetricLogV1NoopSuccess(MetricLogV1) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) AuditLogV2NoopSuccess(AuditLogV2) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) DiagnosticLogV1NoopSuccess(DiagnosticLogV1) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) ErrorOnUnknown(typeName string) error {
+	return fmt.Errorf("invalid value in union type. Type name: %s", typeName)
 }
 
 func (u *WrappedLogV1Payload) Accept(v WrappedLogV1PayloadVisitor) error {
