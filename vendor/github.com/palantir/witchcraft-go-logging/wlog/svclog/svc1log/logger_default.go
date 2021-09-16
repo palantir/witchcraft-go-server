@@ -50,30 +50,41 @@ func ErrorLevelParam() wlog.Param {
 }
 
 type defaultLogger struct {
-	loggerCreator func(level wlog.LogLevel) wlog.LeveledLogger
-
 	logger wlog.LeveledLogger
+	level  wlog.LevelChecker
 	params []Param
 }
 
 func (l *defaultLogger) Debug(msg string, params ...Param) {
-	l.logger.Debug(msg, ToParams(DebugLevelParam(), params)...)
+	if l.enabled(wlog.DebugLevel) {
+		l.logger.Debug(msg, ToParams(DebugLevelParam(), params)...)
+	}
 }
 
 func (l *defaultLogger) Info(msg string, params ...Param) {
-	l.logger.Info(msg, ToParams(InfoLevelParam(), params)...)
+	if l.enabled(wlog.InfoLevel) {
+		l.logger.Info(msg, ToParams(InfoLevelParam(), params)...)
+	}
 }
 
 func (l *defaultLogger) Warn(msg string, params ...Param) {
-	l.logger.Warn(msg, ToParams(WarnLevelParam(), params)...)
+	if l.enabled(wlog.WarnLevel) {
+		l.logger.Warn(msg, ToParams(WarnLevelParam(), params)...)
+	}
 }
 
 func (l *defaultLogger) Error(msg string, params ...Param) {
-	l.logger.Error(msg, ToParams(ErrorLevelParam(), params)...)
+	if l.enabled(wlog.ErrorLevel) {
+		l.logger.Error(msg, ToParams(ErrorLevelParam(), params)...)
+	}
 }
 
 func (l *defaultLogger) SetLevel(level wlog.LogLevel) {
 	l.logger.SetLevel(level)
+}
+
+func (l *defaultLogger) enabled(level wlog.LogLevel) bool {
+	return l.level == nil || l.level.Enabled(level)
 }
 
 func ToParams(level wlog.Param, inParams []Param) []wlog.Param {
