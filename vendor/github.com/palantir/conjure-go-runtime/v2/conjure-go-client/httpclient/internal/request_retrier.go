@@ -15,7 +15,6 @@
 package internal
 
 import (
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -46,13 +45,10 @@ type RequestRetrier struct {
 // Regardless of maxAttempts, mesh URIs will never be retried.
 func NewRequestRetrier(uris []string, retrier retry.Retrier, maxAttempts int) *RequestRetrier {
 	offset := 0
-	urisCopy := make([]string, len(uris))
-	copy(urisCopy, uris)
-	rand.Shuffle(len(urisCopy), func(i, j int) { urisCopy[i], urisCopy[j] = urisCopy[j], urisCopy[i] })
 	return &RequestRetrier{
-		currentURI:    urisCopy[offset],
+		currentURI:    uris[offset],
 		retrier:       retrier,
-		uris:          urisCopy,
+		uris:          uris,
 		offset:        offset,
 		relocatedURIs: map[string]struct{}{},
 		failedURIs:    map[string]struct{}{},

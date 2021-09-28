@@ -55,7 +55,7 @@ type clientImpl struct {
 	errorDecoderMiddleware Middleware
 	metricsMiddleware      Middleware
 
-	uris                          []string
+	uriScorer                     internal.URIScoringMiddleware
 	maxAttempts                   int
 	disableTraceHeaderPropagation bool
 	backoffOptions                []retry.Option
@@ -83,7 +83,7 @@ func (c *clientImpl) Delete(ctx context.Context, params ...RequestParam) (*http.
 }
 
 func (c *clientImpl) Do(ctx context.Context, params ...RequestParam) (*http.Response, error) {
-	uris := c.uris
+	uris := c.uriScorer.GetURIsInOrderOfIncreasingScore()
 	if len(uris) == 0 {
 		return nil, werror.ErrorWithContextParams(ctx, "no base URIs are configured")
 	}
@@ -161,6 +161,9 @@ func (c *clientImpl) doOnce(
 		// must precede the error decoders because they return a nil response and the metrics need the status code of
 		// the raw response.
 		c.metricsMiddleware,
+		// must precede the error decoders because they return a nil response and the scorer needs the status code of
+		// the raw response.
+		c.uriScorer,
 		// must precede the client error decoder
 		b.errorDecoderMiddleware,
 		// must precede the body middleware so it can read the response body
