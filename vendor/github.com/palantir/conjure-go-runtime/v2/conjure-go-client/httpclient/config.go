@@ -132,85 +132,91 @@ func (c ServicesConfig) ClientConfig(serviceName string) ClientConfig {
 	}
 	conf.ServiceName = serviceName
 
+	return MergeClientConfig(conf, c.Default)
+}
+
+// MergeClientConfig merges two instances of ClientConfig, preferring values from conf over defaults.
+// The ServiceName field is not affected, and is expected to be set in the config before building a Client.
+func MergeClientConfig(conf, defaults ClientConfig) ClientConfig {
 	if len(conf.URIs) == 0 {
-		conf.URIs = c.Default.URIs
+		conf.URIs = defaults.URIs
 	}
-	if conf.APIToken == nil && c.Default.APIToken != nil {
-		conf.APIToken = c.Default.APIToken
+	if conf.APIToken == nil {
+		conf.APIToken = defaults.APIToken
 	}
-	if conf.APITokenFile == nil && c.Default.APITokenFile != nil {
-		conf.APITokenFile = c.Default.APITokenFile
+	if conf.APITokenFile == nil {
+		conf.APITokenFile = defaults.APITokenFile
 	}
-	if conf.MaxNumRetries == nil && c.Default.MaxNumRetries != nil {
-		conf.MaxNumRetries = c.Default.MaxNumRetries
+	if conf.MaxNumRetries == nil {
+		conf.MaxNumRetries = defaults.MaxNumRetries
 	}
-	if conf.ConnectTimeout == nil && c.Default.ConnectTimeout != nil {
-		conf.ConnectTimeout = c.Default.ConnectTimeout
+	if conf.ConnectTimeout == nil {
+		conf.ConnectTimeout = defaults.ConnectTimeout
 	}
-	if conf.ReadTimeout == nil && c.Default.ReadTimeout != nil {
-		conf.ReadTimeout = c.Default.ReadTimeout
+	if conf.ReadTimeout == nil {
+		conf.ReadTimeout = defaults.ReadTimeout
 	}
-	if conf.WriteTimeout == nil && c.Default.WriteTimeout != nil {
-		conf.WriteTimeout = c.Default.WriteTimeout
+	if conf.WriteTimeout == nil {
+		conf.WriteTimeout = defaults.WriteTimeout
 	}
-	if conf.IdleConnTimeout == nil && c.Default.IdleConnTimeout != nil {
-		conf.IdleConnTimeout = c.Default.IdleConnTimeout
+	if conf.IdleConnTimeout == nil {
+		conf.IdleConnTimeout = defaults.IdleConnTimeout
 	}
-	if conf.TLSHandshakeTimeout == nil && c.Default.TLSHandshakeTimeout != nil {
-		conf.TLSHandshakeTimeout = c.Default.TLSHandshakeTimeout
+	if conf.TLSHandshakeTimeout == nil {
+		conf.TLSHandshakeTimeout = defaults.TLSHandshakeTimeout
 	}
-	if conf.ExpectContinueTimeout == nil && c.Default.ExpectContinueTimeout != nil {
-		conf.ExpectContinueTimeout = c.Default.ExpectContinueTimeout
+	if conf.ExpectContinueTimeout == nil {
+		conf.ExpectContinueTimeout = defaults.ExpectContinueTimeout
 	}
-	if conf.HTTP2ReadIdleTimeout == nil && c.Default.HTTP2ReadIdleTimeout != nil {
-		conf.HTTP2ReadIdleTimeout = c.Default.HTTP2ReadIdleTimeout
+	if conf.HTTP2ReadIdleTimeout == nil {
+		conf.HTTP2ReadIdleTimeout = defaults.HTTP2ReadIdleTimeout
 	}
-	if conf.HTTP2PingTimeout == nil && c.Default.HTTP2PingTimeout != nil {
-		conf.HTTP2PingTimeout = c.Default.HTTP2PingTimeout
+	if conf.HTTP2PingTimeout == nil {
+		conf.HTTP2PingTimeout = defaults.HTTP2PingTimeout
 	}
-	if conf.MaxIdleConns == nil && c.Default.MaxIdleConns != nil {
-		conf.MaxIdleConns = c.Default.MaxIdleConns
+	if conf.MaxIdleConns == nil {
+		conf.MaxIdleConns = defaults.MaxIdleConns
 	}
-	if conf.MaxIdleConnsPerHost == nil && c.Default.MaxIdleConnsPerHost != nil {
-		conf.MaxIdleConnsPerHost = c.Default.MaxIdleConnsPerHost
+	if conf.MaxIdleConnsPerHost == nil {
+		conf.MaxIdleConnsPerHost = defaults.MaxIdleConnsPerHost
 	}
-	if conf.Metrics.Enabled == nil && c.Default.Metrics.Enabled != nil {
-		conf.Metrics.Enabled = c.Default.Metrics.Enabled
+	if conf.Metrics.Enabled == nil {
+		conf.Metrics.Enabled = defaults.Metrics.Enabled
 	}
-	if conf.InitialBackoff == nil && c.Default.InitialBackoff != nil {
-		conf.InitialBackoff = c.Default.InitialBackoff
+	if conf.InitialBackoff == nil {
+		conf.InitialBackoff = defaults.InitialBackoff
 	}
-	if conf.MaxBackoff == nil && c.Default.MaxBackoff != nil {
-		conf.MaxBackoff = c.Default.MaxBackoff
+	if conf.MaxBackoff == nil {
+		conf.MaxBackoff = defaults.MaxBackoff
 	}
-	if conf.DisableHTTP2 == nil && c.Default.DisableHTTP2 != nil {
-		conf.DisableHTTP2 = c.Default.DisableHTTP2
+	if conf.DisableHTTP2 == nil {
+		conf.DisableHTTP2 = defaults.DisableHTTP2
 	}
-	if conf.ProxyFromEnvironment == nil && c.Default.ProxyFromEnvironment != nil {
-		conf.ProxyFromEnvironment = c.Default.ProxyFromEnvironment
+	if conf.ProxyFromEnvironment == nil {
+		conf.ProxyFromEnvironment = defaults.ProxyFromEnvironment
 	}
-	if conf.ProxyURL == nil && c.Default.ProxyURL != nil {
-		conf.ProxyURL = c.Default.ProxyURL
+	if conf.ProxyURL == nil {
+		conf.ProxyURL = defaults.ProxyURL
 	}
 
-	if len(c.Default.Metrics.Tags) != 0 {
+	if len(defaults.Metrics.Tags) != 0 {
 		if conf.Metrics.Tags == nil {
-			conf.Metrics.Tags = make(map[string]string, len(c.Default.Metrics.Tags))
+			conf.Metrics.Tags = make(map[string]string, len(defaults.Metrics.Tags))
 		}
-		for k, v := range c.Default.Metrics.Tags {
+		for k, v := range defaults.Metrics.Tags {
 			if _, ok := conf.Metrics.Tags[k]; !ok {
 				conf.Metrics.Tags[k] = v
 			}
 		}
 	}
-	if conf.Security.CAFiles == nil && len(c.Default.Security.CAFiles) != 0 {
-		conf.Security.CAFiles = c.Default.Security.CAFiles
+	if conf.Security.CAFiles == nil {
+		conf.Security.CAFiles = defaults.Security.CAFiles
 	}
-	if conf.Security.CertFile == "" && c.Default.Security.CertFile != "" {
-		conf.Security.CertFile = c.Default.Security.CertFile
+	if conf.Security.CertFile == "" {
+		conf.Security.CertFile = defaults.Security.CertFile
 	}
-	if conf.Security.KeyFile == "" && c.Default.Security.KeyFile != "" {
-		conf.Security.KeyFile = c.Default.Security.KeyFile
+	if conf.Security.KeyFile == "" {
+		conf.Security.KeyFile = defaults.Security.KeyFile
 	}
 	return conf
 }
