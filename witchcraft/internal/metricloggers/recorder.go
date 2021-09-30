@@ -15,6 +15,7 @@
 package metricloggers
 
 import (
+	gometrics "github.com/palantir/go-metrics"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
@@ -43,7 +44,7 @@ type metricRecorder interface {
 	// RecordSLSLog increments the count of the SLS logging metric for the given log type.
 	RecordSLSLog()
 
-	// RecordSLSLog increments the count of the SLS logging metric for the given log type and log level. The level
+	// RecordLeveledSLSLog increments the count of the SLS logging metric for the given log type and log level. The level
 	// parameter should be one of the wlog.LogLevel constants defined in the wlog package -- using a value that is not
 	// defined there may cause this function to panic.
 	RecordLeveledSLSLog(level wlog.LogLevel)
@@ -53,19 +54,21 @@ type metricRecorder interface {
 }
 
 type defaultMetricRecorder struct {
-	registry metrics.Registry
-	typeTag  metrics.Tag
+	registry     metrics.Registry
+	typeTag      metrics.Tag
+	lengthSample gometrics.Sample
 }
 
 func newMetricRecorder(registry metrics.Registry, typ string) metricRecorder {
 	return &defaultMetricRecorder{
-		registry: registry,
-		typeTag:  metrics.MustNewTag("type", typ),
+		registry:     registry,
+		typeTag:      metrics.MustNewTag("type", typ),
+		lengthSample: metrics.DefaultSample(),
 	}
 }
 
 func (m *defaultMetricRecorder) RecordSLSLogLength(len int) {
-	m.registry.Histogram(slsLogLengthHistogramName, m.typeTag).Update(int64(len))
+	m.registry.HistogramWithSample(slsLogLengthHistogramName, m.lengthSample, m.typeTag).Update(int64(len))
 }
 
 func (m *defaultMetricRecorder) RecordSLSLog() {
