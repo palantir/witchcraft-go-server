@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add ServiceDiscovery to InitInfo for reloading HTTP clients
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/327
