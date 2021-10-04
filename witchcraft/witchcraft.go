@@ -238,8 +238,8 @@ type InitInfo struct {
 	// config.Runtime).
 	RuntimeConfig refreshable.Refreshable
 
-	// Clients exposes the service-discovery configuration as a CGR client builder.
-	// Returned clients are configured with user-agent and SERVICE_DEPENDENCY healthchecks.
+	// Clients exposes the service-discovery configuration as a conjure-go-runtime client builder.
+	// Returned clients are configured with user-agent based on {install.ProductName}/{install.ProductVersion}.
 	Clients ConfigurableServiceDiscovery
 
 	// ShutdownServer gracefully closes the server, waiting for any in-flight requests to finish (or the context to be cancelled).
