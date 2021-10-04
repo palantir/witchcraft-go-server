@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2021 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package witchcraft
+package refreshingclient
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/palantir/pkg/refreshable"
-	"github.com/palantir/witchcraft-go-server/v2/config"
 )
 
-type refreshableBaseRuntimeConfig interface {
+type RefreshableHTTPClient interface {
 	refreshable.Refreshable
-	CurrentBaseRuntimeConfig() config.Runtime
+	CurrentHTTPClient() *http.Client
 }
 
-func newRefreshableBaseRuntimeConfig(in refreshable.Refreshable) refreshableBaseRuntimeConfig {
-	return refreshableBaseRuntimeConfigImpl{
-		Refreshable: in,
+type refreshableHTTPClient struct {
+	refreshable.Refreshable
+}
+
+func (r refreshableHTTPClient) CurrentHTTPClient() *http.Client {
+	return r.Current().(*http.Client)
+}
+
+func NewRefreshableHTTPClient(rt http.RoundTripper, timeout refreshable.Duration) RefreshableHTTPClient {
+	return refreshableHTTPClient{
+		Refreshable: timeout.MapDuration(func(timeout time.Duration) interface{} {
+			return &http.Client{
+				Timeout:   timeout,
+				Transport: rt,
+			}
+		}),
 	}
-}
-
-type refreshableBaseRuntimeConfigImpl struct {
-	refreshable.Refreshable
-}
-
-func (r refreshableBaseRuntimeConfigImpl) CurrentBaseRuntimeConfig() config.Runtime {
-	return r.Current().(config.Runtime)
 }

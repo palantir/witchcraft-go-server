@@ -15,10 +15,11 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v2 v2.19.0
+# github.com/palantir/conjure-go-runtime/v2 v2.19.1-0.20211004160052-888f130ee444
 ## explicit
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
+github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver

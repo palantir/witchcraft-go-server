@@ -29,9 +29,9 @@ func (h recoveryMiddleware) RoundTrip(req *http.Request, next http.RoundTripper)
 		if r := recover(); r != nil {
 			// panics contain function arguments (like maybe auth tokens), so we must log them unsafe.
 			if err == nil {
-				err = werror.Error("recovered panic", werror.UnsafeParam("recovered", fmt.Sprintf("%v", r)))
+				err = werror.ErrorWithContextParams(req.Context(), "recovered panic", werror.UnsafeParam("recovered", fmt.Sprintf("%v", r)))
 			} else {
-				err = werror.Wrap(err, "recovered panic", werror.UnsafeParam("recovered", fmt.Sprintf("%v", r)))
+				err = werror.WrapWithContextParams(req.Context(), err, "recovered panic", werror.UnsafeParam("recovered", fmt.Sprintf("%v", r)))
 			}
 		}
 	}()

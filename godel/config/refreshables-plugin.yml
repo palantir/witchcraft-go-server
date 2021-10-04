@@ -1,0 +1,4 @@
+refreshables:
+  ./config:
+    types:
+      - Runtime

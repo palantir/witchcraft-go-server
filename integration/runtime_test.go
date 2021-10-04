@@ -18,13 +18,17 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"testing"
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"github.com/palantir/pkg/httpserver"
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-server/v2/config"
@@ -501,6 +505,174 @@ exclamations: 4
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, validCfg2, currCfg)
+}
+
+func TestRuntimeReloadServiceDiscovery(t *testing.T) {
+	upstreamServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, "example/1.2.3", req.Header.Get("User-Agent"), "expected user-agent based on config")
+	}))
+
+	testDir, cleanup, err := dirs.TempDir("", "")
+	require.NoError(t, err)
+	defer cleanup()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(wd)
+		require.NoError(t, err)
+	}()
+
+	err = os.Chdir(testDir)
+	require.NoError(t, err)
+
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+
+	err = os.MkdirAll("var/conf", 0755)
+	require.NoError(t, err)
+
+	type installConfig struct {
+		config.Install `yaml:",inline"`
+		Clients        httpclient.ServicesConfig `yaml:"clients"`
+	}
+	installCfgYml := fmt.Sprintf(`product-name: %s
+product-version: %s
+use-console-log: true
+server:
+  address: localhost
+  port: %d
+  context-path: %s
+clients:
+  metrics:
+    enabled: true
+    tags:
+      deprecated: deprecated
+`,
+		productName, productVersion, port, basePath)
+	err = ioutil.WriteFile(installYML, []byte(installCfgYml), 0644)
+	require.NoError(t, err)
+
+	runtimeCfgYml := fmt.Sprintf(`logging:
+  level: info
+service-discovery:
+  metrics:
+    enabled: true
+    tags:
+      default: default
+  services:
+    upstream-server:
+      uris:
+        - %s
+      metrics:
+        enabled: true
+        tags:
+          test: one
+`,
+		upstreamServer.URL)
+	err = ioutil.WriteFile(runtimeYML, []byte(runtimeCfgYml), 0644)
+	require.NoError(t, err)
+
+	var ctx context.Context
+	var client httpclient.Client
+	server := witchcraft.NewServer().
+		WithInstallConfigType(installConfig{}).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate().
+		WithInitFunc(func(initCtx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
+			ctx = initCtx
+			info.Clients.WithDefaultConfig(info.InstallConfig.(installConfig).Clients.Default)
+			var err error
+			client, err = info.Clients.New(initCtx, "upstream-server")
+			return nil, err
+		})
+
+	serverChan := make(chan error)
+	go func() {
+		serverChan <- server.Start()
+	}()
+
+	select {
+	case err := <-serverChan:
+		require.NoError(t, err)
+	default:
+	}
+
+	ready := <-waitForTestServerReady(port, path.Join(basePath, status.LivenessEndpoint), 5*time.Second)
+	if !ready {
+		errMsg := "timed out waiting for server to start"
+		select {
+		case err := <-serverChan:
+			errMsg = fmt.Sprintf("%s: %+v", errMsg, err)
+		}
+		require.Fail(t, errMsg)
+	}
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+
+	// Now that our server is ready and we know we are initialized, make a request to the upstream-server
+	// and verify that our client metrics were updated according to the configured tags.
+
+	_, err = client.Get(ctx)
+	require.NoError(t, err)
+	test1timer := metrics.FromContext(ctx).Timer("client.response", metrics.MustNewTags(map[string]string{
+		"method-name":  "rpcmethodnamemissing",
+		"method":       "get",
+		"service-name": "upstream-server",
+		"family":       "2xx",
+		"deprecated":   "deprecated",
+		"default":      "default",
+		"test":         "one",
+	})...)
+	if !assert.Equal(t, int64(1), test1timer.Count()) {
+		metrics.FromContext(ctx).Each(func(name string, tags metrics.Tags, value metrics.MetricVal) {
+			t.Logf("%s %v", name, tags)
+		})
+	}
+
+	// Update runtime config file (change tag value one->two)
+	// Sleep 3 seconds for FileRefreshable to update
+	// Execute request again, and check that new metric is updateds
+
+	runtimeCfgYml = fmt.Sprintf(`logging:
+  level: info
+service-discovery:
+  metrics:
+    enabled: true
+    tags:
+      default: default
+  services:
+    upstream-server:
+      uris:
+        - %s
+      metrics:
+        enabled: true
+        tags:
+          test: two
+`,
+		upstreamServer.URL)
+	err = ioutil.WriteFile(runtimeYML, []byte(runtimeCfgYml), 0644)
+	require.NoError(t, err)
+	time.Sleep(3 * time.Second)
+
+	_, err = client.Get(ctx)
+	require.NoError(t, err)
+	test2timer := metrics.FromContext(ctx).Timer("client.response", metrics.MustNewTags(map[string]string{
+		"method-name":  "rpcmethodnamemissing",
+		"method":       "get",
+		"service-name": "upstream-server",
+		"family":       "2xx",
+		"deprecated":   "deprecated",
+		"default":      "default",
+		"test":         "two",
+	})...)
+	if !assert.Equal(t, int64(1), test2timer.Count()) {
+		metrics.FromContext(ctx).Each(func(name string, tags metrics.Tags, value metrics.MetricVal) {
+			t.Logf("%s %v", name, tags)
+		})
+	}
 }
 
 func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable {

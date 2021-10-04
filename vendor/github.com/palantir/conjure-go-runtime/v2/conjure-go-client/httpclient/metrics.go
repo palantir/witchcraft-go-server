@@ -23,8 +23,10 @@ import (
 	"net/http/httptrace"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
 	gometrics "github.com/palantir/go-metrics"
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
@@ -79,6 +81,14 @@ func (s StaticTagsProvider) Tags(_ *http.Request, _ *http.Response, _ error) met
 	return metrics.Tags(s)
 }
 
+type refreshableMetricsTagsProvider struct {
+	refreshable.Refreshable // contains metrics.Tags
+}
+
+func (r refreshableMetricsTagsProvider) Tags(_ *http.Request, _ *http.Response, _ error) metrics.Tags {
+	return r.Current().(metrics.Tags)
+}
+
 // MetricsMiddleware updates the "client.response" timer metric on every request.
 // By default, metrics are tagged with 'service-name', 'method', and 'family' (of the
 // status code). This metric name and tag set matches http-remoting's DefaultHostMetrics:
@@ -88,31 +98,43 @@ func MetricsMiddleware(serviceName string, tagProviders ...TagsProvider) (Middle
 	if err != nil {
 		return nil, werror.Wrap(err, "failed to construct service-name metric tag", werror.SafeParam("serviceName", serviceName))
 	}
+	return newMetricsMiddleware(serviceNameTag, tagProviders, nil), nil
+}
+
+func newMetricsMiddleware(serviceNameTag metrics.Tag, tagProviders []TagsProvider, disabled refreshable.Bool) Middleware {
 	return &metricsMiddleware{
-		seviceNameTag: serviceNameTag,
+		Disabled:       disabled,
+		ServiceNameTag: serviceNameTag,
 		Tags: append(
 			tagProviders,
 			TagsProviderFunc(tagStatusFamily),
 			TagsProviderFunc(tagRequestMethod),
 			TagsProviderFunc(tagRequestMethodName),
 			StaticTagsProvider(metrics.Tags{serviceNameTag}),
-		)}, nil
+		),
+	}
 }
 
 type metricsMiddleware struct {
-	seviceNameTag metrics.Tag
-	Tags          []TagsProvider
+	Disabled       refreshable.Bool
+	ServiceNameTag metrics.Tag
+	Tags           []TagsProvider
 }
 
 // RoundTrip will emit counter and timer metrics with the name 'mariner.k8sClient.request'
 // and k8s for API group, API version, namespace, resource kind, request method, and response status code.
 func (h *metricsMiddleware) RoundTrip(req *http.Request, next http.RoundTripper) (*http.Response, error) {
-	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, h.seviceNameTag).Inc(1)
+	if h.Disabled != nil && h.Disabled.CurrentBool() {
+		// If we have a Disabled refreshable and it is true, no-op.
+		return next.RoundTrip(req)
+	}
+
+	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, h.ServiceNameTag).Inc(1)
 	start := time.Now()
 	tlsMetricsContext := h.tlsTraceContext(req.Context())
 	resp, err := next.RoundTrip(req.WithContext(tlsMetricsContext))
 	duration := time.Since(start)
-	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, h.seviceNameTag).Dec(1)
+	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, h.ServiceNameTag).Dec(1)
 
 	var tags metrics.Tags
 	for _, tagProvider := range h.Tags {
@@ -161,7 +183,7 @@ func tagRequestMethodName(req *http.Request, _ *http.Response, _ error) metrics.
 }
 
 func (h *metricsMiddleware) tlsTraceContext(ctx context.Context) context.Context {
-	tags := []metrics.Tag{h.seviceNameTag}
+	tags := []metrics.Tag{h.ServiceNameTag}
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
 			if info.Reused {
@@ -209,16 +231,21 @@ func tlsVersionString(version uint16) string {
 
 // metricsWrappedDialer is a wrapper for net.Dialer that tracks a metric of in-flight connections.
 type metricsWrappedDialer struct {
-	dialer         contextDialer
-	serviceNameTag metrics.Tag
+	Disabled       refreshable.Bool
+	Dialer         refreshingclient.ContextDialer
+	ServiceNameTag metrics.Tag
 }
 
 func (d *metricsWrappedDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	conn, err := d.dialer.DialContext(ctx, network, addr)
+	if d.Disabled != nil && d.Disabled.CurrentBool() {
+		return d.Dialer.DialContext(ctx, network, addr)
+	}
+
+	conn, err := d.Dialer.DialContext(ctx, network, addr)
 	if err != nil {
 		return nil, err
 	}
-	counter := metrics.FromContext(ctx).Counter(MetricConnInflight, d.serviceNameTag)
+	counter := metrics.FromContext(ctx).Counter(MetricConnInflight, d.ServiceNameTag)
 	counter.Inc(1)
 	return &metricsWrappedConn{Conn: conn, counter: counter}, nil
 }
