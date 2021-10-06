@@ -25,14 +25,15 @@ import (
 )
 
 var (
-	DefaultPermissionDenied      = ErrorType{PermissionDenied, "Default:PermissionDenied"}
-	DefaultInvalidArgument       = ErrorType{InvalidArgument, "Default:InvalidArgument"}
-	DefaultNotFound              = ErrorType{NotFound, "Default:NotFound"}
-	DefaultConflict              = ErrorType{Conflict, "Default:Conflict"}
-	DefaultRequestEntityTooLarge = ErrorType{RequestEntityTooLarge, "Default:RequestEntityTooLarge"}
-	DefaultFailedPrecondition    = ErrorType{FailedPrecondition, "Default:FailedPrecondition"}
-	DefaultInternal              = ErrorType{Internal, "Default:Internal"}
-	DefaultTimeout               = ErrorType{Timeout, "Default:Timeout"}
+	DefaultUnauthorized          = ErrorType{Unauthorized, errorNameUnauthorized}
+	DefaultPermissionDenied      = ErrorType{PermissionDenied, errorNamePermissionDenied}
+	DefaultInvalidArgument       = ErrorType{InvalidArgument, errorNameInvalidArgument}
+	DefaultNotFound              = ErrorType{NotFound, errorNameNotFound}
+	DefaultConflict              = ErrorType{Conflict, errorNameConflict}
+	DefaultRequestEntityTooLarge = ErrorType{RequestEntityTooLarge, errorNameRequestEntityTooLarge}
+	DefaultFailedPrecondition    = ErrorType{FailedPrecondition, errorNameFailedPrecondition}
+	DefaultInternal              = ErrorType{Internal, errorNameInternal}
+	DefaultTimeout               = ErrorType{Timeout, errorNameTimeout}
 )
 
 // ErrorType represents certain class of errors. Each error type is uniquely identified by an error name
@@ -111,6 +112,7 @@ func (et ErrorType) Name() string {
 var errorNameRegexp = regexp.MustCompile("^(([A-Z][a-z0-9]+)+):(([A-Z][a-z0-9]+)+)$")
 
 const (
+	errorNameUnauthorized          = "Default:Unauthorized"
 	errorNamePermissionDenied      = "Default:PermissionDenied"
 	errorNameInvalidArgument       = "Default:InvalidArgument"
 	errorNameNotFound              = "Default:NotFound"
@@ -127,6 +129,7 @@ func verifyErrorNameString(name string) error {
 	}
 	if strings.HasPrefix(name, "Default:") {
 		switch name {
+		case errorNameUnauthorized:
 		case errorNamePermissionDenied:
 		case errorNameInvalidArgument:
 		case errorNameNotFound:
@@ -146,6 +149,7 @@ func verifyErrorCodeErrorNameCombination(code ErrorCode, name string) error {
 	if strings.HasPrefix(name, "Default:") {
 		defaultErrorType := ErrorType{code, name}
 		switch defaultErrorType {
+		case DefaultUnauthorized:
 		case DefaultPermissionDenied:
 		case DefaultInvalidArgument:
 		case DefaultNotFound:

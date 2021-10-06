@@ -28,6 +28,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/retry"
 	"github.com/palantir/pkg/tlsconfig"
+	werror "github.com/palantir/witchcraft-go-error"
 	"golang.org/x/net/proxy"
 )
 
@@ -92,6 +93,9 @@ func NewClient(params ...ClientParam) (Client, error) {
 		if err := p.apply(b); err != nil {
 			return nil, err
 		}
+	}
+	if len(b.uris) == 0 {
+		return nil, werror.Error("httpclient URLs must not be empty", werror.SafeParam("serviceName", b.ServiceName))
 	}
 	client, middlewares, err := httpClientAndRoundTripHandlersFromBuilder(&b.httpClientBuilder)
 	if err != nil {
