@@ -45,6 +45,16 @@ func WrapWithNewError(cause error, errorType ErrorType, parameters ...wparams.Pa
 	return newGenericError(cause, errorType, wparams.NewParamStorer(parameters...))
 }
 
+// NewUnauthorized returns new error instance of default unauthorized type.
+func NewUnauthorized(parameters ...wparams.ParamStorer) Error {
+	return newGenericError(nil, DefaultUnauthorized, wparams.NewParamStorer(parameters...))
+}
+
+// WrapWithUnauthorized returns new error instance of default unauthorized type wrapping an existing error.
+func WrapWithUnauthorized(cause error, parameters ...wparams.ParamStorer) Error {
+	return newGenericError(cause, DefaultUnauthorized, wparams.NewParamStorer(parameters...))
+}
+
 // NewPermissionDenied returns new error instance of default permission denied type.
 func NewPermissionDenied(parameters ...wparams.ParamStorer) Error {
 	return newGenericError(nil, DefaultPermissionDenied, wparams.NewParamStorer(parameters...))
