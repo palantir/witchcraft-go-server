@@ -23,11 +23,16 @@ import (
 )
 
 type ServiceDiscovery interface {
-	// New is an alias for httpclient.NewClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
-	New(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error)
-	NewHTTP(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error)
+	// NewClient is an alias for httpclient.NewClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
+	NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error)
+	// NewHTTPClient is an alias for httpclient.NewHTTPClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
+	NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error)
 }
 
+// ConfigurableServiceDiscovery is an extension to the ServiceDiscovery interface which allows for injecting external
+// configuration to be used when constructing clients. New usages should prefer the runtime.service-discovery block
+// but in some cases reading from deprecated config locations is necessary to avoid breaking changes when config files
+// are loosely coupled to code versions.
 type ConfigurableServiceDiscovery interface {
 	ServiceDiscovery
 	// SetRefreshableServicesConfig provides for a base RefreshableServicesConfig different from the default
@@ -58,14 +63,14 @@ func newServiceDiscovery(install config.Install, services config.RefreshableServ
 	return &serviceDiscovery{Services: services, UserAgent: userAgent(install)}
 }
 
-func (s *serviceDiscovery) New(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error) {
+func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error) {
 	s.RLock()
 	defer s.RUnlock()
 	params := append([]httpclient.ClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)
 	return httpclient.NewClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
 }
 
-func (s *serviceDiscovery) NewHTTP(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error) {
+func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error) {
 	s.RLock()
 	defer s.RUnlock()
 	params := append([]httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)

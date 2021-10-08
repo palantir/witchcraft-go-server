@@ -43,6 +43,7 @@ const (
 	basePath       = "/example"
 	productName    = "example"
 	productVersion = "1.2.3"
+	userAgent      = "example/1.2.3"
 	installYML     = "var/conf/install.yml"
 	runtimeYML     = "var/conf/runtime.yml"
 )

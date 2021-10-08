@@ -637,7 +637,7 @@ func (s *Server) Start() (rErr error) {
 	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
 
 	// enable TCP logging if the envelope metadata and the TCP receiver are both configured
-	receiverCfg := baseRefreshableRuntimeCfg.CurrentRuntime().ServiceDiscovery.ClientConfig("sls-log-tcp-json-receiver")
+	receiverCfg := baseRefreshableRuntimeCfg.ServiceDiscovery().CurrentServicesConfig().ClientConfig("sls-log-tcp-json-receiver")
 	envelopeMetadata, err := tcpjson.GetEnvelopeMetadata()
 	if err != nil {
 		if len(receiverCfg.URIs) > 0 {

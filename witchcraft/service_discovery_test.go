@@ -25,42 +25,43 @@ import (
 )
 
 func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
+	const serviceName = "blank"
 	startingConfig := httpclient.ServicesConfig{}
 	defaultRefreshable := refreshable.NewDefaultRefreshable(startingConfig)
 	refreshingConfig := config.NewRefreshingServicesConfig(defaultRefreshable)
-	discovery := newServiceDiscovery(config.Install{ProductName: "my-product", ProductVersion: "1.2.3"}, refreshingConfig)
-	blankConfig := discovery.serviceConfig("blank")
-	require.Equal(t, httpclient.ClientConfig{ServiceName: "blank"}, blankConfig.CurrentClientConfig())
+	discovery := newServiceDiscovery(config.Install{}, refreshingConfig)
+	blankConfig := discovery.serviceConfig(serviceName)
+	require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName}, blankConfig.CurrentClientConfig())
 	t.Run("update default config", func(t *testing.T) {
 		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
 			Default: httpclient.ClientConfig{
 				APIToken: stringPtr("secret"),
 			},
 		}))
-		require.Equal(t, httpclient.ClientConfig{ServiceName: "blank", APIToken: stringPtr("secret")}, blankConfig.CurrentClientConfig())
+		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("secret")}, blankConfig.CurrentClientConfig())
 	})
 	t.Run("update services config", func(t *testing.T) {
 		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
-			Services: map[string]httpclient.ClientConfig{"blank": {
+			Services: map[string]httpclient.ClientConfig{serviceName: {
 				APIToken: stringPtr("different secret"),
 			}},
 		}))
-		require.Equal(t, httpclient.ClientConfig{ServiceName: "blank", APIToken: stringPtr("different secret")}, blankConfig.CurrentClientConfig())
+		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("different secret")}, blankConfig.CurrentClientConfig())
 	})
 	t.Run("add extra configs", func(t *testing.T) {
 		discovery.WithDefaultConfig(httpclient.ClientConfig{
 			ReadTimeout: durationPtr(time.Second),
 		})
-		discovery.WithServiceConfig("blank", httpclient.ClientConfig{
+		discovery.WithServiceConfig(serviceName, httpclient.ClientConfig{
 			WriteTimeout: durationPtr(time.Second),
 		})
 		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
-			Services: map[string]httpclient.ClientConfig{"blank": {
+			Services: map[string]httpclient.ClientConfig{serviceName: {
 				APIToken: stringPtr("new secret"),
 			}},
 		}))
 		require.Equal(t, httpclient.ClientConfig{
-			ServiceName:  "blank",
+			ServiceName:  serviceName,
 			APIToken:     stringPtr("new secret"),
 			ReadTimeout:  durationPtr(time.Second),
 			WriteTimeout: durationPtr(time.Second),
@@ -71,7 +72,7 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 			Services: map[string]httpclient.ClientConfig{},
 		}))
 		require.Equal(t, httpclient.ClientConfig{
-			ServiceName:  "blank",
+			ServiceName:  serviceName,
 			ReadTimeout:  durationPtr(time.Second),
 			WriteTimeout: durationPtr(time.Second),
 		}, blankConfig.CurrentClientConfig())

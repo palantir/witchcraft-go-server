@@ -37,7 +37,7 @@ import (
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type testRuntimeConfig struct {
@@ -509,7 +509,7 @@ exclamations: 4
 
 func TestRuntimeReloadServiceDiscovery(t *testing.T) {
 	upstreamServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, "example/1.2.3", req.Header.Get("User-Agent"), "expected user-agent based on config")
+		assert.Equal(t, userAgent, req.Header.Get("User-Agent"), "expected user-agent based on config")
 	}))
 
 	testDir, cleanup, err := dirs.TempDir("", "")
@@ -583,7 +583,7 @@ service-discovery:
 			ctx = initCtx
 			info.Clients.WithDefaultConfig(info.InstallConfig.(installConfig).Clients.Default)
 			var err error
-			client, err = info.Clients.New(initCtx, "upstream-server")
+			client, err = info.Clients.NewClient(initCtx, "upstream-server")
 			return nil, err
 		})
 
