@@ -14,7 +14,7 @@
 
 // +build !go1.16
 
-package httpclient
+package refreshingclient
 
 import (
 	"net/http"
