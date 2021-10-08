@@ -161,7 +161,7 @@ func (c *clientImpl) doOnce(
 	// 2. create the transport and client
 	// shallow copy so we can overwrite the Transport with a wrapped one.
 	clientCopy := *c.client.CurrentHTTPClient()
-	transport := clientCopy.Transport // start with the concrete http.Transport from the client
+	transport := clientCopy.Transport // start with the client's transport configured with default middleware
 
 	// must precede the error decoders to read the status code of the raw response.
 	transport = wrapTransport(transport, c.uriScorer.CurrentURIScoringMiddleware())
@@ -173,6 +173,8 @@ func (c *clientImpl) doOnce(
 	// must wrap inner middlewares to mutate the return values
 	transport = wrapTransport(transport, b.bodyMiddleware)
 	// must be the outermost middleware to recover panics in the rest of the request flow
+	// there is a second, inner recoveryMiddleware in the client's default middlewares so that panics
+	// inside the inner-most RoundTrip benefit from traceIDs and loggers set on the context.
 	transport = wrapTransport(transport, c.recoveryMiddleware)
 
 	clientCopy.Transport = transport

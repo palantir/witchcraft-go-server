@@ -38,6 +38,8 @@ var (
 const (
 	_ ErrorCode = iota // there is no good candidate for zero value
 
+	// Unauthorized has status code 401 Unauthorized.
+	Unauthorized
 	// PermissionDenied has status code 403 Forbidden.
 	PermissionDenied
 	// InvalidArgument has status code 400 BadRequest.
@@ -63,6 +65,8 @@ const (
 // StatusCode returns HTTP status code associated with this error code.
 func (ec ErrorCode) StatusCode() int {
 	switch ec {
+	case Unauthorized:
+		return http.StatusUnauthorized
 	case PermissionDenied:
 		return http.StatusForbidden
 	case InvalidArgument:
@@ -92,6 +96,8 @@ func (ec ErrorCode) StatusCode() int {
 // For example "NOT_FOUND", "CONFLICT", "PERMISSION_DENIED" or "TIMEOUT".
 func (ec ErrorCode) String() string {
 	switch ec {
+	case Unauthorized:
+		return "UNAUTHORIZED"
 	case PermissionDenied:
 		return "PERMISSION_DENIED"
 	case InvalidArgument:
@@ -124,6 +130,8 @@ func (ec ErrorCode) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (ec *ErrorCode) UnmarshalText(data []byte) error {
 	switch string(data) {
+	case "UNAUTHORIZED":
+		*ec = Unauthorized
 	case "PERMISSION_DENIED":
 		*ec = PermissionDenied
 	case "INVALID_ARGUMENT":
