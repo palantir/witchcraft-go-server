@@ -18,146 +18,66 @@ package httpclient
 import (
 	"context"
 	"crypto/tls"
-	"net"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
 	"github.com/palantir/pkg/bytesbuffers"
 	"github.com/palantir/pkg/metrics"
-	"github.com/palantir/pkg/retry"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
-	"golang.org/x/net/proxy"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+)
+
+const (
+	defaultDialTimeout           = 10 * time.Second
+	defaultHTTPTimeout           = 60 * time.Second
+	defaultKeepAlive             = 30 * time.Second
+	defaultIdleConnTimeout       = 90 * time.Second
+	defaultTLSHandshakeTimeout   = 10 * time.Second
+	defaultExpectContinueTimeout = 1 * time.Second
+	defaultMaxIdleConns          = 200
+	defaultMaxIdleConnsPerHost   = 100
+	defaultHTTP2ReadIdleTimeout  = 30 * time.Second
+	defaultHTTP2PingTimeout      = 15 * time.Second
+	defaultInitialBackoff        = 250 * time.Millisecond
+	defaultMaxBackoff            = 2 * time.Second
 )
 
 type clientBuilder struct {
-	httpClientBuilder
+	HTTP *httpClientBuilder
 
-	uris                   []string
-	maxAttempts            int
-	enableUnlimitedRetries bool
-	backoffOptions         []retry.Option
+	URIs             refreshable.StringSlice
+	URIScorerBuilder func([]string) internal.URIScoringMiddleware
 
-	errorDecoder                  ErrorDecoder
-	disableTraceHeaderPropagation bool
+	ErrorDecoder ErrorDecoder
+
+	BytesBufferPool bytesbuffers.Pool
+	MaxAttempts     refreshable.IntPtr
+	RetryParams     refreshingclient.RefreshableRetryParams
 }
 
 type httpClientBuilder struct {
-	ServiceName string
+	ServiceNameTag  metrics.Tag // Service name is not refreshable.
+	Timeout         refreshable.Duration
+	DialerParams    refreshingclient.RefreshableDialerParams
+	TLSConfig       *tls.Config // TODO: Make this refreshing and wire into transport
+	TransportParams refreshingclient.RefreshableTransportParams
+	Middlewares     []Middleware
 
-	// http.Client modifiers
-	Timeout           time.Duration
-	Middlewares       []Middleware
-	metricsMiddleware Middleware
-	URIScorerBuilder  func([]string) internal.URIScoringMiddleware
+	DisableMetrics      refreshable.Bool
+	MetricsTagProviders []TagsProvider
 
-	// http.Transport modifiers
-	MaxIdleConns          int
-	MaxIdleConnsPerHost   int
-	Proxy                 func(*http.Request) (*url.URL, error)
-	ProxyDialerBuilder    func(*net.Dialer) (proxy.Dialer, error)
-	TLSClientConfig       *tls.Config
-	DisableHTTP2          bool
-	DisableRecovery       bool
-	DisableTracing        bool
-	DisableKeepAlives     bool
-	IdleConnTimeout       time.Duration
-	TLSHandshakeTimeout   time.Duration
-	ExpectContinueTimeout time.Duration
-	ResponseHeaderTimeout time.Duration
-	HTTP2ReadIdleTimeout  time.Duration
-	HTTP2PingTimeout      time.Duration
-
-	// http.Dialer modifiers
-	DialTimeout time.Duration
-	KeepAlive   time.Duration
-	EnableIPV6  bool
-
-	BytesBufferPool bytesbuffers.Pool
+	// These middleware options are not refreshed anywhere because they are not in ClientConfig,
+	// but they could be made refreshable if ever needed.
+	CreateRequestSpan  bool
+	DisableRecovery    bool
+	InjectTraceHeaders bool
 }
 
-// NewClient returns a configured client ready for use.
-// We apply "sane defaults" before applying the provided params.
-func NewClient(params ...ClientParam) (Client, error) {
-	b := &clientBuilder{
-		httpClientBuilder: *getDefaultHTTPClientBuilder(),
-		backoffOptions:    []retry.Option{retry.WithInitialBackoff(250 * time.Millisecond)},
-		errorDecoder:      restErrorDecoder{},
-	}
-	for _, p := range params {
-		if p == nil {
-			continue
-		}
-		if err := p.apply(b); err != nil {
-			return nil, err
-		}
-	}
-	if len(b.uris) == 0 {
-		return nil, werror.Error("httpclient URLs must not be empty", werror.SafeParam("serviceName", b.ServiceName))
-	}
-	client, middlewares, err := httpClientAndRoundTripHandlersFromBuilder(&b.httpClientBuilder)
-	if err != nil {
-		return nil, err
-	}
-	var edm Middleware
-	if b.errorDecoder != nil {
-		edm = errorDecoderMiddleware(b.errorDecoder)
-	}
-
-	if b.enableUnlimitedRetries {
-		// maxAttempts of 0 indicates no limit
-		b.maxAttempts = 0
-	} else if b.maxAttempts == 0 {
-		b.maxAttempts = 2 * len(b.uris)
-	}
-	return &clientImpl{
-		client:                        *client,
-		uriScorer:                     b.httpClientBuilder.URIScorerBuilder(b.uris),
-		maxAttempts:                   b.maxAttempts,
-		backoffOptions:                b.backoffOptions,
-		disableTraceHeaderPropagation: b.disableTraceHeaderPropagation,
-		middlewares:                   middlewares,
-		metricsMiddleware:             b.metricsMiddleware,
-		errorDecoderMiddleware:        edm,
-		bufferPool:                    b.BytesBufferPool,
-	}, nil
-}
-
-func getDefaultHTTPClientBuilder() *httpClientBuilder {
-	defaultTLSConfig, _ := tlsconfig.NewClientConfig()
-	uriScorerBuilder := func(uris []string) internal.URIScoringMiddleware {
-		return internal.NewRandomURIScoringMiddleware(uris, func() int64 {
-			return time.Now().UnixNano()
-		})
-	}
-	return &httpClientBuilder{
-		URIScorerBuilder: uriScorerBuilder,
-		// These values are primarily pulled from http.DefaultTransport.
-		Proxy:                 http.ProxyFromEnvironment,
-		TLSClientConfig:       defaultTLSConfig,
-		Timeout:               1 * time.Minute,
-		DialTimeout:           10 * time.Second,
-		KeepAlive:             30 * time.Second,
-		EnableIPV6:            false,
-		DisableHTTP2:          false,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		HTTP2ReadIdleTimeout:  30 * time.Second,
-		HTTP2PingTimeout:      15 * time.Second,
-		// These are higher than the defaults, but match Java and
-		// heuristically work better for our relatively large services.
-		MaxIdleConns:        200,
-		MaxIdleConnsPerHost: 100,
-	}
-}
-
-// NewHTTPClient returns a configured http client ready for use.
-// We apply "sane defaults" before applying the provided params.
-func NewHTTPClient(params ...HTTPClientParam) (*http.Client, error) {
-	b := getDefaultHTTPClientBuilder()
+func (b *httpClientBuilder) Build(ctx context.Context, params ...HTTPClientParam) (RefreshableHTTPClient, error) {
 	for _, p := range params {
 		if p == nil {
 			continue
@@ -166,99 +86,197 @@ func NewHTTPClient(params ...HTTPClientParam) (*http.Client, error) {
 			return nil, err
 		}
 	}
-	client, roundTrippers, err := httpClientAndRoundTripHandlersFromBuilder(b)
+	dialer := &metricsWrappedDialer{
+		Disabled:       b.DisableMetrics,
+		ServiceNameTag: b.ServiceNameTag,
+		Dialer:         refreshingclient.NewRefreshableDialer(ctx, b.DialerParams),
+	}
+	transport := refreshingclient.NewRefreshableTransport(ctx, b.TransportParams, b.TLSConfig, dialer)
+	transport = wrapTransport(transport, newMetricsMiddleware(b.ServiceNameTag, b.MetricsTagProviders, b.DisableMetrics))
+	transport = wrapTransport(transport, traceMiddleware{
+		ServiceName:       b.ServiceNameTag.Value(),
+		CreateRequestSpan: b.CreateRequestSpan,
+		InjectHeaders:     b.InjectTraceHeaders,
+	})
+	if !b.DisableRecovery {
+		transport = wrapTransport(transport, recoveryMiddleware{})
+	}
+	transport = wrapTransport(transport, b.Middlewares...)
+
+	return refreshingclient.NewRefreshableHTTPClient(transport, b.Timeout), nil
+}
+
+// NewClient returns a configured client ready for use.
+// We apply "sane defaults" before applying the provided params.
+func NewClient(params ...ClientParam) (Client, error) {
+	b := newClientBuilder()
+	return newClient(context.TODO(), b, params...)
+}
+
+// NewClientFromRefreshableConfig returns a configured client ready for use.
+// We apply "sane defaults" before applying the provided params.
+func NewClientFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, params ...ClientParam) (Client, error) {
+	b := newClientBuilder()
+	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil); err != nil {
+		return nil, err
+	}
+	return newClient(ctx, b, params...)
+}
+
+func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (Client, error) {
+	for _, p := range params {
+		if p == nil {
+			continue
+		}
+		if err := p.apply(b); err != nil {
+			return nil, err
+		}
+	}
+	if b.URIs == nil {
+		return nil, werror.Error("httpclient URLs must not be empty", werror.SafeParam("serviceName", b.HTTP.ServiceNameTag.Value()))
+	}
+
+	var edm Middleware
+	if b.ErrorDecoder != nil {
+		edm = errorDecoderMiddleware{errorDecoder: b.ErrorDecoder}
+	}
+
+	middleware := b.HTTP.Middlewares
+	b.HTTP.Middlewares = nil
+
+	httpClient, err := b.HTTP.Build(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if b.metricsMiddleware != nil {
-		client.Transport = wrapTransport(client.Transport, b.metricsMiddleware)
+
+	var recovery Middleware
+	if !b.HTTP.DisableRecovery {
+		recovery = recoveryMiddleware{}
 	}
-	for _, handler := range roundTrippers {
-		client.Transport = wrapTransport(client.Transport, handler)
-	}
-	return client, err
+	uriScorer := internal.NewRefreshableURIScoringMiddleware(b.URIs, func(uris []string) internal.URIScoringMiddleware {
+		if b.URIScorerBuilder == nil {
+			return internal.NewRandomURIScoringMiddleware(uris, func() int64 { return time.Now().UnixNano() })
+		}
+		return b.URIScorerBuilder(uris)
+	})
+	return &clientImpl{
+		client:                 httpClient,
+		uriScorer:              uriScorer,
+		maxAttempts:            b.MaxAttempts,
+		backoffOptions:         b.RetryParams,
+		middlewares:            middleware,
+		errorDecoderMiddleware: edm,
+		recoveryMiddleware:     recovery,
+		bufferPool:             b.BytesBufferPool,
+	}, nil
 }
 
-func httpClientAndRoundTripHandlersFromBuilder(b *httpClientBuilder) (*http.Client, []Middleware, error) {
-	dialer, err := newDialer(b)
+// NewHTTPClient returns a configured http client ready for use.
+// We apply "sane defaults" before applying the provided params.
+func NewHTTPClient(params ...HTTPClientParam) (*http.Client, error) {
+	b := newClientBuilder()
+	provider, err := b.HTTP.Build(context.TODO(), params...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	transport := &http.Transport{
-		DialContext:           dialer.DialContext,
-		MaxIdleConns:          b.MaxIdleConns,
-		MaxIdleConnsPerHost:   b.MaxIdleConnsPerHost,
-		TLSClientConfig:       b.TLSClientConfig,
-		DisableKeepAlives:     b.DisableKeepAlives,
-		ExpectContinueTimeout: b.ExpectContinueTimeout,
-		IdleConnTimeout:       b.IdleConnTimeout,
-		TLSHandshakeTimeout:   b.TLSHandshakeTimeout,
-		ResponseHeaderTimeout: b.ResponseHeaderTimeout,
-	}
-	if b.Proxy != nil && b.ProxyDialerBuilder == nil {
-		transport.Proxy = b.Proxy
-	}
-	if !b.DisableHTTP2 {
-		if err := configureHTTP2(transport, b.HTTP2ReadIdleTimeout, b.HTTP2PingTimeout); err != nil {
-			return nil, nil, err
-		}
-	}
-	if !b.DisableTracing {
-		_ = WithMiddleware(&traceMiddleware{ServiceName: b.ServiceName}).applyHTTPClient(b)
-	}
-	if !b.DisableRecovery {
-		_ = WithMiddleware(&recoveryMiddleware{}).applyHTTPClient(b)
-	}
-
-	return &http.Client{
-		Timeout:   b.Timeout,
-		Transport: transport,
-	}, b.Middlewares, nil
+	return provider.CurrentHTTPClient(), nil
 }
 
-// contextDialer is the newer interface implemented by net.Dialer and proxy.Dialer
-type contextDialer interface {
-	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
+// RefreshableHTTPClient exposes the internal interface
+type RefreshableHTTPClient = refreshingclient.RefreshableHTTPClient
+
+// NewHTTPClientFromRefreshableConfig returns a configured http client ready for use.
+// We apply "sane defaults" before applying the provided params.
+func NewHTTPClientFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, params ...HTTPClientParam) (RefreshableHTTPClient, error) {
+	b := newClientBuilder()
+	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil); err != nil {
+		return nil, err
+	}
+	return b.HTTP.Build(ctx, params...)
 }
 
-func newDialer(b *httpClientBuilder) (contextDialer, error) {
-	netDialer := &net.Dialer{
-		Timeout:   b.DialTimeout,
-		KeepAlive: b.KeepAlive,
-		DualStack: b.EnableIPV6,
+func newClientBuilder() *clientBuilder {
+	defaultTLSConfig, _ := tlsconfig.NewClientConfig()
+	return &clientBuilder{
+		HTTP: &httpClientBuilder{
+			ServiceNameTag: metrics.Tag{},
+			Timeout:        refreshable.NewDuration(refreshable.NewDefaultRefreshable(defaultHTTPTimeout)),
+			DialerParams: refreshingclient.NewRefreshingDialerParams(refreshable.NewDefaultRefreshable(refreshingclient.DialerParams{
+				DialTimeout:   defaultDialTimeout,
+				KeepAlive:     defaultKeepAlive,
+				SocksProxyURL: nil,
+			})),
+			TLSConfig: defaultTLSConfig,
+			TransportParams: refreshingclient.NewRefreshingTransportParams(refreshable.NewDefaultRefreshable(refreshingclient.TransportParams{
+				MaxIdleConns:          defaultMaxIdleConns,
+				MaxIdleConnsPerHost:   defaultMaxIdleConnsPerHost,
+				DisableHTTP2:          false,
+				DisableKeepAlives:     false,
+				IdleConnTimeout:       defaultIdleConnTimeout,
+				ExpectContinueTimeout: defaultExpectContinueTimeout,
+				ResponseHeaderTimeout: 0,
+				TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
+				HTTPProxyURL:          nil,
+				ProxyFromEnvironment:  true,
+				HTTP2ReadIdleTimeout:  defaultHTTP2ReadIdleTimeout,
+				HTTP2PingTimeout:      defaultHTTP2PingTimeout,
+			})),
+			DisableMetrics:      refreshable.NewBool(refreshable.NewDefaultRefreshable(false)),
+			DisableRecovery:     false,
+			CreateRequestSpan:   true,
+			InjectTraceHeaders:  true,
+			MetricsTagProviders: nil,
+			Middlewares:         nil,
+		},
+		URIs:            nil,
+		BytesBufferPool: nil,
+		ErrorDecoder:    restErrorDecoder{},
+		MaxAttempts:     nil,
+		RetryParams: refreshingclient.NewRefreshingRetryParams(refreshable.NewDefaultRefreshable(refreshingclient.RetryParams{
+			InitialBackoff: defaultInitialBackoff,
+			MaxBackoff:     defaultMaxBackoff,
+		})),
 	}
-
-	resultDialer := contextDialer(netDialer)
-
-	if b.ProxyDialerBuilder != nil {
-		// Used for socks5 proxying
-		proxyDialer, err := b.ProxyDialerBuilder(netDialer)
-		if err != nil {
-			return nil, err
-		}
-		if cDialer, ok := proxyDialer.(contextDialer); ok {
-			resultDialer = cDialer
-		} else {
-			resultDialer = noopContextDialer{Dial: proxyDialer.Dial}
-		}
-	}
-
-	if b.metricsMiddleware != nil {
-		serviceNameTag, err := metrics.NewTag(MetricTagServiceName, b.ServiceName)
-		if err != nil {
-			return nil, err // should never happen, already checked by MetricsMiddleware()
-		}
-		resultDialer = &metricsWrappedDialer{dialer: resultDialer, serviceNameTag: serviceNameTag}
-	}
-
-	return resultDialer, nil
 }
 
-// noopContextDialer handles old proxy dialers that do not support context.
-type noopContextDialer struct {
-	Dial func(network, addr string) (net.Conn, error)
-}
+func newClientBuilderFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, b *clientBuilder, reloadErrorSubmitter func(error)) error {
+	var err error
+	b.HTTP.ServiceNameTag, err = metrics.NewTag(MetricTagServiceName, config.CurrentClientConfig().ServiceName)
+	if err != nil {
+		return werror.WrapWithContextParams(ctx, err, "invalid service name metrics tag")
+	}
+	config.ServiceName().SubscribeToString(func(s string) {
+		svc1log.FromContext(ctx).Warn("conjure-go-runtime: Service name changed but can not be live-reloaded.",
+			svc1log.SafeParam("existingServiceName", b.HTTP.ServiceNameTag.Value()),
+			svc1log.SafeParam("updatedServiceName", s))
+	})
 
-func (n noopContextDialer) DialContext(_ context.Context, network, addr string) (net.Conn, error) {
-	return n.Dial(network, addr)
+	if tlsConfig, err := subscribeTLSConfigUpdateWarning(ctx, config.Security()); err != nil {
+		return err
+	} else if tlsConfig != nil {
+		b.HTTP.TLSConfig = tlsConfig
+	}
+
+	refreshingParams, err := refreshable.NewMapValidatingRefreshable(config, func(i interface{}) (interface{}, error) {
+		p, err := newValidatedClientParamsFromConfig(ctx, i.(ClientConfig))
+		if reloadErrorSubmitter != nil {
+			reloadErrorSubmitter(err)
+		}
+		return p, err
+	})
+	validParams := refreshingclient.NewRefreshingValidatedClientParams(refreshingParams)
+	if err != nil {
+		return err
+	}
+
+	b.HTTP.DialerParams = validParams.Dialer()
+	b.HTTP.TransportParams = validParams.Transport()
+	b.HTTP.Timeout = validParams.Timeout()
+	b.HTTP.DisableMetrics = validParams.DisableMetrics()
+	b.HTTP.MetricsTagProviders = append(b.HTTP.MetricsTagProviders, refreshableMetricsTagsProvider{validParams.MetricsTags()})
+	b.HTTP.Middlewares = append(b.HTTP.Middlewares, newAuthTokenMiddlewareFromRefreshable(validParams.APIToken()))
+	b.URIs = validParams.URIs()
+	b.MaxAttempts = validParams.MaxAttempts()
+	b.RetryParams = validParams.Retry()
+	return nil
 }

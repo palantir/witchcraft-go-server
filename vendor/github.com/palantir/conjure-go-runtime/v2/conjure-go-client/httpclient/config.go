@@ -16,12 +16,18 @@ package httpclient
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"io/ioutil"
+	"net/url"
+	"sort"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
 // ServicesConfig is the top-level configuration struct for all HTTP clients. It supports
@@ -327,27 +333,187 @@ func configToParams(c ClientConfig) ([]ClientParam, error) {
 
 	// Security (TLS) Config
 
-	var tlsParams []tlsconfig.ClientParam
-	if len(c.Security.CAFiles) != 0 {
-		tlsParams = append(tlsParams, tlsconfig.ClientRootCAFiles(c.Security.CAFiles...))
-	}
-	if c.Security.CertFile != "" && c.Security.KeyFile != "" {
-		tlsParams = append(tlsParams, tlsconfig.ClientKeyPairFiles(c.Security.CertFile, c.Security.KeyFile))
-	}
-	if len(tlsParams) != 0 {
-		tlsConfig, err := tlsconfig.NewClientConfig(tlsParams...)
-		if err != nil {
-			return nil, werror.Wrap(err, "failed to build tlsConfig")
-		}
+	if tlsConfig, err := newTLSConfig(c.Security); err != nil {
+		return nil, err
+	} else if tlsConfig != nil {
 		params = append(params, WithTLSConfig(tlsConfig))
 	}
 
 	return params, nil
 }
 
-func orZero(d *time.Duration) time.Duration {
-	if d == nil {
-		return 0
+func RefreshableClientConfigFromServiceConfig(servicesConfig RefreshableServicesConfig, serviceName string) RefreshableClientConfig {
+	return NewRefreshingClientConfig(servicesConfig.MapServicesConfig(func(servicesConfig ServicesConfig) interface{} {
+		return servicesConfig.ClientConfig(serviceName)
+	}))
+}
+
+func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig) (refreshingclient.ValidatedClientParams, error) {
+	dialer := refreshingclient.DialerParams{
+		DialTimeout: derefDurationPtr(config.ConnectTimeout, defaultDialTimeout),
+		KeepAlive:   defaultKeepAlive,
 	}
-	return *d
+
+	transport := refreshingclient.TransportParams{
+		MaxIdleConns:          derefIntPtr(config.MaxIdleConns, defaultMaxIdleConns),
+		MaxIdleConnsPerHost:   derefIntPtr(config.MaxIdleConnsPerHost, defaultMaxIdleConnsPerHost),
+		DisableHTTP2:          derefBoolPtr(config.DisableHTTP2, false),
+		IdleConnTimeout:       derefDurationPtr(config.IdleConnTimeout, defaultIdleConnTimeout),
+		ExpectContinueTimeout: derefDurationPtr(config.ExpectContinueTimeout, defaultExpectContinueTimeout),
+		HTTP2PingTimeout:      derefDurationPtr(config.HTTP2PingTimeout, defaultHTTP2PingTimeout),
+		HTTP2ReadIdleTimeout:  derefDurationPtr(config.HTTP2ReadIdleTimeout, defaultHTTP2ReadIdleTimeout),
+		ProxyFromEnvironment:  derefBoolPtr(config.ProxyFromEnvironment, false),
+		TLSHandshakeTimeout:   derefDurationPtr(config.TLSHandshakeTimeout, defaultTLSHandshakeTimeout),
+	}
+
+	if config.ProxyURL != nil {
+		proxyURL, err := url.ParseRequestURI(*config.ProxyURL)
+		if err != nil {
+			return refreshingclient.ValidatedClientParams{}, werror.WrapWithContextParams(ctx, err, "invalid proxy url")
+		}
+		switch proxyURL.Scheme {
+		case "http", "https":
+			transport.HTTPProxyURL = proxyURL
+		case "socks5", "socks5h":
+			dialer.SocksProxyURL = proxyURL
+		default:
+			return refreshingclient.ValidatedClientParams{}, werror.WrapWithContextParams(ctx, err, "invalid proxy url: only http(s) and socks5 are supported")
+		}
+	}
+
+	var apiToken *string
+	if config.APIToken != nil {
+		apiToken = config.APIToken
+	} else if config.APITokenFile != nil {
+		file := *config.APITokenFile
+		token, err := ioutil.ReadFile(file)
+		if err != nil {
+			return refreshingclient.ValidatedClientParams{}, werror.WrapWithContextParams(ctx, err, "failed to read api-token-file", werror.SafeParam("file", file))
+		}
+		tokenStr := string(token)
+		apiToken = &tokenStr
+	}
+
+	disableMetrics := config.Metrics.Enabled != nil && !*config.Metrics.Enabled
+
+	metricsTags, err := metrics.NewTags(config.Metrics.Tags)
+	if err != nil {
+		return refreshingclient.ValidatedClientParams{}, err
+	}
+
+	retryParams := refreshingclient.RetryParams{
+		InitialBackoff: derefDurationPtr(config.InitialBackoff, defaultInitialBackoff),
+		MaxBackoff:     derefDurationPtr(config.MaxBackoff, defaultMaxBackoff),
+	}
+	var maxAttempts *int
+	if config.MaxNumRetries != nil {
+		attempts := *config.MaxNumRetries + 1
+		maxAttempts = &attempts
+	}
+
+	timeout := defaultHTTPTimeout
+	if config.ReadTimeout != nil || config.WriteTimeout != nil {
+		rt := derefDurationPtr(config.ReadTimeout, 0)
+		wt := derefDurationPtr(config.WriteTimeout, 0)
+		// return max of read and write
+		if rt > wt {
+			timeout = rt
+		} else {
+			timeout = wt
+		}
+	}
+
+	uris := make([]string, 0, len(config.URIs))
+	for _, uriStr := range config.URIs {
+		if uriStr == "" {
+			continue
+		}
+		if _, err := url.ParseRequestURI(uriStr); err != nil {
+			return refreshingclient.ValidatedClientParams{}, werror.WrapWithContextParams(ctx, err, "invalid url")
+		}
+		uris = append(uris, uriStr)
+	}
+	if len(uris) == 0 {
+		return refreshingclient.ValidatedClientParams{}, werror.ErrorWithContextParams(ctx, "httpclient URLs must not be empty")
+	}
+	sort.Strings(uris)
+
+	return refreshingclient.ValidatedClientParams{
+		APIToken:       apiToken,
+		Dialer:         dialer,
+		DisableMetrics: disableMetrics,
+		MaxAttempts:    maxAttempts,
+		MetricsTags:    metricsTags,
+		Retry:          retryParams,
+		Timeout:        timeout,
+		Transport:      transport,
+		URIs:           uris,
+	}, nil
+}
+
+func subscribeTLSConfigUpdateWarning(ctx context.Context, security RefreshableSecurityConfig) (*tls.Config, error) {
+	//TODO: Implement refreshable TLS configuration.
+	// It is hard to represent all of the configuration (e.g. a dynamic function for GetCertificate) in primitive values friendly to reflect.DeepEqual.
+	currentSecurity := security.CurrentSecurityConfig()
+
+	security.CAFiles().SubscribeToStringSlice(func(caFiles []string) {
+		svc1log.FromContext(ctx).Warn("conjure-go-runtime: CAFiles configuration changed but can not be live-reloaded.",
+			svc1log.SafeParam("existingCAFiles", currentSecurity.CAFiles),
+			svc1log.SafeParam("ignoredCAFiles", caFiles))
+	})
+	security.CertFile().SubscribeToString(func(certFile string) {
+		svc1log.FromContext(ctx).Warn("conjure-go-runtime: CertFile configuration changed but can not be live-reloaded.",
+			svc1log.SafeParam("existingCertFile", currentSecurity.CertFile),
+			svc1log.SafeParam("ignoredCertFile", certFile))
+	})
+	security.KeyFile().SubscribeToString(func(keyFile string) {
+		svc1log.FromContext(ctx).Warn("conjure-go-runtime: KeyFile configuration changed but can not be live-reloaded.",
+			svc1log.SafeParam("existingKeyFile", currentSecurity.KeyFile),
+			svc1log.SafeParam("ignoredKeyFile", keyFile))
+	})
+
+	return newTLSConfig(currentSecurity)
+}
+
+func newTLSConfig(security SecurityConfig) (*tls.Config, error) {
+	var tlsParams []tlsconfig.ClientParam
+	if len(security.CAFiles) != 0 {
+		tlsParams = append(tlsParams, tlsconfig.ClientRootCAFiles(security.CAFiles...))
+	}
+	if security.CertFile != "" && security.KeyFile != "" {
+		tlsParams = append(tlsParams, tlsconfig.ClientKeyPairFiles(security.CertFile, security.KeyFile))
+	}
+	if len(tlsParams) != 0 {
+		tlsConfig, err := tlsconfig.NewClientConfig(tlsParams...)
+		if err != nil {
+			return nil, werror.Wrap(err, "failed to build tlsConfig")
+		}
+		return tlsConfig, nil
+	}
+	return nil, nil
+}
+
+func derefDurationPtr(durPtr *time.Duration, defaultVal time.Duration) time.Duration {
+	if durPtr == nil {
+		return defaultVal
+	}
+	return *durPtr
+}
+
+func derefIntPtr(intPtr *int, defaultVal int) int {
+	if intPtr == nil {
+		return defaultVal
+	}
+	return *intPtr
+}
+
+func derefBoolPtr(boolPtr *bool, defaultVal bool) bool {
+	if boolPtr == nil {
+		return defaultVal
+	}
+	return *boolPtr
+}
+
+func orZero(d *time.Duration) time.Duration {
+	return derefDurationPtr(d, 0)
 }

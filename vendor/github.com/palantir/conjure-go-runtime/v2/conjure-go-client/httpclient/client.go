@@ -21,11 +21,11 @@ import (
 	"strings"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
 	"github.com/palantir/pkg/bytesbuffers"
-	"github.com/palantir/pkg/retry"
+	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-tracing/wtracing"
 )
 
 // A Client executes requests to a configured service.
@@ -50,16 +50,15 @@ type Client interface {
 }
 
 type clientImpl struct {
-	client                 http.Client
+	client                 RefreshableHTTPClient
 	middlewares            []Middleware
 	errorDecoderMiddleware Middleware
-	metricsMiddleware      Middleware
+	recoveryMiddleware     Middleware
 
-	uriScorer                     internal.URIScoringMiddleware
-	maxAttempts                   int
-	disableTraceHeaderPropagation bool
-	backoffOptions                []retry.Option
-	bufferPool                    bytesbuffers.Pool
+	uriScorer      internal.RefreshableURIScoringMiddleware
+	maxAttempts    refreshable.IntPtr // 0 means no limit. If nil, uses 2*len(uris).
+	backoffOptions refreshingclient.RefreshableRetryParams
+	bufferPool     bytesbuffers.Pool
 }
 
 func (c *clientImpl) Get(ctx context.Context, params ...RequestParam) (*http.Response, error) {
@@ -83,15 +82,22 @@ func (c *clientImpl) Delete(ctx context.Context, params ...RequestParam) (*http.
 }
 
 func (c *clientImpl) Do(ctx context.Context, params ...RequestParam) (*http.Response, error) {
-	uris := c.uriScorer.GetURIsInOrderOfIncreasingScore()
+	uris := c.uriScorer.CurrentURIScoringMiddleware().GetURIsInOrderOfIncreasingScore()
 	if len(uris) == 0 {
 		return nil, werror.ErrorWithContextParams(ctx, "no base URIs are configured")
+	}
+
+	attempts := 2 * len(uris)
+	if c.maxAttempts != nil {
+		if confMaxAttempts := c.maxAttempts.CurrentIntPtr(); confMaxAttempts != nil {
+			attempts = *confMaxAttempts
+		}
 	}
 
 	var err error
 	var resp *http.Response
 
-	retrier := internal.NewRequestRetrier(uris, retry.Start(ctx, c.backoffOptions...), c.maxAttempts)
+	retrier := internal.NewRequestRetrier(uris, c.backoffOptions.CurrentRetryParams().Start(ctx), attempts)
 	for {
 		uri, isRelocated := retrier.GetNextURI(resp, err)
 		if uri == "" {
@@ -117,7 +123,7 @@ func (c *clientImpl) doOnce(
 
 	// 1. create the request
 	b := &requestBuilder{
-		headers:        c.initializeRequestHeaders(ctx),
+		headers:        make(http.Header),
 		query:          make(url.Values),
 		bodyMiddleware: &bodyMiddleware{bufferPool: c.bufferPool},
 	}
@@ -139,12 +145,12 @@ func (c *clientImpl) doOnce(
 	}
 
 	if b.method == "" {
-		return nil, werror.Error("httpclient: use WithRequestMethod() to specify HTTP method")
+		return nil, werror.ErrorWithContextParams(ctx, "httpclient: use WithRequestMethod() to specify HTTP method")
 	}
 	reqURI := joinURIAndPath(baseURI, b.path)
 	req, err := http.NewRequest(b.method, reqURI, nil)
 	if err != nil {
-		return nil, werror.Wrap(err, "failed to build new HTTP request")
+		return nil, werror.WrapWithContextParams(ctx, err, "failed to build new HTTP request")
 	}
 	req = req.WithContext(ctx)
 	req.Header = b.headers
@@ -154,29 +160,23 @@ func (c *clientImpl) doOnce(
 
 	// 2. create the transport and client
 	// shallow copy so we can overwrite the Transport with a wrapped one.
-	clientCopy := c.client
-	transport := clientCopy.Transport // start with the concrete http.Transport from the client
+	clientCopy := *c.client.CurrentHTTPClient()
+	transport := clientCopy.Transport // start with the client's transport configured with default middleware
 
-	middlewares := []Middleware{
-		// must precede the error decoders because they return a nil response and the metrics need the status code of
-		// the raw response.
-		c.metricsMiddleware,
-		// must precede the error decoders because they return a nil response and the scorer needs the status code of
-		// the raw response.
-		c.uriScorer,
-		// must precede the client error decoder
-		b.errorDecoderMiddleware,
-		// must precede the body middleware so it can read the response body
-		c.errorDecoderMiddleware,
-	}
-	// must precede the body middleware so it can read the request body
-	middlewares = append(middlewares, c.middlewares...)
-	middlewares = append(middlewares, b.bodyMiddleware)
-	for _, middleware := range middlewares {
-		if middleware != nil {
-			transport = wrapTransport(transport, middleware)
-		}
-	}
+	// must precede the error decoders to read the status code of the raw response.
+	transport = wrapTransport(transport, c.uriScorer.CurrentURIScoringMiddleware())
+	// request decoder must precede the client decoder
+	// must precede the body middleware to read the response body
+	transport = wrapTransport(transport, b.errorDecoderMiddleware, c.errorDecoderMiddleware)
+	// must precede the body middleware to read the request body
+	transport = wrapTransport(transport, c.middlewares...)
+	// must wrap inner middlewares to mutate the return values
+	transport = wrapTransport(transport, b.bodyMiddleware)
+	// must be the outermost middleware to recover panics in the rest of the request flow
+	// there is a second, inner recoveryMiddleware in the client's default middlewares so that panics
+	// inside the inner-most RoundTrip benefit from traceIDs and loggers set on the context.
+	transport = wrapTransport(transport, c.recoveryMiddleware)
+
 	clientCopy.Transport = transport
 
 	// 3. execute the request using the client to get and handle the response
@@ -188,14 +188,14 @@ func (c *clientImpl) doOnce(
 		internal.DrainBody(resp)
 	}
 
-	return resp, unwrapURLError(respErr)
+	return resp, unwrapURLError(ctx, respErr)
 }
 
 // unwrapURLError converts a *url.Error to a werror. We need this because all
 // errors from the stdlib's client.Do are wrapped in *url.Error, and if we
 // were to blindly return that we would lose any werror params stored on the
 // underlying Err.
-func unwrapURLError(respErr error) error {
+func unwrapURLError(ctx context.Context, respErr error) error {
 	if respErr == nil {
 		return nil
 	}
@@ -213,18 +213,7 @@ func unwrapURLError(respErr error) error {
 			werror.UnsafeParam("requestPath", parsedURL.Path))
 	}
 
-	return werror.Wrap(urlErr.Err, "httpclient request failed", params...)
-}
-
-func (c *clientImpl) initializeRequestHeaders(ctx context.Context) http.Header {
-	headers := make(http.Header)
-	if !c.disableTraceHeaderPropagation {
-		traceID := wtracing.TraceIDFromContext(ctx)
-		if traceID != "" {
-			headers.Set(traceIDHeaderKey, string(traceID))
-		}
-	}
-	return headers
+	return werror.WrapWithContextParams(ctx, urlErr.Err, "httpclient request failed", params...)
 }
 
 func joinURIAndPath(baseURI, reqPath string) string {

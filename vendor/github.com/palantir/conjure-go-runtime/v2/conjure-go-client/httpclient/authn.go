@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/palantir/pkg/refreshable"
 )
 
 // TokenProvider accepts a context and returns either:
@@ -33,7 +35,7 @@ type authTokenMiddleware struct {
 	provideToken TokenProvider
 }
 
-// AuthTokenProviderMiddleware wraps an existing round tripper with a token providing round tripper.
+// RoundTrip wraps an existing round tripper with a token providing round tripper.
 // It sets the Authorization header using a newly provided token for each request.
 func (h *authTokenMiddleware) RoundTrip(req *http.Request, next http.RoundTripper) (*http.Response, error) {
 	token, err := h.provideToken(req.Context())
@@ -42,4 +44,18 @@ func (h *authTokenMiddleware) RoundTrip(req *http.Request, next http.RoundTrippe
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	return next.RoundTrip(req)
+}
+
+func newAuthTokenMiddlewareFromRefreshable(token refreshable.StringPtr) Middleware {
+	return &conditionalMiddleware{
+		Disabled: refreshable.NewBool(token.MapStringPtr(func(s *string) interface{} {
+			return s == nil
+		})),
+		Delegate: &authTokenMiddleware{provideToken: func(ctx context.Context) (string, error) {
+			if s := token.CurrentStringPtr(); s != nil {
+				return *s, nil
+			}
+			return "", nil
+		}},
+	}
 }
