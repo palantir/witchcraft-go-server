@@ -1040,11 +1040,12 @@ func decryptNodeValues(n *yamlv3.Node, kwt *encryptedconfigvalue.KeyWithType) er
 		return nil
 	}
 	if n.Kind == yamlv3.ScalarNode && encryptedconfigvalue.ContainsEncryptedConfigValueStringVars([]byte(n.Value)) {
-		decrypted, err := encryptedconfigvalue.DecryptSingleEncryptedValueStringVarString(n.Value, *kwt)
-		if err != nil {
+		decrypted := encryptedconfigvalue.DecryptAllEncryptedValueStringVars([]byte(n.Value), *kwt)
+		// The existence of encrypted values after an decryption attempt implies decryption failed.
+		if encryptedconfigvalue.ContainsEncryptedConfigValueStringVars(decrypted) {
 			return werror.Error("failed to decrypt encrypted-config-value in YAML node")
 		}
-		n.Value = decrypted
+		n.Value = string(decrypted)
 	}
 	for _, childNode := range n.Content {
 		if err := decryptNodeValues(childNode, kwt); err != nil {
