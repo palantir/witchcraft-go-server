@@ -13,5 +13,7 @@ header: |
   // See the License for the specific language governing permissions and
   // limitations under the License.
 exclude:
+  names:
+    - zz_generated_refreshables.go
   paths:
     - witchcraft/internal/negroni

@@ -40,10 +40,12 @@ import (
 )
 
 const (
-	basePath    = "/example"
-	productName = "example"
-	installYML  = "var/conf/install.yml"
-	runtimeYML  = "var/conf/runtime.yml"
+	basePath       = "/example"
+	productName    = "example"
+	productVersion = "1.2.3"
+	userAgent      = "example/1.2.3"
+	installYML     = "var/conf/install.yml"
+	runtimeYML     = "var/conf/runtime.yml"
 )
 
 // createAndRunTestServer returns a running witchcraft.Server that is initialized with simple default configuration in a

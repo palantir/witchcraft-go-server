@@ -238,6 +238,10 @@ type InitInfo struct {
 	// config.Runtime).
 	RuntimeConfig refreshable.Refreshable
 
+	// Clients exposes the service-discovery configuration as a conjure-go-runtime client builder.
+	// Returned clients are configured with user-agent based on {install.ProductName}/{install.ProductVersion}.
+	Clients ConfigurableServiceDiscovery
+
 	// ShutdownServer gracefully closes the server, waiting for any in-flight requests to finish (or the context to be cancelled).
 	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
 	// requires access to shutdown the server in some error condition.
@@ -633,7 +637,7 @@ func (s *Server) Start() (rErr error) {
 	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
 
 	// enable TCP logging if the envelope metadata and the TCP receiver are both configured
-	receiverCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().ServiceDiscovery.ClientConfig("sls-log-tcp-json-receiver")
+	receiverCfg := baseRefreshableRuntimeCfg.ServiceDiscovery().CurrentServicesConfig().ClientConfig("sls-log-tcp-json-receiver")
 	// If we've been provided a URL in the environment, prefer that to whatever is in config.
 	receiverURIs := receiverCfg.URIs
 	if envURL := os.Getenv("NETWORK_LOGGING_URL"); envURL != "" {
@@ -689,7 +693,7 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// Set the service log level if configured
-	if loggerCfg := baseRefreshableRuntimeCfg.CurrentBaseRuntimeConfig().LoggerConfig; loggerCfg != nil {
+	if loggerCfg := baseRefreshableRuntimeCfg.LoggerConfig().CurrentLoggerConfigPtr(); loggerCfg != nil {
 		s.svcLogger.SetLevel(loggerCfg.Level)
 	}
 
@@ -710,10 +714,8 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// handle built-in runtime config changes
-	unsubscribe := baseRefreshableRuntimeCfg.Map(func(in interface{}) interface{} {
-		return in.(config.Runtime).LoggerConfig
-	}).Subscribe(func(in interface{}) {
-		if loggerCfg := in.(*config.LoggerConfig); loggerCfg != nil {
+	unsubscribe := baseRefreshableRuntimeCfg.LoggerConfig().SubscribeToLoggerConfigPtr(func(loggerCfg *config.LoggerConfig) {
+		if loggerCfg != nil {
 			s.svcLogger.SetLevel(loggerCfg.Level)
 		}
 	})
@@ -746,6 +748,7 @@ func (s *Server) Start() (rErr error) {
 				},
 				InstallConfig:  fullInstallCfg,
 				RuntimeConfig:  refreshableRuntimeCfg,
+				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery()),
 				ShutdownServer: s.Shutdown,
 			},
 		)
@@ -852,7 +855,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
 }
 
-func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBaseRuntimeConfig, rCfg refreshable.Refreshable, hcSrc healthstatus.HealthCheckSource, rErr error) {
+func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg config.RefreshableRuntime, rCfg refreshable.Refreshable, hcSrc healthstatus.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
@@ -891,7 +894,7 @@ func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg refreshableBas
 		runtimeConfigReloadCheckType,
 		*validatedRuntimeConfig)
 
-	baseRuntimeConfig := newRefreshableBaseRuntimeConfig(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
+	baseRuntimeConfig := config.NewRefreshingRuntime(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
 		var runtimeCfg config.Runtime
 		if err := s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
 			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
