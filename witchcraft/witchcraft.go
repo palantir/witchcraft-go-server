@@ -748,7 +748,7 @@ func (s *Server) Start() (rErr error) {
 				},
 				InstallConfig:  fullInstallCfg,
 				RuntimeConfig:  refreshableRuntimeCfg,
-				Clients:        newServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery()),
+				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery()),
 				ShutdownServer: s.Shutdown,
 			},
 		)

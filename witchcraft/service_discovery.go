@@ -35,9 +35,6 @@ type ServiceDiscovery interface {
 // are loosely coupled to code versions.
 type ConfigurableServiceDiscovery interface {
 	ServiceDiscovery
-	// SetRefreshableServicesConfig provides for a base RefreshableServicesConfig different from the default
-	// runtime.service-discovery block.
-	SetRefreshableServicesConfig(cfg config.RefreshableServicesConfig)
 	// WithDefaultConfig adds the provided ClientConfig to a list of extra defaults to be merged together for the final
 	// client configurations returned by NewClient and NewHTTPClient.
 	WithDefaultConfig(defaults httpclient.ClientConfig)
@@ -51,8 +48,6 @@ type ConfigurableServiceDiscovery interface {
 	WithUserAgent(userAgent string)
 }
 
-var _ ConfigurableServiceDiscovery = (*serviceDiscovery)(nil)
-
 type serviceDiscovery struct {
 	sync.RWMutex
 	Services  config.RefreshableServicesConfig
@@ -60,7 +55,7 @@ type serviceDiscovery struct {
 	UserAgent string
 }
 
-func newServiceDiscovery(install config.Install, services config.RefreshableServicesConfig) *serviceDiscovery {
+func NewServiceDiscovery(install config.Install, services config.RefreshableServicesConfig) ConfigurableServiceDiscovery {
 	return &serviceDiscovery{Services: services, UserAgent: userAgent(install)}
 }
 
@@ -76,12 +71,6 @@ func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string
 	defer s.RUnlock()
 	params := append([]httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)
 	return httpclient.NewHTTPClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
-}
-
-func (s *serviceDiscovery) SetRefreshableServicesConfig(cfg config.RefreshableServicesConfig) {
-	s.Lock()
-	defer s.Unlock()
-	s.Services = cfg
 }
 
 func (s *serviceDiscovery) WithDefaultConfig(defaults httpclient.ClientConfig) {
