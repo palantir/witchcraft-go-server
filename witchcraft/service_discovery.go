@@ -39,12 +39,13 @@ type ConfigurableServiceDiscovery interface {
 	// runtime.service-discovery block.
 	SetRefreshableServicesConfig(cfg config.RefreshableServicesConfig)
 	// WithDefaultConfig adds the provided ClientConfig to a list of extra defaults to be merged together for the final
-	// client configurations returned by New and NewHTTP.
+	// client configurations returned by NewClient and NewHTTPClient.
 	WithDefaultConfig(defaults httpclient.ClientConfig)
 	// WithServiceConfig allows for additional configuration from outside the default runtime.service-discovery block.
 	// Use this option to consume configuration overrides from a 'legacy' location in configuration when migrating
 	// to live-reloadable clients. Users should strive to move overrides to the default location in witchcraft config
-	// to benefit from live-reloadability.
+	// to benefit from live-reloadability. All config provided by WithServiceConfig will be merged into the default
+	// refreshable ServicesConfig. In case of conflict, the config provided here overrides the defaults.
 	WithServiceConfig(serviceName string, cfg httpclient.ClientConfig)
 	// WithUserAgent overrides the default user-agent header constructed from the product name and version in install config.
 	WithUserAgent(userAgent string)
