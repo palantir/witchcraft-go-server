@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Check $NETWORK_LOGGING_URL for sls-log-tcp-json-receiver URLs
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/332
