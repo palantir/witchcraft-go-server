@@ -79,6 +79,26 @@ cert
 			},
 		},
 		{
+			Name:          "encrypted config can be concatenated with other strings",
+			ECVKeyContent: encryptionKey,
+			InstallConfig: fmt.Sprintf("message: prefix%ssuffix\nuse-console-log: true\n", encryptedValue),
+			RuntimeConfig: fmt.Sprintf("message: prefix%ssuffix%s\nlogging:\n  level: warn\n", encryptedValue, encryptedMultilineValue),
+			Verify: func(info witchcraft.InitInfo) error {
+				expectedInstallValue := fmt.Sprintf("prefix%ssuffix", decryptedValue)
+				if msg := info.InstallConfig.(*messageInstall).Message; msg != expectedInstallValue {
+					return fmt.Errorf("expected %q got %q", expectedInstallValue, msg)
+				}
+				expectedRuntimeValue := fmt.Sprintf("prefix%ssuffix%s", decryptedValue, decryptedMultilineValue)
+				if msg := info.RuntimeConfig.Current().(*message).Message; msg != expectedRuntimeValue {
+					return fmt.Errorf("expected %q got %q", expectedRuntimeValue, msg)
+				}
+				return nil
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Equal(t, []string{"abort startup"}, getLogFileMessages(t, logOutput))
+			},
+		},
+		{
 			Name:          "encrypted multi-line value is decrypted properly",
 			ECVKeyContent: encryptionKey,
 			InstallConfig: fmt.Sprintf("message: %s\nuse-console-log: true\n", encryptedMultilineValue),
@@ -125,6 +145,24 @@ cert
 				}
 				if msg := info.RuntimeConfig.Current().(*message).Message; msg != encryptedValue {
 					return fmt.Errorf("expected %q got %q", encryptedValue, msg)
+				}
+				return nil
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Equal(t, []string{"Failed to decrypt encrypted runtime configuration", "abort startup"}, getLogFileMessages(t, logOutput))
+			},
+		},
+		{
+			Name:          "warning printed if encrypted config cannot be decrypted in runtime",
+			ECVKeyContent: encryptionKey,
+			InstallConfig: "message: hello install\nuse-console-log: true\n",
+			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", "${enc:invalid}"),
+			Verify: func(info witchcraft.InitInfo) error {
+				if msg := info.InstallConfig.(*messageInstall).Message; msg != "hello install" {
+					return fmt.Errorf("expected %q got %q", "hello install", msg)
+				}
+				if msg := info.RuntimeConfig.Current().(*message).Message; msg != "${enc:invalid}" {
+					return fmt.Errorf("expected %q got %q", "${enc:invalid}", msg)
 				}
 				return nil
 			},

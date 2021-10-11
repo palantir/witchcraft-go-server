@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Allow encrypted values in config to be concatenated against other strings
+    or encrypted values.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/331
