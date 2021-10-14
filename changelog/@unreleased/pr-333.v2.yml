@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: 'Revert #332 to no longer discover network logging URIs via environment
+    variables and instead rely solely on service-discovery config'
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/333
