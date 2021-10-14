@@ -638,14 +638,9 @@ func (s *Server) Start() (rErr error) {
 
 	// enable TCP logging if the envelope metadata and the TCP receiver are both configured
 	receiverCfg := baseRefreshableRuntimeCfg.ServiceDiscovery().CurrentServicesConfig().ClientConfig("sls-log-tcp-json-receiver")
-	// If we've been provided a URL in the environment, prefer that to whatever is in config.
-	receiverURIs := receiverCfg.URIs
-	if envURL := os.Getenv("NETWORK_LOGGING_URL"); envURL != "" {
-		receiverURIs = []string{envURL}
-	}
 	envelopeMetadata, err := tcpjson.GetEnvelopeMetadata()
 	if err != nil {
-		if len(receiverURIs) > 0 {
+		if len(receiverCfg.URIs) > 0 {
 			// Presence of TCP receiver config without envelope metadata may indicate a mis-configuration,
 			// but can also be expected in environments where the config is always hard-coded.
 			// In this case we emit a warning log to help debug potential issues, but otherwise proceed as normal.
@@ -653,7 +648,7 @@ func (s *Server) Start() (rErr error) {
 		}
 		// If both the envelope metadata and the TCP receiver are not configured, then it is expected
 		// that TCP logging should not be enabled and thus it is safe to proceed without any warning logs.
-	} else if len(receiverURIs) == 0 {
+	} else if len(receiverCfg.URIs) == 0 {
 		// The existence of envelope metadata means TCP logging was expected to be enabled, but the TCP receiver must be mis-configured.
 		// Since the server may otherwise be functional, an error log is emitted to indicate logging issues, rather
 		// than setting the TCP writer health to a state that can cause pages.
@@ -667,7 +662,7 @@ func (s *Server) Start() (rErr error) {
 		if err != nil {
 			return werror.Wrap(err, "tls client config could be created for the TCP JSON reciever")
 		}
-		connProvider, err := tcpjson.NewTCPConnProvider(receiverURIs, tcpjson.WithTLSConfig(tlsConfig))
+		connProvider, err := tcpjson.NewTCPConnProvider(receiverCfg.URIs, tcpjson.WithTLSConfig(tlsConfig))
 		if err != nil {
 			return err
 		}
