@@ -453,6 +453,8 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 	}
 }
 
+// TestServer_InitNetworkLogging verifies that in various cases of network logging misconfiguration,
+// we are always able to continue past those errors and attempt to initialize the server.
 func TestServer_InitNetworkLogging(t *testing.T) {
 	const errString = "must error to get Start to return!"
 	for _, test := range []struct {
