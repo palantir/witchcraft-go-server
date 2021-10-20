@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
@@ -449,6 +450,151 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 		assert.NotNil(t, serr, "Start() returned a nil error when the server's port was already in use")
 	case <-time.After(2 * time.Second):
 		t.Errorf("server stayed up despite its port already being in use")
+	}
+}
+
+func TestServer_InitNetworkLogging(t *testing.T) {
+	const errString = "must error to get Start to return!"
+	for _, test := range []struct {
+		Name      string
+		Env       map[string]string
+		Install   config.Install
+		Runtime   config.Runtime
+		InitFn    witchcraft.InitFunc
+		VerifyLog func(t *testing.T, logOutput []byte)
+	}{
+		{
+			Name:    "Missing URIs",
+			Install: config.Install{UseConsoleLog: true},
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				svc1log.FromContext(ctx).Info("Inside initFunc")
+				return nil, werror.ErrorWithContextParams(ctx, errString)
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Contains(t, string(logOutput), "Inside initFunc")
+				assert.Contains(t, string(logOutput), errString)
+				// No messages about TCP logger should be logged
+				assert.NotContains(t, string(logOutput), "TCP")
+			},
+		},
+		{
+			Name:    "Configured URI, missing environment metadata",
+			Install: config.Install{UseConsoleLog: true},
+			Runtime: config.Runtime{
+				ServiceDiscovery: httpclient.ServicesConfig{Services: map[string]httpclient.ClientConfig{
+					"sls-log-tcp-json-receiver": {
+						URIs: []string{"tcp://network-log-forwarder.domain:8514"},
+					},
+				}},
+			},
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				svc1log.FromContext(ctx).Info("Inside initFunc")
+				return nil, werror.ErrorWithContextParams(ctx, errString)
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Contains(t, string(logOutput), "TCP logging will not be enabled since all environment variables are not set.")
+				assert.Contains(t, string(logOutput), "Inside initFunc")
+				assert.Contains(t, string(logOutput), errString)
+			},
+		},
+		{
+			Name:    "Environment URI, missing environment metadata",
+			Install: config.Install{UseConsoleLog: true},
+			Runtime: config.Runtime{},
+			Env: map[string]string{
+				"NETWORK_LOGGING_URL": "tcp://network-log-forwarder.domain:8514",
+			},
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				svc1log.FromContext(ctx).Info("Inside initFunc")
+				return nil, werror.ErrorWithContextParams(ctx, errString)
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Contains(t, string(logOutput), "TCP logging will not be enabled since all environment variables are not set.")
+				assert.Contains(t, string(logOutput), "Inside initFunc")
+				assert.Contains(t, string(logOutput), errString)
+			},
+		},
+		{
+			Name:    "Environment URI and metadata, missing TLS info",
+			Install: config.Install{UseConsoleLog: true},
+			Runtime: config.Runtime{},
+			Env: map[string]string{
+				"NETWORK_LOGGING_URL":           "tcp://network-log-forwarder.domain:8514",
+				"LOG_ENVELOPE_DEPLOYMENT_NAME":  "deployment",
+				"LOG_ENVELOPE_ENVIRONMENT_NAME": "environment",
+				"LOG_ENVELOPE_ENVIRONMENT_ID":   "env_id",
+				"LOG_ENVELOPE_HOST":             "hostname",
+				"LOG_ENVELOPE_NODE_ID":          "node_id",
+				"LOG_ENVELOPE_PRODUCT_NAME":     "product",
+				"LOG_ENVELOPE_PRODUCT_VERSION":  "version",
+				"LOG_ENVELOPE_SERVICE_NAME":     "service",
+				"LOG_ENVELOPE_SERVICE_ID":       "service_id",
+				"LOG_ENVELOPE_STACK_NAME":       "stack",
+				"LOG_ENVELOPE_STACK_ID":         "stack_id",
+			},
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				svc1log.FromContext(ctx).Info("Inside initFunc")
+				return nil, werror.ErrorWithContextParams(ctx, errString)
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Contains(t, string(logOutput), "TCP logging will not be enabled since TLS config is unset or invalid.")
+				assert.Contains(t, string(logOutput), "Inside initFunc")
+				assert.Contains(t, string(logOutput), errString)
+			},
+		},
+		{
+			Name:    "Configured URI and environment metadata, missing TLS info",
+			Install: config.Install{UseConsoleLog: true},
+			Runtime: config.Runtime{
+				ServiceDiscovery: httpclient.ServicesConfig{Services: map[string]httpclient.ClientConfig{
+					"sls-log-tcp-json-receiver": {
+						URIs: []string{"tcp://network-log-forwarder.domain:8514"},
+					},
+				}},
+			},
+			Env: map[string]string{
+				"LOG_ENVELOPE_DEPLOYMENT_NAME":  "deployment",
+				"LOG_ENVELOPE_ENVIRONMENT_NAME": "environment",
+				"LOG_ENVELOPE_ENVIRONMENT_ID":   "env_id",
+				"LOG_ENVELOPE_HOST":             "hostname",
+				"LOG_ENVELOPE_NODE_ID":          "node_id",
+				"LOG_ENVELOPE_PRODUCT_NAME":     "product",
+				"LOG_ENVELOPE_PRODUCT_VERSION":  "version",
+				"LOG_ENVELOPE_SERVICE_NAME":     "service",
+				"LOG_ENVELOPE_SERVICE_ID":       "service_id",
+				"LOG_ENVELOPE_STACK_NAME":       "stack",
+				"LOG_ENVELOPE_STACK_ID":         "stack_id",
+			},
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+				svc1log.FromContext(ctx).Info("Inside initFunc")
+				return nil, werror.ErrorWithContextParams(ctx, errString)
+			},
+			VerifyLog: func(t *testing.T, logOutput []byte) {
+				assert.Contains(t, string(logOutput), "TCP logging will not be enabled since TLS config is unset or invalid.")
+				assert.Contains(t, string(logOutput), "Inside initFunc")
+				assert.Contains(t, string(logOutput), errString)
+			},
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			os.Clearenv()
+			for k, v := range test.Env {
+				require.NoError(t, os.Setenv(k, v))
+			}
+			logOutputBuffer := &bytes.Buffer{}
+			err := witchcraft.NewServer().
+				WithInitFunc(test.InitFn).
+				WithInstallConfig(test.Install).
+				WithRuntimeConfig(test.Runtime).
+				WithLoggerStdoutWriter(logOutputBuffer).
+				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+				WithDisableGoRuntimeMetrics().
+				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}, "logging.sls": {}, "logging.sls.length": {}}).
+				WithSelfSignedCertificate().
+				Start()
+			assert.EqualError(t, err, errString)
+			test.VerifyLog(t, logOutputBuffer.Bytes())
+		})
 	}
 }
 
