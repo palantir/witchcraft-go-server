@@ -638,7 +638,9 @@ func (s *Server) Start() (rErr error) {
 
 	// Initialize network logging client if configured
 	ctx, netLoggerHealth := s.initNetworkLogging(ctx, baseInstallCfg, baseRefreshableRuntimeCfg)
-	internalHealthCheckSources = append(internalHealthCheckSources, netLoggerHealth)
+	if netLoggerHealth != nil {
+		internalHealthCheckSources = append(internalHealthCheckSources, netLoggerHealth)
+	}
 
 	// Set the service log level if configured
 	if loggerCfg := baseRefreshableRuntimeCfg.LoggerConfig().CurrentLoggerConfigPtr(); loggerCfg != nil {
