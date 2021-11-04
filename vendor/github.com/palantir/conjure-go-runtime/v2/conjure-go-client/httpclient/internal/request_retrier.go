@@ -117,6 +117,8 @@ func (r *RequestRetrier) getRetryFn(resp *http.Response, respErr error) func() b
 			}
 		}
 		return r.nextURIOrBackoff
+	} else if errCode >= http.StatusBadRequest && errCode < http.StatusInternalServerError {
+		return nil
 	} else if resp == nil {
 		// if we get a nil response, we can assume there is a problem with host and can move on to the next.
 		return r.nextURIOrBackoff
