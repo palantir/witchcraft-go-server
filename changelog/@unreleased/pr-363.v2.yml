@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove now-unnecessary histogram sample
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/363
