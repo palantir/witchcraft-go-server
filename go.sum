@@ -66,8 +66,9 @@ github.com/palantir/pkg/httpserver v1.0.1 h1:50GykXrOIZ6U4OWz3o4jDCK4ql4h3Tnldus
 github.com/palantir/pkg/httpserver v1.0.1/go.mod h1:e8lGJPRqfS7wyfYaTezWIHlcpkTLxFFevm1Bhh3LW94=
 github.com/palantir/pkg/metrics v1.0.0/go.mod h1:bQgc6o1wUY8hEamP/BX5IYUq9hCYVRGhcCWlxfcqNRw=
 github.com/palantir/pkg/metrics v1.0.1/go.mod h1:nbKCQCZecI4XdBWpFPVesEDNzB0FLZb1jvayrHW6skM=
-github.com/palantir/pkg/metrics v1.2.0 h1:XHZWHHx6yn9iJBNrorbbPveNz0OTRL/CTf/4PwnvEqE=
 github.com/palantir/pkg/metrics v1.2.0/go.mod h1:VXEBop0IARoXx8ZncYYIUl0hQe64obXf6UNydFdRWCA=
+github.com/palantir/pkg/metrics v1.3.0 h1:itELMEiXIriScg9e3uTeDDLEG3uTZPKOFPVvwdxgI04=
+github.com/palantir/pkg/metrics v1.3.0/go.mod h1:VXEBop0IARoXx8ZncYYIUl0hQe64obXf6UNydFdRWCA=
 github.com/palantir/pkg/objmatcher v1.0.0/go.mod h1:r/JGd9x5OOgTCoaHt7qSSRX7jAheaJ88nAWytWsrwN0=
 github.com/palantir/pkg/objmatcher v1.0.1 h1:rzKVO2LXVR2ND7t9Hi3Q+sfFh1RZ5Liq/zmsz0vlgdw=
 github.com/palantir/pkg/objmatcher v1.0.1/go.mod h1:rTHUAN1LduHN+5fMTPkO5w+JHTidSmn5AsK885x2mvs=
