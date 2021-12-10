@@ -15,7 +15,6 @@
 package metricloggers
 
 import (
-	gometrics "github.com/palantir/go-metrics"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
@@ -54,21 +53,19 @@ type metricRecorder interface {
 }
 
 type defaultMetricRecorder struct {
-	registry     metrics.Registry
-	typeTag      metrics.Tag
-	lengthSample gometrics.Sample
+	registry metrics.Registry
+	typeTag  metrics.Tag
 }
 
 func newMetricRecorder(registry metrics.Registry, typ string) metricRecorder {
 	return &defaultMetricRecorder{
-		registry:     registry,
-		typeTag:      metrics.MustNewTag("type", typ),
-		lengthSample: metrics.DefaultSample(),
+		registry: registry,
+		typeTag:  metrics.MustNewTag("type", typ),
 	}
 }
 
 func (m *defaultMetricRecorder) RecordSLSLogLength(len int) {
-	m.registry.HistogramWithSample(slsLogLengthHistogramName, m.lengthSample, m.typeTag).Update(int64(len))
+	m.registry.Histogram(slsLogLengthHistogramName, m.typeTag).Update(int64(len))
 }
 
 func (m *defaultMetricRecorder) RecordSLSLog() {
