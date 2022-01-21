@@ -117,7 +117,7 @@ func NewClient(params ...ClientParam) (Client, error) {
 // We apply "sane defaults" before applying the provided params.
 func NewClientFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, params ...ClientParam) (Client, error) {
 	b := newClientBuilder()
-	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil); err != nil {
+	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil, false); err != nil {
 		return nil, err
 	}
 	return newClient(ctx, b, params...)
@@ -189,7 +189,7 @@ type RefreshableHTTPClient = refreshingclient.RefreshableHTTPClient
 // We apply "sane defaults" before applying the provided params.
 func NewHTTPClientFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, params ...HTTPClientParam) (RefreshableHTTPClient, error) {
 	b := newClientBuilder()
-	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil); err != nil {
+	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil, true); err != nil {
 		return nil, err
 	}
 	return b.HTTP.Build(ctx, params...)
@@ -239,7 +239,7 @@ func newClientBuilder() *clientBuilder {
 	}
 }
 
-func newClientBuilderFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, b *clientBuilder, reloadErrorSubmitter func(error)) error {
+func newClientBuilderFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, b *clientBuilder, reloadErrorSubmitter func(error), isHTTPClient bool) error {
 	var err error
 	b.HTTP.ServiceNameTag, err = metrics.NewTag(MetricTagServiceName, config.CurrentClientConfig().ServiceName)
 	if err != nil {
@@ -258,7 +258,7 @@ func newClientBuilderFromRefreshableConfig(ctx context.Context, config Refreshab
 	}
 
 	refreshingParams, err := refreshable.NewMapValidatingRefreshable(config, func(i interface{}) (interface{}, error) {
-		p, err := newValidatedClientParamsFromConfig(ctx, i.(ClientConfig))
+		p, err := newValidatedClientParamsFromConfig(ctx, i.(ClientConfig), isHTTPClient)
 		if reloadErrorSubmitter != nil {
 			reloadErrorSubmitter(err)
 		}

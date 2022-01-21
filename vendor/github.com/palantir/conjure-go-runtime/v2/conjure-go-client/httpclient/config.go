@@ -348,7 +348,7 @@ func RefreshableClientConfigFromServiceConfig(servicesConfig RefreshableServices
 	}))
 }
 
-func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig) (refreshingclient.ValidatedClientParams, error) {
+func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig, isHTTPClient bool) (refreshingclient.ValidatedClientParams, error) {
 	dialer := refreshingclient.DialerParams{
 		DialTimeout: derefDurationPtr(config.ConnectTimeout, defaultDialTimeout),
 		KeepAlive:   defaultKeepAlive,
@@ -433,7 +433,8 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		}
 		uris = append(uris, uriStr)
 	}
-	if len(uris) == 0 {
+	// Plain HTTP clients do not store URIs
+	if !isHTTPClient && len(uris) == 0 {
 		return refreshingclient.ValidatedClientParams{}, werror.ErrorWithContextParams(ctx, "httpclient URLs must not be empty")
 	}
 	sort.Strings(uris)
