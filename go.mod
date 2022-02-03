@@ -1,6 +1,6 @@
 module github.com/palantir/witchcraft-go-server/v2
 
-go 1.16
+go 1.17
 
 require (
 	github.com/gorilla/mux v1.7.3
@@ -25,4 +25,26 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/openzipkin/zipkin-go v0.2.2 // indirect
+	github.com/palantir/pkg v1.0.1 // indirect
+	github.com/palantir/pkg/bytesbuffers v1.0.1 // indirect
+	github.com/palantir/pkg/datetime v1.0.1 // indirect
+	github.com/palantir/pkg/retry v1.1.1 // indirect
+	github.com/palantir/pkg/safelong v1.0.1 // indirect
+	github.com/palantir/pkg/safeyaml v1.0.1 // indirect
+	github.com/palantir/pkg/transform v1.0.0 // indirect
+	github.com/palantir/pkg/uuid v1.0.1 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/zerolog v1.20.0 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
+	go.uber.org/atomic v1.6.0 // indirect
+	go.uber.org/multierr v1.5.0 // indirect
+	go.uber.org/zap v1.15.0 // indirect
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
+	golang.org/x/text v0.3.6 // indirect
 )
