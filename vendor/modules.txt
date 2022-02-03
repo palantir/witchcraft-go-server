@@ -1,22 +1,24 @@
 # github.com/davecgh/go-spew v1.1.1
+## explicit
 github.com/davecgh/go-spew/spew
 # github.com/gorilla/mux v1.7.3
 ## explicit
 github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
-## explicit
+## explicit; go 1.7
 github.com/julienschmidt/httprouter
 # github.com/nmiyake/pkg/dirs v1.0.0
-## explicit
+## explicit; go 1.13
 github.com/nmiyake/pkg/dirs
 # github.com/openzipkin/zipkin-go v0.2.2
+## explicit; go 1.12
 github.com/openzipkin/zipkin-go
 github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
 # github.com/palantir/conjure-go-runtime/v2 v2.26.0
-## explicit
+## explicit; go 1.16
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient
@@ -24,56 +26,64 @@ github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
 # github.com/palantir/go-encrypted-config-value v1.1.0
-## explicit
+## explicit; go 1.13
 github.com/palantir/go-encrypted-config-value/encryptedconfigvalue
 github.com/palantir/go-encrypted-config-value/encryption
 # github.com/palantir/go-metrics v1.1.1
-## explicit
+## explicit; go 1.13
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
+## explicit; go 1.13
 github.com/palantir/pkg
 # github.com/palantir/pkg/bytesbuffers v1.0.1
+## explicit; go 1.13
 github.com/palantir/pkg/bytesbuffers
 # github.com/palantir/pkg/datetime v1.0.1
+## explicit; go 1.13
 github.com/palantir/pkg/datetime
 # github.com/palantir/pkg/httpserver v1.0.1
-## explicit
+## explicit; go 1.13
 github.com/palantir/pkg/httpserver
 # github.com/palantir/pkg/metrics v1.3.0
-## explicit
+## explicit; go 1.16
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.0.1
-## explicit
+## explicit; go 1.13
 github.com/palantir/pkg/objmatcher
 # github.com/palantir/pkg/refreshable v1.3.2
-## explicit
+## explicit; go 1.13
 github.com/palantir/pkg/refreshable
 # github.com/palantir/pkg/retry v1.1.1
+## explicit; go 1.13
 github.com/palantir/pkg/retry
 # github.com/palantir/pkg/safejson v1.0.1
-## explicit
+## explicit; go 1.13
 github.com/palantir/pkg/safejson
 # github.com/palantir/pkg/safelong v1.0.1
+## explicit; go 1.13
 github.com/palantir/pkg/safelong
 # github.com/palantir/pkg/safeyaml v1.0.1
+## explicit; go 1.13
 github.com/palantir/pkg/safeyaml
 # github.com/palantir/pkg/signals v1.0.1
-## explicit
+## explicit; go 1.13
 github.com/palantir/pkg/signals
 # github.com/palantir/pkg/tlsconfig v1.1.0
-## explicit
+## explicit; go 1.14
 github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.0.0
+## explicit; go 1.13
 github.com/palantir/pkg/transform
 # github.com/palantir/pkg/uuid v1.0.1
+## explicit; go 1.13
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
 # github.com/palantir/witchcraft-go-error v1.5.0
-## explicit
+## explicit; go 1.13
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
 # github.com/palantir/witchcraft-go-health v1.11.0
-## explicit
+## explicit; go 1.16
 github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/reporter
 github.com/palantir/witchcraft-go-health/sources
@@ -81,7 +91,7 @@ github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
 # github.com/palantir/witchcraft-go-logging v1.17.0
-## explicit
+## explicit; go 1.16
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog
@@ -101,32 +111,39 @@ github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
 # github.com/palantir/witchcraft-go-params v1.2.0
-## explicit
+## explicit; go 1.13
 github.com/palantir/witchcraft-go-params
 # github.com/palantir/witchcraft-go-tracing v1.4.0
-## explicit
+## explicit; go 1.13
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
 github.com/palantir/witchcraft-go-tracing/wzipkin
 # github.com/pkg/errors v0.8.1
+## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
+## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/rs/zerolog v1.20.0
+## explicit
 github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
 github.com/rs/zerolog/internal/json
 # github.com/satori/go.uuid v1.2.0
+## explicit
 github.com/satori/go.uuid
 # github.com/stretchr/testify v1.7.0
-## explicit
+## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.uber.org/atomic v1.6.0
+## explicit; go 1.13
 go.uber.org/atomic
 # go.uber.org/multierr v1.5.0
+## explicit; go 1.12
 go.uber.org/multierr
 # go.uber.org/zap v1.15.0
+## explicit; go 1.13
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -134,6 +151,7 @@ go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 # golang.org/x/net v0.0.0-20210614182718-04defd469f4e
+## explicit; go 1.17
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
@@ -141,6 +159,7 @@ golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 # golang.org/x/text v0.3.6
+## explicit; go 1.11
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -149,7 +168,7 @@ golang.org/x/text/unicode/norm
 ## explicit
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.4.0
-## explicit
+## explicit; go 1.15
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 ## explicit
