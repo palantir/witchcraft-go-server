@@ -10,13 +10,13 @@ import (
 // Metadata describing the status of a service.
 type HealthCheckResult struct {
 	// A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).
-	Type CheckType `json:"type" conjure-docs:"A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_]).\n"`
+	Type CheckType `conjure-docs:"A constant representing the type of health check. Values should be uppercase, underscore delimited, ascii letters with no spaces, ([A-Z_])." json:"type"`
 	// Health state of the check.
-	State HealthState `json:"state" conjure-docs:"Health state of the check.\n"`
+	State HealthState `conjure-docs:"Health state of the check." json:"state"`
 	// Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert.
-	Message *string `json:"message" conjure-docs:"Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert.\n"`
+	Message *string `conjure-docs:"Text describing the state of the check which should provide enough information for the check to be actionable when included in an alert." json:"message"`
 	// Additional redacted information on the nature of the health check.
-	Params map[string]interface{} `json:"params" conjure-docs:"Additional redacted information on the nature of the health check.\n"`
+	Params map[string]interface{} `conjure-docs:"Additional redacted information on the nature of the health check." json:"params"`
 }
 
 func (o HealthCheckResult) MarshalJSON() ([]byte, error) {
