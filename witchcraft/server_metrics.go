@@ -282,11 +282,7 @@ func (s *Server) initCardinalityMetric(ctx context.Context, metricsRegistry metr
 				var count int64
 				metricsRegistry.Each(func(metricID string, _ metrics.Tags, metricVal metrics.MetricVal) {
 					valuesToUse := s.filterMetricValues(metricID, metricVal)
-					if len(valuesToUse) == 0 {
-						// do not record metric if it does not have any values
-						return
-					}
-					count++
+					count += int64(len(valuesToUse))
 				})
 				metricsRegistry.Gauge("server.metric_cardinality").Update(count)
 			}
