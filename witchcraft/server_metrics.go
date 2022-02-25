@@ -78,6 +78,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}
 
 	initServerUptimeMetric(ctx, metricsRegistry)
+	s.initCardinalityMetric(ctx, metricsRegistry)
 
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
@@ -86,9 +87,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		}
 	}
 
-	metricTypeValuesBlacklist := s.metricTypeValuesBlacklist
-	if metricTypeValuesBlacklist == nil {
-		metricTypeValuesBlacklist = defaultMetricTypeValuesBlacklist()
+	if s.metricTypeValuesBlacklist == nil {
+		s.metricTypeValuesBlacklist = defaultMetricTypeValuesBlacklist()
 	}
 
 	// seenMetrics tracks the metrics that have been seen so far. Uses a lock to protect access because emitFn that
@@ -100,14 +100,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}
 
 	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
-		if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
-			// skip emitting metric if it is blacklisted
-			return
-		}
-
-		valuesToUse := metricVal.Values()
 		metricType := metricVal.Type()
-		removeDisallowedKeys(metricType, valuesToUse, metricTypeValuesBlacklist)
+		valuesToUse := s.filterMetricValues(metricID, metricVal)
 		if len(valuesToUse) == 0 {
 			// do not record metric if it does not have any values
 			return
@@ -126,7 +120,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 
 		// if metric is one for which a zero value should be logged on first observation, log a zero value if necessary
 		if isZeroValueMetric(metricType) {
-			zeroValuesLogged := logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, metricTypeValuesBlacklist, metricTagsParam)
+			zeroValuesLogged := logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, s.metricTypeValuesBlacklist, metricTagsParam)
 
 			// if the zeroValueLogged is equivalent to valuesToUse, then there's no need to log the metric again
 			if zeroValuesLogged != nil && reflect.DeepEqual(zeroValuesLogged, valuesToUse) {
@@ -145,6 +139,16 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		// emit all metrics a final time on termination
 		metricsRegistry.Each(emitFn)
 	}, nil
+}
+
+func (s *Server) filterMetricValues(metricID string, metricVal metrics.MetricVal) map[string]interface{} {
+	if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
+		// skip emitting metric if it is blacklisted
+		return nil
+	}
+	valuesToUse := metricVal.Values()
+	removeDisallowedKeys(metricVal.Type(), valuesToUse, s.metricTypeValuesBlacklist)
+	return valuesToUse
 }
 
 // isZeroValueMetric returns true if the provided metric type is a type of metric for which a zero value should be
@@ -259,7 +263,28 @@ func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registr
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				metrics.FromContext(ctx).Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+				metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+			}
+		}
+	})
+}
+
+func (s *Server) initCardinalityMetric(ctx context.Context, metricsRegistry metrics.Registry) {
+	// start goroutine that updates the metric_cardinality metric
+	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
+		t := time.NewTicker(10 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				var count int64
+				metricsRegistry.Each(func(metricID string, _ metrics.Tags, metricVal metrics.MetricVal) {
+					valuesToUse := s.filterMetricValues(metricID, metricVal)
+					count += int64(len(valuesToUse))
+				})
+				metricsRegistry.Gauge("server.metric_cardinality").Update(count)
 			}
 		}
 	})

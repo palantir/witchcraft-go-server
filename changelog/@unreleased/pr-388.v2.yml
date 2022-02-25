@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: Emit `server.metric_cardinality.value` with total number of timeseries
+    in the registry
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/388
