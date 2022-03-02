@@ -336,6 +336,13 @@ func (s *Server) WithRuntimeConfigProvider(r refreshable.Refreshable) *Server {
 	return s
 }
 
+// WithRuntimeConfigProviderFunc configures the server to use the returned Refreshable as its runtime configuration.
+// The value provided by the refreshable must be a []byte for the yaml runtime configuration.
+func (s *Server) WithRuntimeConfigProviderFunc(f func(ctx context.Context) (refreshable.Refreshable, error)) *Server {
+	s.runtimeConfigProvider = f
+	return s
+}
+
 // WithRuntimeConfigFromFile configures the server to use the file at the provided path as its runtime configuration.
 // The server will create a refreshable.Refreshable using the file at the provided path (and will thus live-reload the
 // configuration based on updates to the file).
