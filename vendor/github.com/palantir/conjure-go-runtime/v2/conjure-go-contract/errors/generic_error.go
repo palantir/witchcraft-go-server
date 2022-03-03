@@ -175,3 +175,15 @@ func mergeParams(storer wparams.ParamStorer) map[string]interface{} {
 	}
 	return params
 }
+
+func isErrorOfType(err error, errorType ErrorType) bool {
+	if err == nil {
+		return false
+	}
+	conjureErr := GetConjureError(err)
+	if conjureErr == nil {
+		return false
+	}
+	return conjureErr.Name() == errorType.Name() &&
+		conjureErr.Code() == errorType.Code()
+}
