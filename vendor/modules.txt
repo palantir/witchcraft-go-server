@@ -82,7 +82,7 @@ github.com/palantir/pkg/uuid/internal/uuid
 ## explicit; go 1.13
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
-# github.com/palantir/witchcraft-go-health v1.12.0
+# github.com/palantir/witchcraft-go-health v1.13.0
 ## explicit; go 1.17
 github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/reporter
