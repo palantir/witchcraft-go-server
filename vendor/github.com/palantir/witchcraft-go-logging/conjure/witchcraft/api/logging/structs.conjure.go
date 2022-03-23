@@ -12,9 +12,9 @@ import (
 // A Zipkin-compatible Annotation object.
 type Annotation struct {
 	// Time annotation was created (epoch microsecond value)
-	Timestamp safelong.SafeLong `json:"timestamp" conjure-docs:"Time annotation was created (epoch microsecond value)\n"`
+	Timestamp safelong.SafeLong `conjure-docs:"Time annotation was created (epoch microsecond value)" json:"timestamp"`
 	// Value encapsulated by this annotation
-	Value    string   `json:"value" conjure-docs:"Value encapsulated by this annotation\n"`
+	Value    string   `conjure-docs:"Value encapsulated by this annotation" json:"value"`
 	Endpoint Endpoint `json:"endpoint"`
 }
 
@@ -37,29 +37,31 @@ func (o *Annotation) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Definition of the audit.2 format.
 type AuditLogV2 struct {
 	// "audit.2"
-	Type string            `json:"type" conjure-docs:"\"audit.2\""`
+	Type string            `conjure-docs:"\"audit.2\"" json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// User id (if available). This is the most downstream caller.
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available). This is the most downstream caller.\n"`
+	Uid *UserId `conjure-docs:"User id (if available). This is the most downstream caller." json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)\n"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Zipkin trace id (if available)
-	TraceId *TraceId `json:"traceId" conjure-docs:"Zipkin trace id (if available)\n"`
+	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// All users upstream of the user currently taking an action. The first element in this list is the uid of the most upstream caller. This list does not include the `uid`.
-	OtherUids []UserId `json:"otherUids" conjure-docs:"All users upstream of the user currently taking an action. The first element in this list is the uid of the most upstream caller. This list does not include the \"uid\".\n"`
-	// Best-effort identifier of the originating machine, e.g. an IP address, a Kubernetes node identifier,
-	// or similar
-	Origin *string `json:"origin" conjure-docs:"Best-effort identifier of the originating machine, e.g. an IP address, a Kubernetes node identifier,\nor similar\n"`
+	OtherUids []UserId `conjure-docs:"All users upstream of the user currently taking an action. The first element in this list is the uid of the most upstream caller. This list does not include the \"uid\"." json:"otherUids"`
+	/*
+	   Best-effort identifier of the originating machine, e.g. an IP address, a Kubernetes node identifier,
+	   or similar
+	*/
+	Origin *string `conjure-docs:"Best-effort identifier of the originating machine, e.g. an IP address, a Kubernetes node identifier,\nor similar" json:"origin"`
 	// Name of the audit event, e.g. PUT_FILE
-	Name string `json:"name" conjure-docs:"Name of the audit event, e.g. PUT_FILE\n"`
+	Name string `conjure-docs:"Name of the audit event, e.g. PUT_FILE" json:"name"`
 	// Indicates whether the request was successful or the type of failure, e.g. ERROR or UNAUTHORIZED
-	Result AuditResult `json:"result" conjure-docs:"Indicates whether the request was successful or the type of failure, e.g. ERROR or UNAUTHORIZED\n"`
+	Result AuditResult `conjure-docs:"Indicates whether the request was successful or the type of failure, e.g. ERROR or UNAUTHORIZED" json:"result"`
 	// The parameters known at method invocation time.
-	RequestParams map[string]interface{} `json:"requestParams" conjure-docs:"The parameters known at method invocation time.\n"`
+	RequestParams map[string]interface{} `conjure-docs:"The parameters known at method invocation time." json:"requestParams"`
 	// Information derived within a method, commonly parts of the return value.
-	ResultParams map[string]interface{} `json:"resultParams" conjure-docs:"Information derived within a method, commonly parts of the return value.\n"`
+	ResultParams map[string]interface{} `conjure-docs:"Information derived within a method, commonly parts of the return value." json:"resultParams"`
 }
 
 func (o AuditLogV2) MarshalJSON() ([]byte, error) {
@@ -116,23 +118,23 @@ type BeaconLogV1 struct {
 	Type string            `json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// Dot-delimited name for the structure of the params block, e.g. `compass.SearchEvent.v1`
-	EventType string `json:"eventType" conjure-docs:"Dot-delimited name for the structure of the params block, e.g. \"compass.SearchEvent.v1\"\n"`
+	EventType string `conjure-docs:"Dot-delimited name for the structure of the params block, e.g. \"compass.SearchEvent.v1\"" json:"eventType"`
 	// Name of the application that created the log
-	AppName string `json:"appName" conjure-docs:"Name of the application that created the log\n"`
+	AppName string `conjure-docs:"Name of the application that created the log" json:"appName"`
 	// Version of the application that created the log
-	AppVersion string `json:"appVersion" conjure-docs:"Version of the application that created the log\n"`
+	AppVersion string `conjure-docs:"Version of the application that created the log" json:"appVersion"`
 	// Known-safe parameters (redaction may be used to make params knowably safe, but is not required)
-	Params map[string]interface{} `json:"params" conjure-docs:"Known-safe parameters (redaction may be used to make params knowably safe, but is not required)\n"`
+	Params map[string]interface{} `conjure-docs:"Known-safe parameters (redaction may be used to make params knowably safe, but is not required)" json:"params"`
 	// Browser identifier (if available)
-	BrowserId *string `json:"browserId" conjure-docs:"Browser identifier (if available)\n"`
+	BrowserId *string `conjure-docs:"Browser identifier (if available)" json:"browserId"`
 	// User id (if available)
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available)\n"`
+	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// Zipkin trace id (if available)
-	TraceId *TraceId `json:"traceId" conjure-docs:"Zipkin trace id (if available)\n"`
+	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unredacted parameters
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unredacted parameters\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unredacted parameters" json:"unsafeParams"`
 }
 
 func (o BeaconLogV1) MarshalJSON() ([]byte, error) {
@@ -181,12 +183,12 @@ func (o *BeaconLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Definition of the diagnostic.1 format.
 type DiagnosticLogV1 struct {
 	// "diagnostic.1"
-	Type string            `json:"type" conjure-docs:"\"diagnostic.1\""`
+	Type string            `conjure-docs:"\"diagnostic.1\"" json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// The diagnostic being logged.
-	Diagnostic Diagnostic `json:"diagnostic" conjure-docs:"The diagnostic being logged."`
+	Diagnostic Diagnostic `conjure-docs:"The diagnostic being logged." json:"diagnostic"`
 	// Unredacted parameters
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unredacted parameters\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unredacted parameters" json:"unsafeParams"`
 }
 
 func (o DiagnosticLogV1) MarshalJSON() ([]byte, error) {
@@ -228,11 +230,11 @@ func (o *DiagnosticLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error
 
 type Endpoint struct {
 	// Name of the service that generated the annotation
-	ServiceName string `json:"serviceName" conjure-docs:"Name of the service that generated the annotation\n"`
+	ServiceName string `conjure-docs:"Name of the service that generated the annotation" json:"serviceName"`
 	// IPv4 address of the machine that generated this annotation (`xxx.xxx.xxx.xxx`)
-	Ipv4 *string `json:"ipv4" conjure-docs:"IPv4 address of the machine that generated this annotation (\"xxx.xxx.xxx.xxx\")\n"`
+	Ipv4 *string `conjure-docs:"IPv4 address of the machine that generated this annotation (\"xxx.xxx.xxx.xxx\")" json:"ipv4"`
 	// IPv6 address of the machine that generated this annotation (standard hextet form)
-	Ipv6 *string `json:"ipv6" conjure-docs:"IPv6 address of the machine that generated this annotation (standard hextet form)\n"`
+	Ipv6 *string `conjure-docs:"IPv6 address of the machine that generated this annotation (standard hextet form)" json:"ipv6"`
 }
 
 func (o Endpoint) MarshalYAML() (interface{}, error) {
@@ -256,19 +258,19 @@ type EventLogV1 struct {
 	Type string            `json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// Dot-delimited name of event, e.g. `com.foundry.compass.api.Compass.http.ping.failures`
-	EventName string `json:"eventName" conjure-docs:"Dot-delimited name of event, e.g. \"com.foundry.compass.api.Compass.http.ping.failures\"\n"`
+	EventName string `conjure-docs:"Dot-delimited name of event, e.g. \"com.foundry.compass.api.Compass.http.ping.failures\"" json:"eventName"`
 	// Type of event being represented, e.g. `gauge`, `histogram`, `counter`
-	EventType string `json:"eventType" conjure-docs:"Type of event being represented, e.g. \"gauge\", \"histogram\", \"counter\"\n"`
+	EventType string `conjure-docs:"Type of event being represented, e.g. \"gauge\", \"histogram\", \"counter\"" json:"eventType"`
 	// Observations, measurements and context associated with the event
-	Values map[string]interface{} `json:"values" conjure-docs:"Observations, measurements and context associated with the event\n"`
+	Values map[string]interface{} `conjure-docs:"Observations, measurements and context associated with the event" json:"values"`
 	// User id (if available)
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available)\n"`
+	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)\n"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Unsafe metadata describing the event
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unsafe metadata describing the event\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unsafe metadata describing the event" json:"unsafeParams"`
 }
 
 func (o EventLogV1) MarshalJSON() ([]byte, error) {
@@ -319,21 +321,21 @@ type EventLogV2 struct {
 	Type string            `json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// Dot-delimited name of event, e.g. `com.foundry.compass.api.Compass.http.ping.failures`
-	EventName string `json:"eventName" conjure-docs:"Dot-delimited name of event, e.g. \"com.foundry.compass.api.Compass.http.ping.failures\"\n"`
+	EventName string `conjure-docs:"Dot-delimited name of event, e.g. \"com.foundry.compass.api.Compass.http.ping.failures\"" json:"eventName"`
 	// Observations, measurements and context associated with the event
-	Values map[string]interface{} `json:"values" conjure-docs:"Observations, measurements and context associated with the event\n"`
+	Values map[string]interface{} `conjure-docs:"Observations, measurements and context associated with the event" json:"values"`
 	// User id (if available)
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available)\n"`
+	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)\n"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Zipkin trace id (if available)
-	TraceId *TraceId `json:"traceId" conjure-docs:"Zipkin trace id (if available)\n"`
+	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unsafe metadata describing the event
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unsafe metadata describing the event\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unsafe metadata describing the event" json:"unsafeParams"`
 	// Additional dimensions that describe the instance of the log event
-	Tags map[string]string `json:"tags" conjure-docs:"Additional dimensions that describe the instance of the log event"`
+	Tags map[string]string `conjure-docs:"Additional dimensions that describe the instance of the log event" json:"tags"`
 }
 
 func (o EventLogV2) MarshalJSON() ([]byte, error) {
@@ -387,9 +389,9 @@ func (o *EventLogV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type GenericDiagnostic struct {
 	// An identifier for the type of diagnostic represented.
-	DiagnosticType string `json:"diagnosticType" conjure-docs:"An identifier for the type of diagnostic represented."`
+	DiagnosticType string `conjure-docs:"An identifier for the type of diagnostic represented." json:"diagnosticType"`
 	// Observations, measurements and context associated with the diagnostic.
-	Value interface{} `json:"value" conjure-docs:"Observations, measurements and context associated with the diagnostic."`
+	Value interface{} `conjure-docs:"Observations, measurements and context associated with the diagnostic." json:"value"`
 }
 
 func (o GenericDiagnostic) MarshalYAML() (interface{}, error) {
@@ -413,21 +415,21 @@ type MetricLogV1 struct {
 	Type string            `json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// Dot-delimited name of metric, e.g. `com.foundry.compass.api.Compass.http.ping.failures`
-	MetricName string `json:"metricName" conjure-docs:"Dot-delimited name of metric, e.g. \"com.foundry.compass.api.Compass.http.ping.failures\"\n"`
+	MetricName string `conjure-docs:"Dot-delimited name of metric, e.g. \"com.foundry.compass.api.Compass.http.ping.failures\"" json:"metricName"`
 	// Type of metric being represented, e.g. `gauge`, `histogram`, `counter`
-	MetricType string `json:"metricType" conjure-docs:"Type of metric being represented, e.g. \"gauge\", \"histogram\", \"counter\"\n"`
+	MetricType string `conjure-docs:"Type of metric being represented, e.g. \"gauge\", \"histogram\", \"counter\"" json:"metricType"`
 	// Observations, measurements and context associated with the metric
-	Values map[string]interface{} `json:"values" conjure-docs:"Observations, measurements and context associated with the metric\n"`
+	Values map[string]interface{} `conjure-docs:"Observations, measurements and context associated with the metric" json:"values"`
 	// Additional dimensions that describe the instance of the metric
-	Tags map[string]string `json:"tags" conjure-docs:"Additional dimensions that describe the instance of the metric\n"`
+	Tags map[string]string `conjure-docs:"Additional dimensions that describe the instance of the metric" json:"tags"`
 	// User id (if available)
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available)\n"`
+	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)\n"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Unsafe metadata describing the event
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unsafe metadata describing the event\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unsafe metadata describing the event" json:"unsafeParams"`
 }
 
 func (o MetricLogV1) MarshalJSON() ([]byte, error) {
@@ -484,37 +486,37 @@ type RequestLogV1 struct {
 	Type string            `json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// HTTP method of request
-	Method *string `json:"method" conjure-docs:"HTTP method of request\n"`
+	Method *string `conjure-docs:"HTTP method of request" json:"method"`
 	// Protocol, e.g. `HTTP/1.1`, `HTTP/2`
-	Protocol string `json:"protocol" conjure-docs:"Protocol, e.g. \"HTTP/1.1\", \"HTTP/2\"\n"`
+	Protocol string `conjure-docs:"Protocol, e.g. \"HTTP/1.1\", \"HTTP/2\"" json:"protocol"`
 	// Path of request. If templated, the unrendered path, e.g.: `/catalog/dataset/{datasetId}`, `/{rid}/paths/contents/{path:.*}`.
-	Path string `json:"path" conjure-docs:"Path of request. If templated, the unrendered path, e.g.: \"/catalog/dataset/{datasetId}\", \"/{rid}/paths/contents/{path:.*}\".\n"`
+	Path string `conjure-docs:"Path of request. If templated, the unrendered path, e.g.: \"/catalog/dataset/{datasetId}\", \"/{rid}/paths/contents/{path:.*}\"." json:"path"`
 	// Known-safe path parameters
-	PathParams map[string]interface{} `json:"pathParams" conjure-docs:"Known-safe path parameters\n"`
+	PathParams map[string]interface{} `conjure-docs:"Known-safe path parameters" json:"pathParams"`
 	// Known-safe query parameters
-	QueryParams map[string]interface{} `json:"queryParams" conjure-docs:"Known-safe query parameters\n"`
+	QueryParams map[string]interface{} `conjure-docs:"Known-safe query parameters" json:"queryParams"`
 	// Known-safe header parameters
-	HeaderParams map[string]interface{} `json:"headerParams" conjure-docs:"Known-safe header parameters\n"`
+	HeaderParams map[string]interface{} `conjure-docs:"Known-safe header parameters" json:"headerParams"`
 	// Known-safe body parameters
-	BodyParams map[string]interface{} `json:"bodyParams" conjure-docs:"Known-safe body parameters\n"`
+	BodyParams map[string]interface{} `conjure-docs:"Known-safe body parameters" json:"bodyParams"`
 	// HTTP status code of response
-	Status int `json:"status" conjure-docs:"HTTP status code of response\n"`
+	Status int `conjure-docs:"HTTP status code of response" json:"status"`
 	// Size of request (bytes). string to allow large numbers.
-	RequestSize string `json:"requestSize" conjure-docs:"Size of request (bytes). string to allow large numbers.\n"`
+	RequestSize string `conjure-docs:"Size of request (bytes). string to allow large numbers." json:"requestSize"`
 	// Size of response (bytes). string to allow large numbers.
-	ResponseSize string `json:"responseSize" conjure-docs:"Size of response (bytes). string to allow large numbers.\n"`
+	ResponseSize string `conjure-docs:"Size of response (bytes). string to allow large numbers." json:"responseSize"`
 	// Amount of time spent handling request (microseconds)
-	Duration int `json:"duration" conjure-docs:"Amount of time spent handling request (microseconds)\n"`
+	Duration int `conjure-docs:"Amount of time spent handling request (microseconds)" json:"duration"`
 	// User id (if available)
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available)\n"`
+	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)\n"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Zipkin trace id (if available)
-	TraceId *TraceId `json:"traceId" conjure-docs:"Zipkin trace id (if available)\n"`
+	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unredacted parameters such as path, query and header parameters
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unredacted parameters such as path, query and header parameters\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unredacted parameters such as path, query and header parameters" json:"unsafeParams"`
 }
 
 func (o RequestLogV1) MarshalJSON() ([]byte, error) {
@@ -583,31 +585,31 @@ type RequestLogV2 struct {
 	Type string            `json:"type"`
 	Time datetime.DateTime `json:"time"`
 	// HTTP method of request
-	Method *string `json:"method" conjure-docs:"HTTP method of request\n"`
+	Method *string `conjure-docs:"HTTP method of request" json:"method"`
 	// Protocol, e.g. `HTTP/1.1`, `HTTP/2`
-	Protocol string `json:"protocol" conjure-docs:"Protocol, e.g. \"HTTP/1.1\", \"HTTP/2\"\n"`
+	Protocol string `conjure-docs:"Protocol, e.g. \"HTTP/1.1\", \"HTTP/2\"" json:"protocol"`
 	// Path of request. If templated, the unrendered path, e.g.: `/catalog/dataset/{datasetId}`, `/{rid}/paths/contents/{path:.*}`.
-	Path string `json:"path" conjure-docs:"Path of request. If templated, the unrendered path, e.g.: \"/catalog/dataset/{datasetId}\", \"/{rid}/paths/contents/{path:.*}\".\n"`
+	Path string `conjure-docs:"Path of request. If templated, the unrendered path, e.g.: \"/catalog/dataset/{datasetId}\", \"/{rid}/paths/contents/{path:.*}\"." json:"path"`
 	// Known-safe parameters
-	Params map[string]interface{} `json:"params" conjure-docs:"Known-safe parameters\n"`
+	Params map[string]interface{} `conjure-docs:"Known-safe parameters" json:"params"`
 	// HTTP status code of response
-	Status int `json:"status" conjure-docs:"HTTP status code of response\n"`
+	Status int `conjure-docs:"HTTP status code of response" json:"status"`
 	// Size of request (bytes)
-	RequestSize safelong.SafeLong `json:"requestSize" conjure-docs:"Size of request (bytes)\n"`
+	RequestSize safelong.SafeLong `conjure-docs:"Size of request (bytes)" json:"requestSize"`
 	// Size of response (bytes)
-	ResponseSize safelong.SafeLong `json:"responseSize" conjure-docs:"Size of response (bytes)\n"`
+	ResponseSize safelong.SafeLong `conjure-docs:"Size of response (bytes)" json:"responseSize"`
 	// Amount of time spent handling request (microseconds)
-	Duration safelong.SafeLong `json:"duration" conjure-docs:"Amount of time spent handling request (microseconds)\n"`
+	Duration safelong.SafeLong `conjure-docs:"Amount of time spent handling request (microseconds)" json:"duration"`
 	// User id (if available)
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available)\n"`
+	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)\n"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)\n"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Zipkin trace id (if available)
-	TraceId *TraceId `json:"traceId" conjure-docs:"Zipkin trace id (if available)\n"`
+	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unredacted parameters such as path, query and header parameters
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unredacted parameters such as path, query and header parameters\n"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unredacted parameters such as path, query and header parameters" json:"unsafeParams"`
 }
 
 func (o RequestLogV2) MarshalJSON() ([]byte, error) {
@@ -656,33 +658,33 @@ func (o *RequestLogV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Definition of the service.1 format.
 type ServiceLogV1 struct {
 	// "service.1"
-	Type string `json:"type" conjure-docs:"\"service.1\""`
+	Type string `conjure-docs:"\"service.1\"" json:"type"`
 	// The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE}.
-	Level LogLevel `json:"level" conjure-docs:"The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE}."`
+	Level LogLevel `conjure-docs:"The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE}." json:"level"`
 	// RFC3339Nano UTC datetime string when the log event was emitted
-	Time datetime.DateTime `json:"time" conjure-docs:"RFC3339Nano UTC datetime string when the log event was emitted"`
+	Time datetime.DateTime `conjure-docs:"RFC3339Nano UTC datetime string when the log event was emitted" json:"time"`
 	// Class or file name. May include line number.
-	Origin *string `json:"origin" conjure-docs:"Class or file name. May include line number."`
+	Origin *string `conjure-docs:"Class or file name. May include line number." json:"origin"`
 	// Thread name
-	Thread *string `json:"thread" conjure-docs:"Thread name"`
+	Thread *string `conjure-docs:"Thread name" json:"thread"`
 	// Log message. Palantir Java services using slf4j should not use slf4j placeholders ({}). Logs obtained from 3rd party libraries or services that use slf4j and contain slf4j placeholders will always produce `unsafeParams` with numeric indexes corresponding to the zero-indexed order of placeholders. Renderers should substitute numeric parameters from `unsafeParams` and may leave placeholders that do not match indexes as the original placeholder text.
-	Message string `json:"message" conjure-docs:"Log message. Palantir Java services using slf4j should not use slf4j placeholders ({}). Logs obtained from 3rd party libraries or services that use slf4j and contain slf4j placeholders will always produce \"unsafeParams\" with numeric indexes corresponding to the zero-indexed order of placeholders. Renderers should substitute numeric parameters from \"unsafeParams\" and may leave placeholders that do not match indexes as the original placeholder text.\n"`
+	Message string `conjure-docs:"Log message. Palantir Java services using slf4j should not use slf4j placeholders ({}). Logs obtained from 3rd party libraries or services that use slf4j and contain slf4j placeholders will always produce \"unsafeParams\" with numeric indexes corresponding to the zero-indexed order of placeholders. Renderers should substitute numeric parameters from \"unsafeParams\" and may leave placeholders that do not match indexes as the original placeholder text." json:"message"`
 	// Known-safe parameters (redaction may be used to make params knowably safe, but is not required).
-	Params map[string]interface{} `json:"params" conjure-docs:"Known-safe parameters (redaction may be used to make params knowably safe, but is not required)."`
+	Params map[string]interface{} `conjure-docs:"Known-safe parameters (redaction may be used to make params knowably safe, but is not required)." json:"params"`
 	// User id (if available).
-	Uid *UserId `json:"uid" conjure-docs:"User id (if available).\n"`
+	Uid *UserId `conjure-docs:"User id (if available)." json:"uid"`
 	// Session id (if available)
-	Sid *SessionId `json:"sid" conjure-docs:"Session id (if available)"`
+	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
-	TokenId *TokenId `json:"tokenId" conjure-docs:"API token id (if available)"`
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
 	// Zipkin trace id (if available)
-	TraceId *TraceId `json:"traceId" conjure-docs:"Zipkin trace id (if available)"`
+	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Language-specific stack trace. Content is knowably safe. Renderers should substitute named placeholders ({name}, for name as a key) with keyed value from unsafeParams and leave non-matching keys as the original placeholder text.
-	Stacktrace *string `json:"stacktrace" conjure-docs:"Language-specific stack trace. Content is knowably safe. Renderers should substitute named placeholders ({name}, for name as a key) with keyed value from unsafeParams and leave non-matching keys as the original placeholder text.\n"`
+	Stacktrace *string `conjure-docs:"Language-specific stack trace. Content is knowably safe. Renderers should substitute named placeholders ({name}, for name as a key) with keyed value from unsafeParams and leave non-matching keys as the original placeholder text." json:"stacktrace"`
 	// Unredacted parameters
-	UnsafeParams map[string]interface{} `json:"unsafeParams" conjure-docs:"Unredacted parameters"`
+	UnsafeParams map[string]interface{} `conjure-docs:"Unredacted parameters" json:"unsafeParams"`
 	// Additional dimensions that describe the instance of the log event
-	Tags map[string]string `json:"tags" conjure-docs:"Additional dimensions that describe the instance of the log event"`
+	Tags map[string]string `conjure-docs:"Additional dimensions that describe the instance of the log event" json:"tags"`
 }
 
 func (o ServiceLogV1) MarshalJSON() ([]byte, error) {
@@ -737,20 +739,20 @@ func (o *ServiceLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // A Zipkin-compatible Span object.
 type Span struct {
 	// 16-digit hex trace identifier
-	TraceId string `json:"traceId" conjure-docs:"16-digit hex trace identifier\n"`
+	TraceId string `conjure-docs:"16-digit hex trace identifier" json:"traceId"`
 	// 16-digit hex span identifier
-	Id string `json:"id" conjure-docs:"16-digit hex span identifier\n"`
+	Id string `conjure-docs:"16-digit hex span identifier" json:"id"`
 	// Name of the span (typically the operation/RPC/method name for corresponding to this span)
-	Name string `json:"name" conjure-docs:"Name of the span (typically the operation/RPC/method name for corresponding to this span)\n"`
+	Name string `conjure-docs:"Name of the span (typically the operation/RPC/method name for corresponding to this span)" json:"name"`
 	// 16-digit hex identifer of the parent span
-	ParentId *string `json:"parentId" conjure-docs:"16-digit hex identifer of the parent span\n"`
+	ParentId *string `conjure-docs:"16-digit hex identifer of the parent span" json:"parentId"`
 	// Timestamp of the start of this span (epoch microsecond value)
-	Timestamp safelong.SafeLong `json:"timestamp" conjure-docs:"Timestamp of the start of this span (epoch microsecond value)\n"`
+	Timestamp safelong.SafeLong `conjure-docs:"Timestamp of the start of this span (epoch microsecond value)" json:"timestamp"`
 	// Duration of this span (microseconds)
-	Duration    safelong.SafeLong `json:"duration" conjure-docs:"Duration of this span (microseconds)\n"`
+	Duration    safelong.SafeLong `conjure-docs:"Duration of this span (microseconds)" json:"duration"`
 	Annotations []Annotation      `json:"annotations"`
 	// Additional dimensions that describe the instance of the trace span
-	Tags map[string]string `json:"tags" conjure-docs:"Additional dimensions that describe the instance of the trace span\n"`
+	Tags map[string]string `conjure-docs:"Additional dimensions that describe the instance of the trace span" json:"tags"`
 }
 
 func (o Span) MarshalJSON() ([]byte, error) {
@@ -798,15 +800,15 @@ func (o *Span) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type StackFrameV1 struct {
 	// The address of the execution point of this stack frame. This is a string because a safelong can't represent the full 64 bit address space.
-	Address *string `json:"address" conjure-docs:"The address of the execution point of this stack frame. This is a string because a safelong can't represent the full 64 bit address space.\n"`
+	Address *string `conjure-docs:"The address of the execution point of this stack frame. This is a string because a safelong can't represent the full 64 bit address space." json:"address"`
 	// The identifier of the procedure containing the execution point of this stack frame. This is a fully qualified method name in Java and a demangled symbol name in native code, for example. Note that procedure names may include unsafe information if a service is, for exmaple, running user-defined code. It must be safely redacted.
-	Procedure *string `json:"procedure" conjure-docs:"The identifier of the procedure containing the execution point of this stack frame. This is a fully qualified method name in Java and a demangled symbol name in native code, for example. Note that procedure names may include unsafe information if a service is, for exmaple, running user-defined code. It must be safely redacted.\n"`
+	Procedure *string `conjure-docs:"The identifier of the procedure containing the execution point of this stack frame. This is a fully qualified method name in Java and a demangled symbol name in native code, for example. Note that procedure names may include unsafe information if a service is, for exmaple, running user-defined code. It must be safely redacted." json:"procedure"`
 	// The name of the file containing the source location of the execution point of this stack frame. Note that file names may include unsafe information if a service is, for example, running user-defined code. It must be safely redacted.
-	File *string `json:"file" conjure-docs:"The name of the file containing the source location of the execution point of this stack frame. Note that file names may include unsafe information if a service is, for example, running user-defined code. It must be safely redacted.\n"`
+	File *string `conjure-docs:"The name of the file containing the source location of the execution point of this stack frame. Note that file names may include unsafe information if a service is, for example, running user-defined code. It must be safely redacted." json:"file"`
 	// The line number of the source location of the execution point of this stack frame.
-	Line *int `json:"line" conjure-docs:"The line number of the source location of the execution point of this stack frame.\n"`
+	Line *int `conjure-docs:"The line number of the source location of the execution point of this stack frame." json:"line"`
 	// Other frame-level information.
-	Params map[string]interface{} `json:"params" conjure-docs:"Other frame-level information."`
+	Params map[string]interface{} `conjure-docs:"Other frame-level information." json:"params"`
 }
 
 func (o StackFrameV1) MarshalJSON() ([]byte, error) {
@@ -848,7 +850,7 @@ func (o *StackFrameV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type ThreadDumpV1 struct {
 	// Information about each of the threads in the thread dump. "Thread" may refer to a userland thread such as a goroutine, or an OS-level thread.
-	Threads []ThreadInfoV1 `json:"threads" conjure-docs:"Information about each of the threads in the thread dump. \"Thread\" may refer to a userland thread such as a goroutine, or an OS-level thread.\n"`
+	Threads []ThreadInfoV1 `conjure-docs:"Information about each of the threads in the thread dump. \"Thread\" may refer to a userland thread such as a goroutine, or an OS-level thread." json:"threads"`
 }
 
 func (o ThreadDumpV1) MarshalJSON() ([]byte, error) {
@@ -890,13 +892,13 @@ func (o *ThreadDumpV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type ThreadInfoV1 struct {
 	// The ID of the thread.
-	Id *safelong.SafeLong `json:"id" conjure-docs:"The ID of the thread."`
+	Id *safelong.SafeLong `conjure-docs:"The ID of the thread." json:"id"`
 	// The name of the thread. Note that thread names may include unsafe information such as the path of the HTTP request being processed. It must be safely redacted.
-	Name *string `json:"name" conjure-docs:"The name of the thread. Note that thread names may include unsafe information such as the path of the HTTP request being processed. It must be safely redacted.\n"`
+	Name *string `conjure-docs:"The name of the thread. Note that thread names may include unsafe information such as the path of the HTTP request being processed. It must be safely redacted." json:"name"`
 	// A list of stack frames for the thread, ordered with the current frame first.
-	StackTrace []StackFrameV1 `json:"stackTrace" conjure-docs:"A list of stack frames for the thread, ordered with the current frame first.\n"`
+	StackTrace []StackFrameV1 `conjure-docs:"A list of stack frames for the thread, ordered with the current frame first." json:"stackTrace"`
 	// Other thread-level information.
-	Params map[string]interface{} `json:"params" conjure-docs:"Other thread-level information."`
+	Params map[string]interface{} `conjure-docs:"Other thread-level information." json:"params"`
 }
 
 func (o ThreadInfoV1) MarshalJSON() ([]byte, error) {
@@ -993,10 +995,10 @@ func (o *TraceLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Wraps a log entry with entity information.
 type WrappedLogV1 struct {
 	// "wrapped.1"
-	Type    string              `json:"type" conjure-docs:"\"wrapped.1\""`
+	Type    string              `conjure-docs:"\"wrapped.1\"" json:"type"`
 	Payload WrappedLogV1Payload `json:"payload"`
 	// Artifact part of entity's maven coordinate
-	EntityName    string `json:"entityName" conjure-docs:"Artifact part of entity's maven coordinate"`
+	EntityName    string `conjure-docs:"Artifact part of entity's maven coordinate" json:"entityName"`
 	EntityVersion string `json:"entityVersion"`
 }
 
