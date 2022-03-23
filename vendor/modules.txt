@@ -113,8 +113,8 @@ github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
 # github.com/palantir/witchcraft-go-params v1.2.0
 ## explicit; go 1.13
 github.com/palantir/witchcraft-go-params
-# github.com/palantir/witchcraft-go-tracing v1.4.0
-## explicit; go 1.13
+# github.com/palantir/witchcraft-go-tracing v1.5.0
+## explicit; go 1.18
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
 github.com/palantir/witchcraft-go-tracing/wzipkin

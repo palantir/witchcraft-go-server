@@ -20,7 +20,7 @@ require (
 	github.com/palantir/witchcraft-go-health v1.13.0
 	github.com/palantir/witchcraft-go-logging v1.17.0
 	github.com/palantir/witchcraft-go-params v1.2.0
-	github.com/palantir/witchcraft-go-tracing v1.4.0
+	github.com/palantir/witchcraft-go-tracing v1.5.0
 	github.com/stretchr/testify v1.7.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
