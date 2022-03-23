@@ -78,8 +78,8 @@ github.com/palantir/pkg/transform
 ## explicit; go 1.13
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
-# github.com/palantir/witchcraft-go-error v1.5.0
-## explicit; go 1.13
+# github.com/palantir/witchcraft-go-error v1.6.0
+## explicit; go 1.18
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
 # github.com/palantir/witchcraft-go-health v1.13.0
@@ -90,8 +90,8 @@ github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
-# github.com/palantir/witchcraft-go-logging v1.17.0
-## explicit; go 1.16
+# github.com/palantir/witchcraft-go-logging v1.18.0
+## explicit; go 1.18
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
 github.com/palantir/witchcraft-go-logging/wlog
@@ -110,22 +110,22 @@ github.com/palantir/witchcraft-go-logging/wlog/tcpjson
 github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
-# github.com/palantir/witchcraft-go-params v1.2.0
-## explicit; go 1.13
+# github.com/palantir/witchcraft-go-params v1.3.0
+## explicit; go 1.18
 github.com/palantir/witchcraft-go-params
 # github.com/palantir/witchcraft-go-tracing v1.5.0
 ## explicit; go 1.18
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
 github.com/palantir/witchcraft-go-tracing/wzipkin
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/rs/zerolog v1.20.0
-## explicit
+# github.com/rs/zerolog v1.26.1
+## explicit; go 1.15
 github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
 github.com/rs/zerolog/internal/json
@@ -150,7 +150,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
+# golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 ## explicit; go 1.17
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2

@@ -16,10 +16,10 @@ require (
 	github.com/palantir/pkg/safejson v1.0.1
 	github.com/palantir/pkg/signals v1.0.1
 	github.com/palantir/pkg/tlsconfig v1.1.0
-	github.com/palantir/witchcraft-go-error v1.5.0
+	github.com/palantir/witchcraft-go-error v1.6.0
 	github.com/palantir/witchcraft-go-health v1.13.0
-	github.com/palantir/witchcraft-go-logging v1.17.0
-	github.com/palantir/witchcraft-go-params v1.2.0
+	github.com/palantir/witchcraft-go-logging v1.18.0
+	github.com/palantir/witchcraft-go-params v1.3.0
 	github.com/palantir/witchcraft-go-tracing v1.5.0
 	github.com/stretchr/testify v1.7.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
@@ -38,13 +38,13 @@ require (
 	github.com/palantir/pkg/safeyaml v1.0.1 // indirect
 	github.com/palantir/pkg/transform v1.0.0 // indirect
 	github.com/palantir/pkg/uuid v1.0.1 // indirect
-	github.com/pkg/errors v0.8.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rs/zerolog v1.20.0 // indirect
+	github.com/rs/zerolog v1.26.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/text v0.3.6 // indirect
 )
