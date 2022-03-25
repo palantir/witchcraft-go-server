@@ -39,6 +39,16 @@ func RepairingHealthCheckResult(checkType health.CheckType, message string, para
 	}
 }
 
+// WarningHealthCheckResult returns a warning health check result with type checkType and message message.
+func WarningHealthCheckResult(checkType health.CheckType, message string, params map[string]interface{}) health.HealthCheckResult {
+	return health.HealthCheckResult{
+		Type:    checkType,
+		State:   health.New_HealthState(health.HealthState_WARNING),
+		Message: &message,
+		Params:  params,
+	}
+}
+
 // HealthyHealthCheckResult returns healthy health check result with type checkType.
 func HealthyHealthCheckResult(checkType health.CheckType) health.HealthCheckResult {
 	return health.HealthCheckResult{

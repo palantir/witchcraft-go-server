@@ -16,6 +16,7 @@ package window
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -70,7 +71,8 @@ func NewErrorHealthCheckSource(checkType health.CheckType, errorMode ErrorMode, 
 	switch errorMode {
 	case UnhealthyIfAtLeastOneError,
 		HealthyIfNotAllErrors,
-		HealthyIfNoRecentErrors:
+		HealthyIfNoRecentErrors,
+		HealthyIfAtLeastOneSuccess:
 	default:
 		return nil, werror.Error("unknown or unsupported error mode",
 			werror.SafeParam("errorMode", errorMode))
@@ -138,19 +140,27 @@ func (e *errorHealthCheckSource) HealthStatus(ctx context.Context) health.Health
 		if e.hasSuccessInWindow() || !e.hasErrorInWindow() {
 			healthCheckResult = sources.HealthyHealthCheckResult(e.checkType)
 		} else {
-			healthCheckResult = e.getFailureResult()
+			healthCheckResult = e.getFailureResult(e.lastError)
 		}
 	case UnhealthyIfAtLeastOneError:
 		if e.hasErrorInWindow() {
-			healthCheckResult = e.getFailureResult()
+			healthCheckResult = e.getFailureResult(e.lastError)
 		} else {
 			healthCheckResult = sources.HealthyHealthCheckResult(e.checkType)
 		}
 	case HealthyIfNoRecentErrors:
 		if e.lastErrorTime.After(e.lastSuccessTime) {
-			healthCheckResult = e.getFailureResult()
+			healthCheckResult = e.getFailureResult(e.lastError)
 		} else {
 			healthCheckResult = sources.HealthyHealthCheckResult(e.checkType)
+		}
+	case HealthyIfAtLeastOneSuccess:
+		if e.hasSuccessInWindow() {
+			healthCheckResult = sources.HealthyHealthCheckResult(e.checkType)
+		} else if e.hasErrorInWindow() {
+			healthCheckResult = e.getFailureResult(e.lastError)
+		} else {
+			healthCheckResult = e.getFailureResult(errors.New("no successful results within window"))
 		}
 	}
 
@@ -161,9 +171,9 @@ func (e *errorHealthCheckSource) HealthStatus(ctx context.Context) health.Health
 	}
 }
 
-func (e *errorHealthCheckSource) getFailureResult() health.HealthCheckResult {
+func (e *errorHealthCheckSource) getFailureResult(err error) health.HealthCheckResult {
 	params := map[string]interface{}{
-		"error": e.lastError.Error(),
+		"error": err.Error(),
 	}
 	healthCheckResult := health.HealthCheckResult{
 		Type:    e.checkType,
