@@ -36,6 +36,10 @@ const (
 	// check source return unhealthy if the most recent submission is an error.
 	// Returns healthy if there no submissions in the window.
 	HealthyIfNoRecentErrors ErrorMode = "HealthyIfNoRecentErrors"
+	// HealthyIfAtLeastOneSuccess makes the error submitter based health
+	// check source return unhealthy if there has not been a success in the window.
+	// If there are errors, the most recent is reported.
+	HealthyIfAtLeastOneSuccess ErrorMode = "HealthyIfAtLeastOneSuccess"
 )
 
 // ErrorOption is an option for an error submitter based window health check source.

@@ -99,9 +99,9 @@ func (d restErrorDecoder) DecodeError(resp *http.Response) error {
 	if isJSON := strings.Contains(resp.Header.Get("Content-Type"), codecs.JSON.ContentType()); !isJSON {
 		return werror.Error(resp.Status, wSafeParams, wUnsafeParams, werror.UnsafeParam("responseBody", string(body)))
 	}
-	conjureErr, err := errors.UnmarshalError(body)
-	if err != nil {
-		return werror.Wrap(err, "", wSafeParams, wUnsafeParams, werror.UnsafeParam("responseBody", string(body)))
+	conjureErr, jsonErr := errors.UnmarshalError(body)
+	if jsonErr != nil {
+		return werror.Error(resp.Status, wSafeParams, wUnsafeParams, werror.UnsafeParam("responseBody", string(body)))
 	}
 	return werror.Wrap(conjureErr, "", wSafeParams, wUnsafeParams)
 }
