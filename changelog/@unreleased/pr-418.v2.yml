@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Wrouter accepts route-specific middlewares
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/418
