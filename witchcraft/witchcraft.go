@@ -73,7 +73,8 @@ type Server struct {
 	// applicationServerOnlyHandlers specifies any custom HTTP handlers that should be used by the application server
 	// only (i.e., they will not be added to the management port router if configured). The provided handlers are
 	// invoked in order after the built-in handlers (which provide things such as panic handling) and after the global
-	// middleware handlers. The context in the request will have the appropriate loggers and logger parameters set.
+	// user-defined middleware handlers. The context in the request will have the appropriate loggers and logger
+	// parameters set.
 	applicationServerOnlyHandlers []wrouter.RequestHandlerMiddleware
 
 	// useSelfSignedServerCertificate specifies whether the server uses a dynamically generated self-signed certificate
