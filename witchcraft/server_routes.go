@@ -82,7 +82,7 @@ func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg 
 	return nil
 }
 
-func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, tracerOptions []wtracing.TracerOption) {
+func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, tracerOptions []wtracing.TracerOption, isApplicationRouter bool) {
 	rootRouter.AddRequestHandlerMiddleware(
 		// add middleware that recovers from panics in request middleware
 		middleware.NewRequestPanicRecovery(s.svcLogger, s.evtLogger),
@@ -111,6 +111,11 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 
 	// add user-provided middleware
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
+
+	// add application server only user-provided middleware if this is the application router
+	if isApplicationRouter {
+		rootRouter.AddRequestHandlerMiddleware(s.applicationServerOnlyHandlers...)
+	}
 
 	// add route middleware
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog(s.reqLogger, nil))

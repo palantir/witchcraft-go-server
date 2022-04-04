@@ -70,6 +70,12 @@ type Server struct {
 	// will have the appropriate loggers and logger parameters set.
 	handlers []wrouter.RequestHandlerMiddleware
 
+	// applicationServerOnlyHandlers specifies any custom HTTP handlers that should be used by the application server
+	// only (i.e., they will not be added to the management port router if configured). The provided handlers are
+	// invoked in order after the built-in handlers (which provide things such as panic handling) and after the global
+	// middleware handlers. The context in the request will have the appropriate loggers and logger parameters set.
+	applicationServerOnlyHandlers []wrouter.RequestHandlerMiddleware
+
 	// useSelfSignedServerCertificate specifies whether the server uses a dynamically generated self-signed certificate
 	// for TLS. No verification mechanism is provided for the self-signed certificate, so clients can only connect to a
 	// server using this mode in an untrusted manner. As such, this option should only be used in very specialized
@@ -420,6 +426,13 @@ func (s *Server) WithMiddleware(middleware wrouter.RequestHandlerMiddleware) *Se
 	return s
 }
 
+// WithApplicationServerOnlyMiddleware configures the server to use the specified middleware. The provided middleware is added to any other
+// specified middleware.
+func (s *Server) WithApplicationServerOnlyMiddleware(middleware wrouter.RequestHandlerMiddleware) *Server {
+	s.applicationServerOnlyHandlers = append(s.applicationServerOnlyHandlers, middleware)
+	return s
+}
+
 // WithRouterImplProvider configures the server to use the specified routerImplProvider to provide router
 // implementations.
 func (s *Server) WithRouterImplProvider(routerImplProvider func() wrouter.RouterImpl) *Server {
@@ -663,10 +676,10 @@ func (s *Server) Start() (rErr error) {
 	router, mgmtRouter := s.initRouters(baseInstallCfg)
 
 	// add middleware
-	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg))
+	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg), true)
 	if mgmtRouter != router {
 		// add middleware to management router as well if it is distinct
-		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.getManagementTracingOptions(baseInstallCfg))
+		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.getManagementTracingOptions(baseInstallCfg), false)
 	}
 
 	// handle built-in runtime config changes
