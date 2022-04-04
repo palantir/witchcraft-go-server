@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix signal log param in shutdown handler
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/416
