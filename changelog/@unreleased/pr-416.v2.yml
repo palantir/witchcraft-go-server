@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix signal log param in shutdown handler. Add `Received shutdown signal.` svc1log for traceability.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/416

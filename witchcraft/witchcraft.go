@@ -49,7 +49,6 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/tcpjson"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
-	wparams "github.com/palantir/witchcraft-go-params"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
@@ -970,7 +969,7 @@ func (s *Server) initShutdownSignalHandler(ctx context.Context) {
 
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 		sig := <-shutdownSignal
-		ctx = wparams.ContextWithSafeParam(ctx, "signal", sig.String())
+		s.svcLogger.Info("Received shutdown signal.", svc1log.SafeParam("signal", sig.String()))
 		if err := s.Shutdown(ctx); err != nil {
 			s.svcLogger.Warn("Failed to gracefully shutdown server.", svc1log.Stacktrace(err))
 		}
