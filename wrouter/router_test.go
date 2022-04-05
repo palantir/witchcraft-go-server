@@ -333,19 +333,20 @@ func mustMatchHandler(t *testing.T, method, path string, pathVars map[string]str
 
 // Tests that RouteHandlerMiddleware are called in the right order on the right routes.
 func TestRouterMiddlewareRegistration(t *testing.T) {
+	type ctxKey struct{}
 	newMarkingMiddleware := func(marking string) wrouter.RouteHandlerMiddleware {
 		return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-			curr := req.Context().Value("marking")
+			curr := req.Context().Value(ctxKey{})
 			if curr == nil {
-				req = req.WithContext(context.WithValue(req.Context(), "marking", []string{marking}))
+				req = req.WithContext(context.WithValue(req.Context(), ctxKey{}, []string{marking}))
 			} else {
-				req = req.WithContext(context.WithValue(req.Context(), "marking", append(curr.([]string), marking)))
+				req = req.WithContext(context.WithValue(req.Context(), ctxKey{}, append(curr.([]string), marking)))
 			}
 			next(rw, req, reqVals)
 		}
 	}
 	echoMarkingHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		_, _ = rw.Write([]byte(fmt.Sprint(req.Context().Value("marking"))))
+		_, _ = rw.Write([]byte(fmt.Sprint(req.Context().Value(ctxKey{}))))
 	})
 
 	// create router
