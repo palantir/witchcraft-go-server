@@ -142,6 +142,7 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 		// register path parameters in context
 		pathParamVals := r.impl.PathParams(req, pathVarNames)
 		req = req.WithContext(context.WithValue(req.Context(), pathParamsContextKey, pathParamVals))
+
 		wrappedHandlerFn := createRouteRequestHandler(func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals) {
 			handler.ServeHTTP(rw, r)
 		}, append(r.routeHandlers, b.middleware...))

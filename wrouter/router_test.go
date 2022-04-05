@@ -15,7 +15,9 @@
 package wrouter_test
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -326,5 +328,51 @@ func mustMatchHandler(t *testing.T, method, path string, pathVars map[string]str
 		assert.Equal(t, path, r.URL.Path, "Path did not match expected for path %s", path)
 		assert.Equal(t, pathVars, wrouter.PathParams(r), "Path params did not match expected for path %s", path)
 		matched[fmt.Sprintf("[%s] %s", method, path)] = true
+	})
+}
+
+// Tests that RouteHandlerMiddleware are called in the right order on the right routes.
+func TestRouterMiddlewareRegistration(t *testing.T) {
+	newMarkingMiddleware := func(marking string) wrouter.RouteHandlerMiddleware {
+		return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+			curr := req.Context().Value("marking")
+			if curr == nil {
+				req = req.WithContext(context.WithValue(req.Context(), "marking", []string{marking}))
+			} else {
+				req = req.WithContext(context.WithValue(req.Context(), "marking", append(curr.([]string), marking)))
+			}
+			next(rw, req, reqVals)
+		}
+	}
+	echoMarkingHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		_, _ = rw.Write([]byte(fmt.Sprint(req.Context().Value("marking"))))
+	})
+
+	// create router
+	r := wrouter.New(whttprouter.New(), wrouter.RootRouterParamAddRouteHandlerMiddleware(newMarkingMiddleware("global")))
+	require.NoError(t, r.Get("/one", echoMarkingHandler))
+	require.NoError(t, r.Get("/two", echoMarkingHandler, wrouter.RouteMiddleware(newMarkingMiddleware("handler"))))
+
+	// start server
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	t.Run("endpoint one", func(t *testing.T) {
+		resp, err := http.DefaultClient.Get(server.URL + "/one")
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, "[global]", string(body))
+	})
+	t.Run("endpoint two", func(t *testing.T) {
+		resp, err := http.DefaultClient.Get(server.URL + "/two")
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, "[global handler]", string(body))
 	})
 }
