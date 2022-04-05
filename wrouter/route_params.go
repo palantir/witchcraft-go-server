@@ -19,6 +19,7 @@ import (
 )
 
 type routeParamBuilder struct {
+	middleware       []RouteHandlerMiddleware
 	paramPerms       RouteParamPerms
 	metricTags       metrics.Tags
 	disableTelemetry bool
@@ -119,6 +120,16 @@ func MetricTags(tags metrics.Tags) RouteParam {
 func DisableTelemetry() RouteParam {
 	return routeParamFunc(func(b *routeParamBuilder) error {
 		b.disableTelemetry = true
+		return nil
+	})
+}
+
+// RouteMiddleware configures the provided middleware to run on requests matching this specific route.
+func RouteMiddleware(middleware RouteHandlerMiddleware) RouteParam {
+	return routeParamFunc(func(b *routeParamBuilder) error {
+		if middleware != nil {
+			b.middleware = append(b.middleware, middleware)
+		}
 		return nil
 	})
 }

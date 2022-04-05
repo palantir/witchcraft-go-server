@@ -64,8 +64,14 @@ type Router interface {
 	RootRouter() RootRouter
 }
 
+// RequestHandlerMiddleware is registered on a router and runs on all requests before the path template and params are parsed.
+// Implementations must call the 'next' handler or write a response to the ResponseWriter.
 type RequestHandlerMiddleware func(rw http.ResponseWriter, r *http.Request, next http.Handler)
 
+// RouteHandlerMiddleware runs on requests after the path template and params are parsed.
+// If registered on a router, it runs on all routes.
+// If registered on a specific route using RouteMiddleware, will run on the specific registered route after router-global middlewares.
+// Implementations must call the 'next' handler or write a response to the ResponseWriter.
 type RouteHandlerMiddleware func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals, next RouteRequestHandler)
 
 type RouteRequestHandler func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals)

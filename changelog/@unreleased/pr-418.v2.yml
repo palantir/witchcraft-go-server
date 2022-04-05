@@ -1,0 +1,9 @@
+type: feature
+feature:
+  description: |
+    Wrouter accepts route-specific middlewares with wrouter.RouteMiddleware.
+    
+    Current users of RouteHandlerMiddleware using the PathTemplate to match specific routes
+    may consider registering the middleware on specific routes and removing path-matching logic.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/418
