@@ -263,7 +263,7 @@ func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registr
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				metricsRegistry.Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+				metrics.FromContext(ctx).Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
 			}
 		}
 	})
