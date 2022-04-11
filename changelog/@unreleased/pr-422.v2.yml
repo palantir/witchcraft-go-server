@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Expose ServiceConfig() on ConfigurableServiceDiscovery
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/422
