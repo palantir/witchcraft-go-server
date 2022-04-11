@@ -35,6 +35,8 @@ type ServiceDiscovery interface {
 // are loosely coupled to code versions.
 type ConfigurableServiceDiscovery interface {
 	ServiceDiscovery
+	// ServiceConfig builds a RefreshableClientConfig based on the 'service-discovery' block in runtime configuration and any overrides.
+	ServiceConfig(serviceName string) httpclient.RefreshableClientConfig
 	// WithDefaultConfig adds the provided ClientConfig to a list of extra defaults to be merged together for the final
 	// client configurations returned by NewClient and NewHTTPClient.
 	WithDefaultConfig(defaults httpclient.ClientConfig)
@@ -57,6 +59,12 @@ type serviceDiscovery struct {
 
 func NewServiceDiscovery(install config.Install, services config.RefreshableServicesConfig) ConfigurableServiceDiscovery {
 	return &serviceDiscovery{Services: services, UserAgent: userAgent(install)}
+}
+
+func (s *serviceDiscovery) ServiceConfig(serviceName string) httpclient.RefreshableClientConfig {
+	s.RLock()
+	defer s.RUnlock()
+	return s.serviceConfig(serviceName)
 }
 
 func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error) {
