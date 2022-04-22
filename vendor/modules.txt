@@ -90,7 +90,7 @@ github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
-# github.com/palantir/witchcraft-go-logging v1.19.0
+# github.com/palantir/witchcraft-go-logging v1.20.0
 ## explicit; go 1.18
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
