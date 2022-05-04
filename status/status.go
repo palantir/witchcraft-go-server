@@ -65,7 +65,11 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.HealthStatus, int) {
 	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
 		token, err := httpserver.ParseBearerTokenHeader(req)
-		if err != nil || sharedSecret != token {
+		if err != nil {
+			return health.HealthStatus{}, http.StatusUnauthorized
+		}
+
+		if !httpserver.SecretStringEqual(sharedSecret, token) {
 			return health.HealthStatus{}, http.StatusUnauthorized
 		}
 	}

@@ -15,6 +15,8 @@
 package httpserver
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"net/http"
 	"strings"
 
@@ -49,4 +51,16 @@ func ParseBearerTokenHeader(req *http.Request) (string, error) {
 		return "", werror.Error("Illegal authorization header, expected Bearer")
 	}
 	return headerSplit[1], nil
+}
+
+// SecretStringEqual will compare two strings and return true if they are
+// equal. The time taken for the comparison does not depend on the string
+// contents.
+func SecretStringEqual(a, b string) bool {
+	// compute hash of inputs since ConstantTimeCompare will leak if the
+	// length of the expected and actual secrets do not match.
+	aHash := sha256.Sum256([]byte(a))
+	bHash := sha256.Sum256([]byte(b))
+
+	return subtle.ConstantTimeCompare(aHash[:], bHash[:]) == 1
 }

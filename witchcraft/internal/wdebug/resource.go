@@ -50,12 +50,14 @@ func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error
 
 func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) error {
 	ctx := req.Context()
-	authHeader, err := httpserver.ParseBearerTokenHeader(req)
-	if err != nil {
-		return errors.WrapWithNewError(err, errors.DefaultPermissionDenied)
-	}
-	if authHeader != r.SharedSecret.CurrentString() {
-		return errors.NewPermissionDenied()
+	if sharedSecret := r.SharedSecret.CurrentString(); sharedSecret != "" {
+		token, err := httpserver.ParseBearerTokenHeader(req)
+		if err != nil {
+			return errors.WrapWithUnauthorized(err)
+		}
+		if !httpserver.SecretStringEqual(sharedSecret, token) {
+			return errors.NewUnauthorized()
+		}
 	}
 
 	pathParams := wrouter.PathParams(req)
