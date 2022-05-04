@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Use consistent time string comparison when checking auth tokens.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/432
