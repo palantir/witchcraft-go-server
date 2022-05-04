@@ -76,4 +76,21 @@ func TestDebugResource(t *testing.T) {
 			test.Verify(t, resp)
 		})
 	}
+
+	t.Run("401 on invalid auth header", func(t *testing.T) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/%s", server.URL, DiagnosticTypeAllocsProfileV1), nil)
+		require.NoError(t, err)
+		req.Header.Set("Auth", "Bearer "+secret.Current().(string))
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+	t.Run("401 on invalid secret", func(t *testing.T) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/%s", server.URL, DiagnosticTypeAllocsProfileV1), nil)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer invalid")
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
 }
