@@ -57,3 +57,10 @@ func (m *svc1Logger) Error(msg string, params ...svc1log.Param) {
 func (m *svc1Logger) SetLevel(level wlog.LogLevel) {
 	m.logger.SetLevel(level)
 }
+
+func (m *svc1Logger) Enabled(level wlog.LogLevel) bool {
+	if l, ok := m.logger.(wlog.LevelChecker); ok {
+		return l.Enabled(level)
+	}
+	return true
+}
