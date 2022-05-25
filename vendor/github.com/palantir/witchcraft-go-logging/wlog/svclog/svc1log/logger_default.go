@@ -56,25 +56,25 @@ type defaultLogger struct {
 }
 
 func (l *defaultLogger) Debug(msg string, params ...Param) {
-	if l.enabled(wlog.DebugLevel) {
+	if l.Enabled(wlog.DebugLevel) {
 		l.logger.Debug(msg, ToParams(DebugLevelParam(), params)...)
 	}
 }
 
 func (l *defaultLogger) Info(msg string, params ...Param) {
-	if l.enabled(wlog.InfoLevel) {
+	if l.Enabled(wlog.InfoLevel) {
 		l.logger.Info(msg, ToParams(InfoLevelParam(), params)...)
 	}
 }
 
 func (l *defaultLogger) Warn(msg string, params ...Param) {
-	if l.enabled(wlog.WarnLevel) {
+	if l.Enabled(wlog.WarnLevel) {
 		l.logger.Warn(msg, ToParams(WarnLevelParam(), params)...)
 	}
 }
 
 func (l *defaultLogger) Error(msg string, params ...Param) {
-	if l.enabled(wlog.ErrorLevel) {
+	if l.Enabled(wlog.ErrorLevel) {
 		l.logger.Error(msg, ToParams(ErrorLevelParam(), params)...)
 	}
 }
@@ -83,7 +83,7 @@ func (l *defaultLogger) SetLevel(level wlog.LogLevel) {
 	l.logger.SetLevel(level)
 }
 
-func (l *defaultLogger) enabled(level wlog.LogLevel) bool {
+func (l *defaultLogger) Enabled(level wlog.LogLevel) bool {
 	return l.level == nil || l.level.Enabled(level)
 }
 

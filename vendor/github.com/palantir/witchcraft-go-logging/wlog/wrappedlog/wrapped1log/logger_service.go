@@ -29,25 +29,25 @@ type wrappedSvc1Logger struct {
 }
 
 func (l *wrappedSvc1Logger) Debug(msg string, params ...svc1log.Param) {
-	if l.enabled(wlog.DebugLevel) {
+	if l.Enabled(wlog.DebugLevel) {
 		l.logger.Debug("", l.toServiceParams(msg, svc1log.DebugLevelParam(), params)...)
 	}
 }
 
 func (l *wrappedSvc1Logger) Info(msg string, params ...svc1log.Param) {
-	if l.enabled(wlog.InfoLevel) {
+	if l.Enabled(wlog.InfoLevel) {
 		l.logger.Info("", l.toServiceParams(msg, svc1log.InfoLevelParam(), params)...)
 	}
 }
 
 func (l *wrappedSvc1Logger) Warn(msg string, params ...svc1log.Param) {
-	if l.enabled(wlog.WarnLevel) {
+	if l.Enabled(wlog.WarnLevel) {
 		l.logger.Warn("", l.toServiceParams(msg, svc1log.WarnLevelParam(), params)...)
 	}
 }
 
 func (l *wrappedSvc1Logger) Error(msg string, params ...svc1log.Param) {
-	if l.enabled(wlog.ErrorLevel) {
+	if l.Enabled(wlog.ErrorLevel) {
 		l.logger.Error("", l.toServiceParams(msg, svc1log.ErrorLevelParam(), params)...)
 	}
 }
@@ -56,7 +56,7 @@ func (l *wrappedSvc1Logger) SetLevel(level wlog.LogLevel) {
 	l.logger.SetLevel(level)
 }
 
-func (l *wrappedSvc1Logger) enabled(level wlog.LogLevel) bool {
+func (l *wrappedSvc1Logger) Enabled(level wlog.LogLevel) bool {
 	return l.level == nil || l.level.Enabled(level)
 }
 

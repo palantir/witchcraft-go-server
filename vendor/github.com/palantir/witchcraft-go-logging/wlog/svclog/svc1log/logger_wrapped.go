@@ -42,3 +42,10 @@ func (w *wrappedLogger) Error(msg string, params ...Param) {
 func (w *wrappedLogger) SetLevel(level wlog.LogLevel) {
 	w.logger.SetLevel(level)
 }
+
+func (w *wrappedLogger) Enabled(level wlog.LogLevel) bool {
+	if l, ok := w.logger.(wlog.LevelChecker); ok {
+		return l.Enabled(level)
+	}
+	return true
+}
