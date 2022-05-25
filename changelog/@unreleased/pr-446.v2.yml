@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Wrapped logger implements LevelChecker
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/446
