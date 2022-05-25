@@ -84,6 +84,10 @@ func (l *warnLogger) SetLevel(level wlog.LogLevel) {
 	l.level = level
 }
 
+func (l *warnLogger) Enabled(level wlog.LogLevel) bool {
+	return l.level.Enabled(level)
+}
+
 func (l *warnLogger) LogLevel() wlog.LogLevel {
 	return l.level
 }
