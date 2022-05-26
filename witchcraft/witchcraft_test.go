@@ -453,6 +453,59 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 	}
 }
 
+func TestServer_WithInsecurePlaintextServer_Localhost(t *testing.T) {
+	server, cleanup := newServer("127.0.0.1", 0)
+	server.WithInsecurePlaintextServer()
+	defer cleanup()
+	errc := make(chan error)
+	go func() {
+		errc <- server.Start()
+	}()
+
+	// wait for server to come up
+	timeout := time.After(2 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for range ticker.C {
+		select {
+		case <-timeout:
+			assert.Fail(t, "timed out waiting for server to start")
+		default:
+		}
+		if server.Running() {
+			break
+		}
+	}
+
+	assert.NoError(t, server.Close(), "error stopping server")
+
+	// ensure Start() quickly returns a nil error
+	select {
+	case startErr := <-errc:
+		assert.Nil(t, startErr, "Start() incorrectly returned a non-nil error when the server was intentionally stop")
+	case <-time.After(2 * time.Second):
+		assert.Fail(t, "timed out waiting for Start() to return an error")
+	}
+}
+
+func TestServer_WithInsecurePlaintextServer_AllInterfaces(t *testing.T) {
+	server, cleanup := newServer("0.0.0.0", 0)
+	server.WithInsecurePlaintextServer()
+	defer cleanup()
+	errc := make(chan error)
+	go func() {
+		errc <- server.Start()
+	}()
+
+	// ensure Start() quickly returns an error
+	select {
+	case startErr := <-errc:
+		assert.Error(t, startErr, "Start() incorrectly returned a nil error when the server was intentionally stop")
+	case <-time.After(time.Second):
+		assert.Fail(t, "timed out waiting for Start() to return an error")
+	}
+}
+
 // TestServer_InitNetworkLogging verifies that in various cases of network logging misconfiguration,
 // we are always able to continue past those errors and attempt to initialize the server.
 func TestServer_InitNetworkLogging(t *testing.T) {
