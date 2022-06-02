@@ -78,7 +78,7 @@ github.com/palantir/pkg/transform
 ## explicit; go 1.13
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
-# github.com/palantir/witchcraft-go-error v1.8.0
+# github.com/palantir/witchcraft-go-error v1.9.0
 ## explicit; go 1.18
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
@@ -110,10 +110,10 @@ github.com/palantir/witchcraft-go-logging/wlog/tcpjson
 github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
-# github.com/palantir/witchcraft-go-params v1.5.0
+# github.com/palantir/witchcraft-go-params v1.6.0
 ## explicit; go 1.18
 github.com/palantir/witchcraft-go-params
-# github.com/palantir/witchcraft-go-tracing v1.7.0
+# github.com/palantir/witchcraft-go-tracing v1.8.0
 ## explicit; go 1.18
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
