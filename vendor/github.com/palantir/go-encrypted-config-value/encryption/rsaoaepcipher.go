@@ -50,7 +50,7 @@ func (r *RSAOAEPCipher) MDF1HashAlg() HashAlgorithm {
 }
 
 // NewRSAOAEPCipher returns a new Cipher that uses RSA with OAEP/MDF1 padding using default parameters (SHA-256 as the
-// OAEP hash algorithm and MDF1 as the MDF1 hash algorithm).
+// hash algorithim for OAEP amd MDF1 padding).
 func NewRSAOAEPCipher() Cipher {
 	return &RSAOAEPCipher{
 		oaepHashAlg: SHA256,
