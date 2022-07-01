@@ -51,6 +51,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -117,6 +118,12 @@ type Server struct {
 
 	// specifies the handlers to invoke upon health status changes. The LoggingHealthStatusChangeHandler is added by default.
 	healthStatusChangeHandlers []status.HealthStatusChangeHandler
+
+	// if true, disables the SERVICE_DEPENDENCY health check.
+	disableServiceDependencyHealth bool
+
+	// provides the SERVICE_DEPENDENCY health check unless disableServiceDependencyHealth is true.
+	serviceDependencyHealthCheck *dependencyhealth.ServiceDependencyHealthCheck
 
 	// provides the RouterImpl used by the server (and management server if it is separate). If nil, a default function
 	// that returns a new whttprouter is used.
@@ -490,6 +497,12 @@ func (s *Server) WithDisableGoRuntimeMetrics() *Server {
 	return s
 }
 
+// WithDisableServiceDependencyHealth disables the server's enabled-by-default SERVICE_DEPENDENCY check.
+func (s *Server) WithDisableServiceDependencyHealth() *Server {
+	s.disableServiceDependencyHealth = true
+	return s
+}
+
 // WithMetricsBlacklist sets the metric blacklist to the provided set of metrics. The provided metrics should be the
 // name of the metric (for example, "server.response.size"). The blacklist only supports blacklisting at the metric
 // level: blacklisting an individual metric value (such as "server.response.size.count") will not have any effect. The
@@ -642,6 +655,12 @@ func (s *Server) Start() (rErr error) {
 	}
 	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
 
+	// set up SERVICE_DEPENDENCY check
+	if !s.disableServiceDependencyHealth {
+		s.serviceDependencyHealthCheck = dependencyhealth.NewServiceDependencyHealthCheck()
+		internalHealthCheckSources = append(internalHealthCheckSources, s.serviceDependencyHealthCheck)
+	}
+
 	// Initialize network logging client if configured
 	ctx, netLoggerHealth := s.initNetworkLogging(ctx, baseInstallCfg, baseRefreshableRuntimeCfg)
 	if netLoggerHealth != nil {
@@ -704,7 +723,7 @@ func (s *Server) Start() (rErr error) {
 				},
 				InstallConfig:  fullInstallCfg,
 				RuntimeConfig:  refreshableRuntimeCfg,
-				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery()),
+				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery(), s.serviceDependencyHealthCheck),
 				ShutdownServer: s.Shutdown,
 			},
 		)

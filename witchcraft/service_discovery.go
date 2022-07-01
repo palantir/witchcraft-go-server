@@ -20,6 +20,7 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"github.com/palantir/witchcraft-go-server/v2/config"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
 )
 
 type ServiceDiscovery interface {
@@ -54,11 +55,20 @@ type serviceDiscovery struct {
 	sync.RWMutex
 	Services  config.RefreshableServicesConfig
 	Extra     *httpclient.ServicesConfig
+	Health    *dependencyhealth.ServiceDependencyHealthCheck
 	UserAgent string
 }
 
-func NewServiceDiscovery(install config.Install, services config.RefreshableServicesConfig) ConfigurableServiceDiscovery {
-	return &serviceDiscovery{Services: services, UserAgent: userAgent(install)}
+func NewServiceDiscovery(
+	install config.Install,
+	services config.RefreshableServicesConfig,
+	health *dependencyhealth.ServiceDependencyHealthCheck,
+) ConfigurableServiceDiscovery {
+	return &serviceDiscovery{
+		Services:  services,
+		Health:    health,
+		UserAgent: userAgent(install),
+	}
 }
 
 func (s *serviceDiscovery) ServiceConfig(serviceName string) httpclient.RefreshableClientConfig {
@@ -70,14 +80,22 @@ func (s *serviceDiscovery) ServiceConfig(serviceName string) httpclient.Refresha
 func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error) {
 	s.RLock()
 	defer s.RUnlock()
-	params := append([]httpclient.ClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)
+	params := []httpclient.ClientParam{httpclient.WithUserAgent(s.UserAgent)}
+	if s.Health != nil {
+		params = append(params, httpclient.WithMiddleware(s.Health.Middleware(serviceName)))
+	}
+	params = append(params, additionalParams...)
 	return httpclient.NewClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
 }
 
 func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error) {
 	s.RLock()
 	defer s.RUnlock()
-	params := append([]httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)
+	params := []httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}
+	if s.Health != nil {
+		params = append(params, httpclient.WithMiddleware(s.Health.Middleware(serviceName)))
+	}
+	params = append(params, additionalParams...)
 	return httpclient.NewHTTPClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
 }
 

@@ -22,6 +22,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -66,27 +68,179 @@ func TestAddHealthCheckSources(t *testing.T) {
 				Type:    health.CheckType("FOO"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 			health.CheckType("BAR"): {
 				Type:    health.CheckType("BAR"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:    health.CheckType("SERVER_STATUS"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 		},
 	}, healthResults)
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
+func TestServiceDependencyHealth(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+	var clients witchcraft.ConfigurableServiceDiscovery
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
+		func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			clients = info.Clients
+			return nil, nil
+		},
+		ioutil.Discard,
+		func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+			return createTestServer(t, initFn, installCfg, logOutputBuffer)
+		},
+	)
+
+	getHealth := func() health.HealthStatus {
+		resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
+		require.NoError(t, err)
+
+		bytes, err := ioutil.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		var healthResults health.HealthStatus
+		err = json.Unmarshal(bytes, &healthResults)
+		require.NoError(t, err)
+		return healthResults
+	}
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	okServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+	}))
+	defer okServer.Close()
+	errServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer errServer.Close()
+	errHost := strings.TrimPrefix(errServer.URL, "http://")
+	stoppedServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	stoppedServer.Close()
+	stoppedHost := strings.TrimPrefix(stoppedServer.URL, "http://")
+
+	assert.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+		},
+	}, getHealth())
+
+	clientA, err := clients.NewHTTPClient(ctx, "serviceA")
+	require.NoError(t, err)
+	_, _ = clientA.CurrentHTTPClient().Get(okServer.URL)
+
+	require.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVICE_DEPENDENCY"): {
+				Type:    health.CheckType("SERVICE_DEPENDENCY"),
+				Message: stringPtr("All remote services are healthy"),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
+				Params:  make(map[string]any),
+			},
+		},
+	}, getHealth())
+
+	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
+	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
+
+	require.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVICE_DEPENDENCY"): {
+				Type:    health.CheckType("SERVICE_DEPENDENCY"),
+				Message: stringPtr("Some nodes of a remote service have a high failure rate"),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
+				Params: map[string]any{
+					"serviceA": []any{errHost},
+				},
+			},
+		},
+	}, getHealth())
+
+	clientB, err := clients.NewHTTPClient(ctx, "serviceB")
+	require.NoError(t, err)
+	_, _ = clientB.CurrentHTTPClient().Get(stoppedServer.URL)
+
+	require.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]any),
+			},
+			health.CheckType("SERVICE_DEPENDENCY"): {
+				Type:    health.CheckType("SERVICE_DEPENDENCY"),
+				Message: stringPtr("All nodes of a remote service have a high failure rate"),
+				State:   health.New_HealthState(health.HealthState_WARNING),
+				Params: map[string]any{
+					"serviceA": []any{errHost},
+					"serviceB": []any{stoppedHost},
+				},
+			},
+		},
+	}, getHealth())
 
 	select {
 	case err := <-serverErr:
@@ -173,35 +327,35 @@ func TestHealthReporter(t *testing.T) {
 				Type:    health.CheckType("COMPONENT_A"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 			health.CheckType("COMPONENT_B"): {
 				Type:    health.CheckType("COMPONENT_B"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 			health.CheckType("COMPONENT_C"): {
 				Type:    health.CheckType("COMPONENT_C"),
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errString,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 			health.CheckType("COMPONENT_D"): {
 				Type:    health.CheckType("COMPONENT_D"),
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errString,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 		},
 	}, healthResults)
@@ -229,7 +383,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 					Type:    "ERROR_CHECK",
 					State:   health.New_HealthState(health.HealthState_ERROR),
 					Message: stringPtr("something went wrong"),
-					Params:  map[string]interface{}{"foo": "bar"},
+					Params:  map[string]any{"foo": "bar"},
 				}
 			},
 		},
@@ -239,24 +393,24 @@ func TestPeriodicHealthSource(t *testing.T) {
 			Type:    "HEALTHY_CHECK",
 			State:   health.New_HealthState(health.HealthState_HEALTHY),
 			Message: nil,
-			Params:  make(map[string]interface{}),
+			Params:  make(map[string]any),
 		},
 		"ERROR_CHECK": {
 			Type:    "ERROR_CHECK",
 			State:   health.New_HealthState(health.HealthState_REPAIRING),
 			Message: stringPtr("No successful checks during 1m0s grace period: something went wrong"),
-			Params:  map[string]interface{}{"foo": "bar"},
+			Params:  map[string]any{"foo": "bar"},
 		},
 		health.CheckType("CONFIG_RELOAD"): {
 			Type:   health.CheckType("CONFIG_RELOAD"),
 			State:  health.New_HealthState(health.HealthState_HEALTHY),
-			Params: make(map[string]interface{}),
+			Params: make(map[string]any),
 		},
 		health.CheckType("SERVER_STATUS"): {
 			Type:    health.CheckType("SERVER_STATUS"),
 			State:   health.New_HealthState(health.HealthState_HEALTHY),
 			Message: nil,
-			Params:  make(map[string]interface{}),
+			Params:  make(map[string]any),
 		},
 	}}
 	periodicHealthCheckSource := periodic.FromHealthCheckSource(context.Background(), time.Second*60, time.Millisecond*1, inputSource)
@@ -333,12 +487,12 @@ func TestHealthSharedSecret(t *testing.T) {
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 		},
 	}, healthResults)
@@ -397,12 +551,12 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 		},
 	}, healthResults)
@@ -427,12 +581,12 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 		},
 	}, healthResults)
@@ -486,12 +640,12 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 		},
 	}, healthResults)
@@ -516,13 +670,13 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:    health.CheckType("CONFIG_RELOAD"),
 				State:   health.New_HealthState(health.HealthState_ERROR),
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
+				Params: make(map[string]any),
 			},
 		},
 	}, healthResults)
@@ -551,7 +705,7 @@ func (cwt healthCheckWithType) HealthStatus(_ context.Context) health.HealthStat
 				Type:    cwt.typ,
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]interface{}),
+				Params:  make(map[string]any),
 			},
 		},
 	}
