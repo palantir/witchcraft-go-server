@@ -68,24 +68,24 @@ func TestAddHealthCheckSources(t *testing.T) {
 				Type:    health.CheckType("FOO"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("BAR"): {
 				Type:    health.CheckType("BAR"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:    health.CheckType("SERVER_STATUS"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -153,12 +153,12 @@ func TestServiceDependencyHealth(t *testing.T) {
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, getHealth())
@@ -172,18 +172,18 @@ func TestServiceDependencyHealth(t *testing.T) {
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVICE_DEPENDENCY"): {
 				Type:    health.CheckType("SERVICE_DEPENDENCY"),
 				Message: stringPtr("All remote services are healthy"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 		},
 	}, getHealth())
@@ -196,19 +196,19 @@ func TestServiceDependencyHealth(t *testing.T) {
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVICE_DEPENDENCY"): {
 				Type:    health.CheckType("SERVICE_DEPENDENCY"),
 				Message: stringPtr("Some nodes of a remote service have a high failure rate"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
-				Params: map[string]any{
-					"serviceA": []any{errHost},
+				Params: map[string]interface{}{
+					"serviceA": []interface{}{errHost},
 				},
 			},
 		},
@@ -223,20 +223,20 @@ func TestServiceDependencyHealth(t *testing.T) {
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVICE_DEPENDENCY"): {
 				Type:    health.CheckType("SERVICE_DEPENDENCY"),
 				Message: stringPtr("All nodes of a remote service have a high failure rate"),
 				State:   health.New_HealthState(health.HealthState_WARNING),
-				Params: map[string]any{
-					"serviceA": []any{errHost},
-					"serviceB": []any{stoppedHost},
+				Params: map[string]interface{}{
+					"serviceA": []interface{}{errHost},
+					"serviceB": []interface{}{stoppedHost},
 				},
 			},
 		},
@@ -327,35 +327,35 @@ func TestHealthReporter(t *testing.T) {
 				Type:    health.CheckType("COMPONENT_A"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("COMPONENT_B"): {
 				Type:    health.CheckType("COMPONENT_B"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("COMPONENT_C"): {
 				Type:    health.CheckType("COMPONENT_C"),
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errString,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("COMPONENT_D"): {
 				Type:    health.CheckType("COMPONENT_D"),
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errString,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -383,7 +383,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 					Type:    "ERROR_CHECK",
 					State:   health.New_HealthState(health.HealthState_ERROR),
 					Message: stringPtr("something went wrong"),
-					Params:  map[string]any{"foo": "bar"},
+					Params:  map[string]interface{}{"foo": "bar"},
 				}
 			},
 		},
@@ -393,24 +393,24 @@ func TestPeriodicHealthSource(t *testing.T) {
 			Type:    "HEALTHY_CHECK",
 			State:   health.New_HealthState(health.HealthState_HEALTHY),
 			Message: nil,
-			Params:  make(map[string]any),
+			Params:  make(map[string]interface{}),
 		},
 		"ERROR_CHECK": {
 			Type:    "ERROR_CHECK",
 			State:   health.New_HealthState(health.HealthState_REPAIRING),
 			Message: stringPtr("No successful checks during 1m0s grace period: something went wrong"),
-			Params:  map[string]any{"foo": "bar"},
+			Params:  map[string]interface{}{"foo": "bar"},
 		},
 		health.CheckType("CONFIG_RELOAD"): {
 			Type:   health.CheckType("CONFIG_RELOAD"),
 			State:  health.New_HealthState(health.HealthState_HEALTHY),
-			Params: make(map[string]any),
+			Params: make(map[string]interface{}),
 		},
 		health.CheckType("SERVER_STATUS"): {
 			Type:    health.CheckType("SERVER_STATUS"),
 			State:   health.New_HealthState(health.HealthState_HEALTHY),
 			Message: nil,
-			Params:  make(map[string]any),
+			Params:  make(map[string]interface{}),
 		},
 	}}
 	periodicHealthCheckSource := periodic.FromHealthCheckSource(context.Background(), time.Second*60, time.Millisecond*1, inputSource)
@@ -487,12 +487,12 @@ func TestHealthSharedSecret(t *testing.T) {
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -551,12 +551,12 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -581,12 +581,12 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -640,12 +640,12 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -670,13 +670,13 @@ invalid-key: invalid-value
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:    health.CheckType("CONFIG_RELOAD"),
 				State:   health.New_HealthState(health.HealthState_ERROR),
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]any),
+				Params: make(map[string]interface{}),
 			},
 		},
 	}, healthResults)
@@ -705,7 +705,7 @@ func (cwt healthCheckWithType) HealthStatus(_ context.Context) health.HealthStat
 				Type:    cwt.typ,
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
-				Params:  make(map[string]any),
+				Params:  make(map[string]interface{}),
 			},
 		},
 	}
