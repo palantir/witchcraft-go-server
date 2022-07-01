@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add SERVICE_DEPENDENCY health check
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/469
