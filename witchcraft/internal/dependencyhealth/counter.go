@@ -20,13 +20,13 @@ import (
 )
 
 // timeBucket measure the number of times Mark is called within the bucket interval.
-// This is necessary over using gometrics.Meter because it only updates every 5 seconds.
-// We will call Count relatively infrequently, so optimize for correctness.
+// This is necessary over using gometrics.Meter because it only updates every 5 seconds
+// but our results must be read-after-write consistent.
 type timeBucket struct {
+	mux    sync.Mutex
 	bucket time.Duration
 	now    func() time.Time
 	slice  []time.Time
-	mux    sync.Mutex
 }
 
 func newTimeBucket(bucket time.Duration) *timeBucket {
@@ -37,6 +37,7 @@ func newTimeBucket(bucket time.Duration) *timeBucket {
 	}
 }
 
+// Mark prunes any old bucket entries and appends a new b.now value.
 func (b *timeBucket) Mark() {
 	b.mux.Lock()
 	defer b.mux.Unlock()
@@ -44,6 +45,7 @@ func (b *timeBucket) Mark() {
 	b.slice = append(b.slice, b.now())
 }
 
+// Count prunes any old bucket entries and returns the number of entries within the window.
 func (b *timeBucket) Count() int {
 	b.mux.Lock()
 	defer b.mux.Unlock()

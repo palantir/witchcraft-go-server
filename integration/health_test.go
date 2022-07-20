@@ -110,9 +110,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 			return nil, nil
 		},
 		ioutil.Discard,
-		func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
-			return createTestServer(t, initFn, installCfg, logOutputBuffer)
-		},
+		createTestServer,
 	)
 
 	getHealth := func() health.HealthStatus {
@@ -188,6 +186,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 		},
 	}, getHealth())
 
+	// Trigger two errors so failure rate is greater than half.
 	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
 	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
 

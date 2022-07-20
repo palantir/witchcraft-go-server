@@ -20,7 +20,6 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
 )
 
 type ServiceDiscovery interface {
@@ -53,21 +52,20 @@ type ConfigurableServiceDiscovery interface {
 
 type serviceDiscovery struct {
 	sync.RWMutex
-	Services  config.RefreshableServicesConfig
-	Extra     *httpclient.ServicesConfig
-	Health    *dependencyhealth.ServiceDependencyHealthCheck
-	UserAgent string
+	Services config.RefreshableServicesConfig
+	Extra    *httpclient.ServicesConfig
+	Params   []httpclient.ClientOrHTTPClientParam
 }
 
 func NewServiceDiscovery(
 	install config.Install,
 	services config.RefreshableServicesConfig,
-	health *dependencyhealth.ServiceDependencyHealthCheck,
+	params ...httpclient.ClientOrHTTPClientParam,
 ) ConfigurableServiceDiscovery {
+	params = append(params, httpclient.WithUserAgent(userAgent(install)))
 	return &serviceDiscovery{
-		Services:  services,
-		Health:    health,
-		UserAgent: userAgent(install),
+		Services: services,
+		Params:   params,
 	}
 }
 

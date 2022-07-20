@@ -43,10 +43,8 @@ type ServiceDependencyHealthCheck struct {
 }
 
 // NewServiceDependencyHealthCheck returns the SERVICE_DEPENDENCY health check.
-// For each service, it measures the percent of submitted results representing errors.
-// errorFraction represents the required minimum error percentage for a host to be marked unhealthy.
-// 0.8 means that if 80% or more of responses within windowSize are 500s or errors,
-// the host is unhealthy and should be removed.
+// For each service, it measures the ratio of submitted results representing errors from each host.
+// When a host returns fewer 2xx responses than 5xx and network errors, it is unhealthy.
 //
 // This should be a singleton within an application.
 // No (known) support exists for merging multiple service dependency checks.

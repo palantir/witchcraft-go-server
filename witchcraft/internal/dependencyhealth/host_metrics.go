@@ -21,6 +21,8 @@ import (
 )
 
 type ServiceName string
+
+// HostPort is a 'host:port' string.
 type HostPort string
 
 type HostMetricsRegistry interface {
@@ -50,9 +52,9 @@ func NewHostRegistry(windowSize time.Duration) HostMetricsRegistry {
 }
 
 type hostMetricsRegistry struct {
+	mux        sync.Mutex
 	registry   map[ServiceName]map[HostPort]*hostStatus
 	windowSize time.Duration
-	mux        sync.Mutex
 }
 
 func (h *hostMetricsRegistry) HostMetrics(serviceName string, hostname string, port string) HostStatus {

@@ -17,6 +17,7 @@ package witchcraft
 import (
 	"context"
 	"crypto/tls"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"io"
 	"io/ioutil"
 	"math"
@@ -723,7 +724,7 @@ func (s *Server) Start() (rErr error) {
 				},
 				InstallConfig:  fullInstallCfg,
 				RuntimeConfig:  refreshableRuntimeCfg,
-				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery(), s.serviceDependencyHealthCheck),
+				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery(), httpclient.WithMiddleware(s.serviceDependencyHealthCheck.Middleware())),
 				ShutdownServer: s.Shutdown,
 			},
 		)
