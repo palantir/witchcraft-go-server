@@ -1,5 +1,16 @@
 type: feature
 feature:
-  description: Add SERVICE_DEPENDENCY health check
+  description: |
+    Add SERVICE_DEPENDENCY health check.
+
+    Clients created with InitInfo.Clients will now, by default, include a middleware tracking response success
+    and failure by host and service name. Hosts reporting more errors than successes are surfaced in the
+    SERVICE_DEPENDENCY health check. If all hosts of at least one service are failing, the check will enter
+    WARNING state.
+
+    Alerting infrastructure should ignore this check; it is used for informational and debugging
+    purposes but "failures" are not the fault of the reporting service.
+
+    This middleware can be disabled with Server.WithDisableServiceDependencyHealth()
   links:
-  - https://github.com/palantir/witchcraft-go-server/pull/469
+    - https://github.com/palantir/witchcraft-go-server/pull/469
