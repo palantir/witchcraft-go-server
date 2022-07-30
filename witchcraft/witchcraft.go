@@ -17,7 +17,6 @@ package witchcraft
 import (
 	"context"
 	"crypto/tls"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"io"
 	"io/ioutil"
 	"math"
@@ -31,6 +30,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
@@ -714,6 +714,15 @@ func (s *Server) Start() (rErr error) {
 		}
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
+		discovery := NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery())
+		if s.serviceDependencyHealthCheck != nil {
+			discovery.WithDefaultParams(func(serviceName string) []httpclient.ClientParam {
+				return []httpclient.ClientParam{
+					httpclient.WithMiddleware(s.serviceDependencyHealthCheck.Middleware(serviceName)),
+				}
+			})
+		}
+
 		svc1log.FromContext(ctx).Debug("Running server initialization function.")
 		cleanupFn, err := s.initFn(
 			ctx,
@@ -724,7 +733,7 @@ func (s *Server) Start() (rErr error) {
 				},
 				InstallConfig:  fullInstallCfg,
 				RuntimeConfig:  refreshableRuntimeCfg,
-				Clients:        NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery(), httpclient.WithMiddleware(s.serviceDependencyHealthCheck.Middleware())),
+				Clients:        discovery,
 				ShutdownServer: s.Shutdown,
 			},
 		)

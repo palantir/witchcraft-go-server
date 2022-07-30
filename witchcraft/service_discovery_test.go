@@ -29,7 +29,7 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 	startingConfig := httpclient.ServicesConfig{}
 	defaultRefreshable := refreshable.NewDefaultRefreshable(startingConfig)
 	refreshingConfig := config.NewRefreshingServicesConfig(defaultRefreshable)
-	discovery := NewServiceDiscovery(config.Install{}, refreshingConfig, nil).(*serviceDiscovery)
+	discovery := NewServiceDiscovery(config.Install{}, refreshingConfig).(*serviceDiscovery)
 	blankConfig := discovery.serviceConfig(serviceName)
 	require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName}, blankConfig.CurrentClientConfig())
 	t.Run("update default config", func(t *testing.T) {
