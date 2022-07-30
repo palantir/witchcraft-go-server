@@ -85,7 +85,7 @@ func (m ServiceDependencyMiddleware) RoundTrip(req *http.Request, next http.Roun
 
 // HealthStatus iterates through all tracked hosts for each service.
 // If there are both healthy and unhealthy hosts, the check is HEALTHY
-// but details are included in message and params.
+// but details are included in the message and params.
 // If there are only unhealthy hosts for at least one service, the check is WARNING.
 func (h *ServiceDependencyHealthCheck) HealthStatus(context.Context) health.HealthStatus {
 	allServices := h.hosts.AllServices()
