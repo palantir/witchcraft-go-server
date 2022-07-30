@@ -42,7 +42,7 @@ type HostStatus interface {
 	MarkOther()
 }
 
-// NewHostRegistry returns a HostMetricsRegistry. It should generally be a singleton per application.
+// NewHostRegistry returns a new HostMetricsRegistry that is safe for concurrent use and should generally be used as a singleton per application.
 // Metrics are used for internal tracking and not registered on the default registry emitted by witchcraft.
 func NewHostRegistry(windowSize time.Duration) HostMetricsRegistry {
 	return &hostMetricsRegistry{
