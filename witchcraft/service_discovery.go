@@ -46,15 +46,22 @@ type ConfigurableServiceDiscovery interface {
 	// to benefit from live-reloadability. All config provided by WithServiceConfig will be merged into the default
 	// refreshable ServicesConfig. In case of conflict, the config provided here overrides the defaults.
 	WithServiceConfig(serviceName string, cfg httpclient.ClientConfig)
+	// WithDefaultParams stores the provided params function. When constructing a new client, the function will
+	// be evaluated and the params added to all clients.
+	WithDefaultParams(params func(serviceName string) []httpclient.ClientParam)
+	// WithServiceParams stores the provided params for when building clients of serviceName.
+	WithServiceParams(serviceName string, params ...httpclient.ClientParam)
 	// WithUserAgent overrides the default user-agent header constructed from the product name and version in install config.
 	WithUserAgent(userAgent string)
 }
 
 type serviceDiscovery struct {
 	sync.RWMutex
-	Services  config.RefreshableServicesConfig
-	Extra     *httpclient.ServicesConfig
-	UserAgent string
+	Services      config.RefreshableServicesConfig
+	Extra         *httpclient.ServicesConfig
+	DefaultParams []func(serviceName string) []httpclient.ClientParam
+	ServiceParams map[string][]httpclient.ClientParam
+	UserAgent     string
 }
 
 func NewServiceDiscovery(install config.Install, services config.RefreshableServicesConfig) ConfigurableServiceDiscovery {
@@ -70,14 +77,28 @@ func (s *serviceDiscovery) ServiceConfig(serviceName string) httpclient.Refresha
 func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error) {
 	s.RLock()
 	defer s.RUnlock()
-	params := append([]httpclient.ClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)
+	params := []httpclient.ClientParam{httpclient.WithUserAgent(s.UserAgent)}
+	for _, paramFunc := range s.DefaultParams {
+		params = append(params, paramFunc(serviceName)...)
+	}
+	if s.ServiceParams != nil {
+		params = append(params, s.ServiceParams[serviceName]...)
+	}
+	params = append(params, additionalParams...)
 	return httpclient.NewClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
 }
 
 func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error) {
 	s.RLock()
 	defer s.RUnlock()
-	params := append([]httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}, additionalParams...)
+	params := []httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}
+	for _, paramFunc := range s.DefaultParams {
+		params = append(params, filterHTTPParams(paramFunc(serviceName))...)
+	}
+	if s.ServiceParams != nil {
+		params = append(params, filterHTTPParams(s.ServiceParams[serviceName])...)
+	}
+	params = append(params, additionalParams...)
 	return httpclient.NewHTTPClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
 }
 
@@ -103,6 +124,21 @@ func (s *serviceDiscovery) WithServiceConfig(serviceName string, cfg httpclient.
 	} else {
 		s.Extra.Services[serviceName] = cfg
 	}
+}
+
+func (s *serviceDiscovery) WithDefaultParams(params func(serviceName string) []httpclient.ClientParam) {
+	s.Lock()
+	defer s.Unlock()
+	s.DefaultParams = append(s.DefaultParams, params)
+}
+
+func (s *serviceDiscovery) WithServiceParams(serviceName string, params ...httpclient.ClientParam) {
+	s.Lock()
+	defer s.Unlock()
+	if s.ServiceParams == nil {
+		s.ServiceParams = map[string][]httpclient.ClientParam{}
+	}
+	s.ServiceParams[serviceName] = append(s.ServiceParams[serviceName], params...)
 }
 
 func (s *serviceDiscovery) WithUserAgent(userAgent string) {
@@ -136,6 +172,16 @@ func (s *serviceDiscovery) serviceConfig(serviceName string) httpclient.Refresha
 
 		return httpclient.MergeClientConfig(cfg, defaults)
 	}))
+}
+
+func filterHTTPParams(in []httpclient.ClientParam) []httpclient.HTTPClientParam {
+	var out []httpclient.HTTPClientParam
+	for _, param := range in {
+		if h, ok := param.(httpclient.HTTPClientParam); ok {
+			out = append(out, h)
+		}
+	}
+	return out
 }
 
 func userAgent(install config.Install) string {
