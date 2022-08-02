@@ -182,6 +182,8 @@ func (s *serviceDiscovery) serviceConfig(serviceName string) httpclient.Refresha
 	}))
 }
 
+// filterHTTPParams converts a list of httpclient.ClientParam to httpclient.HTTPClientParam.
+// Parameters which do not implement the HTTP interface (e.g. WithBaseURLs or WithErrorDecoder) are ignored.
 func filterHTTPParams(in []httpclient.ClientParam) []httpclient.HTTPClientParam {
 	var out []httpclient.HTTPClientParam
 	for _, param := range in {
