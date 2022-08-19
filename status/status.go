@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
@@ -49,7 +50,22 @@ func NewHealthCheckHandler(checkSource status.HealthCheckSource, sharedSecret re
 }
 
 func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	metadata, newHealthStatusCode := h.computeNewHealthStatus(req)
+	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
+		token, err := httpserver.ParseBearerTokenHeader(req)
+		if err != nil {
+			errors.WriteErrorResponse(w, errors.NewUnauthorized())
+			return
+		}
+
+		if !httpserver.SecretStringEqual(sharedSecret, token) {
+			errors.WriteErrorResponse(w, errors.NewPermissionDenied())
+			return
+		}
+	}
+
+	metadata := h.check.HealthStatus(req.Context())
+	newHealthStatusCode := status.HealthStatusCode(metadata)
+
 	previousHealth := h.previousHealth.Load()
 	if previousHealth != nil {
 		if previousHealthTyped, ok := previousHealth.(health.HealthStatus); ok && checksDiffer(previousHealthTyped.Checks, metadata.Checks) {
@@ -60,21 +76,6 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 	h.previousHealth.Store(metadata)
 
 	httpserver.WriteJSONResponse(w, metadata, newHealthStatusCode)
-}
-
-func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.HealthStatus, int) {
-	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
-		token, err := httpserver.ParseBearerTokenHeader(req)
-		if err != nil {
-			return health.HealthStatus{}, http.StatusUnauthorized
-		}
-
-		if !httpserver.SecretStringEqual(sharedSecret, token) {
-			return health.HealthStatus{}, http.StatusUnauthorized
-		}
-	}
-	metadata := h.check.HealthStatus(req.Context())
-	return metadata, status.HealthStatusCode(metadata)
 }
 
 func checksDiffer(previousChecks, newChecks map[health.CheckType]health.HealthCheckResult) bool {
