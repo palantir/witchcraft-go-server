@@ -22,6 +22,8 @@ import (
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
+	"github.com/palantir/witchcraft-go-server/vendor/github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	wparams "github.com/palantir/witchcraft-go-server/vendor/github.com/palantir/witchcraft-go-params"
 )
 
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and
@@ -49,7 +51,22 @@ func NewHealthCheckHandler(checkSource status.HealthCheckSource, sharedSecret re
 }
 
 func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	metadata, newHealthStatusCode := h.computeNewHealthStatus(req)
+	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
+		token, err := httpserver.ParseBearerTokenHeader(req)
+		if err != nil {
+			errors.WriteErrorResponse(w, errors.NewUnauthorized(wparams.NewSafeParam("message", err.Error())))
+			return
+		}
+
+		if !httpserver.SecretStringEqual(sharedSecret, token) {
+			errors.WriteErrorResponse(w, errors.NewUnauthorized(wparams.NewSafeParam("message", "Incorrect health check shared secret")))
+			return
+		}
+	}
+
+	metadata := h.check.HealthStatus(req.Context())
+	newHealthStatusCode := status.HealthStatusCode(metadata)
+
 	previousHealth := h.previousHealth.Load()
 	if previousHealth != nil {
 		if previousHealthTyped, ok := previousHealth.(health.HealthStatus); ok && checksDiffer(previousHealthTyped.Checks, metadata.Checks) {
@@ -60,21 +77,6 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 	h.previousHealth.Store(metadata)
 
 	httpserver.WriteJSONResponse(w, metadata, newHealthStatusCode)
-}
-
-func (h *healthHandlerImpl) computeNewHealthStatus(req *http.Request) (health.HealthStatus, int) {
-	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
-		token, err := httpserver.ParseBearerTokenHeader(req)
-		if err != nil {
-			return health.HealthStatus{}, http.StatusUnauthorized
-		}
-
-		if !httpserver.SecretStringEqual(sharedSecret, token) {
-			return health.HealthStatus{}, http.StatusUnauthorized
-		}
-	}
-	metadata := h.check.HealthStatus(req.Context())
-	return metadata, status.HealthStatusCode(metadata)
 }
 
 func checksDiffer(previousChecks, newChecks map[health.CheckType]health.HealthCheckResult) bool {
