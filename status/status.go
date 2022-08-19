@@ -58,7 +58,7 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 		}
 
 		if !httpserver.SecretStringEqual(sharedSecret, token) {
-			errors.WriteErrorResponse(w, errors.NewUnauthorized())
+			errors.WriteErrorResponse(w, errors.NewPermissionDenied())
 			return
 		}
 	}
