@@ -23,7 +23,6 @@ import (
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
-	wparams "github.com/palantir/witchcraft-go-params"
 )
 
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and
@@ -54,12 +53,12 @@ func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
 		token, err := httpserver.ParseBearerTokenHeader(req)
 		if err != nil {
-			errors.WriteErrorResponse(w, errors.NewUnauthorized(wparams.NewSafeParam("message", err.Error())))
+			errors.WriteErrorResponse(w, errors.NewUnauthorized())
 			return
 		}
 
 		if !httpserver.SecretStringEqual(sharedSecret, token) {
-			errors.WriteErrorResponse(w, errors.NewUnauthorized(wparams.NewSafeParam("message", "Incorrect health check shared secret")))
+			errors.WriteErrorResponse(w, errors.NewUnauthorized())
 			return
 		}
 	}
