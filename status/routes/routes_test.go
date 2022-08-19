@@ -196,7 +196,7 @@ func TestAddHealthRoute(t *testing.T) {
 			},
 			"top-secret",
 			"bad-secret",
-			401,
+			403,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -222,11 +222,12 @@ func TestAddHealthRoute(t *testing.T) {
 			require.NoError(t, err)
 
 			expectedChecks := test.metadata
-			// 401 does not return any health check data
-			if test.expectedStatus == 401 {
-				expectedChecks.Checks = map[health.CheckType]health.HealthCheckResult{}
+			switch test.expectedStatus {
+			case 401, 403:
+				// Error response is returned.
+			default:
+				assert.Equal(t, expectedChecks, gotObj)
 			}
-			assert.Equal(t, expectedChecks, gotObj)
 		})
 	}
 }
