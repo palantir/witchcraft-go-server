@@ -155,7 +155,7 @@ func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (Cl
 	}
 	uriScorer := internal.NewRefreshableURIScoringMiddleware(b.URIs, func(uris []string) internal.URIScoringMiddleware {
 		if b.URIScorerBuilder == nil {
-			return internal.NewRandomURIScoringMiddleware(uris, func() int64 { return time.Now().UnixNano() })
+			return internal.NewBalancedURIScoringMiddleware(uris, func() int64 { return time.Now().UnixNano() })
 		}
 		return b.URIScorerBuilder(uris)
 	})
