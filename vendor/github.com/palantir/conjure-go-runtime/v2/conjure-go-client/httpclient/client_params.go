@@ -535,7 +535,20 @@ func WithBasicAuth(username, password string) ClientParam {
 
 // WithBalancedURIScoring adds middleware that prioritizes sending requests to URIs with the fewest in-flight requests
 // and least recent errors.
+// Deprecated: This param is a no-op as balanced URI scoring is the default behavior.
 func WithBalancedURIScoring() ClientParam {
+	return clientParamFunc(func(b *clientBuilder) error {
+		b.URIScorerBuilder = func(uris []string) internal.URIScoringMiddleware {
+			return internal.NewBalancedURIScoringMiddleware(uris, func() int64 {
+				return time.Now().UnixNano()
+			})
+		}
+		return nil
+	})
+}
+
+// WithRandomURIScoring adds middleware that randomizes the order URIs are prioritized in for each request.
+func WithRandomURIScoring() ClientParam {
 	return clientParamFunc(func(b *clientBuilder) error {
 		b.URIScorerBuilder = func(uris []string) internal.URIScoringMiddleware {
 			return internal.NewBalancedURIScoringMiddleware(uris, func() int64 {
