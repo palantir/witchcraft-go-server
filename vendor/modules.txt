@@ -77,7 +77,7 @@ github.com/palantir/pkg/signals
 # github.com/palantir/pkg/tlsconfig v1.1.0
 ## explicit; go 1.14
 github.com/palantir/pkg/tlsconfig
-# github.com/palantir/pkg/transform v1.0.0
+# github.com/palantir/pkg/transform v1.0.1
 ## explicit; go 1.13
 github.com/palantir/pkg/transform
 # github.com/palantir/pkg/uuid v1.0.1
@@ -130,7 +130,7 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/rs/zerolog v1.27.0
+# github.com/rs/zerolog v1.28.0
 ## explicit; go 1.15
 github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
