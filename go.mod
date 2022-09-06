@@ -38,11 +38,11 @@ require (
 	github.com/palantir/pkg/retry v1.1.1 // indirect
 	github.com/palantir/pkg/safelong v1.0.1 // indirect
 	github.com/palantir/pkg/safeyaml v1.0.1 // indirect
-	github.com/palantir/pkg/transform v1.0.0 // indirect
+	github.com/palantir/pkg/transform v1.0.1 // indirect
 	github.com/palantir/pkg/uuid v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rs/zerolog v1.27.0 // indirect
+	github.com/rs/zerolog v1.28.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
