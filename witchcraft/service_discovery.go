@@ -50,10 +50,12 @@ type ConfigurableServiceDiscovery interface {
 	// be evaluated and the params added to all clients.
 	// May be called multiple times; all parameters for NewClient are appended in the order they are provided.
 	// See individual parameter behavior for override semantics when provided multiple times.
+	// Parameters from WithDefaultParams are applied after params from configuration.
 	WithDefaultParams(params func(serviceName string) ([]httpclient.ClientParam, error))
 	// WithServiceParams stores the provided params for when building clients of serviceName.
 	// May be called multiple times; all parameters for NewClient are appended in the order they are provided.
 	// See individual parameter behavior for override semantics when provided multiple times.
+	// Parameters from WithServiceParams are applied after params from configuration.
 	WithServiceParams(serviceName string, params ...httpclient.ClientParam)
 	// WithUserAgent overrides the default user-agent header constructed from the product name and version in install config.
 	WithUserAgent(userAgent string)
