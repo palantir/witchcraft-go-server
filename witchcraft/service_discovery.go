@@ -48,8 +48,12 @@ type ConfigurableServiceDiscovery interface {
 	WithServiceConfig(serviceName string, cfg httpclient.ClientConfig)
 	// WithDefaultParams stores the provided params function. When constructing a new client, the function will
 	// be evaluated and the params added to all clients.
+	// May be called multiple times; all parameters for NewClient are appended in the order they are provided.
+	// See individual parameter behavior for override semantics when provided multiple times.
 	WithDefaultParams(params func(serviceName string) ([]httpclient.ClientParam, error))
 	// WithServiceParams stores the provided params for when building clients of serviceName.
+	// May be called multiple times; all parameters for NewClient are appended in the order they are provided.
+	// See individual parameter behavior for override semantics when provided multiple times.
 	WithServiceParams(serviceName string, params ...httpclient.ClientParam)
 	// WithUserAgent overrides the default user-agent header constructed from the product name and version in install config.
 	WithUserAgent(userAgent string)
@@ -157,7 +161,8 @@ func (s *serviceDiscovery) WithUserAgent(userAgent string) {
 
 // serviceConfig returns a RefreshableClientConfig which merges the configured RefreshableServicesConfig with any
 // additional configuration in s.Extra. Precedence order is:
-//      s.Extra.Services -> s.Services.Services -> s.Extra.Default -> s.Services.Default
+//
+//	s.Extra.Services -> s.Services.Services -> s.Extra.Default -> s.Services.Default
 func (s *serviceDiscovery) serviceConfig(serviceName string) httpclient.RefreshableClientConfig {
 	return httpclient.NewRefreshingClientConfig(s.Services.MapServicesConfig(func(servicesConfig httpclient.ServicesConfig) interface{} {
 		if s.Extra == nil {
