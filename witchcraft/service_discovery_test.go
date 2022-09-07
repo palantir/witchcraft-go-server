@@ -15,6 +15,7 @@
 package witchcraft
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -76,6 +77,29 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 			ReadTimeout:  durationPtr(time.Second),
 			WriteTimeout: durationPtr(time.Second),
 		}, blankConfig.CurrentClientConfig())
+	})
+}
+
+func TestServiceDiscovery_ClientOverrides(t *testing.T) {
+	const serviceName = "blank"
+	ctx := context.Background()
+	startingConfig := httpclient.ServicesConfig{}
+	defaultRefreshable := refreshable.NewDefaultRefreshable(startingConfig)
+	refreshingConfig := config.NewRefreshingServicesConfig(defaultRefreshable)
+	discovery := NewServiceDiscovery(config.Install{}, refreshingConfig).(*serviceDiscovery)
+	t.Run("update default param", func(t *testing.T) {
+		discovery.WithDefaultParams(func(serviceName string) ([]httpclient.ClientParam, error) {
+			return []httpclient.ClientParam{httpclient.WithHTTPTimeout(time.Second)}, nil
+		})
+		client, err := discovery.NewHTTPClient(ctx, serviceName)
+		require.NoError(t, err)
+		require.Equal(t, time.Second, client.CurrentHTTPClient().Timeout)
+	})
+	t.Run("update service param", func(t *testing.T) {
+		discovery.WithServiceParams(serviceName, httpclient.WithHTTPTimeout(2*time.Second))
+		client, err := discovery.NewHTTPClient(ctx, serviceName)
+		require.NoError(t, err)
+		require.Equal(t, 2*time.Second, client.CurrentHTTPClient().Timeout)
 	})
 }
 
