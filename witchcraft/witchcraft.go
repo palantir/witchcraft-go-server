@@ -716,10 +716,10 @@ func (s *Server) Start() (rErr error) {
 
 		discovery := NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery())
 		if s.serviceDependencyHealthCheck != nil {
-			discovery.WithDefaultParams(func(serviceName string) []httpclient.ClientParam {
+			discovery.WithDefaultParams(func(serviceName string) ([]httpclient.ClientParam, error) {
 				return []httpclient.ClientParam{
 					httpclient.WithMiddleware(s.serviceDependencyHealthCheck.Middleware(serviceName)),
-				}
+				}, nil
 			})
 		}
 
@@ -1042,7 +1042,8 @@ func (s *Server) Close() error {
 // encrypted configuration values are decrypted and the resulting bytes are returned.
 //
 // NOTE: as described in the function comment, if the provided bytes contain any encrypted configuration values, the
-//       bytes are assumed to be YAML and are treated as such.
+//
+//	bytes are assumed to be YAML and are treated as such.
 func (s *Server) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
 	if !encryptedconfigvalue.ContainsEncryptedConfigValueStringVars(cfgBytes) {
 		// Nothing to do
