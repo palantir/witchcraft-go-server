@@ -17,7 +17,7 @@ gopath: &gopath
 executors:
   circleci-go:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/witchcraft-go-server
 
 workflows:

@@ -500,7 +500,7 @@ func TestHealthSharedSecret(t *testing.T) {
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "bad-secret"))
 	resp, err = client.Do(request)
 	require.NoError(t, err)
-	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	require.Equal(t, http.StatusForbidden, resp.StatusCode)
 
 	select {
 	case err := <-serverErr:
