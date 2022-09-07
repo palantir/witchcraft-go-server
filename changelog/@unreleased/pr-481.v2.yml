@@ -1,0 +1,11 @@
+type: improvement
+improvement:
+  description: |
+    witchcraft.ConfigurableServiceDiscovery adds WithDefaultParams and WithServiceParams methods for additional HTTP client flexibility.
+
+    WithDefaultParams appends the provided params to all constructed clients. WithServiceParams allows for service-specific parameters.
+
+    These enable callers to append parameters not derived from configuration (for example, based on detected runtime state).
+    Generally, configuration is preferred and these additional entrypoints should be used where config can not be.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/481
