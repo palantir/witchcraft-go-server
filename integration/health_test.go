@@ -22,6 +22,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -87,6 +89,157 @@ func TestAddHealthCheckSources(t *testing.T) {
 			},
 		},
 	}, healthResults)
+
+	select {
+	case err := <-serverErr:
+		require.NoError(t, err)
+	default:
+	}
+}
+
+func TestServiceDependencyHealth(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	port, err := httpserver.AvailablePort()
+	require.NoError(t, err)
+	var clients witchcraft.ConfigurableServiceDiscovery
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
+		func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			clients = info.Clients
+			return nil, nil
+		},
+		ioutil.Discard,
+		createTestServer,
+	)
+
+	getHealth := func() health.HealthStatus {
+		resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
+		require.NoError(t, err)
+
+		bytes, err := ioutil.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		var healthResults health.HealthStatus
+		err = json.Unmarshal(bytes, &healthResults)
+		require.NoError(t, err)
+		return healthResults
+	}
+
+	defer func() {
+		require.NoError(t, server.Close())
+	}()
+	defer cleanup()
+
+	okServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+	}))
+	defer okServer.Close()
+	errServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer errServer.Close()
+	errHost := strings.TrimPrefix(errServer.URL, "http://")
+	stoppedServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	stoppedServer.Close()
+	stoppedHost := strings.TrimPrefix(stoppedServer.URL, "http://")
+
+	assert.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+		},
+	}, getHealth())
+
+	clientA, err := clients.NewHTTPClient(ctx, "serviceA")
+	require.NoError(t, err)
+	_, _ = clientA.CurrentHTTPClient().Get(okServer.URL)
+
+	require.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVICE_DEPENDENCY"): {
+				Type:    health.CheckType("SERVICE_DEPENDENCY"),
+				Message: stringPtr("All remote services are healthy"),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
+				Params:  make(map[string]interface{}),
+			},
+		},
+	}, getHealth())
+
+	// Trigger two errors so failure rate is greater than half.
+	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
+	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
+
+	require.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVICE_DEPENDENCY"): {
+				Type:    health.CheckType("SERVICE_DEPENDENCY"),
+				Message: stringPtr("Some nodes of a remote service have a high failure rate"),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
+				Params: map[string]interface{}{
+					"serviceA": []interface{}{errHost},
+				},
+			},
+		},
+	}, getHealth())
+
+	clientB, err := clients.NewHTTPClient(ctx, "serviceB")
+	require.NoError(t, err)
+	_, _ = clientB.CurrentHTTPClient().Get(stoppedServer.URL)
+
+	require.Equal(t, health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			health.CheckType("CONFIG_RELOAD"): {
+				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVER_STATUS"): {
+				Type:   health.CheckType("SERVER_STATUS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("SERVICE_DEPENDENCY"): {
+				Type:    health.CheckType("SERVICE_DEPENDENCY"),
+				Message: stringPtr("All nodes of a remote service have a high failure rate"),
+				State:   health.New_HealthState(health.HealthState_WARNING),
+				Params: map[string]interface{}{
+					"serviceA": []interface{}{errHost},
+					"serviceB": []interface{}{stoppedHost},
+				},
+			},
+		},
+	}, getHealth())
 
 	select {
 	case err := <-serverErr:
