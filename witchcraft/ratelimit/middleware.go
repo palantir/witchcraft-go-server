@@ -47,7 +47,8 @@ var MatchMutating MatchFunc = func(req *http.Request, vals wrouter.RequestVals) 
 // If limit is ever negative it will be treated as a 0, i.e. all requests will be throttled.
 //
 // TODO: We should set the Retry-After header based on how many requests we're rejecting.
-//		 Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
+//
+//	Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
 func NewInFlightRequestLimitMiddleware(limit refreshable.Int, matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
 	l := &limiter{
 		Limit:   limit,
