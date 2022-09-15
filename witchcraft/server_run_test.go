@@ -41,11 +41,6 @@ func TestIsLoopback(t *testing.T) {
 			expectedLoopback: true,
 		},
 		{
-			name:             "::1 (IPv6) is loopback",
-			addr:             "::1",
-			expectedLoopback: true,
-		},
-		{
 			name:             "google.com is not loopback",
 			addr:             "google.com",
 			expectedLoopback: false,
