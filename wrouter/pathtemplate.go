@@ -46,14 +46,14 @@ var (
 
 // NewPathTemplate creates a new PathTemplate using the provided path. The provided path must be of the following form:
 //
-// * Must start with '/'
-// * Must contain only alphanumeric characters and '_', '{', '}', '/', '.', '-', and '*'
-// * Path parameters must be of the form "{paramName}", where paramName must be an alphanumeric string
-// * Path parameters that occur at the end of a path can take the form "{paramName*}", in which case the "*" signifies
-//   that the parameter is a trailing path parameter
-// * For trailing path parameters, the value of the parameter will be the string that occurs after the final '/' that
-//   precedes the variable
-//   * For example, a route registered with path "/pkg/{pkgPath*}" matched against the request
+//   - Must start with '/'
+//   - Must contain only alphanumeric characters and '_', '{', '}', '/', '.', '-', and '*'
+//   - Path parameters must be of the form "{paramName}", where paramName must be an alphanumeric string
+//   - Path parameters that occur at the end of a path can take the form "{paramName*}", in which case the "*" signifies
+//     that the parameter is a trailing path parameter
+//   - For trailing path parameters, the value of the parameter will be the string that occurs after the final '/' that
+//     precedes the variable
+//   - For example, a route registered with path "/pkg/{pkgPath*}" matched against the request
 //     "/pkg/product/1.0.0/package.tgz" will result in a path parameter value of "product/1.0.0/package.tgz"
 func NewPathTemplate(in string) (PathTemplate, error) {
 	segments, err := toPathSegments(in)
