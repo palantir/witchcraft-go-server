@@ -107,7 +107,6 @@ func startTLSFn(
 ) func() error {
 	return func() error {
 		svcLogger.Info("Listening to https", svc1log.SafeParam("address", httpServer.Addr), svc1log.SafeParam("server", serverName))
-
 		// cert and key specified in TLS config so no need to pass in here
 		if err := httpServer.ListenAndServeTLS("", ""); err != nil {
 			if err == http.ErrServerClosed {
@@ -127,8 +126,6 @@ func startFn(
 ) func() error {
 	return func() error {
 		svcLogger.Info("Listening to http", svc1log.SafeParam("address", httpServer.Addr), svc1log.SafeParam("server", serverName))
-
-		// cert and key specified in TLS config so no need to pass in here
 		if err := httpServer.ListenAndServe(); err != nil {
 			if err == http.ErrServerClosed {
 				svcLogger.Info(fmt.Sprintf("%s was closed", serverName))
