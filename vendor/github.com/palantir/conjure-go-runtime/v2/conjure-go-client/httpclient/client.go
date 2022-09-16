@@ -148,11 +148,11 @@ func (c *clientImpl) doOnce(
 		return nil, werror.ErrorWithContextParams(ctx, "httpclient: use WithRequestMethod() to specify HTTP method")
 	}
 	reqURI := joinURIAndPath(baseURI, b.path)
-	req, err := http.NewRequest(b.method, reqURI, nil)
+	req, err := http.NewRequestWithContext(ctx, b.method, reqURI, nil)
 	if err != nil {
 		return nil, werror.WrapWithContextParams(ctx, err, "failed to build new HTTP request")
 	}
-	req = req.WithContext(ctx)
+
 	req.Header = b.headers
 	if q := b.query.Encode(); q != "" {
 		req.URL.RawQuery = q
