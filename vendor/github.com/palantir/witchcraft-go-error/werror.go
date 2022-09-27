@@ -29,7 +29,6 @@ func Error(msg string, params ...Param) error {
 //	if !ok {
 //		return werror.ErrorWithContextParams(ctx, "configuration is missing password")
 //	}
-//
 func ErrorWithContextParams(ctx context.Context, msg string, params ...Param) error {
 	safe, unsafe := wparams.SafeAndUnsafeParamsFromContext(ctx)
 	fullParams := []Param{
@@ -62,7 +61,6 @@ func Wrap(err error, msg string, params ...Param) error {
 //	if err != nil {
 //		return werror.WrapWithContextParams(ctx, err, "failed to get user", werror.SafeParam("userId", userID))
 //	}
-//
 func WrapWithContextParams(ctx context.Context, err error, msg string, params ...Param) error {
 	if err == nil {
 		return nil
@@ -87,7 +85,6 @@ func WrapWithContextParams(ctx context.Context, err error, msg string, params ..
 //	if err != nil {
 //		return werror.Convert(err)
 //	}
-//
 func Convert(err error) error {
 	if err == nil {
 		return err
