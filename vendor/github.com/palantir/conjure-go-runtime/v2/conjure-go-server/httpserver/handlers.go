@@ -33,6 +33,14 @@ type handler struct {
 	errorFn  ErrorHandler
 }
 
+// trackingResponseWriter is a wrapper around http.ResponseWriter implemented in witchcraft-go-server.
+// It is a subset of negroni.ResponseWriter which tracks whether the response has been written.
+type trackingResponseWriter interface {
+	http.ResponseWriter
+	// Written returns whether or not the ResponseWriter has been written.
+	Written() bool
+}
+
 // NewJSONHandler returns a http.Handler which will convert a returned error into a corresponding status code, and
 // handle the error according to the provided ErrorHandler. The provided 'fn' function is not expected to write
 // a response in the http.ResponseWriter if it returns a non-nil error. If a non-nil error is returned, the
@@ -50,6 +58,10 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.handleFn(w, r); err != nil {
 		status := h.status(err)
 		h.handleError(r.Context(), status, err)
+		if trw, ok := w.(trackingResponseWriter); ok && trw.Written() {
+			svc1log.FromContext(r.Context()).Warn("Error encountered after HTTP response was written. Can not encode error to response.", svc1log.Stacktrace(err))
+			return
+		}
 		cause := getSerializableCause(err)
 		switch e := cause.(type) {
 		case errors.Error:

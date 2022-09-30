@@ -70,11 +70,10 @@ func MustErrorType(code ErrorCode, name string) ErrorType {
 //
 // For example:
 //
-//  var ErrorLikeAlreadyGiven = errors.MustErrorType(
-//    errors.ErrorCodeConflict,
-//    "Facebook:LikeAlreadyGiven",
-//  )
-//
+//	var ErrorLikeAlreadyGiven = errors.MustErrorType(
+//	  errors.ErrorCodeConflict,
+//	  "Facebook:LikeAlreadyGiven",
+//	)
 func NewErrorType(code ErrorCode, name string) (ErrorType, error) {
 	if err := verifyErrorNameString(name); err != nil {
 		return ErrorType{}, err
@@ -92,7 +91,7 @@ func NewErrorType(code ErrorCode, name string) (ErrorType, error) {
 //
 // For example:
 //
-//  "NOT_FOUND MyApplication:MissingData"
+//	"NOT_FOUND MyApplication:MissingData"
 func (et ErrorType) String() string {
 	return fmt.Sprintf("%s %s", et.code, et.name)
 }

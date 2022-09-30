@@ -83,9 +83,8 @@ func WithQueryValues(query url.Values) RequestParam {
 // passed to WithRequestBody.
 // Example:
 //
-//     input := api.RequestInput{Foo: "bar"}
-//     resp, err := client.Do(..., WithRequestBody(input, codecs.JSON), ...)
-//
+//	input := api.RequestInput{Foo: "bar"}
+//	resp, err := client.Do(..., WithRequestBody(input, codecs.JSON), ...)
 func WithRequestBody(input interface{}, encoder codecs.Encoder) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		b.bodyMiddleware.requestInput = input
@@ -99,8 +98,8 @@ func WithRequestBody(input interface{}, encoder codecs.Encoder) RequestParam {
 // the request body.
 // Example:
 //
-//     input, _ := os.Open("file.txt")
-//     resp, err := client.Do(..., WithRawRequestBody(input), ...)
+//	input, _ := os.Open("file.txt")
+//	resp, err := client.Do(..., WithRawRequestBody(input), ...)
 //
 // Deprecated: Retries don't include the body for WithRawRequestBody.
 // Use WithRawRequestBodyProvider for full retry support.
@@ -114,12 +113,11 @@ func WithRawRequestBody(input io.ReadCloser) RequestParam {
 // getBody as the request body. The getBody parameter must not be nil.
 // Example:
 //
-//     provider := func() io.ReadCloser {
-//         input, _ := os.Open("file.txt")
-//         return input
-//     }
-//     resp, err := client.Do(..., WithRawRequestBodyProvider(provider), ...)
-//
+//	provider := func() io.ReadCloser {
+//	    input, _ := os.Open("file.txt")
+//	    return input
+//	}
+//	resp, err := client.Do(..., WithRawRequestBodyProvider(provider), ...)
 func WithRawRequestBodyProvider(getBody func() io.ReadCloser) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		if getBody == nil {
@@ -142,9 +140,9 @@ func WithJSONRequest(input interface{}) RequestParam {
 // handled by the impl passed to WithResponseBody.
 // Example:
 //
-//     var output api.RequestOutput
-//     resp, err := client.Do(..., WithResponseBody(&output, codecs.JSON), ...)
-//     return output, nil
+//	var output api.RequestOutput
+//	resp, err := client.Do(..., WithResponseBody(&output, codecs.JSON), ...)
+//	return output, nil
 //
 // In the case of an empty response, output will be unmodified (left nil).
 func WithResponseBody(output interface{}, decoder codecs.Decoder) RequestParam {
@@ -162,9 +160,9 @@ func WithResponseBody(output interface{}, decoder codecs.Decoder) RequestParam {
 // close the returned reader.
 // Example:
 //
-//     resp, err := client.Do(..., WithRawResponseBody(), ...)
-//     defer resp.Body.Close()
-//     bytes, err := ioutil.ReadAll(resp.Body)
+//	resp, err := client.Do(..., WithRawResponseBody(), ...)
+//	defer resp.Body.Close()
+//	bytes, err := ioutil.ReadAll(resp.Body)
 //
 // In the case of an empty response, output will be unmodified (left nil).
 func WithRawResponseBody() RequestParam {
