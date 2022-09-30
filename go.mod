@@ -9,13 +9,13 @@ require (
 	github.com/palantir/conjure-go-runtime/v2 v2.41.0
 	github.com/palantir/go-encrypted-config-value v1.13.0
 	github.com/palantir/go-metrics v1.1.1
-	github.com/palantir/pkg/httpserver v1.0.1
-	github.com/palantir/pkg/metrics v1.3.0
-	github.com/palantir/pkg/objmatcher v1.0.1
-	github.com/palantir/pkg/refreshable v1.3.2
-	github.com/palantir/pkg/safejson v1.0.1
-	github.com/palantir/pkg/signals v1.0.1
-	github.com/palantir/pkg/tlsconfig v1.1.0
+	github.com/palantir/pkg/httpserver v1.1.0
+	github.com/palantir/pkg/metrics v1.4.0
+	github.com/palantir/pkg/objmatcher v1.1.0
+	github.com/palantir/pkg/refreshable v1.4.0
+	github.com/palantir/pkg/safejson v1.1.0
+	github.com/palantir/pkg/signals v1.1.0
+	github.com/palantir/pkg/tlsconfig v1.2.0
 	github.com/palantir/witchcraft-go-error v1.16.0
 	github.com/palantir/witchcraft-go-health v1.14.0
 	github.com/palantir/witchcraft-go-logging v1.28.0
@@ -32,14 +32,14 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
-	github.com/palantir/pkg v1.0.1 // indirect
-	github.com/palantir/pkg/bytesbuffers v1.0.1 // indirect
-	github.com/palantir/pkg/datetime v1.0.1 // indirect
-	github.com/palantir/pkg/retry v1.1.1 // indirect
-	github.com/palantir/pkg/safelong v1.0.1 // indirect
-	github.com/palantir/pkg/safeyaml v1.0.1 // indirect
-	github.com/palantir/pkg/transform v1.0.1 // indirect
-	github.com/palantir/pkg/uuid v1.0.1 // indirect
+	github.com/palantir/pkg v1.1.0 // indirect
+	github.com/palantir/pkg/bytesbuffers v1.1.0 // indirect
+	github.com/palantir/pkg/datetime v1.1.0 // indirect
+	github.com/palantir/pkg/retry v1.2.0 // indirect
+	github.com/palantir/pkg/safelong v1.1.0 // indirect
+	github.com/palantir/pkg/safeyaml v1.1.0 // indirect
+	github.com/palantir/pkg/transform v1.1.0 // indirect
+	github.com/palantir/pkg/uuid v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/zerolog v1.28.0 // indirect

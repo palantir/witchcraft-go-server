@@ -38,50 +38,50 @@ github.com/palantir/go-encrypted-config-value/encryption
 # github.com/palantir/go-metrics v1.1.1
 ## explicit; go 1.13
 github.com/palantir/go-metrics
-# github.com/palantir/pkg v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg
-# github.com/palantir/pkg/bytesbuffers v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/bytesbuffers v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/bytesbuffers
-# github.com/palantir/pkg/datetime v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/datetime v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/datetime
-# github.com/palantir/pkg/httpserver v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/httpserver v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/httpserver
-# github.com/palantir/pkg/metrics v1.3.0
-## explicit; go 1.16
+# github.com/palantir/pkg/metrics v1.4.0
+## explicit; go 1.19
 github.com/palantir/pkg/metrics
-# github.com/palantir/pkg/objmatcher v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/objmatcher v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/objmatcher
-# github.com/palantir/pkg/refreshable v1.3.2
-## explicit; go 1.13
+# github.com/palantir/pkg/refreshable v1.4.0
+## explicit; go 1.19
 github.com/palantir/pkg/refreshable
-# github.com/palantir/pkg/retry v1.1.1
-## explicit; go 1.13
+# github.com/palantir/pkg/retry v1.2.0
+## explicit; go 1.19
 github.com/palantir/pkg/retry
-# github.com/palantir/pkg/safejson v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/safejson v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/safejson
-# github.com/palantir/pkg/safelong v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/safelong v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/safelong
-# github.com/palantir/pkg/safeyaml v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/safeyaml v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/safeyaml
-# github.com/palantir/pkg/signals v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/signals v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/signals
-# github.com/palantir/pkg/tlsconfig v1.1.0
-## explicit; go 1.14
+# github.com/palantir/pkg/tlsconfig v1.2.0
+## explicit; go 1.19
 github.com/palantir/pkg/tlsconfig
-# github.com/palantir/pkg/transform v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/transform v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/transform
-# github.com/palantir/pkg/uuid v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/uuid v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
 # github.com/palantir/witchcraft-go-error v1.16.0
