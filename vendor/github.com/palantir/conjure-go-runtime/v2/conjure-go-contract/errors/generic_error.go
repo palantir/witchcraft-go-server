@@ -60,8 +60,7 @@ var (
 //
 // For example:
 //
-//  "CONFLICT Facebook:LikeAlreadyGiven (00010203-0405-0607-0809-0a0b0c0d0e0f)".
-//
+//	"CONFLICT Facebook:LikeAlreadyGiven (00010203-0405-0607-0809-0a0b0c0d0e0f)".
 func (e genericError) String() string {
 	return fmt.Sprintf("%s (%s)", e.errorType, e.errorInstanceID)
 }

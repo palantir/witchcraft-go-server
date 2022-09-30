@@ -29,15 +29,15 @@ import (
 //
 // This is an example of a valid JSON object representing an error:
 //
-//  {
-//    "errorCode": "CONFLICT",
-//    "errorName": "Facebook:LikeAlreadyGiven",
-//    "errorInstanceId": "00010203-0405-0607-0809-0a0b0c0d0e0f",
-//    "parameters": {
-//      "postId": "5aa734gs3579",
-//      "userId": 642764872364
-//    }
-//  }
+//	{
+//	  "errorCode": "CONFLICT",
+//	  "errorName": "Facebook:LikeAlreadyGiven",
+//	  "errorInstanceId": "00010203-0405-0607-0809-0a0b0c0d0e0f",
+//	  "parameters": {
+//	    "postId": "5aa734gs3579",
+//	    "userId": 642764872364
+//	  }
+//	}
 type SerializableError struct {
 	ErrorCode       ErrorCode       `json:"errorCode"`
 	ErrorName       string          `json:"errorName"`
