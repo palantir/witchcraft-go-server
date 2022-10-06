@@ -34,7 +34,7 @@ type TransportParams struct {
 	ExpectContinueTimeout time.Duration
 	ResponseHeaderTimeout time.Duration
 	TLSHandshakeTimeout   time.Duration
-	HTTPProxyURL          *url.URL
+	HTTPProxyURL          *url.URL `refreshables:",exclude"`
 	ProxyFromEnvironment  bool
 	HTTP2ReadIdleTimeout  time.Duration
 	HTTP2PingTimeout      time.Duration
