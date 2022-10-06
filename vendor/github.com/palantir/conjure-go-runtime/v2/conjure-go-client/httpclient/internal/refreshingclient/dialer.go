@@ -28,7 +28,7 @@ import (
 type DialerParams struct {
 	DialTimeout   time.Duration
 	KeepAlive     time.Duration
-	SocksProxyURL *url.URL
+	SocksProxyURL *url.URL `refreshables:",exclude"`
 }
 
 // ContextDialer is the interface implemented by net.Dialer, proxy.Dialer, and others

@@ -3,8 +3,6 @@
 package refreshingclient
 
 import (
-	"net/url"
-
 	metrics "github.com/palantir/pkg/metrics"
 	refreshable "github.com/palantir/pkg/refreshable"
 )
@@ -112,7 +110,6 @@ type RefreshableDialerParams interface {
 
 	DialTimeout() refreshable.Duration
 	KeepAlive() refreshable.Duration
-	SocksProxyURL() RefreshableURLPtr
 }
 
 type RefreshingDialerParams struct {
@@ -149,278 +146,6 @@ func (r RefreshingDialerParams) KeepAlive() refreshable.Duration {
 	return refreshable.NewDuration(r.MapDialerParams(func(i DialerParams) interface{} {
 		return i.KeepAlive
 	}))
-}
-
-func (r RefreshingDialerParams) SocksProxyURL() RefreshableURLPtr {
-	return NewRefreshingURLPtr(r.MapDialerParams(func(i DialerParams) interface{} {
-		return i.SocksProxyURL
-	}))
-}
-
-type RefreshableURLPtr interface {
-	refreshable.Refreshable
-	CurrentURLPtr() *url.URL
-	MapURLPtr(func(*url.URL) interface{}) refreshable.Refreshable
-	SubscribeToURLPtr(func(*url.URL)) (unsubscribe func())
-
-	Scheme() refreshable.String
-	Opaque() refreshable.String
-	User() RefreshableUserinfoPtr
-	Host() refreshable.String
-	Path() refreshable.String
-	RawPath() refreshable.String
-	ForceQuery() refreshable.Bool
-	RawQuery() refreshable.String
-	Fragment() refreshable.String
-	RawFragment() refreshable.String
-}
-
-type RefreshingURLPtr struct {
-	refreshable.Refreshable
-}
-
-func NewRefreshingURLPtr(in refreshable.Refreshable) RefreshingURLPtr {
-	return RefreshingURLPtr{Refreshable: in}
-}
-
-func (r RefreshingURLPtr) CurrentURLPtr() *url.URL {
-	return r.Current().(*url.URL)
-}
-
-func (r RefreshingURLPtr) MapURLPtr(mapFn func(*url.URL) interface{}) refreshable.Refreshable {
-	return r.Map(func(i interface{}) interface{} {
-		return mapFn(i.(*url.URL))
-	})
-}
-
-func (r RefreshingURLPtr) SubscribeToURLPtr(consumer func(*url.URL)) (unsubscribe func()) {
-	return r.Subscribe(func(i interface{}) {
-		consumer(i.(*url.URL))
-	})
-}
-
-func (r RefreshingURLPtr) Scheme() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.Scheme
-	}))
-}
-
-func (r RefreshingURLPtr) Opaque() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.Opaque
-	}))
-}
-
-func (r RefreshingURLPtr) User() RefreshableUserinfoPtr {
-	return NewRefreshingUserinfoPtr(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.User
-	}))
-}
-
-func (r RefreshingURLPtr) Host() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.Host
-	}))
-}
-
-func (r RefreshingURLPtr) Path() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.Path
-	}))
-}
-
-func (r RefreshingURLPtr) RawPath() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.RawPath
-	}))
-}
-
-func (r RefreshingURLPtr) ForceQuery() refreshable.Bool {
-	return refreshable.NewBool(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.ForceQuery
-	}))
-}
-
-func (r RefreshingURLPtr) RawQuery() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.RawQuery
-	}))
-}
-
-func (r RefreshingURLPtr) Fragment() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.Fragment
-	}))
-}
-
-func (r RefreshingURLPtr) RawFragment() refreshable.String {
-	return refreshable.NewString(r.MapURLPtr(func(i *url.URL) interface{} {
-		return i.RawFragment
-	}))
-}
-
-type RefreshableURL interface {
-	refreshable.Refreshable
-	CurrentURL() url.URL
-	MapURL(func(url.URL) interface{}) refreshable.Refreshable
-	SubscribeToURL(func(url.URL)) (unsubscribe func())
-
-	Scheme() refreshable.String
-	Opaque() refreshable.String
-	User() RefreshableUserinfoPtr
-	Host() refreshable.String
-	Path() refreshable.String
-	RawPath() refreshable.String
-	ForceQuery() refreshable.Bool
-	RawQuery() refreshable.String
-	Fragment() refreshable.String
-	RawFragment() refreshable.String
-}
-
-type RefreshingURL struct {
-	refreshable.Refreshable
-}
-
-func NewRefreshingURL(in refreshable.Refreshable) RefreshingURL {
-	return RefreshingURL{Refreshable: in}
-}
-
-func (r RefreshingURL) CurrentURL() url.URL {
-	return r.Current().(url.URL)
-}
-
-func (r RefreshingURL) MapURL(mapFn func(url.URL) interface{}) refreshable.Refreshable {
-	return r.Map(func(i interface{}) interface{} {
-		return mapFn(i.(url.URL))
-	})
-}
-
-func (r RefreshingURL) SubscribeToURL(consumer func(url.URL)) (unsubscribe func()) {
-	return r.Subscribe(func(i interface{}) {
-		consumer(i.(url.URL))
-	})
-}
-
-func (r RefreshingURL) Scheme() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.Scheme
-	}))
-}
-
-func (r RefreshingURL) Opaque() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.Opaque
-	}))
-}
-
-func (r RefreshingURL) User() RefreshableUserinfoPtr {
-	return NewRefreshingUserinfoPtr(r.MapURL(func(i url.URL) interface{} {
-		return i.User
-	}))
-}
-
-func (r RefreshingURL) Host() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.Host
-	}))
-}
-
-func (r RefreshingURL) Path() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.Path
-	}))
-}
-
-func (r RefreshingURL) RawPath() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.RawPath
-	}))
-}
-
-func (r RefreshingURL) ForceQuery() refreshable.Bool {
-	return refreshable.NewBool(r.MapURL(func(i url.URL) interface{} {
-		return i.ForceQuery
-	}))
-}
-
-func (r RefreshingURL) RawQuery() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.RawQuery
-	}))
-}
-
-func (r RefreshingURL) Fragment() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.Fragment
-	}))
-}
-
-func (r RefreshingURL) RawFragment() refreshable.String {
-	return refreshable.NewString(r.MapURL(func(i url.URL) interface{} {
-		return i.RawFragment
-	}))
-}
-
-type RefreshableUserinfoPtr interface {
-	refreshable.Refreshable
-	CurrentUserinfoPtr() *url.Userinfo
-	MapUserinfoPtr(func(*url.Userinfo) interface{}) refreshable.Refreshable
-	SubscribeToUserinfoPtr(func(*url.Userinfo)) (unsubscribe func())
-}
-
-type RefreshingUserinfoPtr struct {
-	refreshable.Refreshable
-}
-
-func NewRefreshingUserinfoPtr(in refreshable.Refreshable) RefreshingUserinfoPtr {
-	return RefreshingUserinfoPtr{Refreshable: in}
-}
-
-func (r RefreshingUserinfoPtr) CurrentUserinfoPtr() *url.Userinfo {
-	return r.Current().(*url.Userinfo)
-}
-
-func (r RefreshingUserinfoPtr) MapUserinfoPtr(mapFn func(*url.Userinfo) interface{}) refreshable.Refreshable {
-	return r.Map(func(i interface{}) interface{} {
-		return mapFn(i.(*url.Userinfo))
-	})
-}
-
-func (r RefreshingUserinfoPtr) SubscribeToUserinfoPtr(consumer func(*url.Userinfo)) (unsubscribe func()) {
-	return r.Subscribe(func(i interface{}) {
-		consumer(i.(*url.Userinfo))
-	})
-}
-
-type RefreshableUserinfo interface {
-	refreshable.Refreshable
-	CurrentUserinfo() url.Userinfo
-	MapUserinfo(func(url.Userinfo) interface{}) refreshable.Refreshable
-	SubscribeToUserinfo(func(url.Userinfo)) (unsubscribe func())
-}
-
-type RefreshingUserinfo struct {
-	refreshable.Refreshable
-}
-
-func NewRefreshingUserinfo(in refreshable.Refreshable) RefreshingUserinfo {
-	return RefreshingUserinfo{Refreshable: in}
-}
-
-func (r RefreshingUserinfo) CurrentUserinfo() url.Userinfo {
-	return r.Current().(url.Userinfo)
-}
-
-func (r RefreshingUserinfo) MapUserinfo(mapFn func(url.Userinfo) interface{}) refreshable.Refreshable {
-	return r.Map(func(i interface{}) interface{} {
-		return mapFn(i.(url.Userinfo))
-	})
-}
-
-func (r RefreshingUserinfo) SubscribeToUserinfo(consumer func(url.Userinfo)) (unsubscribe func()) {
-	return r.Subscribe(func(i interface{}) {
-		consumer(i.(url.Userinfo))
-	})
 }
 
 type RefreshableTags interface {
@@ -576,7 +301,6 @@ type RefreshableTransportParams interface {
 	ExpectContinueTimeout() refreshable.Duration
 	ResponseHeaderTimeout() refreshable.Duration
 	TLSHandshakeTimeout() refreshable.Duration
-	HTTPProxyURL() RefreshableURLPtr
 	ProxyFromEnvironment() refreshable.Bool
 	HTTP2ReadIdleTimeout() refreshable.Duration
 	HTTP2PingTimeout() refreshable.Duration
@@ -651,12 +375,6 @@ func (r RefreshingTransportParams) ResponseHeaderTimeout() refreshable.Duration 
 func (r RefreshingTransportParams) TLSHandshakeTimeout() refreshable.Duration {
 	return refreshable.NewDuration(r.MapTransportParams(func(i TransportParams) interface{} {
 		return i.TLSHandshakeTimeout
-	}))
-}
-
-func (r RefreshingTransportParams) HTTPProxyURL() RefreshableURLPtr {
-	return NewRefreshingURLPtr(r.MapTransportParams(func(i TransportParams) interface{} {
-		return i.HTTPProxyURL
 	}))
 }
 
