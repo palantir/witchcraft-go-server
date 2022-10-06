@@ -49,7 +49,7 @@ func (e errorDecoderMiddleware) RoundTrip(req *http.Request, next http.RoundTrip
 		return nil, err
 	}
 	if e.errorDecoder.Handles(resp) {
-		defer internal.DrainBody(resp)
+		defer internal.DrainBody(req.Context(), resp)
 		return nil, e.errorDecoder.DecodeError(resp)
 	}
 	return resp, nil

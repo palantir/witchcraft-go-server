@@ -15,18 +15,31 @@
 package internal
 
 import (
+	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
+
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
 // DrainBody reads then closes a response's body if it is non-nil.
 // This function should be deferred before a response reference is
 // discarded.
-func DrainBody(resp *http.Response) {
+func DrainBody(ctx context.Context, resp *http.Response) {
 	// drain and close treated as best-effort
 	if resp != nil && resp.Body != nil {
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
-		_ = resp.Body.Close()
+		if bytes, err := io.Copy(io.Discard, resp.Body); err != nil {
+			svc1log.FromContext(ctx).Warn("Failed to drain entire response body",
+				svc1log.SafeParam("bytes", bytes),
+				svc1log.Stacktrace(err))
+		} else if bytes > 0 {
+			svc1log.FromContext(ctx).Info("Drained remaining response body",
+				svc1log.SafeParam("bytes", bytes))
+		}
+
+		if err := resp.Body.Close(); err != nil {
+			svc1log.FromContext(ctx).Warn("Failed to close response body",
+				svc1log.Stacktrace(err))
+		}
 	}
 }
