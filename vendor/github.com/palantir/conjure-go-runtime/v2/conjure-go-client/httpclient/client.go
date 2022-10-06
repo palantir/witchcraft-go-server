@@ -185,7 +185,7 @@ func (c *clientImpl) doOnce(
 	// unless this is exactly the scenario where the caller has opted into being responsible for draining and closing
 	// the response body, be sure to do so here.
 	if !(respErr == nil && b.bodyMiddleware.rawOutput) {
-		internal.DrainBody(resp)
+		internal.DrainBody(ctx, resp)
 	}
 
 	return resp, unwrapURLError(ctx, respErr)

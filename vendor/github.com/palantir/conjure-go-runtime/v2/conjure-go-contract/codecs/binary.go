@@ -44,8 +44,8 @@ func (codecBinary) Decode(r io.Reader, v interface{}) error {
 	if closer, ok := r.(io.ReadCloser); ok {
 		defer func() { _ = closer.Close() }()
 	}
-	if _, err := io.Copy(w, r); err != nil {
-		return werror.Convert(err)
+	if bytes, err := io.Copy(w, r); err != nil {
+		return werror.Wrap(err, "Failed to copy all bytes while decoding", werror.SafeParam("bytesCopied", bytes))
 	}
 	return nil
 }
@@ -66,8 +66,8 @@ func (codecBinary) Encode(w io.Writer, v interface{}) error {
 	if closer, ok := r.(io.ReadCloser); ok {
 		defer func() { _ = closer.Close() }()
 	}
-	if _, err := io.Copy(w, r); err != nil {
-		return werror.Convert(err)
+	if bytes, err := io.Copy(w, r); err != nil {
+		return werror.Wrap(err, "Failed to copy all bytes while encoding", werror.SafeParam("bytesCopied", bytes))
 	}
 	return nil
 }
