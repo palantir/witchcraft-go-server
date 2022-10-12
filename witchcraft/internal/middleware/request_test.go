@@ -250,6 +250,25 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 	}
 }
 
+func TestStrictTransportSecurity(t *testing.T) {
+	wRouter := wrouter.New(
+		whttprouter.New(),
+		wrouter.RootRouterParamAddRequestHandlerMiddleware(middleware.NewStrictTransportSecurityHeader()),
+	)
+
+	authResource := wresource.New("AuthResource", wRouter)
+	err := authResource.Get("userAuth", "/userAuth", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusInternalServerError)
+	}))
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "http://localhost/userAuth", bytes.NewBufferString("content"))
+	require.NoError(t, err)
+	wRouter.ServeHTTP(w, req)
+	assert.Equal(t, w.Header().Get("Strict-Transport-Security"), "max-age=31536000")
+}
+
 func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {
 	return objmatcher.MapMatcher(map[string]objmatcher.Matcher{
 		"count":  objmatcher.NewEqualsMatcher(int64(count)),
