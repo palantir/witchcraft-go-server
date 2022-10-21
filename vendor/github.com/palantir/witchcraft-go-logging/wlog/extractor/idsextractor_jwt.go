@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
+	"github.com/palantir/pkg/uuid"
 )
 
 const (

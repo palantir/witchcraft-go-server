@@ -1,9 +1,6 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/google/uuid v1.3.0
-## explicit
-github.com/google/uuid
 # github.com/gorilla/mux v1.7.3
 ## explicit
 github.com/gorilla/mux
@@ -83,7 +80,7 @@ github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg/transform
-# github.com/palantir/pkg/uuid v1.1.0
+# github.com/palantir/pkg/uuid v1.2.0
 ## explicit; go 1.19
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
@@ -99,7 +96,7 @@ github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
-# github.com/palantir/witchcraft-go-logging v1.30.0
+# github.com/palantir/witchcraft-go-logging v1.31.0
 ## explicit; go 1.19
 github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
 github.com/palantir/witchcraft-go-logging/internal/gopath
