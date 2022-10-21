@@ -21,6 +21,8 @@ github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfb
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.7.3 h1:gnP5JzjVOuiZD07fKKToCAOjS0yOpj/qPETTXCCS6hw=
@@ -86,8 +88,8 @@ github.com/palantir/witchcraft-go-error v1.17.0 h1:WmjYrTwNY51cuWO5Pl8oSBE/Gc5oN
 github.com/palantir/witchcraft-go-error v1.17.0/go.mod h1:iIOQN5SeL3W3oLy+fAeHwhR4m6kvlMUiacN6kgcAvRs=
 github.com/palantir/witchcraft-go-health v1.14.0 h1:AVfnquZI5O2KG6d0XWJRJWIPADq5GhQ4p0z1P3jvqdA=
 github.com/palantir/witchcraft-go-health v1.14.0/go.mod h1:PWD1g86lkqVXRtZIqe+YY/dzuCcaQ1ubQ55cp+kDj+c=
-github.com/palantir/witchcraft-go-logging v1.29.0 h1:hi8YmV5NO7CBmctdL0tI7ISJwT/9m3SAYgpkZYt/fR0=
-github.com/palantir/witchcraft-go-logging v1.29.0/go.mod h1:PXFm68PFGDY4OYmabC1Wp/mTMyevesjanqy+Tds+NAs=
+github.com/palantir/witchcraft-go-logging v1.30.0 h1:jGh+OJ2T8PxiplHPrG7xCWMf+1kb+Pq9JrSa4rlBVj8=
+github.com/palantir/witchcraft-go-logging v1.30.0/go.mod h1:GAVS0QIVMA9/JsZOL1NLFjjRCRz4DD1T4IBxwohaNVE=
 github.com/palantir/witchcraft-go-params v1.14.0 h1:vBGgbXfNWIQl9qCMqJ28olNWddp/hnK2+8+WITDTRvU=
 github.com/palantir/witchcraft-go-params v1.14.0/go.mod h1:L3M9XaO4rNobogG29/LszH710BTXuNr8vHnfAJBh5E0=
 github.com/palantir/witchcraft-go-tracing v1.16.0 h1:UGuohRsvtl64UNEMKH38HZ8eHDHD//bK53GfVGznAiU=
@@ -104,8 +106,6 @@ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rs/xid v1.4.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/rs/zerolog v1.28.0 h1:MirSo27VyNi7RJYP3078AA1+Cyzd2GB66qy3aUHvsWY=
 github.com/rs/zerolog v1.28.0/go.mod h1:NILgTygv/Uej1ra5XxGf82ZFSLk58MFGAUS2o6usyD0=
-github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
-github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/stathat/go v1.0.0/go.mod h1:+9Eg2szqkcOGWv6gfheJmBBsmq9Qf5KDbzy8/aYYR0c=
 github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

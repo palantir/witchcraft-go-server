@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 const (
@@ -92,18 +92,17 @@ func getMapUUIDStringVal(m map[string]interface{}, key string) string {
 		return ""
 	}
 
-	rawBytes, err := base64.StdEncoding.DecodeString(str)
+	return uuidFromBase64StdEncodedString(str)
+}
+
+func uuidFromBase64StdEncodedString(str string) string {
+	inBytes, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
-		// if string was not Base64-encoded, return original raw string
 		return str
 	}
-
-	id, err := uuid.FromBytes(rawBytes)
+	got, err := uuid.FromBytes(inBytes)
 	if err != nil {
-		// if Base64-decoded bytes did not represent a UUID, return original raw string
 		return str
 	}
-
-	// success: return string representation of UUID
-	return id.String()
+	return got.String()
 }
