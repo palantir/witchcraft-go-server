@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Support option for plaintext servers on loopback addresses
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/499

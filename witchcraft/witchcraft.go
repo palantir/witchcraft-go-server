@@ -82,6 +82,11 @@ type Server struct {
 	// If false, the key material at the paths specified in serverConfig.CertFile and serverConfig.KeyFile is used.
 	useSelfSignedServerCertificate bool
 
+	// useInsecurePlaintextServer specifies whether the server expects unencrypted traffic over its application and
+	// management sockets. If true, additional validation should be performed on the servers address, only permitting
+	// binding to loopback interfaces.
+	useInsecurePlaintextServer bool
+
 	// manages storing and retrieving server state (idle, initializing, running)
 	stateManager serverStateManager
 
@@ -366,6 +371,14 @@ func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 // using separate external mechanisms.
 func (s *Server) WithSelfSignedCertificate() *Server {
 	s.useSelfSignedServerCertificate = true
+	return s
+}
+
+// WithInsecurePlaintextServer configures the server to expect unencrypted traffic on both the application and
+// management sockets. Because this option is inherently insecure, the server will perform some additional validation on
+// the configured address, returning an error if attempting to bind to anything other than a loopback interface.
+func (s *Server) WithInsecurePlaintextServer() *Server {
+	s.useInsecurePlaintextServer = true
 	return s
 }
 
