@@ -33,7 +33,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
 	github.com/palantir/pkg v1.1.0 // indirect
-	github.com/palantir/pkg/bytesbuffers v1.1.0 // indirect
+	github.com/palantir/pkg/bytesbuffers v1.2.0 // indirect
 	github.com/palantir/pkg/datetime v1.1.0 // indirect
 	github.com/palantir/pkg/retry v1.2.0 // indirect
 	github.com/palantir/pkg/safelong v1.1.0 // indirect

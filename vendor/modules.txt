@@ -41,7 +41,7 @@ github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg
-# github.com/palantir/pkg/bytesbuffers v1.1.0
+# github.com/palantir/pkg/bytesbuffers v1.2.0
 ## explicit; go 1.19
 github.com/palantir/pkg/bytesbuffers
 # github.com/palantir/pkg/datetime v1.1.0
