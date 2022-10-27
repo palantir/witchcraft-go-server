@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add WithNotFoundHandler for user-provided 404 handler
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/530
