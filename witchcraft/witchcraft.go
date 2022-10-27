@@ -130,6 +130,9 @@ type Server struct {
 	// that returns a new whttprouter is used.
 	routerImplProvider func() wrouter.RouterImpl
 
+	// notFoundHandler overrides the default 404 Not Found behavior. If unset, a Default:NotFound conjure error is returned.
+	notFoundHandler http.Handler
+
 	// called on server initialization before the server starts. Is provided with a context that is active for the
 	// duration of the server lifetime, the server router (which can be used to register endpoints), the unmarshaled
 	// install configuration and the refreshable runtime configuration.
@@ -435,6 +438,13 @@ func (s *Server) WithRouterImplProvider(routerImplProvider func() wrouter.Router
 	return s
 }
 
+// WithNotFoundHandler configures the server to use the specified handler for unmatched requests.
+// If unset, a Default:NotFound conjure error is returned.
+func (s *Server) WithNotFoundHandler(notFoundHandler http.Handler) *Server {
+	s.notFoundHandler = notFoundHandler
+	return s
+}
+
 // WithTraceSampler configures the server's application trace log tracer to use the specified traceSampler function to make a
 // determination on whether or not a trace should be sampled (if such a decision needs to be made).
 func (s *Server) WithTraceSampler(traceSampler wtracing.Sampler) *Server {
@@ -677,6 +687,9 @@ func (s *Server) Start() (rErr error) {
 		s.routerImplProvider = func() wrouter.RouterImpl {
 			return whttprouter.New()
 		}
+	}
+	if s.notFoundHandler == nil {
+		s.notFoundHandler = defaultNotFoundHandler()
 	}
 
 	// initialize routers

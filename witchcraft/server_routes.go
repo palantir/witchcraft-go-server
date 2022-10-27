@@ -120,11 +120,7 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRoutePanicRecovery())
 
 	// add not found handler
-	rootRouter.RegisterNotFoundHandler(httpserver.NewJSONHandler(
-		func(_ http.ResponseWriter, _ *http.Request) error {
-			return werror.Convert(errors.NewNotFound())
-		}, httpserver.StatusCodeMapper, httpserver.ErrHandler),
-	)
+	rootRouter.RegisterNotFoundHandler(s.notFoundHandler)
 }
 
 func createRouter(routerImpl wrouter.RouterImpl, ctxPath string) wrouter.Router {
@@ -170,4 +166,10 @@ func heap(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprintf(w, "Could not dump heap: %s\n", err)
 		return
 	}
+}
+
+func defaultNotFoundHandler() http.Handler {
+	return httpserver.NewJSONHandler(func(http.ResponseWriter, *http.Request) error {
+		return werror.Convert(errors.NewNotFound())
+	}, httpserver.StatusCodeMapper, httpserver.ErrHandler)
 }
