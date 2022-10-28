@@ -95,6 +95,7 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 			s.auditLogger,
 			s.metricLogger,
 			s.diagLogger,
+			s.reqLogger,
 		),
 		// add middleware that extracts UID, SID, and TokenID into context for loggers, sets a tracer on the context and
 		// starts a root span and sets it on the context.
@@ -113,7 +114,7 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
 
 	// add route middleware
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog(s.reqLogger, nil))
+	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog())
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteLogTraceSpan())
 
 	// add a second, inner panic recovery middleware so panics within handler logic are correctly configured with logging, trace IDs, etc.
