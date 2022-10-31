@@ -23,8 +23,6 @@ import (
 	"net/http/httptrace"
 	"time"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
-	gometrics "github.com/palantir/go-metrics"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
@@ -45,7 +43,6 @@ const (
 	TLSVersionTagKey          = "tls_version"
 
 	MetricConnCreate      = "client.connection.create" // monotonic counter of each new request, tagged with reused:true or reused:false
-	MetricConnInflight    = "client.connection.in-flight"
 	MetricRequestInFlight = "client.request.in-flight"
 )
 
@@ -227,38 +224,6 @@ func tlsVersionString(version uint16) string {
 		return "TLS13"
 	}
 	return ""
-}
-
-// metricsWrappedDialer is a wrapper for net.Dialer that tracks a metric of in-flight connections.
-type metricsWrappedDialer struct {
-	Disabled       refreshable.Bool
-	Dialer         refreshingclient.ContextDialer
-	ServiceNameTag metrics.Tag
-}
-
-func (d *metricsWrappedDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	if d.Disabled != nil && d.Disabled.CurrentBool() {
-		return d.Dialer.DialContext(ctx, network, addr)
-	}
-
-	conn, err := d.Dialer.DialContext(ctx, network, addr)
-	if err != nil {
-		return nil, err
-	}
-	counter := metrics.FromContext(ctx).Counter(MetricConnInflight, d.ServiceNameTag)
-	counter.Inc(1)
-	return &metricsWrappedConn{Conn: conn, counter: counter}, nil
-}
-
-// metricsWrappedConn is a wrapper for net.Conn that decrements the counter on Close().
-type metricsWrappedConn struct {
-	net.Conn
-	counter gometrics.Counter
-}
-
-func (m *metricsWrappedConn) Close() error {
-	m.counter.Dec(1)
-	return m.Conn.Close()
 }
 
 func isTimeoutError(respErr error) bool {
