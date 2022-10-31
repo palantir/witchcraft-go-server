@@ -311,7 +311,7 @@ func TestRequestDisableTelemetry(t *testing.T) {
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
-	ctx = wtracing.ContextWithTracer(context.Background(), tracer)
+	ctx = wtracing.ContextWithTracer(ctx, tracer)
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
