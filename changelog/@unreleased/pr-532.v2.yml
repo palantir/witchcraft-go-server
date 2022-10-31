@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Store and retrieve request.2 logger in context
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/532

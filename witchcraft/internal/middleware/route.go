@@ -31,7 +31,7 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
-func NewRouteRequestLog(reqLogger req2log.Logger, baseParamPerms req2log.RequestParamPerms) wrouter.RouteHandlerMiddleware {
+func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 		if reqVals.DisableTelemetry {
 			next(rw, req, reqVals)
@@ -43,20 +43,7 @@ func NewRouteRequestLog(reqLogger req2log.Logger, baseParamPerms req2log.Request
 		next(lrw, req, reqVals)
 		duration := time.Since(start)
 
-		pathParamPerms := reqVals.ParamPerms.PathParamPerms()
-		if baseParamPerms != nil {
-			pathParamPerms = wrouter.NewCombinedParamPerms(baseParamPerms.PathParamPerms(), reqVals.ParamPerms.PathParamPerms())
-		}
-		queryParamPerms := reqVals.ParamPerms.QueryParamPerms()
-		if baseParamPerms != nil {
-			queryParamPerms = wrouter.NewCombinedParamPerms(baseParamPerms.QueryParamPerms(), reqVals.ParamPerms.QueryParamPerms())
-		}
-		headerParamPerms := reqVals.ParamPerms.HeaderParamPerms()
-		if baseParamPerms != nil {
-			headerParamPerms = wrouter.NewCombinedParamPerms(baseParamPerms.HeaderParamPerms(), reqVals.ParamPerms.HeaderParamPerms())
-		}
-
-		reqLogger.Request(req2log.Request{
+		req2log.FromContext(req.Context()).Request(req2log.Request{
 			Request: req,
 			RouteInfo: req2log.RouteInfo{
 				Template:   reqVals.Spec.PathTemplate,
@@ -65,9 +52,9 @@ func NewRouteRequestLog(reqLogger req2log.Logger, baseParamPerms req2log.Request
 			ResponseStatus:   lrw.Status(),
 			ResponseSize:     int64(lrw.Size()),
 			Duration:         duration,
-			PathParamPerms:   pathParamPerms,
-			QueryParamPerms:  queryParamPerms,
-			HeaderParamPerms: headerParamPerms,
+			PathParamPerms:   reqVals.ParamPerms.PathParamPerms(),
+			QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
+			HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
 		})
 	}
 }

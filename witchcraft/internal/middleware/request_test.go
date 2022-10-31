@@ -19,7 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,6 +78,7 @@ func TestCombinedMiddleware(t *testing.T) {
 				nil,
 				nil,
 				nil,
+				reqLog,
 			),
 			middleware.NewRequestExtractIDs(
 				svcLog,
@@ -87,10 +88,7 @@ func TestCombinedMiddleware(t *testing.T) {
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			middleware.NewRouteRequestLog(
-				reqLog,
-				nil,
-			),
+			middleware.NewRouteRequestLog(),
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -209,11 +207,17 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 
 		wRouter := wrouter.New(
 			whttprouter.New(),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRequestMetricRequestMeter(r)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRouteRequestLog(
-				req2log.New(ioutil.Discard),
+
+			wrouter.RootRouterParamAddRequestHandlerMiddleware(middleware.NewRequestContextLoggers(
 				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				req2log.New(io.Discard),
 			)),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRequestMetricRequestMeter(r)),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRouteRequestLog()),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
@@ -291,8 +295,11 @@ func getTimerObjectMatcher(count int) map[string]objmatcher.Matcher {
 }
 
 func TestRequestDisableTelemetry(t *testing.T) {
+	ctx := context.Background()
+
 	var reqOutput bytes.Buffer
 	reqLog := req2log.NewFromCreator(&reqOutput, wlogzap.LoggerProvider().NewLogger)
+	ctx = req2log.WithLogger(ctx, reqLog)
 
 	var spanOutput bytes.Buffer
 	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
@@ -300,11 +307,11 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	metricRegistry := metrics.NewRootMetricsRegistry()
 	reqMetricMiddleware := middleware.NewRequestMetricRequestMeter(metricRegistry)
 	reqSpanMiddleware := middleware.NewRouteLogTraceSpan()
-	reqRequstLogMiddleware := middleware.NewRouteRequestLog(reqLog, nil)
+	reqRequstLogMiddleware := middleware.NewRouteRequestLog()
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
-	ctx := wtracing.ContextWithTracer(context.Background(), tracer)
+	ctx = wtracing.ContextWithTracer(ctx, tracer)
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))

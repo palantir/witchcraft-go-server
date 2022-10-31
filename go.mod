@@ -18,7 +18,7 @@ require (
 	github.com/palantir/pkg/tlsconfig v1.2.0
 	github.com/palantir/witchcraft-go-error v1.17.0
 	github.com/palantir/witchcraft-go-health v1.14.0
-	github.com/palantir/witchcraft-go-logging v1.31.0
+	github.com/palantir/witchcraft-go-logging v1.32.0
 	github.com/palantir/witchcraft-go-params v1.14.0
 	github.com/palantir/witchcraft-go-tracing v1.16.0
 	github.com/stretchr/testify v1.8.1
