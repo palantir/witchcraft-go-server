@@ -260,7 +260,7 @@ func TestStrictTransportSecurity(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
 	require.NoError(t, err)
 	wRouter.ServeHTTP(w, req)
-	assert.Equal(t, w.Header().Get("Strict-Transport-Security"), "max-age=31536000")
+	assert.Equal(t, []string{"max-age=31536000"}, w.Result().Header["Strict-Transport-Security"])
 }
 
 func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {

@@ -198,7 +198,7 @@ func NewStrictTransportSecurityHeader() wrouter.RequestHandlerMiddleware {
 		strictTransportSecurityValue  = "max-age=31536000"
 	)
 	return func(rw http.ResponseWriter, r *http.Request, next http.Handler) {
-		next.ServeHTTP(rw, r)
 		rw.Header().Set(strictTransportSecurityHeader, strictTransportSecurityValue)
+		next.ServeHTTP(rw, r)
 	}
 }
