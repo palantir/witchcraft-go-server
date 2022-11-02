@@ -254,6 +254,19 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 	}
 }
 
+func TestStrictTransportSecurity(t *testing.T) {
+	wRouter := wrouter.New(
+		whttprouter.New(),
+		wrouter.RootRouterParamAddRequestHandlerMiddleware(middleware.NewStrictTransportSecurityHeader()),
+	)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
+	require.NoError(t, err)
+	wRouter.ServeHTTP(w, req)
+	assert.Equal(t, []string{"max-age=31536000"}, w.Result().Header["Strict-Transport-Security"])
+}
+
 func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {
 	return objmatcher.MapMatcher(map[string]objmatcher.Matcher{
 		"count":  objmatcher.NewEqualsMatcher(int64(count)),

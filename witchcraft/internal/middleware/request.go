@@ -196,3 +196,14 @@ func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerM
 		}
 	}
 }
+
+func NewStrictTransportSecurityHeader() wrouter.RequestHandlerMiddleware {
+	const (
+		strictTransportSecurityHeader = "Strict-Transport-Security"
+		strictTransportSecurityValue  = "max-age=31536000"
+	)
+	return func(rw http.ResponseWriter, r *http.Request, next http.Handler) {
+		rw.Header().Set(strictTransportSecurityHeader, strictTransportSecurityValue)
+		next.ServeHTTP(rw, r)
+	}
+}
