@@ -33,7 +33,7 @@ func DrainBody(ctx context.Context, resp *http.Response) {
 				svc1log.SafeParam("bytes", bytes),
 				svc1log.Stacktrace(err))
 		} else if bytes > 0 {
-			svc1log.FromContext(ctx).Info("Drained remaining response body",
+			svc1log.FromContext(ctx).Debug("Drained remaining response body",
 				svc1log.SafeParam("bytes", bytes))
 		}
 
