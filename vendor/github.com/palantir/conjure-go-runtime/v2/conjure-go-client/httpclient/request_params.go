@@ -192,6 +192,17 @@ func WithCompressedRequest(input interface{}, codec codecs.Codec) RequestParam {
 	})
 }
 
+// WithSnappyCompressedRequest wraps the 'codec'-encoded request body in snappy compression.
+func WithSnappyCompressedRequest(input interface{}, codec codecs.Codec) RequestParam {
+	return requestParamFunc(func(b *requestBuilder) error {
+		b.headers.Set("Content-Encoding", "snappy")
+		b.bodyMiddleware.requestInput = input
+		b.bodyMiddleware.requestEncoder = codecs.Snappy(codec)
+		b.headers.Set("Content-Type", codec.ContentType())
+		return nil
+	})
+}
+
 // WithRequestErrorDecoder sets an ErrorDecoder to use for this request only. It will take precedence over any
 // ErrorDecoder set on the client. If this request-scoped ErrorDecoder does not handle the response, the client-scoped
 // ErrorDecoder will be consulted in the usual way.
