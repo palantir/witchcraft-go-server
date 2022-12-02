@@ -6,7 +6,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
-	github.com/palantir/conjure-go-runtime/v2 v2.46.0
+	github.com/palantir/conjure-go-runtime/v2 v2.47.0
 	github.com/palantir/go-encrypted-config-value v1.15.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
@@ -29,6 +29,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
@@ -49,4 +50,5 @@ require (
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 )
