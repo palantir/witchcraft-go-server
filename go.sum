@@ -51,8 +51,8 @@ github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+W
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/openzipkin/zipkin-go v0.2.2 h1:nY8Hti+WKaP0cRsSeQ026wU03QsM762XBeCXBb9NAWI=
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
-github.com/palantir/conjure-go-runtime/v2 v2.47.0 h1:Bcu2QY+Jsbwkcm31pNbJUSWGYfY4aaYB/WoMgZlppP0=
-github.com/palantir/conjure-go-runtime/v2 v2.47.0/go.mod h1:eM0vVjbwGSo+X0ca8fePMvzrCqO2lB4a1nQrPnc0HCM=
+github.com/palantir/conjure-go-runtime/v2 v2.48.0 h1:RpRFckBgfg8rnM5a83+AbLbUa03PGeHk6D7a9vZ9Tmk=
+github.com/palantir/conjure-go-runtime/v2 v2.48.0/go.mod h1:XgkEst1vHbpsO0dKadhjaWyIV7/QOJV52aQRdL3j518=
 github.com/palantir/go-encrypted-config-value v1.15.0 h1:fugFvk31aRuvhIXH7p4ZXAYzrsIIHnKrUipuajcR7h4=
 github.com/palantir/go-encrypted-config-value v1.15.0/go.mod h1:MF+OUlx3fD3UYdnSEIE5v7eGoVbR08mqzEl46STqDi0=
 github.com/palantir/go-metrics v1.1.1 h1:YL/UmptBjrC6iSCTVr7vfuIcjL0M359Da3/gBGNny10=
