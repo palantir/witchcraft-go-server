@@ -188,14 +188,15 @@ func periodicallyRotateLogFiles(ctx context.Context, logger *lumberjack.Logger, 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
+		// Rotate once at start. If there is no file, it is no op.
+		if err := logger.Rotate(); err != nil {
+			// At this point the logger should have been initialized, so we can log the error as a best effort.
+			svc1log.FromContext(ctx).Error("Error rotating log file", svc1log.Stacktrace(err))
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := logger.Rotate(); err != nil {
-				// At this point the logger should have been initialized, so we can log the error as a best effort.
-				svc1log.FromContext(ctx).Error("Error rotating log file", svc1log.Stacktrace(err))
-			}
 		}
 	}
 }
