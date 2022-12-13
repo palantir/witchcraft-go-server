@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Automatically rotate log files per Palantir convention
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/560
