@@ -6,8 +6,8 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
-	github.com/palantir/conjure-go-runtime/v2 v2.48.0
-	github.com/palantir/go-encrypted-config-value v1.15.0
+	github.com/palantir/conjure-go-runtime/v2 v2.50.0
+	github.com/palantir/go-encrypted-config-value v1.16.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
 	github.com/palantir/pkg/metrics v1.4.0
@@ -16,11 +16,11 @@ require (
 	github.com/palantir/pkg/safejson v1.1.0
 	github.com/palantir/pkg/signals v1.1.0
 	github.com/palantir/pkg/tlsconfig v1.2.0
-	github.com/palantir/witchcraft-go-error v1.18.0
+	github.com/palantir/witchcraft-go-error v1.19.0
 	github.com/palantir/witchcraft-go-health v1.14.0
 	github.com/palantir/witchcraft-go-logging v1.34.0
-	github.com/palantir/witchcraft-go-params v1.15.0
-	github.com/palantir/witchcraft-go-tracing v1.17.0
+	github.com/palantir/witchcraft-go-params v1.16.0
+	github.com/palantir/witchcraft-go-tracing v1.18.0
 	github.com/stretchr/testify v1.8.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -47,8 +47,8 @@ require (
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )

@@ -14,6 +14,7 @@ type RefreshableValidatedClientParams interface {
 	SubscribeToValidatedClientParams(func(ValidatedClientParams)) (unsubscribe func())
 
 	APIToken() refreshable.StringPtr
+	BasicAuth() RefreshableBasicAuthPtr
 	Dialer() RefreshableDialerParams
 	DisableMetrics() refreshable.Bool
 	MaxAttempts() refreshable.IntPtr
@@ -51,6 +52,12 @@ func (r RefreshingValidatedClientParams) SubscribeToValidatedClientParams(consum
 func (r RefreshingValidatedClientParams) APIToken() refreshable.StringPtr {
 	return refreshable.NewStringPtr(r.MapValidatedClientParams(func(i ValidatedClientParams) interface{} {
 		return i.APIToken
+	}))
+}
+
+func (r RefreshingValidatedClientParams) BasicAuth() RefreshableBasicAuthPtr {
+	return NewRefreshingBasicAuthPtr(r.MapValidatedClientParams(func(i ValidatedClientParams) interface{} {
+		return i.BasicAuth
 	}))
 }
 
@@ -99,6 +106,98 @@ func (r RefreshingValidatedClientParams) Transport() RefreshableTransportParams 
 func (r RefreshingValidatedClientParams) URIs() refreshable.StringSlice {
 	return refreshable.NewStringSlice(r.MapValidatedClientParams(func(i ValidatedClientParams) interface{} {
 		return i.URIs
+	}))
+}
+
+type RefreshableBasicAuthPtr interface {
+	refreshable.Refreshable
+	CurrentBasicAuthPtr() *BasicAuth
+	MapBasicAuthPtr(func(*BasicAuth) interface{}) refreshable.Refreshable
+	SubscribeToBasicAuthPtr(func(*BasicAuth)) (unsubscribe func())
+
+	User() refreshable.String
+	Password() refreshable.String
+}
+
+type RefreshingBasicAuthPtr struct {
+	refreshable.Refreshable
+}
+
+func NewRefreshingBasicAuthPtr(in refreshable.Refreshable) RefreshingBasicAuthPtr {
+	return RefreshingBasicAuthPtr{Refreshable: in}
+}
+
+func (r RefreshingBasicAuthPtr) CurrentBasicAuthPtr() *BasicAuth {
+	return r.Current().(*BasicAuth)
+}
+
+func (r RefreshingBasicAuthPtr) MapBasicAuthPtr(mapFn func(*BasicAuth) interface{}) refreshable.Refreshable {
+	return r.Map(func(i interface{}) interface{} {
+		return mapFn(i.(*BasicAuth))
+	})
+}
+
+func (r RefreshingBasicAuthPtr) SubscribeToBasicAuthPtr(consumer func(*BasicAuth)) (unsubscribe func()) {
+	return r.Subscribe(func(i interface{}) {
+		consumer(i.(*BasicAuth))
+	})
+}
+
+func (r RefreshingBasicAuthPtr) User() refreshable.String {
+	return refreshable.NewString(r.MapBasicAuthPtr(func(i *BasicAuth) interface{} {
+		return i.User
+	}))
+}
+
+func (r RefreshingBasicAuthPtr) Password() refreshable.String {
+	return refreshable.NewString(r.MapBasicAuthPtr(func(i *BasicAuth) interface{} {
+		return i.Password
+	}))
+}
+
+type RefreshableBasicAuth interface {
+	refreshable.Refreshable
+	CurrentBasicAuth() BasicAuth
+	MapBasicAuth(func(BasicAuth) interface{}) refreshable.Refreshable
+	SubscribeToBasicAuth(func(BasicAuth)) (unsubscribe func())
+
+	User() refreshable.String
+	Password() refreshable.String
+}
+
+type RefreshingBasicAuth struct {
+	refreshable.Refreshable
+}
+
+func NewRefreshingBasicAuth(in refreshable.Refreshable) RefreshingBasicAuth {
+	return RefreshingBasicAuth{Refreshable: in}
+}
+
+func (r RefreshingBasicAuth) CurrentBasicAuth() BasicAuth {
+	return r.Current().(BasicAuth)
+}
+
+func (r RefreshingBasicAuth) MapBasicAuth(mapFn func(BasicAuth) interface{}) refreshable.Refreshable {
+	return r.Map(func(i interface{}) interface{} {
+		return mapFn(i.(BasicAuth))
+	})
+}
+
+func (r RefreshingBasicAuth) SubscribeToBasicAuth(consumer func(BasicAuth)) (unsubscribe func()) {
+	return r.Subscribe(func(i interface{}) {
+		consumer(i.(BasicAuth))
+	})
+}
+
+func (r RefreshingBasicAuth) User() refreshable.String {
+	return refreshable.NewString(r.MapBasicAuth(func(i BasicAuth) interface{} {
+		return i.User
+	}))
+}
+
+func (r RefreshingBasicAuth) Password() refreshable.String {
+	return refreshable.NewString(r.MapBasicAuth(func(i BasicAuth) interface{} {
+		return i.Password
 	}))
 }
 

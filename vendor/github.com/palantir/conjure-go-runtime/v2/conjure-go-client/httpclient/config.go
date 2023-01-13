@@ -54,6 +54,9 @@ type ClientConfig struct {
 	// APITokenFile is an on-disk location containing a Bearer token. If APITokenFile is provided and APIToken
 	// is not, the content of the file will be used as the APIToken.
 	APITokenFile *string `json:"api-token-file,omitempty" yaml:"api-token-file,omitempty"`
+	// BasicAuth is a user/password combination which, if provided, will be used as the credentials in the
+	// Authorization header. APIToken and APITokenFile will take precedent over BasicAuth if specified
+	BasicAuth *BasicAuth `json:"basic-auth,omitempty" yaml:"basic-auth,omitempty"`
 	// DisableHTTP2, if true, will prevent the client from modifying the *tls.Config object to support H2 connections.
 	DisableHTTP2 *bool `json:"disable-http2,omitempty" yaml:"disable-http2,omitempty"`
 	// ProxyFromEnvironment enables reading HTTP proxy information from environment variables.
@@ -108,6 +111,14 @@ type ClientConfig struct {
 	Security SecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
 }
 
+// BasicAuth represents the configuration for HTTP Basic Authorization
+type BasicAuth struct {
+	// User is a string representing the user
+	User string `json:"user,omitempty" yaml:"user,omitempty"`
+	// Password is a string representing the password
+	Password string `json:"password,omitempty" yaml:"password,omitempty"`
+}
+
 type MetricsConfig struct {
 	// Enabled can be used to disable metrics with an explicit 'false'. Metrics are enabled if this is unset.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
@@ -152,6 +163,9 @@ func MergeClientConfig(conf, defaults ClientConfig) ClientConfig {
 	}
 	if conf.APITokenFile == nil {
 		conf.APITokenFile = defaults.APITokenFile
+	}
+	if conf.BasicAuth == nil {
+		conf.BasicAuth = defaults.BasicAuth
 	}
 	if conf.MaxNumRetries == nil {
 		conf.MaxNumRetries = defaults.MaxNumRetries
@@ -248,6 +262,8 @@ func configToParams(c ClientConfig) ([]ClientParam, error) {
 			return nil, werror.Wrap(err, "failed to read api-token-file", werror.SafeParam("file", *c.APITokenFile))
 		}
 		params = append(params, WithAuthToken(string(bytes.TrimSpace(token))))
+	} else if c.BasicAuth != nil && c.BasicAuth.User != "" && c.BasicAuth.Password != "" {
+		params = append(params, WithBasicAuth(c.BasicAuth.User, c.BasicAuth.Password))
 	}
 
 	// Disable HTTP2 (http2 is enabled by default)
@@ -381,6 +397,7 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		}
 	}
 
+	var basicAuth *refreshingclient.BasicAuth
 	var apiToken *string
 	if config.APIToken != nil {
 		apiToken = config.APIToken
@@ -392,6 +409,11 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		}
 		tokenStr := string(token)
 		apiToken = &tokenStr
+	} else if config.BasicAuth != nil && config.BasicAuth.User != "" && config.BasicAuth.Password != "" {
+		basicAuth = &refreshingclient.BasicAuth{
+			User:     config.BasicAuth.User,
+			Password: config.BasicAuth.Password,
+		}
 	}
 
 	disableMetrics := config.Metrics.Enabled != nil && !*config.Metrics.Enabled
@@ -441,6 +463,7 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 
 	return refreshingclient.ValidatedClientParams{
 		APIToken:       apiToken,
+		BasicAuth:      basicAuth,
 		Dialer:         dialer,
 		DisableMetrics: disableMetrics,
 		MaxAttempts:    maxAttempts,

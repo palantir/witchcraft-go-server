@@ -26,6 +26,7 @@ import (
 // Values are generally known to be "valid" to minimize downstream error handling.
 type ValidatedClientParams struct {
 	APIToken       *string
+	BasicAuth      *BasicAuth
 	Dialer         DialerParams
 	DisableMetrics bool
 	MaxAttempts    *int
@@ -34,4 +35,10 @@ type ValidatedClientParams struct {
 	Timeout        time.Duration
 	Transport      TransportParams
 	URIs           []string
+}
+
+// BasicAuth represents the configuration for HTTP Basic Authorization
+type BasicAuth struct {
+	User     string
+	Password string
 }
