@@ -272,7 +272,10 @@ func newClientBuilderFromRefreshableConfig(ctx context.Context, config Refreshab
 	b.HTTP.Timeout = validParams.Timeout()
 	b.HTTP.DisableMetrics = validParams.DisableMetrics()
 	b.HTTP.MetricsTagProviders = append(b.HTTP.MetricsTagProviders, refreshableMetricsTagsProvider{validParams.MetricsTags()})
-	b.HTTP.Middlewares = append(b.HTTP.Middlewares, newAuthTokenMiddlewareFromRefreshable(validParams.APIToken()))
+	b.HTTP.Middlewares = append(b.HTTP.Middlewares,
+		newAuthTokenMiddlewareFromRefreshable(validParams.APIToken()),
+		newBasicAuthMiddlewareFromRefreshable(validParams.BasicAuth()))
+
 	b.URIs = validParams.URIs()
 	b.MaxAttempts = validParams.MaxAttempts()
 	b.RetryParams = validParams.Retry()

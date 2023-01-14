@@ -17,7 +17,6 @@ package httpclient
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"net/http"
 	"net/url"
 	"time"
@@ -526,11 +525,10 @@ func WithErrorDecoder(errorDecoder ErrorDecoder) ClientParam {
 
 // WithBasicAuth sets the request's Authorization header to use HTTP Basic Authentication with the provided username and
 // password.
-func WithBasicAuth(username, password string) ClientParam {
-	return WithMiddleware(MiddlewareFunc(func(req *http.Request, next http.RoundTripper) (*http.Response, error) {
-		setBasicAuth(req.Header, username, password)
-		return next.RoundTrip(req)
-	}))
+func WithBasicAuth(user, password string) ClientParam {
+	return WithMiddleware(&basicAuthMiddleware{provider: func(ctx context.Context) (BasicAuth, error) {
+		return BasicAuth{User: user, Password: password}, nil
+	}})
 }
 
 // WithBalancedURIScoring adds middleware that prioritizes sending requests to URIs with the fewest in-flight requests
@@ -557,9 +555,4 @@ func WithRandomURIScoring() ClientParam {
 		}
 		return nil
 	})
-}
-
-func setBasicAuth(h http.Header, username, password string) {
-	basicAuthBytes := []byte(username + ":" + password)
-	h.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString(basicAuthBytes))
 }
