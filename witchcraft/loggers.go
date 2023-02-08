@@ -174,12 +174,12 @@ func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWrite
 		Compress:   true,
 	}
 	flusher := func(ctx context.Context) {
-		periodicallyRotateLogFiles(ctx, logger, slsFilename)
+		periodicallyRotateLogFile(ctx, logger, slsFilename)
 	}
 	return logger, flusher
 }
 
-func periodicallyRotateLogFiles(ctx context.Context, logger *lumberjack.Logger, slsFilename string) {
+func periodicallyRotateLogFile(ctx context.Context, logger *lumberjack.Logger, slsFilename string) {
 	interval := defaultLogRotationInterval
 	if slsFilename == auditLogFilename {
 		interval = auditLogRotationInterval
