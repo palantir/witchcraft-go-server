@@ -6,7 +6,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
-	github.com/palantir/conjure-go-runtime/v2 v2.52.0
+	github.com/palantir/conjure-go-runtime/v2 v2.53.0
 	github.com/palantir/go-encrypted-config-value v1.18.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
@@ -19,8 +19,8 @@ require (
 	github.com/palantir/witchcraft-go-error v1.21.0
 	github.com/palantir/witchcraft-go-health v1.14.0
 	github.com/palantir/witchcraft-go-logging v1.35.0
-	github.com/palantir/witchcraft-go-params v1.18.0
-	github.com/palantir/witchcraft-go-tracing v1.20.0
+	github.com/palantir/witchcraft-go-params v1.19.0
+	github.com/palantir/witchcraft-go-tracing v1.21.0
 	github.com/stretchr/testify v1.8.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
