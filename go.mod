@@ -16,7 +16,7 @@ require (
 	github.com/palantir/pkg/safejson v1.1.0
 	github.com/palantir/pkg/signals v1.1.0
 	github.com/palantir/pkg/tlsconfig v1.2.0
-	github.com/palantir/witchcraft-go-error v1.21.0
+	github.com/palantir/witchcraft-go-error v1.22.0
 	github.com/palantir/witchcraft-go-health v1.14.0
 	github.com/palantir/witchcraft-go-logging v1.35.0
 	github.com/palantir/witchcraft-go-params v1.19.0
