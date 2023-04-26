@@ -149,7 +149,7 @@ func (e *errorHealthCheckSource) HealthStatus(ctx context.Context) health.Health
 			healthCheckResult = sources.HealthyHealthCheckResult(e.checkType)
 		}
 	case HealthyIfNoRecentErrors:
-		if e.lastErrorTime.After(e.lastSuccessTime) {
+		if e.hasErrorInWindow() && e.lastErrorTime.After(e.lastSuccessTime) {
 			healthCheckResult = e.getFailureResult(e.lastError)
 		} else {
 			healthCheckResult = sources.HealthyHealthCheckResult(e.checkType)

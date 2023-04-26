@@ -17,7 +17,7 @@ require (
 	github.com/palantir/pkg/signals v1.1.0
 	github.com/palantir/pkg/tlsconfig v1.2.0
 	github.com/palantir/witchcraft-go-error v1.24.0
-	github.com/palantir/witchcraft-go-health v1.14.0
+	github.com/palantir/witchcraft-go-health v1.15.0
 	github.com/palantir/witchcraft-go-logging v1.38.0
 	github.com/palantir/witchcraft-go-params v1.21.0
 	github.com/palantir/witchcraft-go-tracing v1.23.0
