@@ -98,10 +98,10 @@ type ClientConfig struct {
 	HTTP2PingTimeout *time.Duration `json:"http2-ping-timeout,omitempty" yaml:"http2-ping-timeout,omitempty"`
 
 	// MaxIdleConns sets the number of reusable TCP connections the client will maintain.
-	// If unset, the client defaults to 32.
+	// If unset, the client defaults to 200.
 	MaxIdleConns *int `json:"max-idle-conns,omitempty" yaml:"max-idle-conns,omitempty"`
 	// MaxIdleConnsPerHost sets the number of reusable TCP connections the client will maintain per destination.
-	// If unset, the client defaults to 32.
+	// If unset, the client defaults to 100.
 	MaxIdleConnsPerHost *int `json:"max-idle-conns-per-host,omitempty" yaml:"max-idle-conns-per-host,omitempty"`
 
 	// Metrics allows disabling metric emission or adding additional static tags to the client metrics.
