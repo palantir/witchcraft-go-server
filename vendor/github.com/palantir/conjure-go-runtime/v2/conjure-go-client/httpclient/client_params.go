@@ -266,7 +266,7 @@ func WithHTTP2PingTimeout(timeout time.Duration) ClientOrHTTPClientParam {
 }
 
 // WithMaxIdleConns sets the number of reusable TCP connections the client
-// will maintain. If unset, the client defaults to 32.
+// will maintain. If unset, the client defaults to 200.
 func WithMaxIdleConns(conns int) ClientOrHTTPClientParam {
 	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
 		b.TransportParams = refreshingclient.ConfigureTransport(b.TransportParams, func(p refreshingclient.TransportParams) refreshingclient.TransportParams {
@@ -278,7 +278,7 @@ func WithMaxIdleConns(conns int) ClientOrHTTPClientParam {
 }
 
 // WithMaxIdleConnsPerHost sets the number of reusable TCP connections the client
-// will maintain per destination. If unset, the client defaults to 32.
+// will maintain per destination. If unset, the client defaults to 100.
 func WithMaxIdleConnsPerHost(conns int) ClientOrHTTPClientParam {
 	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
 		b.TransportParams = refreshingclient.ConfigureTransport(b.TransportParams, func(p refreshingclient.TransportParams) refreshingclient.TransportParams {
@@ -369,7 +369,7 @@ func WithTLSInsecureSkipVerify() ClientOrHTTPClientParam {
 }
 
 // WithDialTimeout sets the timeout on the Dialer.
-// If unset, the client defaults to 30 seconds.
+// If unset, the client defaults to 90 seconds.
 func WithDialTimeout(timeout time.Duration) ClientOrHTTPClientParam {
 	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
 		b.DialerParams = refreshingclient.ConfigureDialer(b.DialerParams, func(p refreshingclient.DialerParams) refreshingclient.DialerParams {
@@ -549,7 +549,7 @@ func WithBalancedURIScoring() ClientParam {
 func WithRandomURIScoring() ClientParam {
 	return clientParamFunc(func(b *clientBuilder) error {
 		b.URIScorerBuilder = func(uris []string) internal.URIScoringMiddleware {
-			return internal.NewBalancedURIScoringMiddleware(uris, func() int64 {
+			return internal.NewRandomURIScoringMiddleware(uris, func() int64 {
 				return time.Now().UnixNano()
 			})
 		}
