@@ -21,7 +21,7 @@ require (
 	github.com/palantir/witchcraft-go-logging v1.39.0
 	github.com/palantir/witchcraft-go-params v1.22.0
 	github.com/palantir/witchcraft-go-tracing v1.24.0
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
