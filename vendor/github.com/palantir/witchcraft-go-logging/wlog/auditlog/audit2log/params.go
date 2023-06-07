@@ -71,6 +71,12 @@ func TokenID(tokenID string) Param {
 	})
 }
 
+func OrgID(orgID string) Param {
+	return paramFunc(func(entry wlog.LogEntry) {
+		entry.OptionalStringValue(wlog.OrgIDKey, orgID)
+	})
+}
+
 func TraceID(traceID string) Param {
 	return paramFunc(func(entry wlog.LogEntry) {
 		entry.OptionalStringValue(wlog.TraceIDKey, traceID)

@@ -24,6 +24,7 @@ const (
 	UIDKey     = wlogContextKeyType("wlog.uid")
 	SIDKey     = wlogContextKeyType("wlog.sid")
 	TokenIDKey = wlogContextKeyType("wlog.tokenID")
+	OrgIDKey   = wlogContextKeyType("wlog.orgID")
 )
 
 func ContextWithID(ctx context.Context, key wlogContextKeyType, id string) context.Context {

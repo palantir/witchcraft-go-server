@@ -72,6 +72,7 @@ func ToParams(r Request, idsExtractor extractor.IDsFromRequest, pathParamPerms, 
 		wlog.OptionalStringParam(wlog.UIDKey, idsMap[wlog.UIDKey]),
 		wlog.OptionalStringParam(wlog.SIDKey, idsMap[wlog.SIDKey]),
 		wlog.OptionalStringParam(wlog.TokenIDKey, idsMap[wlog.TokenIDKey]),
+		wlog.OptionalStringParam(wlog.OrgIDKey, idsMap[wlog.OrgIDKey]),
 		wlog.OptionalStringParam(traceIDKey, idsMap[traceIDKey]),
 		unsafeParams,
 	}

@@ -31,3 +31,7 @@ func ContextWithSID(ctx context.Context, sid string) context.Context {
 func ContextWithTokenID(ctx context.Context, tokenID string) context.Context {
 	return wloginternal.ContextWithID(ctx, wloginternal.TokenIDKey, tokenID)
 }
+
+func ContextWithOrgID(ctx context.Context, orgID string) context.Context {
+	return wloginternal.ContextWithID(ctx, wloginternal.OrgIDKey, orgID)
+}
