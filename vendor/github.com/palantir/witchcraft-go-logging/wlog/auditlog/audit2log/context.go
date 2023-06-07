@@ -57,6 +57,9 @@ func FromContext(ctx context.Context) Logger {
 	if tokenID := wloginternal.IDFromContext(ctx, wloginternal.TokenIDKey); tokenID != nil {
 		params = append(params, TokenID(*tokenID))
 	}
+	if orgID := wloginternal.IDFromContext(ctx, wloginternal.OrgIDKey); orgID != nil {
+		params = append(params, OrgID(*orgID))
+	}
 	if traceID := wtracing.TraceIDFromContext(ctx); traceID != "" {
 		params = append(params, TraceID(string(traceID)))
 	}

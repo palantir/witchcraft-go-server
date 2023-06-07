@@ -28,6 +28,7 @@ const (
 	UIDKey     = "uid"
 	SIDKey     = "sid"
 	TokenIDKey = "tokenId"
+	OrgIDKey   = "orgId"
 )
 
 // newIDsFromJWTExtractor creates an extractor that sets the UIDKey, SIDKey and TokenIDKey keys to have the values
@@ -42,34 +43,35 @@ type jwtRequestIDsExtractor struct{}
 func (e *jwtRequestIDsExtractor) ExtractIDs(req *http.Request) map[string]string {
 	const bearerTokenPrefix = "Bearer "
 
-	var uid, sid, tokenID string
+	var uid, sid, tokenID, orgID string
 	authContent := req.Header.Get("Authorization")
 	if strings.HasPrefix(authContent, bearerTokenPrefix) {
-		uid, sid, tokenID, _ = idsFromJWT(authContent[len(bearerTokenPrefix):])
+		uid, sid, tokenID, orgID, _ = idsFromJWT(authContent[len(bearerTokenPrefix):])
 	}
 	return map[string]string{
 		UIDKey:     uid,
 		SIDKey:     sid,
 		TokenIDKey: tokenID,
+		OrgIDKey:   orgID,
 	}
 }
 
 // idsFromJWT returns the uid, sid and tokenID in the provided JWT. Note that signature verification is not performed on
 // the JWT, so the returned values should not be considered secure or used for security purposes. However, the values
 // are considered acceptable for use in logging.
-func idsFromJWT(jwtContent string) (uid string, sid string, tokenID string, err error) {
+func idsFromJWT(jwtContent string) (uid string, sid string, tokenID string, orgID string, err error) {
 	parts := strings.Split(jwtContent, ".")
 	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("JWT must have 3 '.'-separated parts, but had %d: %q", len(parts), jwtContent)
+		return "", "", "", "", fmt.Errorf("JWT must have 3 '.'-separated parts, but had %d: %q", len(parts), jwtContent)
 	}
 	bytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to decode JWT content %q as Base64 URL-encoded string: %v", parts[1], err)
+		return "", "", "", "", fmt.Errorf("failed to decode JWT content %q as Base64 URL-encoded string: %v", parts[1], err)
 	}
 
 	var jsonMap map[string]interface{}
 	if err := json.Unmarshal(bytes, &jsonMap); err != nil {
-		return "", "", "", fmt.Errorf("failed to decode JWT content %s as JSON: %v", string(bytes), err)
+		return "", "", "", "", fmt.Errorf("failed to decode JWT content %s as JSON: %v", string(bytes), err)
 	}
 
 	// "sub" = "subject" field, which is used as the UID
@@ -78,8 +80,10 @@ func idsFromJWT(jwtContent string) (uid string, sid string, tokenID string, err 
 	sid = getMapUUIDStringVal(jsonMap, "sid")
 	// "jti" is used to store the token ID
 	tokenID = getMapUUIDStringVal(jsonMap, "jti")
+	// "org" is used to store the organization ID
+	orgID = getMapUUIDStringVal(jsonMap, "org")
 
-	return uid, sid, tokenID, nil
+	return uid, sid, tokenID, orgID, nil
 }
 
 func getMapUUIDStringVal(m map[string]interface{}, key string) string {

@@ -75,6 +75,12 @@ func TokenID(tokenID string) Param {
 	})
 }
 
+func OrgID(orgID string) Param {
+	return paramFunc(func(entry wlog.LogEntry) {
+		entry.OptionalStringValue(wlog.OrgIDKey, orgID)
+	})
+}
+
 func UnsafeParam(key string, value interface{}) Param {
 	return UnsafeParams(map[string]interface{}{
 		key: value,

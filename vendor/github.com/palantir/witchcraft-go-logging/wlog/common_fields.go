@@ -20,6 +20,7 @@ const (
 	UIDKey          = "uid"
 	SIDKey          = "sid"
 	TokenIDKey      = "tokenId"
+	OrgIDKey        = "orgId"
 	TraceIDKey      = "traceId"
 	UnsafeParamsKey = "unsafeParams"
 )
