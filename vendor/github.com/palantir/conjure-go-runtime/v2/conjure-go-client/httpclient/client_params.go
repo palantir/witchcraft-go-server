@@ -158,6 +158,14 @@ func WithUserAgent(userAgent string) ClientOrHTTPClientParam {
 	return WithSetHeader("User-Agent", userAgent)
 }
 
+// WithOverrideRequestHost overrides the request Host from the default URL.Host
+func WithOverrideRequestHost(host string) ClientOrHTTPClientParam {
+	return WithMiddleware(MiddlewareFunc(func(req *http.Request, next http.RoundTripper) (*http.Response, error) {
+		req.Host = host
+		return next.RoundTrip(req)
+	}))
+}
+
 // WithMetrics enables the "client.response" metric. See MetricsMiddleware for details.
 // The serviceName will appear as the "service-name" tag.
 func WithMetrics(tagProviders ...TagsProvider) ClientOrHTTPClientParam {
