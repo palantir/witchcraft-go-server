@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
 	"github.com/palantir/pkg/refreshable"
@@ -64,6 +65,19 @@ func TestDebugResource(t *testing.T) {
 				var body bytes.Buffer
 				require.NoError(t, codecs.Binary.Decode(resp.Body, &body))
 				require.NotEmpty(t, body.Bytes())
+			},
+		},
+		{
+			DiagnosticType: DiagnosticTypeSystemTimeV1,
+			Verify: func(t *testing.T, resp *http.Response) {
+				require.Equal(t, 200, resp.StatusCode)
+				require.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
+				require.Equal(t, "true", resp.Header.Get("Safe-Loggable"))
+				var systemTime string
+				require.NoError(t, codecs.Plain.Decode(resp.Body, &systemTime))
+				parsed, err := time.Parse(time.RFC3339Nano, systemTime)
+				require.NoError(t, err)
+				require.NotEmpty(t, parsed)
 			},
 		},
 	} {
