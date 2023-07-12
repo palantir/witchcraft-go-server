@@ -35,6 +35,9 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 )
 
+// now is a local copy of time.Now() for testing purposes.
+var now = time.Now
+
 // NewRequestPanicRecovery returns a middleware which recovers panics in the wrapped handler.
 // It accepts loggers as arguments, as we are not guaranteed they have been set on the request context.
 // These loggers are only used in the case of a panic.
@@ -181,14 +184,14 @@ func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerM
 		// add capability to store tags on the context
 		r = r.WithContext(metrics.AddTags(r.Context()))
 
-		start := time.Now()
-
+		start := now()
 		lrw := toLoggingResponseWriter(rw)
 		next(lrw, r, reqVals)
+		end := now()
 
 		tags := reqVals.MetricTags
 		// record metrics for call
-		mr.Timer(serverResponseMetricName, tags...).Update(time.Since(start) / time.Microsecond)
+		mr.Timer(serverResponseMetricName, tags...).Update(end.Sub(start))
 		mr.Histogram(serverRequestSizeMetricName, tags...).Update(r.ContentLength)
 		mr.Histogram(serverResponseSizeMetricName, tags...).Update(int64(lrw.Size()))
 		if lrw.Status()/100 == 5 {
