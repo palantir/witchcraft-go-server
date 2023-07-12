@@ -33,6 +33,7 @@ const (
 	DiagnosticTypeAllocsProfileV1     DiagnosticType = "go.profile.allocs.v1"
 	DiagnosticTypeGoroutinesV1        DiagnosticType = "go.goroutines.v1"
 	DiagnosticTypeMetricNamesV1       DiagnosticType = "metric.names.v1"
+	DiagnosticTypeSystemTimeV1        DiagnosticType = "os.system.clock.v1"
 )
 
 var diagnosticHandlers = map[DiagnosticType]DiagnosticHandler{
@@ -41,6 +42,7 @@ var diagnosticHandlers = map[DiagnosticType]DiagnosticHandler{
 	DiagnosticTypeAllocsProfileV1:     handlerAllocsProfileV1{},
 	DiagnosticTypeGoroutinesV1:        handlerGoroutinesV1{},
 	DiagnosticTypeMetricNamesV1:       handlerMetricNamesV1{},
+	DiagnosticTypeSystemTimeV1:        handlerSystemTimeV1{},
 }
 
 type DiagnosticHandler interface {
@@ -215,6 +217,35 @@ func (h handlerMetricNamesV1) WriteDiagnostic(ctx context.Context, w io.Writer) 
 
 	if err := codecs.JSON.Encode(w, result); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to write metric names")
+	}
+	return nil
+}
+
+type handlerSystemTimeV1 struct{}
+
+func (h handlerSystemTimeV1) Type() DiagnosticType {
+	return DiagnosticTypeSystemTimeV1
+}
+
+func (h handlerSystemTimeV1) Documentation() string {
+	return `This diagnostic prints the current system timestamp as observed by the service. This could be useful for diagnosing clock skew.`
+}
+
+func (h handlerSystemTimeV1) ContentType() string {
+	return codecs.Plain.ContentType()
+}
+
+func (h handlerSystemTimeV1) SafeLoggable() bool {
+	return true
+}
+
+func (h handlerSystemTimeV1) Extension() string {
+	return "txt"
+}
+
+func (h handlerSystemTimeV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
+	if err := codecs.Plain.Encode(w, time.Now().Format(time.RFC3339Nano)); err != nil {
+		return werror.WrapWithContextParams(ctx, err, "failed to write system time")
 	}
 	return nil
 }
