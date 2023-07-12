@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package middleware_test
+package middleware
 
 import (
 	"bytes"
@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/objmatcher"
@@ -33,7 +34,6 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
@@ -71,8 +71,8 @@ func TestCombinedMiddleware(t *testing.T) {
 	r := wrouter.New(
 		whttprouter.New(),
 		wrouter.RootRouterParamAddRequestHandlerMiddleware(
-			middleware.NewRequestContextMetricsRegistry(metricsRegistry),
-			middleware.NewRequestContextLoggers(
+			NewRequestContextMetricsRegistry(metricsRegistry),
+			NewRequestContextLoggers(
 				svcLog,
 				nil,
 				nil,
@@ -80,7 +80,7 @@ func TestCombinedMiddleware(t *testing.T) {
 				nil,
 				reqLog,
 			),
-			middleware.NewRequestExtractIDs(
+			NewRequestExtractIDs(
 				svcLog,
 				trcLog,
 				nil,
@@ -88,7 +88,7 @@ func TestCombinedMiddleware(t *testing.T) {
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			middleware.NewRouteRequestLog(),
+			NewRouteRequestLog(),
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -159,24 +159,25 @@ func TestCombinedMiddleware(t *testing.T) {
 
 func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 	r := metrics.NewRootMetricsRegistry()
-	reqMiddleware := middleware.NewRequestMetricRequestMeter(r)
+	reqMiddleware := NewRequestMetricRequestMeter(r)
 
+	now = func() time.Time { return time.UnixMilli(0) }
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
 	reqMiddleware(w, req, wrouter.RequestVals{}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+		now = func() time.Time { return time.UnixMilli(1) }
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 
 	m := make(map[string]interface{})
-	r.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	r.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		vals := metric.Values()
 		m[name] = vals
-	}))
+	})
 
 	respMap := m["server.response"]
-	err = objmatcher.MapMatcher(getTimerObjectMatcher(1)).Matches(respMap)
-	if err != nil {
+	if objmatcher.MapMatcher(getTimerObjectMatcher(1, 1000)).Matches(respMap) != nil {
 		t.Errorf("Does not match: %v", err)
 	}
 }
@@ -188,7 +189,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 	}{
 		{
 			metricName:          "server.response",
-			metricObjectMatcher: objmatcher.MapMatcher(getTimerObjectMatcher(1)),
+			metricObjectMatcher: objmatcher.MapMatcher(getTimerObjectMatcher(1, 1000)),
 		},
 		{
 			metricName:          "server.request.size",
@@ -208,7 +209,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 		wRouter := wrouter.New(
 			whttprouter.New(),
 
-			wrouter.RootRouterParamAddRequestHandlerMiddleware(middleware.NewRequestContextLoggers(
+			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestContextLoggers(
 				nil,
 				nil,
 				nil,
@@ -216,12 +217,14 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 				nil,
 				req2log.New(io.Discard),
 			)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRequestMetricRequestMeter(r)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(middleware.NewRouteRequestLog()),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteRequestLog()),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
+		now = func() time.Time { return time.UnixMilli(0) }
 		err := authResource.Get("userAuth", "/userAuth", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			now = func() time.Time { return time.UnixMilli(1) }
 			rw.WriteHeader(http.StatusInternalServerError)
 		}))
 		require.NoError(t, err)
@@ -233,11 +236,11 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 
 		m := make(map[string]interface{})
 		tagsMap := make(map[string]metrics.Tags)
-		r.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+		r.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 			vals := metrics.ToMetricVal(metric).Values()
 			m[name] = vals
 			tagsMap[name] = tags
-		}))
+		})
 
 		respMap := m[currCase.metricName]
 		err = objmatcher.MapMatcher(currCase.metricObjectMatcher).Matches(respMap)
@@ -257,7 +260,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 func TestStrictTransportSecurity(t *testing.T) {
 	wRouter := wrouter.New(
 		whttprouter.New(),
-		wrouter.RootRouterParamAddRequestHandlerMiddleware(middleware.NewStrictTransportSecurityHeader()),
+		wrouter.RootRouterParamAddRequestHandlerMiddleware(NewStrictTransportSecurityHeader()),
 	)
 
 	w := httptest.NewRecorder()
@@ -268,7 +271,7 @@ func TestStrictTransportSecurity(t *testing.T) {
 }
 
 func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {
-	return objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+	return map[string]objmatcher.Matcher{
 		"count":  objmatcher.NewEqualsMatcher(int64(count)),
 		"mean":   objmatcher.NewAnyMatcher(),
 		"stddev": objmatcher.NewAnyMatcher(),
@@ -277,26 +280,26 @@ func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {
 		"p50":    objmatcher.NewAnyMatcher(),
 		"p95":    objmatcher.NewAnyMatcher(),
 		"p99":    objmatcher.NewAnyMatcher(),
-	})
+	}
 }
 
 func getMeterObjectMatcher(count int) map[string]objmatcher.Matcher {
-	return objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+	return map[string]objmatcher.Matcher{
 		"count": objmatcher.NewEqualsMatcher(int64(count)),
 		"1m":    objmatcher.NewAnyMatcher(),
 		"5m":    objmatcher.NewAnyMatcher(),
 		"15m":   objmatcher.NewAnyMatcher(),
 		"mean":  objmatcher.NewAnyMatcher(),
-	})
+	}
 }
 
-func getTimerObjectMatcher(count int) map[string]objmatcher.Matcher {
-	return objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+func getTimerObjectMatcher(count, value int) map[string]objmatcher.Matcher {
+	return map[string]objmatcher.Matcher{
 		"count":    objmatcher.NewEqualsMatcher(int64(count)),
-		"mean":     objmatcher.NewAnyMatcher(),
+		"mean":     objmatcher.NewEqualsMatcher(float64(value)),
 		"stddev":   objmatcher.NewAnyMatcher(),
-		"min":      objmatcher.NewAnyMatcher(),
-		"max":      objmatcher.NewAnyMatcher(),
+		"min":      objmatcher.NewEqualsMatcher(int64(value)),
+		"max":      objmatcher.NewEqualsMatcher(int64(value)),
 		"meanRate": objmatcher.NewAnyMatcher(),
 		"1m":       objmatcher.NewAnyMatcher(),
 		"5m":       objmatcher.NewAnyMatcher(),
@@ -304,7 +307,7 @@ func getTimerObjectMatcher(count int) map[string]objmatcher.Matcher {
 		"p50":      objmatcher.NewAnyMatcher(),
 		"p95":      objmatcher.NewAnyMatcher(),
 		"p99":      objmatcher.NewAnyMatcher(),
-	})
+	}
 }
 
 func TestRequestDisableTelemetry(t *testing.T) {
@@ -318,9 +321,9 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
 
 	metricRegistry := metrics.NewRootMetricsRegistry()
-	reqMetricMiddleware := middleware.NewRequestMetricRequestMeter(metricRegistry)
-	reqSpanMiddleware := middleware.NewRouteLogTraceSpan()
-	reqRequstLogMiddleware := middleware.NewRouteRequestLog()
+	reqMetricMiddleware := NewRequestMetricRequestMeter(metricRegistry)
+	reqSpanMiddleware := NewRouteLogTraceSpan()
+	reqRequstLogMiddleware := NewRouteRequestLog()
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
