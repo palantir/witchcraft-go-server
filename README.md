@@ -72,7 +72,7 @@ specifies the encoding and format of the response. The following types are curre
 * `metric.names.v1`: Records all metric names and tag sets in the process's metric registry.
 
 #### \[Deprecated] Pprof routes
-The following routes are registered on the management server (if enabled, otherwise the main server) to aid in debugging
+The following routes are registered on the management server (if enabled) to aid in debugging
 and telemetry collection. These are generally deprecated in favor of the diagnostic routes described above.
 * `/debug/pprof`: Provides an HTML index of the other endpoints at this route.
 * `/debug/pprof/profile`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).

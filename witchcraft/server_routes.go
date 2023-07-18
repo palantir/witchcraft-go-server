@@ -43,11 +43,8 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 	return routerWithContextPath, mgmtRouterWithContextPath
 }
 
+// addRoutes registers /debug/diagnostic/* and /status/*
 func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg config.RefreshableRuntime) error {
-	// add debugging endpoints to management router
-	if err := addPprofRoutes(mgmtRouterWithContextPath); err != nil {
-		return werror.Wrap(err, "failed to register debugging routes")
-	}
 	if err := wdebug.RegisterRoute(mgmtRouterWithContextPath, runtimeCfg.DiagnosticsConfig().DebugSharedSecret()); err != nil {
 		return err
 	}

@@ -687,6 +687,10 @@ func (s *Server) Start() (rErr error) {
 	if mgmtRouter != router {
 		// add middleware to management router as well if it is distinct
 		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.getManagementTracingOptions(baseInstallCfg))
+		// add debugging endpoints to management router
+		if err := addPprofRoutes(mgmtRouter); err != nil {
+			return werror.Wrap(err, "failed to register debugging routes")
+		}
 	}
 
 	// handle built-in runtime config changes
