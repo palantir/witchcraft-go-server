@@ -1,0 +1,107 @@
+./godelw verify failed after updating godel plugins and assets
+
+Command that caused error:
+./godelw verify --skip-test --skip-check
+
+Output:
+Running format...
+Running mod...
+go: downloading github.com/palantir/witchcraft-go-health v1.15.0
+go: downloading github.com/palantir/go-encrypted-config-value v1.25.0
+go: downloading gopkg.in/natefinch/lumberjack.v2 v2.0.0
+go: downloading go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
+go: downloading honnef.co/go/tools v0.0.1-2019.2.3
+go: downloading golang.org/x/tools v0.6.0
+go: downloading github.com/BurntSushi/toml v0.3.1
+github.com/palantir/witchcraft-go-server/v2/status imports
+	github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health: github.com/palantir/witchcraft-go-health@v1.15.0: Get "https://proxy.golang.org/github.com/palantir/witchcraft-go-health/@v/v1.15.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/status imports
+	github.com/palantir/witchcraft-go-health/status: github.com/palantir/witchcraft-go-health@v1.15.0: Get "https://proxy.golang.org/github.com/palantir/witchcraft-go-health/@v/v1.15.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/go-encrypted-config-value/encryptedconfigvalue: github.com/palantir/go-encrypted-config-value@v1.25.0: Get "https://proxy.golang.org/github.com/palantir/go-encrypted-config-value/@v/v1.25.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable imports
+	github.com/palantir/witchcraft-go-health/sources: github.com/palantir/witchcraft-go-health@v1.15.0: Get "https://proxy.golang.org/github.com/palantir/witchcraft-go-health/@v/v1.15.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/witchcraft/ratelimit imports
+	github.com/palantir/witchcraft-go-health/reporter: github.com/palantir/witchcraft-go-health@v1.15.0: Get "https://proxy.golang.org/github.com/palantir/witchcraft-go-health/@v/v1.15.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/integration tested by
+	github.com/palantir/witchcraft-go-server/v2/integration.test imports
+	github.com/palantir/witchcraft-go-health/sources/periodic: github.com/palantir/witchcraft-go-health@v1.15.0: Get "https://proxy.golang.org/github.com/palantir/witchcraft-go-health/@v/v1.15.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog/tcpjson imports
+	github.com/palantir/witchcraft-go-health/sources/window: github.com/palantir/witchcraft-go-health@v1.15.0: Get "https://proxy.golang.org/github.com/palantir/witchcraft-go-health/@v/v1.15.0.zip": read tcp 172.26.66.76:54660->142.251.40.241:443: read: connection timed out
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	golang.org/x/tools/go/analysis: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	golang.org/x/lint/golint imports
+	golang.org/x/lint imports
+	golang.org/x/tools/go/ast/astutil: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	golang.org/x/lint/golint imports
+	golang.org/x/lint imports
+	golang.org/x/tools/go/gcexportdata: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	honnef.co/go/tools/lint imports
+	golang.org/x/tools/go/packages: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	honnef.co/go/tools/lint imports
+	golang.org/x/tools/go/types/objectpath: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	honnef.co/go/tools/lint/lintutil imports
+	golang.org/x/tools/go/buildutil: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	honnef.co/go/tools/simple imports
+	golang.org/x/tools/go/analysis/passes/inspect: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	honnef.co/go/tools/simple imports
+	golang.org/x/tools/go/ast/inspector: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+github.com/palantir/witchcraft-go-server/v2/witchcraft imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap imports
+	github.com/palantir/witchcraft-go-logging/wlog-zap/internal imports
+	go.uber.org/zap tested by
+	go.uber.org/zap.test imports
+	honnef.co/go/tools/cmd/staticcheck imports
+	honnef.co/go/tools/simple imports
+	golang.org/x/tools/go/types/typeutil: golang.org/x/tools@v0.6.0: read "https:/proxy.golang.org/@v/v0.6.0.zip": stream error: stream ID 29; NO_ERROR; received from peer
+Running refreshables...
+Running conjure...
+Running license...
+Failed tasks:
+	mod
