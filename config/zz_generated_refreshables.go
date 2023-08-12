@@ -75,6 +75,7 @@ type RefreshableDiagnosticsConfig interface {
 	SubscribeToDiagnosticsConfig(func(DiagnosticsConfig)) (unsubscribe func())
 
 	DebugSharedSecret() refreshable.String
+	DebugSharedSecretFile() refreshable.String
 }
 
 type RefreshingDiagnosticsConfig struct {
@@ -104,6 +105,12 @@ func (r RefreshingDiagnosticsConfig) SubscribeToDiagnosticsConfig(consumer func(
 func (r RefreshingDiagnosticsConfig) DebugSharedSecret() refreshable.String {
 	return refreshable.NewString(r.MapDiagnosticsConfig(func(i DiagnosticsConfig) interface{} {
 		return i.DebugSharedSecret
+	}))
+}
+
+func (r RefreshingDiagnosticsConfig) DebugSharedSecretFile() refreshable.String {
+	return refreshable.NewString(r.MapDiagnosticsConfig(func(i DiagnosticsConfig) interface{} {
+		return i.DebugSharedSecretFile
 	}))
 }
 

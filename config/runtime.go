@@ -31,7 +31,12 @@ type Runtime struct {
 }
 
 type DiagnosticsConfig struct {
+	// DebugSharedSecret is a string which, if provided, will be used as the access key to the diagnostics route.
+	// This takes precedence over DebugSharedSecretFile.
 	DebugSharedSecret string `yaml:"debug-shared-secret"`
+	// DebugSharedSecretFile is an on-disk location containing the shared secret. If DebugSharedSecretFile is provided and
+	// DebugSharedSecret is not, the content of the file will be used as the shared secret.
+	DebugSharedSecretFile string `yaml:"debug-shared-secret-file"`
 }
 
 type HealthChecksConfig struct {
