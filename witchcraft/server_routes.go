@@ -15,6 +15,7 @@
 package witchcraft
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	netpprof "net/http/pprof"
@@ -23,12 +24,14 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status/routes"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/wdebug"
+	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -44,8 +47,12 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 }
 
 // addRoutes registers /debug/diagnostic/* and /status/*
-func (s *Server) addRoutes(mgmtRouterWithContextPath wrouter.Router, runtimeCfg config.RefreshableRuntime) error {
-	if err := wdebug.RegisterRoute(mgmtRouterWithContextPath, runtimeCfg.DiagnosticsConfig().DebugSharedSecret()); err != nil {
+func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wrouter.Router, runtimeCfg config.RefreshableRuntime) error {
+	secretRefreshable, err := getSecretRefreshable(ctx, runtimeCfg.DiagnosticsConfig())
+	if err != nil {
+		return err
+	}
+	if err := wdebug.RegisterRoute(mgmtRouterWithContextPath, secretRefreshable); err != nil {
 		return err
 	}
 
@@ -171,4 +178,29 @@ func heap(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprintf(w, "Could not dump heap: %s\n", err)
 		return
 	}
+}
+
+func getSecretRefreshable(ctx context.Context, diagnosticsConfig config.RefreshableDiagnosticsConfig) (refreshable.String, error) {
+	secretFromConfig := diagnosticsConfig.DebugSharedSecret()
+	secretFilePath := diagnosticsConfig.DebugSharedSecretFile()
+	// if both fields are undefined, then the server doesn't use a secret for the /debug/diagnostics/* route
+	if secretFromConfig.CurrentString() == "" && secretFilePath.CurrentString() == "" {
+		return refreshable.NewString(refreshable.NewDefaultRefreshable("")), nil
+	}
+
+	if secretFromConfig.CurrentString() != "" {
+		return secretFromConfig, nil
+	}
+	fileRefreshable, err := refreshablefile.NewFileRefreshable(ctx, secretFilePath.CurrentString())
+	if err != nil {
+		return nil, err
+	}
+	secretStringFromFileRefreshable := refreshable.NewString(fileRefreshable.Map(func(i interface{}) interface{} {
+		secretBytes, ok := i.([]byte)
+		if !ok {
+			return ""
+		}
+		return string(secretBytes)
+	}))
+	return secretStringFromFileRefreshable, nil
 }
