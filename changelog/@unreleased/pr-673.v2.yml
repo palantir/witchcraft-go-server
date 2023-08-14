@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Users are able to pass in the path to the file that stores the shared
+    secret to the `debug-shared-secret-file` field. However, if the `debug-shared-secret`
+    field is defined, it takes precedence.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/673
