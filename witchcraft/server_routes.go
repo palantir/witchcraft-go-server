@@ -196,7 +196,10 @@ func getSecretRefreshable(ctx context.Context, diagnosticsConfig config.Refresha
 		return nil, err
 	}
 	secretStringFromFileRefreshable := refreshable.NewString(fileRefreshable.Map(func(i interface{}) interface{} {
-		secretBytes := i.([]byte)
+		secretBytes, ok := i.([]byte)
+		if !ok {
+			return ""
+		}
 		return string(secretBytes)
 	}))
 	return secretStringFromFileRefreshable, nil
