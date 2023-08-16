@@ -10,7 +10,7 @@ require (
 	github.com/palantir/go-encrypted-config-value v1.25.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
-	github.com/palantir/pkg/metrics v1.4.0
+	github.com/palantir/pkg/metrics v1.5.0
 	github.com/palantir/pkg/objmatcher v1.1.0
 	github.com/palantir/pkg/refreshable v1.4.0
 	github.com/palantir/pkg/safejson v1.1.0
