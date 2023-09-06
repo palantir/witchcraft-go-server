@@ -3,20 +3,20 @@ plugins:
     - https://github.com/{{index GroupParts 1}}/{{index GroupParts 2}}/releases/download/v{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz
   plugins:
     - locator:
-        id: com.palantir.godel-conjure-plugin:conjure-plugin:6.53.0
+        id: com.palantir.godel-conjure-plugin:conjure-plugin:6.54.0
         checksums:
-          darwin-amd64: ba9cdaafeaf6b7befccfdaeff6a9354483d2aa8931fa25eef0ed199eb460a418
-          linux-amd64: 7506aa3deb7f585fc41338fefef1c8677a80f483e1fdff41b40766389c45b30f
+          darwin-amd64: f63eb0f1733df5b3086019d97425171f7e08cc546e9fd69a7384b4245c380cc7
+          linux-amd64: ab0d792a5009873846991d3041ef47780f5772362d4d61e21f7b4d8f4ba57334
     - locator:
-        id: com.palantir.godel-mod-plugin:mod-plugin:1.31.0
+        id: com.palantir.godel-mod-plugin:mod-plugin:1.32.0
         checksums:
-          darwin-amd64: 8f276015660c126227691cdafb2a2410d9fed449631429650f68d7e253cb3761
-          linux-amd64: eaa14146ada31568c14203675b29e72a7399fb05f12213a5f3c629961e4d38d2
+          darwin-amd64: ed3d1f60b425b7019fe4e1da9b0a2c5ef69f5881416454ae54fa2beb476b2f79
+          linux-amd64: c8f5ce8b55fd45e14845201d5003a690caffce8b75d7e8e5354c9fdeea2e32d7
     - locator:
-        id: com.palantir.godel-refreshables-plugin:refreshables-plugin:0.160.0
+        id: com.palantir.godel-refreshables-plugin:refreshables-plugin:0.162.0
         checksums:
-          darwin-amd64: 8e09fc128aa3a4077c50beb1bdeb697e8521e40dcad907cdbb672d93e52b1ab9
-          linux-amd64: ff2118c734546c4c4abe80ddeb24fcdfed38a2388f49a67f5aa2b3a8dcab39cc
+          darwin-amd64: 0cf0a98a0d88d0106de2eb3c015b4e50be914f78faaa0c33ce4b543b609c77b0
+          linux-amd64: 140019540c9ee162454c690614739e935e546d6133d5bce045012dc08b31e319
 environment:
   GO111MODULE: "on"
   GOFLAGS: "-mod=vendor"
