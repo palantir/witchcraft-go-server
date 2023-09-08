@@ -180,19 +180,19 @@ func tagRequestMethodName(req *http.Request, _ *http.Response, _ error) metrics.
 }
 
 func (h *metricsMiddleware) tlsTraceContext(ctx context.Context) context.Context {
-	tags := []metrics.Tag{h.ServiceNameTag}
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
 			if info.Reused {
-				metrics.FromContext(ctx).Counter(MetricConnCreate, append(tags, MetricTagConnectionReused)...).Inc(1)
+				metrics.FromContext(ctx).Counter(MetricConnCreate, h.ServiceNameTag, MetricTagConnectionReused).Inc(1)
 			} else {
-				metrics.FromContext(ctx).Counter(MetricConnCreate, append(tags, MetricTagConnectionNew)...).Inc(1)
+				metrics.FromContext(ctx).Counter(MetricConnCreate, h.ServiceNameTag, MetricTagConnectionNew).Inc(1)
 			}
 		},
 		TLSHandshakeStart: func() {
-			metrics.FromContext(ctx).Meter(MetricTLSHandshakeAttempt, tags...).Mark(1)
+			metrics.FromContext(ctx).Meter(MetricTLSHandshakeAttempt, h.ServiceNameTag).Mark(1)
 		},
 		TLSHandshakeDone: func(state tls.ConnectionState, err error) {
+			tags := []metrics.Tag{h.ServiceNameTag}
 			cipherSuite := tls.CipherSuiteName(state.CipherSuite)
 			if cipherSuite != "" {
 				tags = append(tags, metrics.MustNewTag(CipherTagKey, cipherSuite))
