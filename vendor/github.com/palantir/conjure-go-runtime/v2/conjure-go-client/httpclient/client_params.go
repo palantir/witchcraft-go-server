@@ -458,6 +458,14 @@ func WithBaseURLs(urls []string) ClientParam {
 	})
 }
 
+// WithRefreshableBaseURLs sets the base URLs for every request. This is meant to be used in conjunction with WithPath.
+func WithRefreshableBaseURLs(urls refreshable.StringSlice) ClientParam {
+	return clientParamFunc(func(b *clientBuilder) error {
+		b.URIs = urls
+		return nil
+	})
+}
+
 // WithMaxBackoff sets the maximum backoff between retried calls to the same URI.
 // Defaults to 2 seconds. <= 0 indicates no limit.
 func WithMaxBackoff(maxBackoff time.Duration) ClientParam {
