@@ -16,6 +16,8 @@ package witchcraft
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
@@ -208,6 +210,9 @@ func userAgent(install config.Install) string {
 			agent += "/" + install.ProductVersion
 		}
 		return agent
+	}
+	if exe, err := os.Executable(); err == nil && exe != "" {
+		return filepath.Base(exe)
 	}
 	return "witchcraft-go-server"
 }
