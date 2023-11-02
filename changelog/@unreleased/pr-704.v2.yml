@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Emit metrics at a 30s frequency.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/704

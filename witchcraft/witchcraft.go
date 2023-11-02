@@ -548,7 +548,7 @@ func (s *Server) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusC
 }
 
 const (
-	defaultMetricEmitFrequency = time.Second * 60
+	defaultMetricEmitFrequency = time.Second * 30
 
 	ecvKeyPath        = "var/conf/encrypted-config-value.key"
 	installConfigPath = "var/conf/install.yml"
