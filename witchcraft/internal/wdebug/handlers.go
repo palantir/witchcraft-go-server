@@ -33,6 +33,8 @@ const (
 	DiagnosticTypeHeapProfileV1       DiagnosticType = "go.profile.heap.v1"
 	DiagnosticTypeAllocsProfileV1     DiagnosticType = "go.profile.allocs.v1"
 	DiagnosticTypeTrace1MinuteV1      DiagnosticType = "go.trace.1minute.v1"
+	DiagnosticTypeTrace10MinutesV1    DiagnosticType = "go.trace.10minutes.v1"
+	DiagnosticTypeTrace1HourV1        DiagnosticType = "go.trace.1hour.v1"
 	DiagnosticTypeGoroutinesV1        DiagnosticType = "go.goroutines.v1"
 	DiagnosticTypeMetricNamesV1       DiagnosticType = "metric.names.v1"
 	DiagnosticTypeSystemTimeV1        DiagnosticType = "os.system.clock.v1"
@@ -42,7 +44,9 @@ var diagnosticHandlers = map[DiagnosticType]DiagnosticHandler{
 	DiagnosticTypeCPUProfile1MinuteV1: handlerCPUProfile1MinuteV1{},
 	DiagnosticTypeHeapProfileV1:       handlerHeapProfileV1{},
 	DiagnosticTypeAllocsProfileV1:     handlerAllocsProfileV1{},
-	DiagnosticTypeTrace1MinuteV1:      handlerTrace1MinuteV1{},
+	DiagnosticTypeTrace1MinuteV1:      handlerTraceV1{duration: time.Minute},
+	DiagnosticTypeTrace10MinutesV1:    handlerTraceV1{duration: 10 * time.Minute},
+	DiagnosticTypeTrace1HourV1:        handlerTraceV1{duration: time.Hour},
 	DiagnosticTypeGoroutinesV1:        handlerGoroutinesV1{},
 	DiagnosticTypeMetricNamesV1:       handlerMetricNamesV1{},
 	DiagnosticTypeSystemTimeV1:        handlerSystemTimeV1{},
@@ -184,31 +188,31 @@ func (h handlerAllocsProfileV1) WriteDiagnostic(ctx context.Context, w io.Writer
 	return nil
 }
 
-type handlerTrace1MinuteV1 struct{}
+type handlerTraceV1 struct {
+	duration time.Duration
+}
 
-func (h handlerTrace1MinuteV1) Type() DiagnosticType {
+func (h handlerTraceV1) Type() DiagnosticType {
 	return DiagnosticTypeTrace1MinuteV1
 }
 
-func (h handlerTrace1MinuteV1) ContentType() string {
+func (h handlerTraceV1) ContentType() string {
 	return codecs.Binary.ContentType()
 }
 
-func (h handlerTrace1MinuteV1) Documentation() string {
+func (h handlerTraceV1) Documentation() string {
 	return `An execution trace of the program for 1 minute. See golang docs for analysis tooling: https://golang.org/doc/diagnostics.html#profiling`
 }
 
-func (h handlerTrace1MinuteV1) SafeLoggable() bool {
+func (h handlerTraceV1) SafeLoggable() bool {
 	return true
 }
 
-func (h handlerTrace1MinuteV1) Extension() string {
+func (h handlerTraceV1) Extension() string {
 	return "prof"
 }
 
-func (h handlerTrace1MinuteV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
-	const duration = time.Minute
-
+func (h handlerTraceV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
 	if err := trace.Start(w); err != nil {
 		err = werror.WrapWithContextParams(ctx, err, "failed to start execution tracer")
 		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]interface{}{
@@ -219,7 +223,7 @@ func (h handlerTrace1MinuteV1) WriteDiagnostic(ctx context.Context, w io.Writer)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-time.After(duration):
+	case <-time.After(h.duration):
 	}
 	return nil
 }
