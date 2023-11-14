@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"runtime/pprof"
+	"runtime/trace"
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
@@ -31,6 +32,7 @@ const (
 	DiagnosticTypeCPUProfile1MinuteV1 DiagnosticType = "go.profile.cpu.1minute.v1"
 	DiagnosticTypeHeapProfileV1       DiagnosticType = "go.profile.heap.v1"
 	DiagnosticTypeAllocsProfileV1     DiagnosticType = "go.profile.allocs.v1"
+	DiagnosticTypeTrace1MinuteV1      DiagnosticType = "go.trace.1minute.v1"
 	DiagnosticTypeGoroutinesV1        DiagnosticType = "go.goroutines.v1"
 	DiagnosticTypeMetricNamesV1       DiagnosticType = "metric.names.v1"
 	DiagnosticTypeSystemTimeV1        DiagnosticType = "os.system.clock.v1"
@@ -40,6 +42,7 @@ var diagnosticHandlers = map[DiagnosticType]DiagnosticHandler{
 	DiagnosticTypeCPUProfile1MinuteV1: handlerCPUProfile1MinuteV1{},
 	DiagnosticTypeHeapProfileV1:       handlerHeapProfileV1{},
 	DiagnosticTypeAllocsProfileV1:     handlerAllocsProfileV1{},
+	DiagnosticTypeTrace1MinuteV1:      handlerTrace1MinuteV1{},
 	DiagnosticTypeGoroutinesV1:        handlerGoroutinesV1{},
 	DiagnosticTypeMetricNamesV1:       handlerMetricNamesV1{},
 	DiagnosticTypeSystemTimeV1:        handlerSystemTimeV1{},
@@ -177,6 +180,46 @@ func (h handlerAllocsProfileV1) Extension() string {
 func (h handlerAllocsProfileV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
 	if err := pprof.Lookup("allocs").WriteTo(w, 0); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to write heap allocs profile")
+	}
+	return nil
+}
+
+type handlerTrace1MinuteV1 struct{}
+
+func (h handlerTrace1MinuteV1) Type() DiagnosticType {
+	return DiagnosticTypeTrace1MinuteV1
+}
+
+func (h handlerTrace1MinuteV1) ContentType() string {
+	return codecs.Binary.ContentType()
+}
+
+func (h handlerTrace1MinuteV1) Documentation() string {
+	return `An execution trace of the program for 1 minute. See golang docs for analysis tooling: https://golang.org/doc/diagnostics.html#profiling`
+}
+
+func (h handlerTrace1MinuteV1) SafeLoggable() bool {
+	return true
+}
+
+func (h handlerTrace1MinuteV1) Extension() string {
+	return "prof"
+}
+
+func (h handlerTrace1MinuteV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
+	const duration = time.Minute
+
+	if err := trace.Start(w); err != nil {
+		err = werror.WrapWithContextParams(ctx, err, "failed to start execution tracer")
+		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]interface{}{
+			"message": err.Error(),
+		}))
+	}
+	defer trace.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(duration):
 	}
 	return nil
 }
