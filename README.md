@@ -69,8 +69,6 @@ specifies the encoding and format of the response. The following types are curre
 * `go.profile.cpu.1minute.v1`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
 * `go.profile.heap.v1`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
 * `go.profile.allocs.v1`: Returns the pprof-formatted allocs profile for all allocations in the process lifetime. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
-* `go.profile.block.1minute.v1`: Returns the pprof-formatted block profile. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
-* `go.profile.mutex.1minute.v1`: Returns the pprof-formatted mutex profile. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
 * `go.trace.1minute.v1`: Returns the pprof-formatted execution trace. See [runtime.trace](https://pkg.go.dev/runtime/trace).
 * `metric.names.v1`: Records all metric names and tag sets in the process's metric registry.
 * `os.system.clock.v1`: Plaintext string representing the current time as measured by the process in the RFC 3339 Nano format.
