@@ -29,13 +29,19 @@ func (u *diagnosticDeserializer) toStruct() Diagnostic {
 func (u *Diagnostic) toSerializer() (interface{}, error) {
 	switch u.typ {
 	default:
-		return nil, fmt.Errorf("unknown type %s", u.typ)
+		return nil, fmt.Errorf("unknown type %q", u.typ)
 	case "generic":
+		if u.generic == nil {
+			return nil, fmt.Errorf("field \"generic\" is required")
+		}
 		return struct {
 			Type    string            `json:"type"`
 			Generic GenericDiagnostic `json:"generic"`
 		}{Type: "generic", Generic: *u.generic}, nil
 	case "threadDump":
+		if u.threadDump == nil {
+			return nil, fmt.Errorf("field \"threadDump\" is required")
+		}
 		return struct {
 			Type       string       `json:"type"`
 			ThreadDump ThreadDumpV1 `json:"threadDump"`
@@ -57,6 +63,16 @@ func (u *Diagnostic) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*u = deser.toStruct()
+	switch u.typ {
+	case "generic":
+		if u.generic == nil {
+			return fmt.Errorf("field \"generic\" is required")
+		}
+	case "threadDump":
+		if u.threadDump == nil {
+			return fmt.Errorf("field \"threadDump\" is required")
+		}
+	}
 	return nil
 }
 
@@ -84,8 +100,14 @@ func (u *Diagnostic) AcceptFuncs(genericFunc func(GenericDiagnostic) error, thre
 		}
 		return unknownFunc(u.typ)
 	case "generic":
+		if u.generic == nil {
+			return fmt.Errorf("field \"generic\" is required")
+		}
 		return genericFunc(*u.generic)
 	case "threadDump":
+		if u.threadDump == nil {
+			return fmt.Errorf("field \"threadDump\" is required")
+		}
 		return threadDumpFunc(*u.threadDump)
 	}
 }
@@ -110,8 +132,14 @@ func (u *Diagnostic) Accept(v DiagnosticVisitor) error {
 		}
 		return v.VisitUnknown(u.typ)
 	case "generic":
+		if u.generic == nil {
+			return fmt.Errorf("field \"generic\" is required")
+		}
 		return v.VisitGeneric(*u.generic)
 	case "threadDump":
+		if u.threadDump == nil {
+			return fmt.Errorf("field \"threadDump\" is required")
+		}
 		return v.VisitThreadDump(*u.threadDump)
 	}
 }
@@ -130,8 +158,14 @@ func (u *Diagnostic) AcceptWithContext(ctx context.Context, v DiagnosticVisitorW
 		}
 		return v.VisitUnknownWithContext(ctx, u.typ)
 	case "generic":
+		if u.generic == nil {
+			return fmt.Errorf("field \"generic\" is required")
+		}
 		return v.VisitGenericWithContext(ctx, *u.generic)
 	case "threadDump":
+		if u.threadDump == nil {
+			return fmt.Errorf("field \"threadDump\" is required")
+		}
 		return v.VisitThreadDumpWithContext(ctx, *u.threadDump)
 	}
 }
@@ -169,13 +203,19 @@ func (u *requestLogDeserializer) toStruct() RequestLog {
 func (u *RequestLog) toSerializer() (interface{}, error) {
 	switch u.typ {
 	default:
-		return nil, fmt.Errorf("unknown type %s", u.typ)
+		return nil, fmt.Errorf("unknown type %q", u.typ)
 	case "v1":
+		if u.v1 == nil {
+			return nil, fmt.Errorf("field \"v1\" is required")
+		}
 		return struct {
 			Type string       `json:"type"`
 			V1   RequestLogV1 `json:"v1"`
 		}{Type: "v1", V1: *u.v1}, nil
 	case "v2":
+		if u.v2 == nil {
+			return nil, fmt.Errorf("field \"v2\" is required")
+		}
 		return struct {
 			Type string       `json:"type"`
 			V2   RequestLogV2 `json:"v2"`
@@ -197,6 +237,16 @@ func (u *RequestLog) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*u = deser.toStruct()
+	switch u.typ {
+	case "v1":
+		if u.v1 == nil {
+			return fmt.Errorf("field \"v1\" is required")
+		}
+	case "v2":
+		if u.v2 == nil {
+			return fmt.Errorf("field \"v2\" is required")
+		}
+	}
 	return nil
 }
 
@@ -224,8 +274,14 @@ func (u *RequestLog) AcceptFuncs(v1Func func(RequestLogV1) error, v2Func func(Re
 		}
 		return unknownFunc(u.typ)
 	case "v1":
+		if u.v1 == nil {
+			return fmt.Errorf("field \"v1\" is required")
+		}
 		return v1Func(*u.v1)
 	case "v2":
+		if u.v2 == nil {
+			return fmt.Errorf("field \"v2\" is required")
+		}
 		return v2Func(*u.v2)
 	}
 }
@@ -250,8 +306,14 @@ func (u *RequestLog) Accept(v RequestLogVisitor) error {
 		}
 		return v.VisitUnknown(u.typ)
 	case "v1":
+		if u.v1 == nil {
+			return fmt.Errorf("field \"v1\" is required")
+		}
 		return v.VisitV1(*u.v1)
 	case "v2":
+		if u.v2 == nil {
+			return fmt.Errorf("field \"v2\" is required")
+		}
 		return v.VisitV2(*u.v2)
 	}
 }
@@ -270,8 +332,14 @@ func (u *RequestLog) AcceptWithContext(ctx context.Context, v RequestLogVisitorW
 		}
 		return v.VisitUnknownWithContext(ctx, u.typ)
 	case "v1":
+		if u.v1 == nil {
+			return fmt.Errorf("field \"v1\" is required")
+		}
 		return v.VisitV1WithContext(ctx, *u.v1)
 	case "v2":
+		if u.v2 == nil {
+			return fmt.Errorf("field \"v2\" is required")
+		}
 		return v.VisitV2WithContext(ctx, *u.v2)
 	}
 }
@@ -312,18 +380,27 @@ func (u *unionEventLogDeserializer) toStruct() UnionEventLog {
 func (u *UnionEventLog) toSerializer() (interface{}, error) {
 	switch u.typ {
 	default:
-		return nil, fmt.Errorf("unknown type %s", u.typ)
+		return nil, fmt.Errorf("unknown type %q", u.typ)
 	case "eventLog":
+		if u.eventLog == nil {
+			return nil, fmt.Errorf("field \"eventLog\" is required")
+		}
 		return struct {
 			Type     string     `json:"type"`
 			EventLog EventLogV1 `json:"eventLog"`
 		}{Type: "eventLog", EventLog: *u.eventLog}, nil
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return nil, fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return struct {
 			Type       string     `json:"type"`
 			EventLogV2 EventLogV2 `json:"eventLogV2"`
 		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
 	case "beaconLog":
+		if u.beaconLog == nil {
+			return nil, fmt.Errorf("field \"beaconLog\" is required")
+		}
 		return struct {
 			Type      string      `json:"type"`
 			BeaconLog BeaconLogV1 `json:"beaconLog"`
@@ -345,6 +422,20 @@ func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*u = deser.toStruct()
+	switch u.typ {
+	case "eventLog":
+		if u.eventLog == nil {
+			return fmt.Errorf("field \"eventLog\" is required")
+		}
+	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
+	case "beaconLog":
+		if u.beaconLog == nil {
+			return fmt.Errorf("field \"beaconLog\" is required")
+		}
+	}
 	return nil
 }
 
@@ -372,10 +463,19 @@ func (u *UnionEventLog) AcceptFuncs(eventLogFunc func(EventLogV1) error, eventLo
 		}
 		return unknownFunc(u.typ)
 	case "eventLog":
+		if u.eventLog == nil {
+			return fmt.Errorf("field \"eventLog\" is required")
+		}
 		return eventLogFunc(*u.eventLog)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return eventLogV2Func(*u.eventLogV2)
 	case "beaconLog":
+		if u.beaconLog == nil {
+			return fmt.Errorf("field \"beaconLog\" is required")
+		}
 		return beaconLogFunc(*u.beaconLog)
 	}
 }
@@ -404,10 +504,19 @@ func (u *UnionEventLog) Accept(v UnionEventLogVisitor) error {
 		}
 		return v.VisitUnknown(u.typ)
 	case "eventLog":
+		if u.eventLog == nil {
+			return fmt.Errorf("field \"eventLog\" is required")
+		}
 		return v.VisitEventLog(*u.eventLog)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return v.VisitEventLogV2(*u.eventLogV2)
 	case "beaconLog":
+		if u.beaconLog == nil {
+			return fmt.Errorf("field \"beaconLog\" is required")
+		}
 		return v.VisitBeaconLog(*u.beaconLog)
 	}
 }
@@ -427,10 +536,19 @@ func (u *UnionEventLog) AcceptWithContext(ctx context.Context, v UnionEventLogVi
 		}
 		return v.VisitUnknownWithContext(ctx, u.typ)
 	case "eventLog":
+		if u.eventLog == nil {
+			return fmt.Errorf("field \"eventLog\" is required")
+		}
 		return v.VisitEventLogWithContext(ctx, *u.eventLog)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return v.VisitEventLogV2WithContext(ctx, *u.eventLogV2)
 	case "beaconLog":
+		if u.beaconLog == nil {
+			return fmt.Errorf("field \"beaconLog\" is required")
+		}
 		return v.VisitBeaconLogWithContext(ctx, *u.beaconLog)
 	}
 }
@@ -483,38 +601,59 @@ func (u *wrappedLogV1PayloadDeserializer) toStruct() WrappedLogV1Payload {
 func (u *WrappedLogV1Payload) toSerializer() (interface{}, error) {
 	switch u.typ {
 	default:
-		return nil, fmt.Errorf("unknown type %s", u.typ)
+		return nil, fmt.Errorf("unknown type %q", u.typ)
 	case "serviceLogV1":
+		if u.serviceLogV1 == nil {
+			return nil, fmt.Errorf("field \"serviceLogV1\" is required")
+		}
 		return struct {
 			Type         string       `json:"type"`
 			ServiceLogV1 ServiceLogV1 `json:"serviceLogV1"`
 		}{Type: "serviceLogV1", ServiceLogV1: *u.serviceLogV1}, nil
 	case "requestLogV2":
+		if u.requestLogV2 == nil {
+			return nil, fmt.Errorf("field \"requestLogV2\" is required")
+		}
 		return struct {
 			Type         string       `json:"type"`
 			RequestLogV2 RequestLogV2 `json:"requestLogV2"`
 		}{Type: "requestLogV2", RequestLogV2: *u.requestLogV2}, nil
 	case "traceLogV1":
+		if u.traceLogV1 == nil {
+			return nil, fmt.Errorf("field \"traceLogV1\" is required")
+		}
 		return struct {
 			Type       string     `json:"type"`
 			TraceLogV1 TraceLogV1 `json:"traceLogV1"`
 		}{Type: "traceLogV1", TraceLogV1: *u.traceLogV1}, nil
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return nil, fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return struct {
 			Type       string     `json:"type"`
 			EventLogV2 EventLogV2 `json:"eventLogV2"`
 		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
 	case "metricLogV1":
+		if u.metricLogV1 == nil {
+			return nil, fmt.Errorf("field \"metricLogV1\" is required")
+		}
 		return struct {
 			Type        string      `json:"type"`
 			MetricLogV1 MetricLogV1 `json:"metricLogV1"`
 		}{Type: "metricLogV1", MetricLogV1: *u.metricLogV1}, nil
 	case "auditLogV2":
+		if u.auditLogV2 == nil {
+			return nil, fmt.Errorf("field \"auditLogV2\" is required")
+		}
 		return struct {
 			Type       string     `json:"type"`
 			AuditLogV2 AuditLogV2 `json:"auditLogV2"`
 		}{Type: "auditLogV2", AuditLogV2: *u.auditLogV2}, nil
 	case "diagnosticLogV1":
+		if u.diagnosticLogV1 == nil {
+			return nil, fmt.Errorf("field \"diagnosticLogV1\" is required")
+		}
 		return struct {
 			Type            string          `json:"type"`
 			DiagnosticLogV1 DiagnosticLogV1 `json:"diagnosticLogV1"`
@@ -536,6 +675,36 @@ func (u *WrappedLogV1Payload) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*u = deser.toStruct()
+	switch u.typ {
+	case "serviceLogV1":
+		if u.serviceLogV1 == nil {
+			return fmt.Errorf("field \"serviceLogV1\" is required")
+		}
+	case "requestLogV2":
+		if u.requestLogV2 == nil {
+			return fmt.Errorf("field \"requestLogV2\" is required")
+		}
+	case "traceLogV1":
+		if u.traceLogV1 == nil {
+			return fmt.Errorf("field \"traceLogV1\" is required")
+		}
+	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
+	case "metricLogV1":
+		if u.metricLogV1 == nil {
+			return fmt.Errorf("field \"metricLogV1\" is required")
+		}
+	case "auditLogV2":
+		if u.auditLogV2 == nil {
+			return fmt.Errorf("field \"auditLogV2\" is required")
+		}
+	case "diagnosticLogV1":
+		if u.diagnosticLogV1 == nil {
+			return fmt.Errorf("field \"diagnosticLogV1\" is required")
+		}
+	}
 	return nil
 }
 
@@ -563,18 +732,39 @@ func (u *WrappedLogV1Payload) AcceptFuncs(serviceLogV1Func func(ServiceLogV1) er
 		}
 		return unknownFunc(u.typ)
 	case "serviceLogV1":
+		if u.serviceLogV1 == nil {
+			return fmt.Errorf("field \"serviceLogV1\" is required")
+		}
 		return serviceLogV1Func(*u.serviceLogV1)
 	case "requestLogV2":
+		if u.requestLogV2 == nil {
+			return fmt.Errorf("field \"requestLogV2\" is required")
+		}
 		return requestLogV2Func(*u.requestLogV2)
 	case "traceLogV1":
+		if u.traceLogV1 == nil {
+			return fmt.Errorf("field \"traceLogV1\" is required")
+		}
 		return traceLogV1Func(*u.traceLogV1)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return eventLogV2Func(*u.eventLogV2)
 	case "metricLogV1":
+		if u.metricLogV1 == nil {
+			return fmt.Errorf("field \"metricLogV1\" is required")
+		}
 		return metricLogV1Func(*u.metricLogV1)
 	case "auditLogV2":
+		if u.auditLogV2 == nil {
+			return fmt.Errorf("field \"auditLogV2\" is required")
+		}
 		return auditLogV2Func(*u.auditLogV2)
 	case "diagnosticLogV1":
+		if u.diagnosticLogV1 == nil {
+			return fmt.Errorf("field \"diagnosticLogV1\" is required")
+		}
 		return diagnosticLogV1Func(*u.diagnosticLogV1)
 	}
 }
@@ -619,18 +809,39 @@ func (u *WrappedLogV1Payload) Accept(v WrappedLogV1PayloadVisitor) error {
 		}
 		return v.VisitUnknown(u.typ)
 	case "serviceLogV1":
+		if u.serviceLogV1 == nil {
+			return fmt.Errorf("field \"serviceLogV1\" is required")
+		}
 		return v.VisitServiceLogV1(*u.serviceLogV1)
 	case "requestLogV2":
+		if u.requestLogV2 == nil {
+			return fmt.Errorf("field \"requestLogV2\" is required")
+		}
 		return v.VisitRequestLogV2(*u.requestLogV2)
 	case "traceLogV1":
+		if u.traceLogV1 == nil {
+			return fmt.Errorf("field \"traceLogV1\" is required")
+		}
 		return v.VisitTraceLogV1(*u.traceLogV1)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return v.VisitEventLogV2(*u.eventLogV2)
 	case "metricLogV1":
+		if u.metricLogV1 == nil {
+			return fmt.Errorf("field \"metricLogV1\" is required")
+		}
 		return v.VisitMetricLogV1(*u.metricLogV1)
 	case "auditLogV2":
+		if u.auditLogV2 == nil {
+			return fmt.Errorf("field \"auditLogV2\" is required")
+		}
 		return v.VisitAuditLogV2(*u.auditLogV2)
 	case "diagnosticLogV1":
+		if u.diagnosticLogV1 == nil {
+			return fmt.Errorf("field \"diagnosticLogV1\" is required")
+		}
 		return v.VisitDiagnosticLogV1(*u.diagnosticLogV1)
 	}
 }
@@ -654,18 +865,39 @@ func (u *WrappedLogV1Payload) AcceptWithContext(ctx context.Context, v WrappedLo
 		}
 		return v.VisitUnknownWithContext(ctx, u.typ)
 	case "serviceLogV1":
+		if u.serviceLogV1 == nil {
+			return fmt.Errorf("field \"serviceLogV1\" is required")
+		}
 		return v.VisitServiceLogV1WithContext(ctx, *u.serviceLogV1)
 	case "requestLogV2":
+		if u.requestLogV2 == nil {
+			return fmt.Errorf("field \"requestLogV2\" is required")
+		}
 		return v.VisitRequestLogV2WithContext(ctx, *u.requestLogV2)
 	case "traceLogV1":
+		if u.traceLogV1 == nil {
+			return fmt.Errorf("field \"traceLogV1\" is required")
+		}
 		return v.VisitTraceLogV1WithContext(ctx, *u.traceLogV1)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return v.VisitEventLogV2WithContext(ctx, *u.eventLogV2)
 	case "metricLogV1":
+		if u.metricLogV1 == nil {
+			return fmt.Errorf("field \"metricLogV1\" is required")
+		}
 		return v.VisitMetricLogV1WithContext(ctx, *u.metricLogV1)
 	case "auditLogV2":
+		if u.auditLogV2 == nil {
+			return fmt.Errorf("field \"auditLogV2\" is required")
+		}
 		return v.VisitAuditLogV2WithContext(ctx, *u.auditLogV2)
 	case "diagnosticLogV1":
+		if u.diagnosticLogV1 == nil {
+			return fmt.Errorf("field \"diagnosticLogV1\" is required")
+		}
 		return v.VisitDiagnosticLogV1WithContext(ctx, *u.diagnosticLogV1)
 	}
 }

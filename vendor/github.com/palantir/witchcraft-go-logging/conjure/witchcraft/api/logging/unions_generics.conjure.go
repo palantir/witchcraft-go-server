@@ -12,16 +12,22 @@ import (
 type DiagnosticWithT[T any] Diagnostic
 
 func (u *DiagnosticWithT[T]) Accept(ctx context.Context, v DiagnosticVisitorWithT[T]) (T, error) {
+	var result T
 	switch u.typ {
 	default:
 		if u.typ == "" {
-			var result T
 			return result, fmt.Errorf("invalid value in union type")
 		}
 		return v.VisitUnknown(ctx, u.typ)
 	case "generic":
+		if u.generic == nil {
+			return result, fmt.Errorf("field \"generic\" is required")
+		}
 		return v.VisitGeneric(ctx, *u.generic)
 	case "threadDump":
+		if u.threadDump == nil {
+			return result, fmt.Errorf("field \"threadDump\" is required")
+		}
 		return v.VisitThreadDump(ctx, *u.threadDump)
 	}
 }
@@ -35,16 +41,22 @@ type DiagnosticVisitorWithT[T any] interface {
 type RequestLogWithT[T any] RequestLog
 
 func (u *RequestLogWithT[T]) Accept(ctx context.Context, v RequestLogVisitorWithT[T]) (T, error) {
+	var result T
 	switch u.typ {
 	default:
 		if u.typ == "" {
-			var result T
 			return result, fmt.Errorf("invalid value in union type")
 		}
 		return v.VisitUnknown(ctx, u.typ)
 	case "v1":
+		if u.v1 == nil {
+			return result, fmt.Errorf("field \"v1\" is required")
+		}
 		return v.VisitV1(ctx, *u.v1)
 	case "v2":
+		if u.v2 == nil {
+			return result, fmt.Errorf("field \"v2\" is required")
+		}
 		return v.VisitV2(ctx, *u.v2)
 	}
 }
@@ -58,18 +70,27 @@ type RequestLogVisitorWithT[T any] interface {
 type UnionEventLogWithT[T any] UnionEventLog
 
 func (u *UnionEventLogWithT[T]) Accept(ctx context.Context, v UnionEventLogVisitorWithT[T]) (T, error) {
+	var result T
 	switch u.typ {
 	default:
 		if u.typ == "" {
-			var result T
 			return result, fmt.Errorf("invalid value in union type")
 		}
 		return v.VisitUnknown(ctx, u.typ)
 	case "eventLog":
+		if u.eventLog == nil {
+			return result, fmt.Errorf("field \"eventLog\" is required")
+		}
 		return v.VisitEventLog(ctx, *u.eventLog)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return result, fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return v.VisitEventLogV2(ctx, *u.eventLogV2)
 	case "beaconLog":
+		if u.beaconLog == nil {
+			return result, fmt.Errorf("field \"beaconLog\" is required")
+		}
 		return v.VisitBeaconLog(ctx, *u.beaconLog)
 	}
 }
@@ -84,26 +105,47 @@ type UnionEventLogVisitorWithT[T any] interface {
 type WrappedLogV1PayloadWithT[T any] WrappedLogV1Payload
 
 func (u *WrappedLogV1PayloadWithT[T]) Accept(ctx context.Context, v WrappedLogV1PayloadVisitorWithT[T]) (T, error) {
+	var result T
 	switch u.typ {
 	default:
 		if u.typ == "" {
-			var result T
 			return result, fmt.Errorf("invalid value in union type")
 		}
 		return v.VisitUnknown(ctx, u.typ)
 	case "serviceLogV1":
+		if u.serviceLogV1 == nil {
+			return result, fmt.Errorf("field \"serviceLogV1\" is required")
+		}
 		return v.VisitServiceLogV1(ctx, *u.serviceLogV1)
 	case "requestLogV2":
+		if u.requestLogV2 == nil {
+			return result, fmt.Errorf("field \"requestLogV2\" is required")
+		}
 		return v.VisitRequestLogV2(ctx, *u.requestLogV2)
 	case "traceLogV1":
+		if u.traceLogV1 == nil {
+			return result, fmt.Errorf("field \"traceLogV1\" is required")
+		}
 		return v.VisitTraceLogV1(ctx, *u.traceLogV1)
 	case "eventLogV2":
+		if u.eventLogV2 == nil {
+			return result, fmt.Errorf("field \"eventLogV2\" is required")
+		}
 		return v.VisitEventLogV2(ctx, *u.eventLogV2)
 	case "metricLogV1":
+		if u.metricLogV1 == nil {
+			return result, fmt.Errorf("field \"metricLogV1\" is required")
+		}
 		return v.VisitMetricLogV1(ctx, *u.metricLogV1)
 	case "auditLogV2":
+		if u.auditLogV2 == nil {
+			return result, fmt.Errorf("field \"auditLogV2\" is required")
+		}
 		return v.VisitAuditLogV2(ctx, *u.auditLogV2)
 	case "diagnosticLogV1":
+		if u.diagnosticLogV1 == nil {
+			return result, fmt.Errorf("field \"diagnosticLogV1\" is required")
+		}
 		return v.VisitDiagnosticLogV1(ctx, *u.diagnosticLogV1)
 	}
 }
