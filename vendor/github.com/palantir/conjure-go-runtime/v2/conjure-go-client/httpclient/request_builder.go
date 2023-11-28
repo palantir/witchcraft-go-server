@@ -18,6 +18,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/palantir/pkg/bytesbuffers"
 )
@@ -33,6 +34,7 @@ type requestBuilder struct {
 
 	errorDecoderMiddleware Middleware
 	configureCtx           []func(context.Context) context.Context
+	requestTimeout         *time.Duration
 }
 
 const traceIDHeaderKey = "X-B3-TraceId"

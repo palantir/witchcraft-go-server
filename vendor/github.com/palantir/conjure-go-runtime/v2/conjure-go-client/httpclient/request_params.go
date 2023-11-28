@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
 	werror "github.com/palantir/witchcraft-go-error"
@@ -218,6 +219,14 @@ func WithRequestErrorDecoder(errorDecoder ErrorDecoder) RequestParam {
 func WithRequestBasicAuth(username, password string) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		setBasicAuth(b.headers, username, password)
+		return nil
+	})
+}
+
+// WithRequestTimeout uses the provided value instead of the client's configured timeout.
+func WithRequestTimeout(timeout time.Duration) RequestParam {
+	return requestParamFunc(func(b *requestBuilder) error {
+		b.requestTimeout = &timeout
 		return nil
 	})
 }
