@@ -161,6 +161,12 @@ func (c *clientImpl) doOnce(
 	// 2. create the transport and client
 	// shallow copy so we can overwrite the Transport with a wrapped one.
 	clientCopy := *c.client.CurrentHTTPClient()
+
+	// use request-specific timeout if set
+	if b.requestTimeout != nil {
+		clientCopy.Timeout = *b.requestTimeout
+	}
+
 	transport := clientCopy.Transport // start with the client's transport configured with default middleware
 
 	// must precede the error decoders to read the status code of the raw response.
