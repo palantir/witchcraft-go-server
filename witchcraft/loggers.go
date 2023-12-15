@@ -15,10 +15,12 @@
 package witchcraft
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -37,6 +39,17 @@ import (
 const (
 	defaultLogOutputFormat = "var/log/%s.log"
 	containerEnvVariable   = "CONTAINER"
+
+	serviceLogFilename    = "service"
+	eventLogFilename      = "event"
+	metricLogFilename     = "metrics"
+	traceLogFilename      = "trace"
+	auditLogFilename      = "audit"
+	diagnosticLogFilename = "diagnostic"
+	requestLogFilename    = "request"
+
+	defaultLogRotationInterval = 24 * time.Hour
+	auditLogRotationInterval   = time.Hour
 )
 
 // initDefaultLoggers initializes the Server loggers with instrumented loggers that record metrics in the given registry.
@@ -61,8 +74,12 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 		loggerStdoutWriter = s.loggerStdoutWriter
 	}
 
+	s.logFlushers = nil
 	logWriterFn := func(slsFilename string) io.Writer {
-		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		internalWriter, logFlusher := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		if logFlusher != nil {
+			s.logFlushers = append(s.logFlushers, logFlusher)
+		}
 		if s.asyncLogWriter != nil {
 			internalWriter = io.MultiWriter(internalWriter, s.asyncLogWriter)
 		}
@@ -70,17 +87,17 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 	}
 
 	// initialize instrumented loggers
-	s.svcLogger = metricloggers.NewSvc1Logger(svc1log.New(logWriterFn("service"), logLevel, originParam), registry)
+	s.svcLogger = metricloggers.NewSvc1Logger(svc1log.New(logWriterFn(serviceLogFilename), logLevel, originParam), registry)
 	s.evtLogger = metricloggers.NewEvt2Logger(
-		evt2log.New(logWriterFn("event")), registry)
+		evt2log.New(logWriterFn(eventLogFilename)), registry)
 	s.metricLogger = metricloggers.NewMetric1Logger(
-		metric1log.New(logWriterFn("metrics")), registry)
+		metric1log.New(logWriterFn(metricLogFilename)), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
-		trc1log.New(logWriterFn("trace")), registry)
+		trc1log.New(logWriterFn(traceLogFilename)), registry)
 	s.auditLogger = metricloggers.NewAudit2Logger(
-		audit2log.New(logWriterFn("audit")), registry)
-	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
-	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
+		audit2log.New(logWriterFn(auditLogFilename)), registry)
+	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn(diagnosticLogFilename)), registry)
+	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn(requestLogFilename),
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
@@ -112,25 +129,29 @@ func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVers
 		loggerStdoutWriter = s.loggerStdoutWriter
 	}
 
+	s.logFlushers = nil
 	logWriterFn := func(slsFilename string) io.Writer {
-		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		internalWriter, logFlusher := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
+		if logFlusher != nil {
+			s.logFlushers = append(s.logFlushers, logFlusher)
+		}
 		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
 
 	// initialize instrumented wrapped loggers
 	s.svcLogger = metricloggers.NewSvc1Logger(
-		wrapped1log.New(logWriterFn("service"), logLevel, productName, productVersion).Service(originParam), registry)
+		wrapped1log.New(logWriterFn(serviceLogFilename), logLevel, productName, productVersion).Service(originParam), registry)
 	s.evtLogger = metricloggers.NewEvt2Logger(
-		wrapped1log.New(logWriterFn("event"), logLevel, productName, productVersion).Event(), registry)
+		wrapped1log.New(logWriterFn(eventLogFilename), logLevel, productName, productVersion).Event(), registry)
 	s.metricLogger = metricloggers.NewMetric1Logger(
-		wrapped1log.New(logWriterFn("metrics"), logLevel, productName, productVersion).Metric(), registry)
+		wrapped1log.New(logWriterFn(metricLogFilename), logLevel, productName, productVersion).Metric(), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
-		wrapped1log.New(logWriterFn("trace"), logLevel, productName, productVersion).Trace(), registry)
+		wrapped1log.New(logWriterFn(traceLogFilename), logLevel, productName, productVersion).Trace(), registry)
 	s.auditLogger = metricloggers.NewAudit2Logger(
-		wrapped1log.New(logWriterFn("audit"), logLevel, productName, productVersion).Audit(), registry)
+		wrapped1log.New(logWriterFn(auditLogFilename), logLevel, productName, productVersion).Audit(), registry)
 	s.diagLogger = metricloggers.NewDiag1Logger(
-		wrapped1log.New(logWriterFn("diagnostic"), logLevel, productName, productVersion).Diagnostic(), registry)
-	s.reqLogger = metricloggers.NewReq2Logger(wrapped1log.New(logWriterFn("request"), logLevel, productName, productVersion).Request(
+		wrapped1log.New(logWriterFn(diagnosticLogFilename), logLevel, productName, productVersion).Diagnostic(), registry)
+	s.reqLogger = metricloggers.NewReq2Logger(wrapped1log.New(logWriterFn(requestLogFilename), logLevel, productName, productVersion).Request(
 		req2log.Extractor(s.idsExtractor),
 		req2log.SafePathParams(s.safePathParams...),
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
@@ -141,16 +162,42 @@ func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVers
 // Returns a io.Writer that can be used as the underlying writer for a logger.
 // If either logToStdout or logToStdoutBasedOnEnv() is true, then stdoutWriter is returned.
 // Otherwise, a default writer that writes to slsFilename is returned.
-func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWriter io.Writer) io.Writer {
+func newDefaultLogOutputWriter(slsFilename string, logToStdout bool, stdoutWriter io.Writer) (io.Writer, func(ctx context.Context)) {
 	if logToStdout || logToStdoutBasedOnEnv() {
-		return stdoutWriter
+		return stdoutWriter, nil
 	}
-	return &lumberjack.Logger{
+	logger := &lumberjack.Logger{
 		Filename:   fmt.Sprintf(defaultLogOutputFormat, slsFilename),
 		MaxSize:    1000,
 		MaxBackups: 10,
 		MaxAge:     30,
 		Compress:   true,
+	}
+	flusher := func(ctx context.Context) {
+		periodicallyRotateLogFile(ctx, logger, slsFilename)
+	}
+	return logger, flusher
+}
+
+func periodicallyRotateLogFile(ctx context.Context, logger *lumberjack.Logger, slsFilename string) {
+	interval := defaultLogRotationInterval
+	if slsFilename == auditLogFilename {
+		interval = auditLogRotationInterval
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		// Rotate once at start. If there is no file, it is no op.
+		if err := logger.Rotate(); err != nil {
+			// At this point the logger should have been initialized, so we can log the error as a best effort.
+			svc1log.FromContext(ctx).Error("Error rotating log file", svc1log.Stacktrace(err))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
 	}
 }
 

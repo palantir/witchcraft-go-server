@@ -216,6 +216,10 @@ type Server struct {
 	// nil if not enabled
 	asyncLogWriter tcpjson.AsyncWriter
 
+	// Background routines required for the correct maintenance of the log output.
+	// Should be launched in go routines as they are blocking.
+	logFlushers []func(ctx context.Context)
+
 	// the http.Server for the main server
 	httpServer *http.Server
 
@@ -677,6 +681,11 @@ func (s *Server) Start() (rErr error) {
 		s.routerImplProvider = func() wrouter.RouterImpl {
 			return whttprouter.New()
 		}
+	}
+
+	// initialize log flushers
+	for _, logFlusher := range s.logFlushers {
+		go wapp.RunWithRecoveryLogging(ctx, logFlusher)
 	}
 
 	// initialize routers
