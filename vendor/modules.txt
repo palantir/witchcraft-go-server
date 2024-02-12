@@ -10,12 +10,6 @@ github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
 ## explicit; go 1.7
 github.com/julienschmidt/httprouter
-# github.com/mattn/go-colorable v0.1.13
-## explicit; go 1.15
-github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.19
-## explicit; go 1.15
-github.com/mattn/go-isatty
 # github.com/nmiyake/pkg/dirs v1.0.0
 ## explicit; go 1.13
 github.com/nmiyake/pkg/dirs
@@ -100,7 +94,6 @@ github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/reporter
 github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
-github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
 # github.com/palantir/witchcraft-go-logging v1.50.0
 ## explicit; go 1.21
@@ -118,7 +111,6 @@ github.com/palantir/witchcraft-go-logging/wlog/logreader
 github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log
 github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log
 github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
-github.com/palantir/witchcraft-go-logging/wlog/tcpjson
 github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
@@ -136,11 +128,6 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/rs/zerolog v1.32.0
-## explicit; go 1.15
-github.com/rs/zerolog
-github.com/rs/zerolog/internal/cbor
-github.com/rs/zerolog/internal/json
 # github.com/stretchr/testify v1.8.4
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
@@ -167,9 +154,6 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/sys v0.17.0
-## explicit; go 1.18
-golang.org/x/sys/unix
 # golang.org/x/text v0.14.0
 ## explicit; go 1.18
 golang.org/x/text/secure/bidirule
