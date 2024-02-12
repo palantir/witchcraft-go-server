@@ -35,7 +35,6 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/pkg/signals"
-	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
@@ -47,7 +46,6 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-logging/wlog/tcpjson"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/v2/config"
@@ -212,9 +210,6 @@ type Server struct {
 	trcLogger    trc1log.Logger
 	diagLogger   diag1log.Logger
 	reqLogger    req2log.Logger
-
-	// nil if not enabled
-	asyncLogWriter tcpjson.AsyncWriter
 
 	// the http.Server for the main server
 	httpServer *http.Server
@@ -562,14 +557,7 @@ const (
 // Panics are recovered; in the case of a recovered panic, Start will log and return
 // a non-nil error containing the recovered object (overwriting any existing error).
 func (s *Server) Start() (rErr error) {
-	defer func() {
-		if s.asyncLogWriter != nil {
-			// Allow up to 5 seconds to drain queued logs
-			drainCtx, drainCancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer drainCancel()
-			s.asyncLogWriter.Drain(drainCtx)
-		}
-	}()
+
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
@@ -660,12 +648,6 @@ func (s *Server) Start() (rErr error) {
 	if !s.disableServiceDependencyHealth {
 		s.serviceDependencyHealthCheck = dependencyhealth.NewServiceDependencyHealthCheck()
 		internalHealthCheckSources = append(internalHealthCheckSources, s.serviceDependencyHealthCheck)
-	}
-
-	// Initialize network logging client if configured
-	ctx, netLoggerHealth := s.initNetworkLogging(ctx, baseInstallCfg, baseRefreshableRuntimeCfg)
-	if netLoggerHealth != nil {
-		internalHealthCheckSources = append(internalHealthCheckSources, netLoggerHealth)
 	}
 
 	// Set the service log level if configured
@@ -931,65 +913,6 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 	}
 
 	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
-}
-
-// initNetworkLogging enables TCP logging if the envelope metadata and the TCP receiver are both configured.
-func (s *Server) initNetworkLogging(ctx context.Context, install config.Install, runtime config.RefreshableRuntime) (context.Context, healthstatus.HealthCheckSource) {
-	receiverCfg := runtime.ServiceDiscovery().CurrentServicesConfig().ClientConfig("sls-log-tcp-json-receiver")
-	// If we've been provided a URL in the environment, prefer that to whatever is in config.
-	receiverURIs := receiverCfg.URIs
-	if envURL := os.Getenv("NETWORK_LOGGING_URL"); envURL != "" {
-		receiverURIs = []string{envURL}
-	} else if len(receiverURIs) == 0 {
-		// If no URIs are configured and NETWORK_LOGGING_URL is unset, TCP logging is disabled.
-		return ctx, nil
-	}
-	envelopeMetadata, err := tcpjson.GetEnvelopeMetadata()
-	if err != nil {
-		// Presence of TCP receiver config without envelope metadata may indicate a mis-configuration,
-		// but can also be expected in environments where the config is always hard-coded.
-		// In this case we emit a warning log to help debug potential issues, but otherwise proceed as normal.
-		s.svcLogger.Warn("TCP logging will not be enabled since all environment variables are not set.", svc1log.Stacktrace(err))
-		return ctx, nil
-	}
-
-	// enable TCP logging since the metadata and receiver are both configured
-	tlsConfig, err := tlsconfig.NewClientConfig(
-		tlsconfig.ClientRootCAFiles(receiverCfg.Security.CAFiles...),
-		tlsconfig.ClientKeyPairFiles(receiverCfg.Security.CertFile, receiverCfg.Security.KeyFile),
-	)
-	if err != nil {
-		// The existence of receiverURIs means TCP logging was expected to be enabled, but the TCP receiver must be mis-configured.
-		// Since the server may otherwise be functional, an error log is emitted to indicate logging issues, rather
-		// than setting the TCP writer health to a state that can cause pages.
-		s.svcLogger.Warn("TCP logging will not be enabled since TLS config is unset or invalid.", svc1log.Stacktrace(err))
-		return ctx, nil
-	}
-	connProvider, err := tcpjson.NewTCPConnProvider(receiverURIs, tcpjson.WithTLSConfig(tlsConfig))
-	if err != nil {
-		s.svcLogger.Error("TCP logging will not be enabled since connection provider is invalid.", svc1log.Stacktrace(err))
-		return ctx, nil
-	}
-
-	// Overwrite envelope fields from config if wrapped logging is enabled
-	if install.UseWrappedLogs {
-		envelopeMetadata.Product = install.ProductName
-		envelopeMetadata.ProductVersion = install.ProductVersion
-	}
-
-	// Create a TCP connection and an asynchronous buffered wrapper.
-	// Note that we intentionally do not call their Close() methods.
-	// While this does leak the resources of the open connection, we want every possible message to reach the output.
-	// Closing early at any point before program termination risks other operations' last log messages being lost.
-	// The resource leak has been deemed acceptable given server.Start() is typically a singleton and the main execution thread.
-	tcpWriter := tcpjson.NewTCPWriter(envelopeMetadata, connProvider)
-	s.asyncLogWriter = tcpjson.StartAsyncWriter(tcpWriter, metrics.FromContext(ctx))
-
-	// re-initialize the loggers with the TCP writer and overwrite the context
-	s.initDefaultLoggers(install.UseConsoleLog, wlog.InfoLevel, metrics.FromContext(ctx))
-	ctx = s.withLoggers(ctx)
-
-	return ctx, tcpWriter
 }
 
 func (s *Server) initShutdownSignalHandler(ctx context.Context) {

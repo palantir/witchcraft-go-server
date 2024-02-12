@@ -63,9 +63,6 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 
 	logWriterFn := func(slsFilename string) io.Writer {
 		internalWriter := newDefaultLogOutputWriter(slsFilename, useConsoleLog, loggerStdoutWriter)
-		if s.asyncLogWriter != nil {
-			internalWriter = io.MultiWriter(internalWriter, s.asyncLogWriter)
-		}
 		return metricloggers.NewMetricWriter(internalWriter, registry, slsFilename)
 	}
 
