@@ -3,6 +3,7 @@ package werror
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"sort"
 )
 
@@ -53,7 +54,11 @@ func writeParams(err Werror, buffer *bytes.Buffer) {
 		buffer.WriteString(" ")
 	}
 	for _, safeKey := range safeKeys {
-		buffer.WriteString(fmt.Sprintf("%+v:%+v", safeKey, safeParams[safeKey]))
+		safeValue := safeParams[safeKey]
+		if v := reflect.ValueOf(safeValue); v.Kind() == reflect.Ptr && !v.IsNil() {
+			safeValue = v.Elem().Interface()
+		}
+		buffer.WriteString(fmt.Sprintf("%+v:%+v", safeKey, safeValue))
 		// If it is not the last param, add a separator
 		if !(safeKeys[len(safeKeys)-1] == safeKey) {
 			buffer.WriteString(", ")
