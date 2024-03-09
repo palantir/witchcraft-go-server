@@ -22,11 +22,11 @@ import (
 	"runtime/pprof"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status/routes"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
@@ -87,51 +87,46 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 }
 
 func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, tracerOptions []wtracing.TracerOption) {
-	rootRouter.AddRequestHandlerMiddleware(
-		// add middleware that recovers from panics in request middleware
-		middleware.NewRequestPanicRecovery(s.svcLogger, s.evtLogger),
-		// add middleware that injects metrics registry into request context
-		middleware.NewRequestContextMetricsRegistry(registry),
-		// add middleware that injects loggers into request context
-		middleware.NewRequestContextLoggers(
-			s.svcLogger,
-			s.evtLogger,
-			s.auditLogger,
-			s.metricLogger,
-			s.diagLogger,
-			s.reqLogger,
-		),
-		// add middleware that extracts UID, SID, and TokenID into context for loggers, sets a tracer on the context and
-		// starts a root span and sets it on the context.
-		middleware.NewRequestExtractIDs(
-			s.svcLogger,
-			s.trcLogger,
-			tracerOptions,
-			s.idsExtractor,
-		),
-	)
+	// recovers from panics in request middleware
+	rootRouter.AddRequestHandlerMiddleware(middleware.NewRequestPanicRecovery(s.svcLogger, s.evtLogger))
 
-	// add middleware that records HTTP request stats as metrics in registry
+	// injects loggers and metrics into request context
+	// extracts UID, SID, and TokenID into context for loggers, sets a tracer on the context and
+	// starts a root span and sets it on the context.
+	// enforce setting HSTS headers per RFC 6797
+	rootRouter.AddRequestHandlerMiddleware(middleware.NewDefaultRequest(
+		s.svcLogger,
+		s.evtLogger,
+		s.auditLogger,
+		s.metricLogger,
+		s.diagLogger,
+		s.reqLogger,
+		s.trcLogger,
+		tracerOptions,
+		registry,
+		s.idsExtractor,
+	))
+
+	// records HTTP request stats as metrics in registry
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRequestMetricRequestMeter(registry))
 
-	// add middleware to enforce setting HSTS headers per RFC 6797
-	rootRouter.AddRequestHandlerMiddleware(middleware.NewStrictTransportSecurityHeader())
-
-	// add user-provided middleware
+	// user-provided middleware
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
 
-	// add route middleware
+	// route middleware
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog())
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteLogTraceSpan())
 
-	// add a second, inner panic recovery middleware so panics within handler logic are correctly configured with logging, trace IDs, etc.
+	// second, inner panic recovery middleware so panics within handler are configured with logging, trace IDs, etc.
 	rootRouter.AddRouteHandlerMiddleware(middleware.NewRoutePanicRecovery())
 
-	// add not found handler
-	rootRouter.RegisterNotFoundHandler(httpserver.NewJSONHandler(
-		func(_ http.ResponseWriter, _ *http.Request) error {
-			return werror.Convert(errors.NewNotFound())
-		}, httpserver.StatusCodeMapper, httpserver.ErrHandler),
+	// not found handler
+	rootRouter.RegisterNotFoundHandler(http.HandlerFunc(
+		func(rw http.ResponseWriter, req *http.Request) {
+			err := errors.NewNotFound()
+			svc1log.FromContext(req.Context()).Error("Route not found.", svc1log.Stacktrace(werror.Convert(err)))
+			errors.WriteErrorResponse(rw, err)
+		}),
 	)
 }
 
