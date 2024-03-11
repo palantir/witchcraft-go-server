@@ -318,6 +318,7 @@ func TestClientTLS(t *testing.T) {
 	// Assert regular client receives error
 	_, err = testServerClient().Get(fmt.Sprintf("https://localhost:%d/example", port))
 	require.Error(t, err, "Client allowed to make request without cert")
+	assert.ErrorContains(t, err, "tls", "expected error to contain 'tls' in its string representation")
 	assert.Contains(t, err.Error(), "tls: certificate required")
 
 	// Assert client w/ certs does not receive error
