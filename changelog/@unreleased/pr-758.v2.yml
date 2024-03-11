@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump tlsconfig pkg to pickup new TLS ciphers.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/758
