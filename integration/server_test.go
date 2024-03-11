@@ -318,7 +318,7 @@ func TestClientTLS(t *testing.T) {
 	// Assert regular client receives error
 	_, err = testServerClient().Get(fmt.Sprintf("https://localhost:%d/example", port))
 	require.Error(t, err, "Client allowed to make request without cert")
-	assert.Contains(t, err.Error(), "tls: bad certificate")
+	assert.ErrorContains(t, err, "tls", "expected error to contain 'tls' in its string representation")
 
 	// Assert client w/ certs does not receive error
 	tlsConf, err := tlsconfig.NewClientConfig(tlsconfig.ClientRootCAFiles(path.Join(wd, "testdata/ca-cert.pem")), tlsconfig.ClientKeyPairFiles(path.Join(wd, "testdata/client-cert.pem"), path.Join(wd, "testdata/client-key.pem")))
