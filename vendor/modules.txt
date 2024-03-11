@@ -74,8 +74,8 @@ github.com/palantir/pkg/safeyaml
 # github.com/palantir/pkg/signals v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg/signals
-# github.com/palantir/pkg/tlsconfig v1.2.0
-## explicit; go 1.19
+# github.com/palantir/pkg/tlsconfig v1.3.0
+## explicit; go 1.21
 github.com/palantir/pkg/tlsconfig
 # github.com/palantir/pkg/transform v1.1.0
 ## explicit; go 1.19
