@@ -547,6 +547,10 @@ func WithBasicAuth(user, password string) ClientParam {
 	}})
 }
 
+func WithBasicAuthProvider(provider BasicAuthProvider) ClientParam {
+	return WithMiddleware(&basicAuthMiddleware{provider: provider})
+}
+
 // WithBalancedURIScoring adds middleware that prioritizes sending requests to URIs with the fewest in-flight requests
 // and least recent errors.
 // Deprecated: This param is a no-op as balanced URI scoring is the default behavior.
