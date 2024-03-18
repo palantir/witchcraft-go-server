@@ -1,6 +1,6 @@
 module github.com/palantir/witchcraft-go-server/v2
 
-go 1.20
+go 1.21
 
 require (
 	github.com/gorilla/mux v1.7.3
