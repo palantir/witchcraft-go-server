@@ -16,6 +16,7 @@ package middleware
 
 import (
 	"net/http"
+	"runtime/trace"
 	"strconv"
 	"time"
 
@@ -137,7 +138,8 @@ func NewRequestExtractIDs(
 
 		// retrieve existing trace info from request and create a span
 		reqSpanContext := b3.SpanExtractor(req)()
-		span := tracer.StartSpan("witchcraft-go-server request middleware",
+		spanName := "witchcraft-go-server request middleware"
+		span := tracer.StartSpan(spanName,
 			wtracing.WithParentSpanContext(reqSpanContext),
 			wtracing.WithSpanTag("http.method", req.Method),
 			wtracing.WithSpanTag("http.useragent", req.UserAgent()),
@@ -149,6 +151,9 @@ func NewRequestExtractIDs(
 
 		// update request with new context
 		req = req.WithContext(ctx)
+
+		// Create a go execution trace region for the request middleware
+		defer trace.StartRegion(ctx, spanName).End()
 
 		// delegate to the next handler
 		lrw := toLoggingResponseWriter(rw)

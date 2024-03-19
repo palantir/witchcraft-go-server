@@ -17,6 +17,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"runtime/trace"
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
@@ -108,6 +109,9 @@ func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
 
 		req = req.WithContext(ctx)
 		b3.SpanInjector(req)(span.Context())
+
+		// Create a go execution trace region for the route
+		defer trace.StartRegion(ctx, spanName).End()
 
 		next(rw, req, reqVals)
 	}
