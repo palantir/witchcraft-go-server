@@ -6,7 +6,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
-	github.com/palantir/conjure-go-runtime/v2 v2.71.0
+	github.com/palantir/conjure-go-runtime/v2 v2.73.0
 	github.com/palantir/go-encrypted-config-value v1.31.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
@@ -47,5 +47,5 @@ require (
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
