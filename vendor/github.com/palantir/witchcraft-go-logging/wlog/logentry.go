@@ -82,9 +82,6 @@ func (m *MapValueEntries) AnyMapValue(key string, values map[string]interface{})
 	if len(values) == 0 {
 		return
 	}
-	if len(values) == 0 {
-		return
-	}
 	if m.anyMapValues == nil {
 		m.anyMapValues = make(map[string]map[string]interface{})
 	}
