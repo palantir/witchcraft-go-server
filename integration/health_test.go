@@ -45,7 +45,7 @@ func TestAddHealthCheckSources(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
-		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(healthCheckWithType{typ: "FOO"}, healthCheckWithType{typ: "BAR"})
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(healthCheckWithType{typ: "FOO"}).WithHealth(healthCheckWithType{typ: "BAR"})
 	})
 
 	defer func() {

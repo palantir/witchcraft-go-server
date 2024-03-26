@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Server.WithHealth supports multiple calls by appending
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/279
