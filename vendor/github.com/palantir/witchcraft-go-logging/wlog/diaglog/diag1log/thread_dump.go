@@ -38,6 +38,40 @@ func ThreadDumpV1FromGoroutines(goroutinesContent []byte) logging.ThreadDumpV1 {
 	return threads
 }
 
+func ThreadDumpV1ToGoroutines(threads logging.ThreadDumpV1) string {
+	var out strings.Builder
+	for _, thread := range threads.Threads {
+		if thread.Name != nil {
+			out.WriteString(*thread.Name)
+			out.WriteString(":\n")
+		}
+		for _, frame := range thread.StackTrace {
+			if frame.Procedure != nil {
+				if frame.Params["goroutineCreator"] == true {
+					out.WriteString("created by ")
+				}
+				out.WriteString(*frame.Procedure)
+				out.WriteString("(...)\n")
+			}
+			if frame.File != nil {
+				out.WriteByte('\t')
+				out.WriteString(*frame.File)
+				if frame.Line != nil {
+					out.WriteByte(':')
+					out.WriteString(strconv.Itoa(*frame.Line))
+				}
+				if frame.Address != nil {
+					out.WriteString(" +")
+					out.WriteString(*frame.Address)
+				}
+				out.WriteByte('\n')
+			}
+
+		}
+	}
+	return out.String()
+}
+
 var titleLinePattern = regexp.MustCompile(`^(goroutine (\d+) \[([^]]+)]):$`)
 
 func unmarshalThreadDump(goroutine []byte) logging.ThreadInfoV1 {

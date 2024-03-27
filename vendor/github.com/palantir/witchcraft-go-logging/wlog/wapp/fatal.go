@@ -16,7 +16,9 @@ package wapp
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
+	"strings"
 
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
@@ -65,17 +67,34 @@ func RunWithRecoveryLoggingWithError(ctx context.Context, runFn func(ctx context
 }
 
 func handleRecovered(ctx context.Context, r interface{}, stack []byte) (retErr error) {
+	// Process stack through diag1log to remove unsafe arguments from function calls
 	stacktrace := diag1log.ThreadDumpV1FromGoroutines(stack)
+	if len(stacktrace.Threads) > 0 && len(stacktrace.Threads[0].StackTrace) > 2 {
+		// Remove the debug.Stack() frame
+		if frame := stacktrace.Threads[0].StackTrace[0]; frame.File != nil && strings.HasSuffix(*frame.File, "runtime/debug/stack.go") {
+			stacktrace.Threads[0].StackTrace = stacktrace.Threads[0].StackTrace[1:]
+		}
+		// Remove the wapp.RunWith* frame
+		if frame := stacktrace.Threads[0].StackTrace[0]; frame.File != nil && strings.HasSuffix(*frame.File, "wapp/fatal.go") {
+			stacktrace.Threads[0].StackTrace = stacktrace.Threads[0].StackTrace[1:]
+		}
+	}
+	goroutines := diag1log.ThreadDumpV1ToGoroutines(stacktrace)
 	if err, ok := r.(error); ok {
+		safeParams, unsafeParams := werror.ParamsFromError(err)
 		svc1log.FromContext(ctx).Error("panic recovered",
 			svc1log.SafeParam("stacktrace", stacktrace),
-			svc1log.Stacktrace(err))
+			svc1log.SafeParams(safeParams),
+			svc1log.UnsafeParams(unsafeParams),
+			svc1log.UnsafeParam("recovered", r),
+			svc1log.Stacktrace(fmt.Errorf("panic: %v\n\n%s", err, goroutines)))
 		retErr = werror.WrapWithContextParams(ctx, err, "panic recovered",
 			werror.SafeParam("stacktrace", stacktrace))
 	} else {
 		svc1log.FromContext(ctx).Error("panic recovered",
 			svc1log.SafeParam("stacktrace", stacktrace),
-			svc1log.UnsafeParam("recovered", r))
+			svc1log.UnsafeParam("recovered", r),
+			svc1log.Stacktrace(fmt.Errorf("panic recovered\n\n%s", goroutines)))
 		retErr = werror.ErrorWithContextParams(ctx, "panic recovered",
 			werror.SafeParam("stacktrace", stacktrace),
 			werror.UnsafeParam("recovered", r))
