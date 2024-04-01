@@ -143,6 +143,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"params": objmatcher.MapMatcher{
 							"stacktrace": objmatcher.NewAnyMatcher(),
 						},
+						"stacktrace": objmatcher.NewAnyMatcher(),
 						"unsafeParams": objmatcher.MapMatcher{
 							"recovered": objmatcher.NewEqualsMatcher("panic inside handler"),
 						},
@@ -204,6 +205,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"params": objmatcher.MapMatcher{
 							"stacktrace": objmatcher.NewAnyMatcher(),
 						},
+						"stacktrace": objmatcher.NewAnyMatcher(),
 						"unsafeParams": objmatcher.MapMatcher{
 							"recovered": objmatcher.NewEqualsMatcher("panic inside handler after write"),
 						},
@@ -262,6 +264,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"params": objmatcher.MapMatcher{
 							"stacktrace": objmatcher.NewAnyMatcher(),
 						},
+						"stacktrace": objmatcher.NewAnyMatcher(),
 						"unsafeParams": objmatcher.MapMatcher{
 							"recovered": objmatcher.NewEqualsMatcher("panic before handler"),
 						},
@@ -307,6 +310,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"params": objmatcher.MapMatcher{
 							"stacktrace": objmatcher.NewAnyMatcher(),
 						},
+						"stacktrace": objmatcher.NewAnyMatcher(),
 						"unsafeParams": objmatcher.MapMatcher{
 							"recovered": objmatcher.NewEqualsMatcher("panic after handler"),
 						},
