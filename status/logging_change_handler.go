@@ -16,6 +16,7 @@ package status
 
 import (
 	"context"
+
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
