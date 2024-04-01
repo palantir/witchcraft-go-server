@@ -76,6 +76,23 @@ func TestLoggingChangeHandler(t *testing.T) {
 			},
 		},
 		{
+			name: "log warn when new status code is 520",
+			prev: health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]interface{}{}),
+				},
+			},
+			curr: health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					"TEST": sources.RepairingHealthCheckResult("TEST", "message", map[string]interface{}{}),
+				},
+			},
+			expected: &expectedLog{
+				level: "WARN",
+				msg:   "Health status code changed.",
+			},
+		},
+		{
 			name: "log when checks differ",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
