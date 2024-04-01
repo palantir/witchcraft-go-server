@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Upgrade witchcraft-go-logging to 1.53.0
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/776
