@@ -100,23 +100,20 @@ func NewRequestTelemetry(
 			ctx = metrics.AddTags(ctx)
 
 			// extract all IDs from request
-			var uid, sid, tokenID string
-			if idsExtractor != nil {
-				ids := idsExtractor.ExtractIDs(req)
-				uid = ids[extractor.UIDKey]
-				sid = ids[extractor.SIDKey]
-				tokenID = ids[extractor.TokenIDKey]
+			ids := idsExtractor.ExtractIDs(req)
+			uid := ids[extractor.UIDKey]
+			sid := ids[extractor.SIDKey]
+			tokenID := ids[extractor.TokenIDKey]
 
-				// set IDs on context for loggers
-				if uid != "" {
-					ctx = wlog.ContextWithUID(ctx, uid)
-				}
-				if sid != "" {
-					ctx = wlog.ContextWithSID(ctx, sid)
-				}
-				if tokenID != "" {
-					ctx = wlog.ContextWithTokenID(ctx, tokenID)
-				}
+			// set IDs on context for loggers
+			if uid != "" {
+				ctx = wlog.ContextWithUID(ctx, uid)
+			}
+			if sid != "" {
+				ctx = wlog.ContextWithSID(ctx, sid)
+			}
+			if tokenID != "" {
+				ctx = wlog.ContextWithTokenID(ctx, tokenID)
 			}
 
 			// create tracer and set on context. Tracer logs to trace logger if it is non-nil or is a no-op if nil.
