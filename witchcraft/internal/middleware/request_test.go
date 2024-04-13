@@ -43,7 +43,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCombinedMiddleware tests the combined behavior of the NewRequestContextLoggers and NewRequestExtractIDs request
+// TestCombinedMiddleware tests the combined behavior of the NewRequestTelemetry and NewRequestExtractIDs request
 // middleware and the NewRouteRequestLog route middleware. Verifies that service logs and request logs are emitted
 // properly (and that properties like UID, SID, TokenID and TraceID are extracted from the request).
 func TestCombinedMiddleware(t *testing.T) {
@@ -71,24 +71,21 @@ func TestCombinedMiddleware(t *testing.T) {
 	r := wrouter.New(
 		whttprouter.New(),
 		wrouter.RootRouterParamAddRequestHandlerMiddleware(
-			NewRequestContextMetricsRegistry(metricsRegistry),
-			NewRequestContextLoggers(
+			NewRequestTelemetry(
 				svcLog,
 				nil,
 				nil,
 				nil,
 				nil,
 				reqLog,
-			),
-			NewRequestExtractIDs(
-				svcLog,
 				trcLog,
 				nil,
 				extractor.NewDefaultIDsExtractor(),
+				metricsRegistry,
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			NewRouteRequestLog(),
+			NewRouteTelemetry,
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,13 +101,31 @@ func TestCombinedMiddleware(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 	defer func() {
-		matcher := objmatcher.MapMatcher{
+		entries, err := logreader.EntriesFromContent(trcOutput.Bytes())
+		require.NoError(t, err, "unexpected error when unmarshalling trace output")
+		entry0 := map[string]interface{}(entries[0])
+		matcher0 := objmatcher.MapMatcher{
+			"type": objmatcher.NewEqualsMatcher("trace.1"),
+			"time": objmatcher.NewRegExpMatcher(".+"),
+			"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+				"name":      objmatcher.NewEqualsMatcher("GET /"),
+				"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]{16}"),
+				"parentId":  objmatcher.NewRegExpMatcher("[a-f0-9]{16}"),
+				"id":        objmatcher.NewRegExpMatcher("[a-f0-9]{16}"),
+				"timestamp": objmatcher.NewAnyMatcher(),
+				"duration":  objmatcher.NewAnyMatcher(),
+			}),
+		}
+		assert.NoError(t, matcher0.Matches(entry0), "unexpected content in trace output")
+
+		entry1 := map[string]interface{}(entries[1])
+		matcher1 := objmatcher.MapMatcher{
 			"type": objmatcher.NewEqualsMatcher("trace.1"),
 			"time": objmatcher.NewRegExpMatcher(".+"),
 			"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
 				"name":      objmatcher.NewEqualsMatcher("witchcraft-go-server request middleware"),
-				"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
-				"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+				"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]{16}"),
+				"id":        objmatcher.NewRegExpMatcher("[a-f0-9]{16}"),
 				"timestamp": objmatcher.NewAnyMatcher(),
 				"duration":  objmatcher.NewAnyMatcher(),
 				"tags": objmatcher.MapMatcher(
@@ -122,9 +137,10 @@ func TestCombinedMiddleware(t *testing.T) {
 				),
 			}),
 		}
-		entries, err := logreader.EntriesFromContent(trcOutput.Bytes())
-		assert.NoError(t, err, "unexpected error when unmarshalling trace output")
-		assert.NoError(t, matcher.Matches(map[string]interface{}(entries[0])), "unexpected content in trace output")
+		assert.NoError(t, matcher1.Matches(entry1), "unexpected content in trace output")
+
+		assert.Equal(t, entry0["traceId"], entry1["traceId"], "traceId mismatch between trace entries")
+		assert.Equal(t, entry0["parentId"], entry1["id"], "parentId mismatch between trace entries")
 	}()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL+"/", nil)
@@ -132,12 +148,14 @@ func TestCombinedMiddleware(t *testing.T) {
 	req.Header.Set("Authorization", testToken)
 	req.Header.Set("X-B3-TraceId", testReqIDs.TraceID)
 
-	_, err = http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	assert.Equal(t, "max-age=31536000", resp.Header.Get("Strict-Transport-Security"), "Strict-Transport-Security header value")
 
 	testLogParams := func(t *testing.T, logBytes []byte) {
 		logMap := make(map[string]interface{})
-		assert.NoError(t, json.Unmarshal(logBytes, &logMap), "failed to unmarshal log output: %s", string(logBytes))
+		require.NoError(t, json.Unmarshal(logBytes, &logMap), "failed to unmarshal log output: %s", string(logBytes))
 		logType := logMap[wlog.TypeKey]
 		assert.Equal(t, testReqIDs.UID, logMap[wlog.UIDKey], "%s UID mismatch", logType)
 		assert.Equal(t, testReqIDs.SID, logMap[wlog.SIDKey], "%s SID mismatch", logType)
@@ -159,13 +177,13 @@ func TestCombinedMiddleware(t *testing.T) {
 
 func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 	r := metrics.NewRootMetricsRegistry()
-	reqMiddleware := NewRequestMetricRequestMeter(r)
 
 	now = func() time.Time { return time.UnixMilli(0) }
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
-	reqMiddleware(w, req, wrouter.RequestVals{}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	req = req.WithContext(metrics.WithRegistry(req.Context(), r))
+	NewRouteTelemetry(w, req, wrouter.RequestVals{}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		now = func() time.Time { return time.UnixMilli(1) }
 		_, _ = fmt.Fprint(rw, "ok")
 	})
@@ -209,16 +227,19 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 		wRouter := wrouter.New(
 			whttprouter.New(),
 
-			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestContextLoggers(
+			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestTelemetry(
 				nil,
 				nil,
 				nil,
 				nil,
 				nil,
 				req2log.New(io.Discard),
+				nil,
+				nil,
+				extractor.NewDefaultIDsExtractor(),
+				r,
 			)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteRequestLog()),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
@@ -255,19 +276,6 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 			metrics.MustNewTag("service-name", "authresource"),
 		}, respTags, currCase.metricName)
 	}
-}
-
-func TestStrictTransportSecurity(t *testing.T) {
-	wRouter := wrouter.New(
-		whttprouter.New(),
-		wrouter.RootRouterParamAddRequestHandlerMiddleware(NewStrictTransportSecurityHeader()),
-	)
-
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
-	require.NoError(t, err)
-	wRouter.ServeHTTP(w, req)
-	assert.Equal(t, []string{"max-age=31536000"}, w.Result().Header["Strict-Transport-Security"])
 }
 
 func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {
@@ -321,9 +329,6 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
 
 	metricRegistry := metrics.NewRootMetricsRegistry()
-	reqMetricMiddleware := NewRequestMetricRequestMeter(metricRegistry)
-	reqSpanMiddleware := NewRouteLogTraceSpan()
-	reqRequstLogMiddleware := NewRouteRequestLog()
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
@@ -333,19 +338,13 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
 
-	reqMetricMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
-		_, _ = fmt.Fprint(rw, "ok")
-	})
-	reqRequstLogMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
-		_, _ = fmt.Fprint(rw, "ok")
-	})
-	reqSpanMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	NewRouteTelemetry(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 
-	metricRegistry.Each(metrics.MetricVisitor(func(_ string, _ metrics.Tags, metric metrics.MetricVal) {
+	metricRegistry.Each(func(_ string, _ metrics.Tags, metric metrics.MetricVal) {
 		assert.Empty(t, metric.Values(), "expected no metrics to be written when Skiptelemetry is true")
-	}))
+	})
 
 	assert.Empty(t, reqOutput.Bytes(), "expected request log to be empty when DisableTelemetry is true")
 	assert.Empty(t, spanOutput.Bytes(), "expected trace span log to be empty when DisableTelemetry is true")

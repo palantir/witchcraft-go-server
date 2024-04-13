@@ -134,28 +134,42 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 	r.routes = append(r.routes, routeSpec)
 	sort.Sort(routeSpecs(r.routes))
 
-	requestParamPerms := b.toRequestParamPerms()
-	metricTags := b.toMetricTags()
-
 	// wrap provided handler with a handler that registers the path parameter information in the context
-	r.impl.Register(method, pathTemplate.Segments(), http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		// register path parameters in context
-		pathParamVals := r.impl.PathParams(req, pathVarNames)
-		req = req.WithContext(context.WithValue(req.Context(), pathParamsContextKey, pathParamVals))
-
-		wrappedHandlerFn := createRouteRequestHandler(func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals) {
-			handler.ServeHTTP(rw, r)
-		}, append(r.routeHandlers, b.middleware...))
-
-		wrappedHandlerFn(w, req, RequestVals{
-			Spec:             routeSpec,
-			PathParamVals:    pathParamVals,
-			ParamPerms:       requestParamPerms,
-			MetricTags:       metricTags,
-			DisableTelemetry: b.disableTelemetry,
-		})
-	}))
+	r.impl.Register(method, pathTemplate.Segments(), &routeHandler{
+		impl:              r.impl,
+		disableTelemetry:  b.disableTelemetry,
+		metricTags:        b.toMetricTags(),
+		pathVarNames:      pathVarNames,
+		requestParamPerms: b.toRequestParamPerms(),
+		routeSpec:         routeSpec,
+		handler: createRouteRequestHandler(func(rw http.ResponseWriter, req *http.Request, _ RequestVals) {
+			handler.ServeHTTP(rw, req)
+		}, append(append([]RouteHandlerMiddleware{}, r.routeHandlers...), b.middleware...)),
+	})
 	return nil
+}
+
+type routeHandler struct {
+	impl              RouterImpl
+	disableTelemetry  bool
+	metricTags        metrics.Tags
+	pathVarNames      []string
+	requestParamPerms RouteParamPerms
+	routeSpec         RouteSpec
+
+	handler RouteRequestHandler
+}
+
+func (r *routeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	pathParamVals := r.impl.PathParams(req, r.pathVarNames)
+	req = req.WithContext(context.WithValue(req.Context(), pathParamsContextKey, pathParamVals))
+	r.handler(w, req, RequestVals{
+		Spec:             r.routeSpec,
+		PathParamVals:    pathParamVals,
+		ParamPerms:       r.requestParamPerms,
+		MetricTags:       r.metricTags,
+		DisableTelemetry: r.disableTelemetry,
+	})
 }
 
 func (r *routeRequestHandlerWithNext) HandleRequest(rw http.ResponseWriter, req *http.Request, reqVals RequestVals) {

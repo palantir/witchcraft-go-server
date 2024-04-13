@@ -16,12 +16,12 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
@@ -31,18 +31,61 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
-func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.DisableTelemetry {
-			next(rw, req, reqVals)
-			return
-		}
+const (
+	serverResponseMetricName      = "server.response"
+	serverResponseErrorMetricName = "server.response.error"
+	serverRequestSizeMetricName   = "server.request.size"
+	serverResponseSizeMetricName  = "server.response.size"
+)
 
-		lrw := toLoggingResponseWriter(rw)
-		start := time.Now()
+// now is a local copy of time.Now() for testing purposes.
+var now = time.Now
+
+// NewRouteTelemetry returns a middleware which logs the request and records metrics for the request.
+// This is distinct from NewRequestTelemetry in that it handles telemetry for specific routes.
+//
+// * Recover panics in the wrapped handler
+// * Record metrics for request
+// * Create trace span for request
+// * Emit request.2 logs
+func NewRouteTelemetry(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+	if !reqVals.DisableTelemetry {
+		span, ctx := wtracing.StartSpanFromTracerInContext(
+			req.Context(),
+			fmt.Sprintf("%s %s", req.Method, reqVals.Spec.PathTemplate),
+			wtracing.WithParentSpanContext(b3.SpanExtractor(req)()))
+		defer span.Finish()
+		req = req.WithContext(ctx)
+		b3.SpanInjector(req)(span.Context())
+	}
+
+	ctx := req.Context()
+	lrw := toLoggingResponseWriter(rw)
+	start := now()
+	// add a second, inner panic recovery middleware so panics within handler logic are correctly configured with logging, trace IDs, etc.
+	if err := wapp.RunWithFatalLogging(ctx, func(ctx context.Context) error {
 		next(lrw, req, reqVals)
-		duration := time.Since(start)
+		return nil
+	}); err != nil {
+		if lrw.Written() {
+			svc1log.FromContext(ctx).Error("Panic recovered in request handler. This is a bug.", svc1log.Stacktrace(err))
+		} else {
+			// Only write to 500 response if we have not written anything yet
+			cerr := errors.WrapWithInternal(err)
+			svc1log.FromContext(ctx).Error("Panic recovered in request handler. This is a bug.", svc1log.Stacktrace(cerr))
+			errors.WriteErrorResponse(lrw, cerr)
+		}
+	}
+	duration := now().Sub(start)
 
+	if !reqVals.DisableTelemetry {
+		var pathPerm, queryPerm, headerPerm wrouter.ParamPerms
+		if reqVals.ParamPerms != nil {
+			pathPerm = reqVals.ParamPerms.PathParamPerms()
+			queryPerm = reqVals.ParamPerms.QueryParamPerms()
+			headerPerm = reqVals.ParamPerms.HeaderParamPerms()
+		}
+		// Log the request
 		req2log.FromContext(req.Context()).Request(req2log.Request{
 			Request: req,
 			RouteInfo: req2log.RouteInfo{
@@ -52,10 +95,19 @@ func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
 			ResponseStatus:   lrw.Status(),
 			ResponseSize:     int64(lrw.Size()),
 			Duration:         duration,
-			PathParamPerms:   reqVals.ParamPerms.PathParamPerms(),
-			QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
-			HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
+			PathParamPerms:   pathPerm,
+			QueryParamPerms:  queryPerm,
+			HeaderParamPerms: headerPerm,
 		})
+
+		// record metrics for call
+		mr := metrics.FromContext(req.Context())
+		mr.Timer(serverResponseMetricName, reqVals.MetricTags...).Update(duration)
+		mr.Histogram(serverRequestSizeMetricName, reqVals.MetricTags...).Update(req.ContentLength)
+		mr.Histogram(serverResponseSizeMetricName, reqVals.MetricTags...).Update(int64(lrw.Size()))
+		if lrw.Status()/100 == 5 {
+			mr.Meter(serverResponseErrorMetricName, reqVals.MetricTags...).Mark(1)
+		}
 	}
 }
 
@@ -77,72 +129,6 @@ type loggingResponseWriter interface {
 	Status() int
 	// Size returns the size of the response body.
 	Size() int
-	// Written returns whether or not the ResponseWriter has been written.
+	// Written returns whether the ResponseWriter has been written.
 	Written() bool
-}
-
-func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.DisableTelemetry {
-			next(rw, req, reqVals)
-			return
-		}
-
-		tracer := wtracing.TracerFromContext(req.Context())
-		if tracer == nil {
-			next(rw, req, reqVals)
-			return
-		}
-
-		// create new span and set it on the context and header
-		spanName := req.Method
-		if reqVals.Spec.PathTemplate != "" {
-			spanName += " " + reqVals.Spec.PathTemplate
-		}
-		reqSpanCtx := b3.SpanExtractor(req)()
-		span := tracer.StartSpan(spanName, wtracing.WithParentSpanContext(reqSpanCtx))
-		defer span.Finish()
-
-		ctx := req.Context()
-		ctx = wtracing.ContextWithSpan(ctx, span)
-
-		req = req.WithContext(ctx)
-		b3.SpanInjector(req)(span.Context())
-
-		next(rw, req, reqVals)
-	}
-}
-
-// NewRoutePanicRecovery returns a middleware which recovers panics within the inner route handler.
-// This is distinct from NewRequestPanicRecovery in that it runs when all logging/telemetry are configured on the request.
-func NewRoutePanicRecovery() wrouter.RouteHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		lrw := toLoggingResponseWriter(rw)
-		panicRecoveryMiddleware(lrw, req, nil, nil, func() {
-			next(lrw, req, reqVals)
-		})
-	}
-}
-
-func panicRecoveryMiddleware(lrw loggingResponseWriter, req *http.Request, svcLogger svc1log.Logger, evtLogger evt2log.Logger, nextFunc func()) {
-	ctx := req.Context() // ctx changes are used within this middleware but not stored to the request
-	if svcLogger != nil {
-		ctx = svc1log.WithLogger(ctx, svcLogger)
-	}
-	if evtLogger != nil {
-		ctx = evt2log.WithLogger(ctx, evtLogger)
-	}
-
-	if err := wapp.RunWithRecoveryLoggingWithError(ctx, func(ctx context.Context) error {
-		nextFunc()
-		return nil
-	}); err != nil {
-		cerr := errors.WrapWithInternal(err)
-		httpserver.ErrHandler(ctx, cerr.Code().StatusCode(), cerr)
-
-		// Only write to response if we have not written anything yet
-		if !lrw.Written() {
-			errors.WriteErrorResponse(lrw, cerr)
-		}
-	}
 }

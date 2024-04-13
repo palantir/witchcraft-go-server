@@ -154,7 +154,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewEqualsMatcher("Error handling request"),
+						"message": objmatcher.NewEqualsMatcher("Panic recovered in request handler. This is a bug."),
 						"traceId": objmatcher.NewEqualsMatcher(traceID),
 						"params": objmatcher.MapMatcher{
 							"errorInstanceId": objmatcher.NewEqualsMatcher(err.InstanceID().String()),
@@ -216,12 +216,10 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewEqualsMatcher("Error handling request"),
+						"message": objmatcher.NewEqualsMatcher("Panic recovered in request handler. This is a bug."),
 						"traceId": objmatcher.NewEqualsMatcher(traceID),
 						"params": objmatcher.MapMatcher{
-							"errorInstanceId": objmatcher.NewAnyMatcher(),
-							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
-							"stacktrace":      objmatcher.NewAnyMatcher(),
+							"stacktrace": objmatcher.NewAnyMatcher(),
 						},
 						"unsafeParams": objmatcher.MapMatcher{
 							"recovered": objmatcher.NewEqualsMatcher("panic inside handler after write"),
@@ -275,7 +273,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewEqualsMatcher("Error handling request"),
+						"message": objmatcher.NewEqualsMatcher("Panic recovered in server handler. This is a bug."),
 						"params": objmatcher.MapMatcher{
 							"errorInstanceId": objmatcher.NewEqualsMatcher(err.InstanceID().String()),
 							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
@@ -321,11 +319,9 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 						"type":    objmatcher.NewEqualsMatcher("service.1"),
 						"level":   objmatcher.NewEqualsMatcher("ERROR"),
 						"origin":  objmatcher.NewEqualsMatcher("github.com/palantir/witchcraft-go-server/integration"),
-						"message": objmatcher.NewEqualsMatcher("Error handling request"),
+						"message": objmatcher.NewEqualsMatcher("Panic recovered in server handler. This is a bug."),
 						"params": objmatcher.MapMatcher{
-							"errorInstanceId": objmatcher.NewAnyMatcher(),
-							"errorName":       objmatcher.NewEqualsMatcher("Default:Internal"),
-							"stacktrace":      objmatcher.NewAnyMatcher(),
+							"stacktrace": objmatcher.NewAnyMatcher(),
 						},
 						"unsafeParams": objmatcher.MapMatcher{
 							"recovered": objmatcher.NewEqualsMatcher("panic after handler"),
