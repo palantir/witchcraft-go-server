@@ -50,8 +50,8 @@ github.com/openzipkin/zipkin-go v0.2.2 h1:nY8Hti+WKaP0cRsSeQ026wU03QsM762XBeCXBb
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/palantir/conjure-go-runtime/v2 v2.75.0 h1:Z9QsvvQha6X5p+4pJMN/aH6XAGb6d/HpAJnWOPglS58=
 github.com/palantir/conjure-go-runtime/v2 v2.75.0/go.mod h1:2oFxY5kaF4EC9ishWVKM0mAebchavcUHdBVm1J5fGgw=
-github.com/palantir/go-encrypted-config-value v1.32.0 h1:FwODzLfGLfIMGGmfSwStPi4odF1orGX9SwfIfzmsj+c=
-github.com/palantir/go-encrypted-config-value v1.32.0/go.mod h1:O+MA4qjmCndRlXNlZ7YI8HKVuyDQo54Wnm90oyqUzuY=
+github.com/palantir/go-encrypted-config-value v1.33.0 h1:+K1GDDeLNetmkDIETHO6xx3P7whUEJcWR58fYoMDFpY=
+github.com/palantir/go-encrypted-config-value v1.33.0/go.mod h1:O+MA4qjmCndRlXNlZ7YI8HKVuyDQo54Wnm90oyqUzuY=
 github.com/palantir/go-metrics v1.1.1 h1:YL/UmptBjrC6iSCTVr7vfuIcjL0M359Da3/gBGNny10=
 github.com/palantir/go-metrics v1.1.1/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
 github.com/palantir/pkg v1.1.0 h1:0EhrSUP8oeeh3MUvk7V/UU7WmsN1UiJNTvNj0sN9Cpo=
@@ -92,8 +92,8 @@ github.com/palantir/witchcraft-go-health v1.15.0 h1:rXKAefpl1fKkYhFS/BYR+NoebeFU
 github.com/palantir/witchcraft-go-health v1.15.0/go.mod h1:MS0LBzTRcaCViJuIYzzwfZWBxFw0SNIRRglTve7t3x4=
 github.com/palantir/witchcraft-go-logging v1.54.0 h1:l7fEXIOe+Bvo66lryZGdwo+6Ltk3++aMzNpXmuoUYPc=
 github.com/palantir/witchcraft-go-logging v1.54.0/go.mod h1:+G9RgFcFtaTFACYykdwxLbw1kiWOSthhtVo4JeUZGos=
-github.com/palantir/witchcraft-go-params v1.32.0 h1:XLUXOuNDCcxaBApLkSmerTk4rVtgEYDmq0zYIBMshHY=
-github.com/palantir/witchcraft-go-params v1.32.0/go.mod h1:R+/PmtwK5BfCIrA6JFlUGhJfhTQOHGjQaLAaUvqfPLo=
+github.com/palantir/witchcraft-go-params v1.33.0 h1:6WelXtJqV5x0AgLc99wLDf0RUOkeUqt7BRzYcSbtZ0E=
+github.com/palantir/witchcraft-go-params v1.33.0/go.mod h1:R+/PmtwK5BfCIrA6JFlUGhJfhTQOHGjQaLAaUvqfPLo=
 github.com/palantir/witchcraft-go-tracing v1.35.0 h1:/NsaekU+mpnS75L8HPgBuDfByFu60zYOd6O1DB9Zhj0=
 github.com/palantir/witchcraft-go-tracing v1.35.0/go.mod h1:/viJ8p7uDd/n0InNtvtjzkFbPoK9wbyb8aZRM/uSnZQ=
 github.com/pierrec/lz4 v1.0.2-0.20190131084431-473cd7ce01a1/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=
