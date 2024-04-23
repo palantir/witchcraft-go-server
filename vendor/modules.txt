@@ -28,7 +28,7 @@ github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
-# github.com/palantir/go-encrypted-config-value v1.32.0
+# github.com/palantir/go-encrypted-config-value v1.33.0
 ## explicit; go 1.21
 github.com/palantir/go-encrypted-config-value/encryptedconfigvalue
 github.com/palantir/go-encrypted-config-value/encryption
@@ -114,7 +114,7 @@ github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
 github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
-# github.com/palantir/witchcraft-go-params v1.32.0
+# github.com/palantir/witchcraft-go-params v1.33.0
 ## explicit; go 1.21
 github.com/palantir/witchcraft-go-params
 # github.com/palantir/witchcraft-go-tracing v1.35.0
