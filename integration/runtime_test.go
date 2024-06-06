@@ -31,7 +31,6 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/witchcraft-go-logging/wlog"
-	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
@@ -677,8 +676,7 @@ service-discovery:
 }
 
 func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable {
-	ctx := svc1log.WithLogger(context.Background(), svc1log.New(os.Stdout, wlog.DebugLevel))
-	r, err := refreshablefile.NewFileRefreshableWithDuration(ctx, "var/conf/runtime.yml", time.Millisecond*30)
+	r, err := refreshablefile.NewFileRefreshableWithDuration(context.Background(), "var/conf/runtime.yml", time.Millisecond*30)
 	assert.NoError(t, err)
 	return r
 }
