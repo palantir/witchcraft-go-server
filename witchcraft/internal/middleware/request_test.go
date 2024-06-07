@@ -43,7 +43,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCombinedMiddleware tests the combined behavior of the NewRequestContextLoggers and NewRequestExtractIDs request
+// TestCombinedMiddleware tests the combined behavior of the NewRequestTelemetry and NewRequestExtractIDs request
 // middleware and the NewRouteRequestLog route middleware. Verifies that service logs and request logs are emitted
 // properly (and that properties like UID, SID, TokenID and TraceID are extracted from the request).
 func TestCombinedMiddleware(t *testing.T) {
@@ -71,20 +71,17 @@ func TestCombinedMiddleware(t *testing.T) {
 	r := wrouter.New(
 		whttprouter.New(),
 		wrouter.RootRouterParamAddRequestHandlerMiddleware(
-			NewRequestContextMetricsRegistry(metricsRegistry),
-			NewRequestContextLoggers(
+			NewRequestTelemetry(
 				svcLog,
 				nil,
 				nil,
 				nil,
 				nil,
 				reqLog,
-			),
-			NewRequestExtractIDs(
-				svcLog,
 				trcLog,
 				nil,
 				extractor.NewDefaultIDsExtractor(),
+				metricsRegistry,
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
@@ -209,13 +206,17 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 		wRouter := wrouter.New(
 			whttprouter.New(),
 
-			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestContextLoggers(
+			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestTelemetry(
 				nil,
 				nil,
 				nil,
 				nil,
 				nil,
 				req2log.New(io.Discard),
+				nil,
+				nil,
+				nil,
+				nil,
 			)),
 			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
 			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteRequestLog()),
