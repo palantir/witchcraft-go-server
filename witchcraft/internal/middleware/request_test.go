@@ -88,7 +88,7 @@ func TestCombinedMiddleware(t *testing.T) {
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			NewRouteRequestLog(),
+			NewRouteTelemetry(),
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,27 +104,43 @@ func TestCombinedMiddleware(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 	defer func() {
-		matcher := objmatcher.MapMatcher{
-			"type": objmatcher.NewEqualsMatcher("trace.1"),
-			"time": objmatcher.NewRegExpMatcher(".+"),
-			"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
-				"name":      objmatcher.NewEqualsMatcher("witchcraft-go-server request middleware"),
-				"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
-				"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
-				"timestamp": objmatcher.NewAnyMatcher(),
-				"duration":  objmatcher.NewAnyMatcher(),
-				"tags": objmatcher.MapMatcher(
-					map[string]objmatcher.Matcher{
-						"http.status_code": objmatcher.NewEqualsMatcher("200"),
-						"http.method":      objmatcher.NewEqualsMatcher("GET"),
-						"http.useragent":   objmatcher.NewRegExpMatcher(".*"),
-					},
-				),
-			}),
+		matcher := objmatcher.SliceMatcher{
+			objmatcher.MapMatcher{
+				"type": objmatcher.NewEqualsMatcher("trace.1"),
+				"time": objmatcher.NewRegExpMatcher(".+"),
+				"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+					"name":      objmatcher.NewEqualsMatcher("GET /"),
+					"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"parentId":  objmatcher.NewAnyMatcher(),
+					"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"timestamp": objmatcher.NewAnyMatcher(),
+					"duration":  objmatcher.NewAnyMatcher(),
+				}),
+			},
+			objmatcher.MapMatcher{
+				"type": objmatcher.NewEqualsMatcher("trace.1"),
+				"time": objmatcher.NewRegExpMatcher(".+"),
+				"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+					"name":      objmatcher.NewEqualsMatcher("witchcraft-go-server request middleware"),
+					"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"timestamp": objmatcher.NewAnyMatcher(),
+					"duration":  objmatcher.NewAnyMatcher(),
+					"tags": objmatcher.MapMatcher(
+						map[string]objmatcher.Matcher{
+							"http.status_code": objmatcher.NewEqualsMatcher("200"),
+							"http.method":      objmatcher.NewEqualsMatcher("GET"),
+							"http.useragent":   objmatcher.NewRegExpMatcher(".*"),
+						},
+					),
+				}),
+			},
 		}
 		entries, err := logreader.EntriesFromContent(trcOutput.Bytes())
 		assert.NoError(t, err, "unexpected error when unmarshalling trace output")
-		assert.NoError(t, matcher.Matches(map[string]interface{}(entries[0])), "unexpected content in trace output")
+		assert.Len(t, entries, 2, "unexpected number of trace entries")
+		assert.NoError(t, (matcher[0]).Matches(map[string]any(entries[0])), "unexpected content in trace output")
+		assert.NoError(t, matcher[1].Matches(map[string]any(entries[1])), "unexpected content in trace output")
 	}()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL+"/", nil)
@@ -158,8 +174,7 @@ func TestCombinedMiddleware(t *testing.T) {
 }
 
 func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
-	r := metrics.NewRootMetricsRegistry()
-	reqMiddleware := NewRequestMetricRequestMeter(r)
+	reqMiddleware := NewRouteTelemetry()
 
 	now = func() time.Time { return time.UnixMilli(0) }
 	w := httptest.NewRecorder()
@@ -171,7 +186,7 @@ func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 	})
 
 	m := make(map[string]interface{})
-	r.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	metrics.DefaultMetricsRegistry.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		vals := metric.Values()
 		m[name] = vals
 	})
@@ -217,8 +232,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 				nil,
 				req2log.New(io.Discard),
 			)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteRequestLog()),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry()),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
@@ -320,11 +334,6 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	var spanOutput bytes.Buffer
 	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
 
-	metricRegistry := metrics.NewRootMetricsRegistry()
-	reqMetricMiddleware := NewRequestMetricRequestMeter(metricRegistry)
-	reqSpanMiddleware := NewRouteLogTraceSpan()
-	reqRequstLogMiddleware := NewRouteRequestLog()
-
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
 	ctx = wtracing.ContextWithTracer(ctx, tracer)
@@ -333,19 +342,13 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
 
-	reqMetricMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
-		_, _ = fmt.Fprint(rw, "ok")
-	})
-	reqRequstLogMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
-		_, _ = fmt.Fprint(rw, "ok")
-	})
-	reqSpanMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	NewRouteTelemetry()(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 
-	metricRegistry.Each(metrics.MetricVisitor(func(_ string, _ metrics.Tags, metric metrics.MetricVal) {
+	metrics.DefaultMetricsRegistry.Each(func(_ string, _ metrics.Tags, metric metrics.MetricVal) {
 		assert.Empty(t, metric.Values(), "expected no metrics to be written when Skiptelemetry is true")
-	}))
+	})
 
 	assert.Empty(t, reqOutput.Bytes(), "expected request log to be empty when DisableTelemetry is true")
 	assert.Empty(t, spanOutput.Bytes(), "expected trace span log to be empty when DisableTelemetry is true")

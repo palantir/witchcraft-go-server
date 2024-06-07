@@ -21,6 +21,7 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
@@ -31,12 +32,24 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
-func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
+func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 		if reqVals.DisableTelemetry {
 			next(rw, req, reqVals)
 			return
 		}
+
+		// create new span and set it on the context and header
+		spanName := req.Method
+		if reqVals.Spec.PathTemplate != "" {
+			spanName += " " + reqVals.Spec.PathTemplate
+		}
+		reqSpanCtx := b3.SpanExtractor(req)()
+		span, ctx := wtracing.StartSpanFromTracerInContext(req.Context(), spanName, wtracing.WithParentSpanContext(reqSpanCtx))
+		defer span.Finish()
+
+		req = req.WithContext(ctx)
+		b3.SpanInjector(req)(span.Context())
 
 		lrw := toLoggingResponseWriter(rw)
 		start := time.Now()
@@ -56,6 +69,21 @@ func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
 			QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
 			HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
 		})
+
+		const (
+			serverResponseMetricName      = "server.response"
+			serverResponseErrorMetricName = "server.response.error"
+			serverRequestSizeMetricName   = "server.request.size"
+			serverResponseSizeMetricName  = "server.response.size"
+		)
+		// record metrics for call
+		mr := metrics.FromContext(ctx)
+		mr.Timer(serverResponseMetricName, reqVals.MetricTags...).Update(duration)
+		mr.Histogram(serverRequestSizeMetricName, reqVals.MetricTags...).Update(req.ContentLength)
+		mr.Histogram(serverResponseSizeMetricName, reqVals.MetricTags...).Update(int64(lrw.Size()))
+		if lrw.Status()/100 == 5 {
+			mr.Meter(serverResponseErrorMetricName, reqVals.MetricTags...).Mark(1)
+		}
 	}
 }
 
@@ -79,38 +107,6 @@ type loggingResponseWriter interface {
 	Size() int
 	// Written returns whether or not the ResponseWriter has been written.
 	Written() bool
-}
-
-func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.DisableTelemetry {
-			next(rw, req, reqVals)
-			return
-		}
-
-		tracer := wtracing.TracerFromContext(req.Context())
-		if tracer == nil {
-			next(rw, req, reqVals)
-			return
-		}
-
-		// create new span and set it on the context and header
-		spanName := req.Method
-		if reqVals.Spec.PathTemplate != "" {
-			spanName += " " + reqVals.Spec.PathTemplate
-		}
-		reqSpanCtx := b3.SpanExtractor(req)()
-		span := tracer.StartSpan(spanName, wtracing.WithParentSpanContext(reqSpanCtx))
-		defer span.Finish()
-
-		ctx := req.Context()
-		ctx = wtracing.ContextWithSpan(ctx, span)
-
-		req = req.WithContext(ctx)
-		b3.SpanInjector(req)(span.Context())
-
-		next(rw, req, reqVals)
-	}
 }
 
 // NewRoutePanicRecovery returns a middleware which recovers panics within the inner route handler.
