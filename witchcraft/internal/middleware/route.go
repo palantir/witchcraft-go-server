@@ -17,7 +17,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
@@ -52,9 +51,9 @@ func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
 		b3.SpanInjector(req)(span.Context())
 
 		lrw := toLoggingResponseWriter(rw)
-		start := time.Now()
+		start := now()
 		next(lrw, req, reqVals)
-		duration := time.Since(start)
+		duration := now().Sub(start)
 
 		req2log.FromContext(req.Context()).Request(req2log.Request{
 			Request: req,
