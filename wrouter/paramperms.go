@@ -95,16 +95,19 @@ func (m *mapParamPerms) Forbidden(paramName string) bool {
 }
 
 func NewCombinedParamPerms(paramPerms ...ParamPerms) ParamPerms {
-	return combinedParamPerms{paramPerms}
+	if paramPerms == nil {
+		return combinedParamPerms{}
+	}
+	return combinedParamPerms(paramPerms)
 }
 
-type combinedParamPerms struct{ p []ParamPerms }
+type combinedParamPerms []ParamPerms
 
 func (c combinedParamPerms) Safe(paramName string) bool {
 	if c.Forbidden(paramName) {
 		return false
 	}
-	for _, currPerms := range c.p {
+	for _, currPerms := range c {
 		if currPerms == nil {
 			continue
 		}
@@ -116,7 +119,7 @@ func (c combinedParamPerms) Safe(paramName string) bool {
 }
 
 func (c combinedParamPerms) Forbidden(paramName string) bool {
-	for _, currPerms := range c.p {
+	for _, currPerms := range c {
 		if currPerms == nil {
 			continue
 		}
