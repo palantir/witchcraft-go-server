@@ -55,6 +55,13 @@ func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
 		next(lrw, req, reqVals)
 		duration := now().Sub(start)
 
+		var pathParamPerms, queryParamPerms, headerParamPerms wrouter.ParamPerms
+		if reqVals.ParamPerms != nil {
+			pathParamPerms = reqVals.ParamPerms.PathParamPerms()
+			queryParamPerms = reqVals.ParamPerms.QueryParamPerms()
+			headerParamPerms = reqVals.ParamPerms.HeaderParamPerms()
+		}
+
 		req2log.FromContext(req.Context()).Request(req2log.Request{
 			Request: req,
 			RouteInfo: req2log.RouteInfo{
@@ -64,9 +71,9 @@ func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
 			ResponseStatus:   lrw.Status(),
 			ResponseSize:     int64(lrw.Size()),
 			Duration:         duration,
-			PathParamPerms:   reqVals.ParamPerms.PathParamPerms(),
-			QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
-			HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
+			PathParamPerms:   pathParamPerms,
+			QueryParamPerms:  queryParamPerms,
+			HeaderParamPerms: headerParamPerms,
 		})
 
 		const (
