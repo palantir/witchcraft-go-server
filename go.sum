@@ -50,8 +50,8 @@ github.com/openzipkin/zipkin-go v0.2.2 h1:nY8Hti+WKaP0cRsSeQ026wU03QsM762XBeCXBb
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/palantir/conjure-go-runtime/v2 v2.76.0 h1:UsiiynfyaCJIEhscJWVEL79wNE8rdFPbptaF5b/NKXA=
 github.com/palantir/conjure-go-runtime/v2 v2.76.0/go.mod h1:dv2Me5H7BI3Pevf111Y3QZds3991l/MBRElT4nyEGso=
-github.com/palantir/go-encrypted-config-value v1.33.0 h1:+K1GDDeLNetmkDIETHO6xx3P7whUEJcWR58fYoMDFpY=
-github.com/palantir/go-encrypted-config-value v1.33.0/go.mod h1:O+MA4qjmCndRlXNlZ7YI8HKVuyDQo54Wnm90oyqUzuY=
+github.com/palantir/go-encrypted-config-value v1.34.0 h1:6GRJR+uI7h6eTppIdyrNJqUnKQCikS+ZpKIguq5cS/k=
+github.com/palantir/go-encrypted-config-value v1.34.0/go.mod h1:O+MA4qjmCndRlXNlZ7YI8HKVuyDQo54Wnm90oyqUzuY=
 github.com/palantir/go-metrics v1.1.1 h1:YL/UmptBjrC6iSCTVr7vfuIcjL0M359Da3/gBGNny10=
 github.com/palantir/go-metrics v1.1.1/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
 github.com/palantir/pkg v1.1.0 h1:0EhrSUP8oeeh3MUvk7V/UU7WmsN1UiJNTvNj0sN9Cpo=
@@ -86,8 +86,8 @@ github.com/palantir/pkg/transform v1.1.0 h1:43tnYETShELXCRro6+uc0GlgB4GZvsQ/YNH5
 github.com/palantir/pkg/transform v1.1.0/go.mod h1:SHqpFkx1vKQ8Bb81VsmySYTsSHSBtgj06cZm9HihuGk=
 github.com/palantir/pkg/uuid v1.2.0 h1:eb7A1clc0DzchT9G0DRXi9QEkz/IYGDzLVFqZoIfrl0=
 github.com/palantir/pkg/uuid v1.2.0/go.mod h1:qGnKfswuHME/RjYVkj+SfcjvJ7C3gKZM4JEUordLhA4=
-github.com/palantir/witchcraft-go-error v1.36.0 h1:DnctTRqILbY2FnjM9s+9Zzf2pCrkv7BHNaJJvy6beJc=
-github.com/palantir/witchcraft-go-error v1.36.0/go.mod h1:xlr850w77YM824nEmXdi1gO8d5IKckDALHD+JR76v30=
+github.com/palantir/witchcraft-go-error v1.37.0 h1:ck7+qS/OCfG5xXxBbvH9jTt2SUHq7BwxzsaZA//ywr8=
+github.com/palantir/witchcraft-go-error v1.37.0/go.mod h1:8ToRbp1Ev7N5HnzUYNqMJWSwEorJ25WCFCBL8uF4USc=
 github.com/palantir/witchcraft-go-health v1.15.0 h1:rXKAefpl1fKkYhFS/BYR+NoebeFUn09CLXr1O4aRNOA=
 github.com/palantir/witchcraft-go-health v1.15.0/go.mod h1:MS0LBzTRcaCViJuIYzzwfZWBxFw0SNIRRglTve7t3x4=
 github.com/palantir/witchcraft-go-logging v1.55.0 h1:3gjO4dRVpl7IZDtKKi7VmuRQdHErv9iP9r6ahQcrTio=
