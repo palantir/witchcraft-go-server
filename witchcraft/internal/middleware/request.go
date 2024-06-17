@@ -51,6 +51,7 @@ var now = time.Now
 // * Set loggers, metrics registry, and tracer on context
 // * Extract IDs from request and set on context
 // * Create outer trace span for request
+// * Set HSTS headers
 func NewRequestTelemetry(
 	svcLogger svc1log.Logger,
 	evtLogger evt2log.Logger,
