@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Flatten panic middlewares and improve logging.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/795
