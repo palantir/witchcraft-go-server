@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Refactor wrouter.Register to remove stack frame from http requests
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/793
