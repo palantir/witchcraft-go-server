@@ -41,36 +41,6 @@ import (
 // now is a local copy of time.Now() for testing purposes.
 var now = time.Now
 
-// NewRequestPanicRecovery returns a middleware which recovers panics in the wrapped handler.
-// It accepts loggers as arguments, as we are not guaranteed they have been set on the request context.
-// These loggers are only used in the case of a panic.
-// When this is the outermost middleware, some request information (e.g. trace ids) will not be set.
-func NewRequestPanicRecovery(svcLogger svc1log.Logger, evtLogger evt2log.Logger) wrouter.RequestHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, next http.Handler) {
-		ctx := req.Context() // ctx changes are used within this middleware but not stored to the request
-		if svcLogger != nil {
-			ctx = svc1log.WithLogger(ctx, svcLogger)
-		}
-		if evtLogger != nil {
-			ctx = evt2log.WithLogger(ctx, evtLogger)
-		}
-		lrw := toLoggingResponseWriter(rw)
-		if err := wapp.RunWithFatalLogging(ctx, func(context.Context) error {
-			next.ServeHTTP(lrw, req)
-			return nil
-		}); err != nil {
-			if lrw.Written() {
-				svc1log.FromContext(ctx).Error("Panic recovered in server handler. This is a bug. HTTP response status already written.", svc1log.Stacktrace(err))
-			} else {
-				// Only write to 500 response if we have not written anything yet
-				cerr := errors.WrapWithInternal(err)
-				svc1log.FromContext(ctx).Error("Panic recovered in server handler. This is a bug. Responding 500 Internal Server Error.", svc1log.Stacktrace(cerr))
-				errors.WriteErrorResponse(lrw, cerr)
-			}
-		}
-	}
-}
-
 // NewRequestTelemetry is request middleware that configures instrumentation and emits telemetry that applies to all requests.
 //
 // * Set loggers, metrics registry, and tracer on context
@@ -100,7 +70,19 @@ func NewRequestTelemetry(
 		req, finishSpan := withSpan(req)
 		defer finishSpan(lrw)
 
-		next.ServeHTTP(lrw, req)
+		if err := wapp.RunWithFatalLogging(req.Context(), func(context.Context) error {
+			next.ServeHTTP(lrw, req)
+			return nil
+		}); err != nil {
+			if lrw.Written() {
+				svc1log.FromContext(req.Context()).Error("Panic recovered in server handler. This is a bug. HTTP response status already written.", svc1log.Stacktrace(err))
+			} else {
+				// Only write to 500 response if we have not written anything yet
+				cerr := errors.WrapWithInternal(err)
+				svc1log.FromContext(req.Context()).Error("Panic recovered in server handler. This is a bug. Responding 500 Internal Server Error.", svc1log.Stacktrace(cerr))
+				errors.WriteErrorResponse(lrw, cerr)
+			}
+		}
 	}
 }
 
