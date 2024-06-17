@@ -31,14 +31,23 @@ type requestParamPermsImpl struct {
 }
 
 func (r *requestParamPermsImpl) PathParamPerms() ParamPerms {
+	if r == nil || r.pathParamPerms == nil {
+		return newParamPerms(nil, nil)
+	}
 	return r.pathParamPerms
 }
 
 func (r *requestParamPermsImpl) QueryParamPerms() ParamPerms {
+	if r == nil || r.queryParamPerms == nil {
+		return newParamPerms(nil, nil)
+	}
 	return r.queryParamPerms
 }
 
 func (r *requestParamPermsImpl) HeaderParamPerms() ParamPerms {
+	if r == nil || r.headerParamPerms == nil {
+		return newParamPerms(nil, nil)
+	}
 	return r.headerParamPerms
 }
 
@@ -95,6 +104,9 @@ func (m *mapParamPerms) Forbidden(paramName string) bool {
 }
 
 func NewCombinedParamPerms(paramPerms ...ParamPerms) ParamPerms {
+	if paramPerms == nil {
+		return combinedParamPerms{}
+	}
 	return combinedParamPerms(paramPerms)
 }
 
