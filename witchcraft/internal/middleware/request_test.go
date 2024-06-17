@@ -85,7 +85,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			NewRouteTelemetry(),
+			NewRouteTelemetry(metricsRegistry),
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +172,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 
 func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 	r := metrics.NewRootMetricsRegistry()
-	reqMiddleware := NewRequestMetricRequestMeter(r)
+	reqMiddleware := NewRouteTelemetry(r)
 
 	now = func() time.Time { return time.UnixMilli(0) }
 	w := httptest.NewRecorder()
@@ -232,10 +232,9 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 				nil,
 				nil,
 				nil,
-				nil,
+				r,
 			)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry()),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry(r)),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
@@ -338,8 +337,7 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
 
 	metricRegistry := metrics.NewRootMetricsRegistry()
-	reqMetricMiddleware := NewRequestMetricRequestMeter(metricRegistry)
-	reqRequstLogMiddleware := NewRouteTelemetry()
+	reqRouteTelemetryMiddleware := NewRouteTelemetry(metricRegistry)
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
@@ -349,10 +347,7 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost", bytes.NewBufferString("content"))
 	require.NoError(t, err)
 
-	reqMetricMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
-		_, _ = fmt.Fprint(rw, "ok")
-	})
-	reqRequstLogMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
+	reqRouteTelemetryMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 

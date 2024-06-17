@@ -120,7 +120,7 @@ func newRequestContextLoggers(
 			ctx = trc1log.WithLogger(ctx, trcLogger)
 		}
 		if metricsRegistry != nil {
-			ctx = metrics.WithRegistry(ctx, metricsRegistry)
+			ctx = metrics.WithRegistry(metrics.AddTags(ctx), metricsRegistry)
 		}
 		return req.WithContext(ctx)
 	}
@@ -189,38 +189,6 @@ func newRequestTraceSpan() func(req *http.Request) (*http.Request, func(writer l
 		}
 	}
 }
-
-func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerMiddleware {
-	const (
-		serverResponseMetricName      = "server.response"
-		serverResponseErrorMetricName = "server.response.error"
-		serverRequestSizeMetricName   = "server.request.size"
-		serverResponseSizeMetricName  = "server.response.size"
-	)
-	return func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.DisableTelemetry {
-			next(rw, r, reqVals)
-			return
-		}
-		// add capability to store tags on the context
-		r = r.WithContext(metrics.AddTags(r.Context()))
-
-		start := now()
-		lrw := toLoggingResponseWriter(rw)
-		next(lrw, r, reqVals)
-		end := now()
-
-		tags := reqVals.MetricTags
-		// record metrics for call
-		mr.Timer(serverResponseMetricName, tags...).Update(end.Sub(start))
-		mr.Histogram(serverRequestSizeMetricName, tags...).Update(r.ContentLength)
-		mr.Histogram(serverResponseSizeMetricName, tags...).Update(int64(lrw.Size()))
-		if lrw.Status()/100 == 5 {
-			mr.Meter(serverResponseErrorMetricName, tags...).Mark(1)
-		}
-	}
-}
-
 func NewStrictTransportSecurityHeader() wrouter.RequestHandlerMiddleware {
 	const (
 		strictTransportSecurityHeader = "Strict-Transport-Security"

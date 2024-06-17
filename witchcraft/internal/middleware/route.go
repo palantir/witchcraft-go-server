@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
@@ -29,7 +30,7 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
-func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
+func NewRouteTelemetry(mr metrics.Registry) wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 		if reqVals.DisableTelemetry {
 			next(rw, req, reqVals)
@@ -38,12 +39,14 @@ func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
 
 		lrw := toLoggingResponseWriter(rw)
 		req, span := newRouteLogTraceSpan(req, reqVals)
-		if span != nil {
-			defer span.Finish()
-		}
-		start := time.Now()
+		start := now()
 		defer func() {
-			newRouteRequestLog(req, reqVals, lrw, time.Since(start))
+			if span != nil {
+				defer span.Finish()
+			}
+			duration := now().Sub(start)
+			newRouteRequestLog(req, reqVals, lrw, duration)
+			markRequestMetricRequestMeter(mr, req, reqVals, lrw, duration)
 		}()
 
 		// Add a panic recovery after the context is fully configured to maximize traceability.
@@ -86,6 +89,12 @@ type loggingResponseWriter interface {
 }
 
 func newRouteRequestLog(req *http.Request, reqVals wrouter.RequestVals, lrw loggingResponseWriter, duration time.Duration) {
+	var pathPerms, queryPerms, headerPerms req2log.ParamPerms
+	if reqVals.ParamPerms != nil {
+		pathPerms = reqVals.ParamPerms.PathParamPerms()
+		queryPerms = reqVals.ParamPerms.QueryParamPerms()
+		headerPerms = reqVals.ParamPerms.HeaderParamPerms()
+	}
 	req2log.FromContext(req.Context()).Request(req2log.Request{
 		Request: req,
 		RouteInfo: req2log.RouteInfo{
@@ -95,9 +104,9 @@ func newRouteRequestLog(req *http.Request, reqVals wrouter.RequestVals, lrw logg
 		ResponseStatus:   lrw.Status(),
 		ResponseSize:     int64(lrw.Size()),
 		Duration:         duration,
-		PathParamPerms:   reqVals.ParamPerms.PathParamPerms(),
-		QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
-		HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
+		PathParamPerms:   pathPerms,
+		QueryParamPerms:  queryPerms,
+		HeaderParamPerms: headerPerms,
 	})
 }
 
@@ -122,4 +131,13 @@ func newRouteLogTraceSpan(req *http.Request, reqVals wrouter.RequestVals) (*http
 	b3.SpanInjector(req)(span.Context())
 
 	return req, span
+}
+
+func markRequestMetricRequestMeter(mr metrics.Registry, req *http.Request, reqVals wrouter.RequestVals, lrw loggingResponseWriter, duration time.Duration) {
+	mr.Timer("server.response", reqVals.MetricTags...).Update(duration)
+	mr.Histogram("server.request.size", reqVals.MetricTags...).Update(req.ContentLength)
+	mr.Histogram("server.response.size", reqVals.MetricTags...).Update(int64(lrw.Size()))
+	if lrw.Status()/100 == 5 {
+		mr.Meter("server.response.error", reqVals.MetricTags...).Mark(1)
+	}
 }
