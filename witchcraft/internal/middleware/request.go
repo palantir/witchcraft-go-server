@@ -15,10 +15,12 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
@@ -29,6 +31,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/reqlog/req2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
+	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
@@ -44,10 +47,27 @@ var now = time.Now
 // When this is the outermost middleware, some request information (e.g. trace ids) will not be set.
 func NewRequestPanicRecovery(svcLogger svc1log.Logger, evtLogger evt2log.Logger) wrouter.RequestHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, next http.Handler) {
+		ctx := req.Context() // ctx changes are used within this middleware but not stored to the request
+		if svcLogger != nil {
+			ctx = svc1log.WithLogger(ctx, svcLogger)
+		}
+		if evtLogger != nil {
+			ctx = evt2log.WithLogger(ctx, evtLogger)
+		}
 		lrw := toLoggingResponseWriter(rw)
-		panicRecoveryMiddleware(lrw, req, svcLogger, evtLogger, func() {
+		if err := wapp.RunWithFatalLogging(ctx, func(context.Context) error {
 			next.ServeHTTP(lrw, req)
-		})
+			return nil
+		}); err != nil {
+			if lrw.Written() {
+				svc1log.FromContext(ctx).Error("Panic recovered in server handler. This is a bug. HTTP response status already written.", svc1log.Stacktrace(err))
+			} else {
+				// Only write to 500 response if we have not written anything yet
+				cerr := errors.WrapWithInternal(err)
+				svc1log.FromContext(ctx).Error("Panic recovered in server handler. This is a bug. Responding 500 Internal Server Error.", svc1log.Stacktrace(cerr))
+				errors.WriteErrorResponse(lrw, cerr)
+			}
+		}
 	}
 }
 

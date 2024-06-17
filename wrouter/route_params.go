@@ -29,7 +29,11 @@ func (b *routeParamBuilder) toRequestParamPerms() RouteParamPerms {
 	if b.paramPerms != nil {
 		return b.paramPerms
 	}
-	return &requestParamPermsImpl{}
+	return &requestParamPermsImpl{
+		pathParamPerms:   newParamPerms(nil, nil),
+		queryParamPerms:  newParamPerms(nil, nil),
+		headerParamPerms: newParamPerms(nil, nil),
+	}
 }
 
 func (b *routeParamBuilder) toMetricTags() metrics.Tags {
