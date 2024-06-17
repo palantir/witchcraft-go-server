@@ -43,7 +43,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestRequestTelemetryMiddleware tests the combined behavior of the NewRequestTelemetry and NewRequestExtractIDs request
+// TestRequestTelemetryMiddleware tests the behavior of the NewRequestTelemetry request
 // middleware and the NewRouteRequestLog route middleware. Verifies that service logs and request logs are emitted
 // properly (and that properties like UID, SID, TokenID and TraceID are extracted from the request).
 func TestRequestTelemetryMiddleware(t *testing.T) {
