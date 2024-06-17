@@ -105,9 +105,6 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 		),
 	)
 
-	// add middleware to enforce setting HSTS headers per RFC 6797
-	rootRouter.AddRequestHandlerMiddleware(middleware.NewStrictTransportSecurityHeader())
-
 	// add user-provided middleware
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
 

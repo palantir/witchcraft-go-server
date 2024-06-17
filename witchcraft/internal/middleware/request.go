@@ -38,6 +38,11 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 )
 
+const (
+	strictTransportSecurityHeader = "Strict-Transport-Security"
+	strictTransportSecurityValue  = "max-age=31536000"
+)
+
 // now is a local copy of time.Now() for testing purposes.
 var now = time.Now
 
@@ -69,6 +74,8 @@ func NewRequestTelemetry(
 		req = withTracer(req)
 		req, finishSpan := withSpan(req)
 		defer finishSpan(lrw)
+
+		lrw.Header().Set(strictTransportSecurityHeader, strictTransportSecurityValue) // set HSTS headers per RFC 6797
 
 		if err := wapp.RunWithFatalLogging(req.Context(), func(context.Context) error {
 			next.ServeHTTP(lrw, req)
@@ -187,15 +194,5 @@ func newRequestTraceSpan() func(req *http.Request) (*http.Request, func(writer l
 			span.Tag("http.status_code", strconv.Itoa(lrw.Status()))
 			span.Finish()
 		}
-	}
-}
-func NewStrictTransportSecurityHeader() wrouter.RequestHandlerMiddleware {
-	const (
-		strictTransportSecurityHeader = "Strict-Transport-Security"
-		strictTransportSecurityValue  = "max-age=31536000"
-	)
-	return func(rw http.ResponseWriter, r *http.Request, next http.Handler) {
-		rw.Header().Set(strictTransportSecurityHeader, strictTransportSecurityValue)
-		next.ServeHTTP(rw, r)
 	}
 }

@@ -145,8 +145,9 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 	req.Header.Set("Authorization", testToken)
 	req.Header.Set("X-B3-TraceId", testReqIDs.TraceID)
 
-	_, err = http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
+	assert.Equal(t, []string{"max-age=31536000"}, resp.Header["Strict-Transport-Security"])
 
 	testLogParams := func(t *testing.T, logBytes []byte) {
 		logMap := make(map[string]interface{})
@@ -271,19 +272,6 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 			metrics.MustNewTag("service-name", "authresource"),
 		}, respTags, currCase.metricName)
 	}
-}
-
-func TestStrictTransportSecurity(t *testing.T) {
-	wRouter := wrouter.New(
-		whttprouter.New(),
-		wrouter.RootRouterParamAddRequestHandlerMiddleware(NewStrictTransportSecurityHeader()),
-	)
-
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
-	require.NoError(t, err)
-	wRouter.ServeHTTP(w, req)
-	assert.Equal(t, []string{"max-age=31536000"}, w.Result().Header["Strict-Transport-Security"])
 }
 
 func getHistogramObjectMatcher(count int) map[string]objmatcher.Matcher {
