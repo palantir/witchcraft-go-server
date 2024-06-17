@@ -29,7 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
-func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
+func NewRouteTelemetry() wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 		if reqVals.DisableTelemetry {
 			next(rw, req, reqVals)
@@ -37,23 +37,29 @@ func NewRouteRequestLog() wrouter.RouteHandlerMiddleware {
 		}
 
 		lrw := toLoggingResponseWriter(rw)
+		req, span := newRouteLogTraceSpan(req, reqVals)
+		if span != nil {
+			defer span.Finish()
+		}
 		start := time.Now()
-		next(lrw, req, reqVals)
-		duration := time.Since(start)
+		defer func() {
+			newRouteRequestLog(req, reqVals, lrw, time.Since(start))
+		}()
 
-		req2log.FromContext(req.Context()).Request(req2log.Request{
-			Request: req,
-			RouteInfo: req2log.RouteInfo{
-				Template:   reqVals.Spec.PathTemplate,
-				PathParams: reqVals.PathParamVals,
-			},
-			ResponseStatus:   lrw.Status(),
-			ResponseSize:     int64(lrw.Size()),
-			Duration:         duration,
-			PathParamPerms:   reqVals.ParamPerms.PathParamPerms(),
-			QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
-			HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
-		})
+		// Add a panic recovery after the context is fully configured to maximize traceability.
+		if err := wapp.RunWithFatalLogging(req.Context(), func(context.Context) error {
+			next(lrw, req, reqVals)
+			return nil
+		}); err != nil {
+			if lrw.Written() {
+				svc1log.FromContext(req.Context()).Error("Panic recovered in request handler. This is a bug. HTTP response status already written.", svc1log.Stacktrace(err))
+			} else {
+				// Only write to 500 response if we have not written anything yet
+				cerr := errors.WrapWithInternal(err)
+				svc1log.FromContext(req.Context()).Error("Panic recovered in request handler. This is a bug. Responding 500 Internal Server Error.", svc1log.Stacktrace(cerr))
+				errors.WriteErrorResponse(lrw, cerr)
+			}
+		}
 	}
 }
 
@@ -79,55 +85,41 @@ type loggingResponseWriter interface {
 	Written() bool
 }
 
-func NewRouteLogTraceSpan() wrouter.RouteHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.DisableTelemetry {
-			next(rw, req, reqVals)
-			return
-		}
-
-		tracer := wtracing.TracerFromContext(req.Context())
-		if tracer == nil {
-			next(rw, req, reqVals)
-			return
-		}
-
-		// create new span and set it on the context and header
-		spanName := req.Method
-		if reqVals.Spec.PathTemplate != "" {
-			spanName += " " + reqVals.Spec.PathTemplate
-		}
-		reqSpanCtx := b3.SpanExtractor(req)()
-		span := tracer.StartSpan(spanName, wtracing.WithParentSpanContext(reqSpanCtx))
-		defer span.Finish()
-
-		ctx := req.Context()
-		ctx = wtracing.ContextWithSpan(ctx, span)
-
-		req = req.WithContext(ctx)
-		b3.SpanInjector(req)(span.Context())
-
-		next(rw, req, reqVals)
-	}
+func newRouteRequestLog(req *http.Request, reqVals wrouter.RequestVals, lrw loggingResponseWriter, duration time.Duration) {
+	req2log.FromContext(req.Context()).Request(req2log.Request{
+		Request: req,
+		RouteInfo: req2log.RouteInfo{
+			Template:   reqVals.Spec.PathTemplate,
+			PathParams: reqVals.PathParamVals,
+		},
+		ResponseStatus:   lrw.Status(),
+		ResponseSize:     int64(lrw.Size()),
+		Duration:         duration,
+		PathParamPerms:   reqVals.ParamPerms.PathParamPerms(),
+		QueryParamPerms:  reqVals.ParamPerms.QueryParamPerms(),
+		HeaderParamPerms: reqVals.ParamPerms.HeaderParamPerms(),
+	})
 }
 
-// NewRoutePanicRecovery returns a middleware which recovers panics within the inner route handler.
-// This is distinct from NewRequestPanicRecovery in that it runs when all logging/telemetry are configured on the request.
-func NewRoutePanicRecovery() wrouter.RouteHandlerMiddleware {
-	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		lrw := toLoggingResponseWriter(rw)
-		if err := wapp.RunWithFatalLogging(req.Context(), func(context.Context) error {
-			next(lrw, req, reqVals)
-			return nil
-		}); err != nil {
-			if lrw.Written() {
-				svc1log.FromContext(req.Context()).Error("Panic recovered in request handler. This is a bug. HTTP response status already written.", svc1log.Stacktrace(err))
-			} else {
-				// Only write to 500 response if we have not written anything yet
-				cerr := errors.WrapWithInternal(err)
-				svc1log.FromContext(req.Context()).Error("Panic recovered in request handler. This is a bug. Responding 500 Internal Server Error.", svc1log.Stacktrace(cerr))
-				errors.WriteErrorResponse(lrw, cerr)
-			}
-		}
+func newRouteLogTraceSpan(req *http.Request, reqVals wrouter.RequestVals) (*http.Request, wtracing.Span) {
+	tracer := wtracing.TracerFromContext(req.Context())
+	if reqVals.DisableTelemetry || tracer == nil {
+		return req, nil
 	}
+
+	// create new span and set it on the context and header
+	spanName := req.Method
+	if reqVals.Spec.PathTemplate != "" {
+		spanName += " " + reqVals.Spec.PathTemplate
+	}
+	reqSpanCtx := b3.SpanExtractor(req)()
+	span := tracer.StartSpan(spanName, wtracing.WithParentSpanContext(reqSpanCtx))
+
+	ctx := req.Context()
+	ctx = wtracing.ContextWithSpan(ctx, span)
+
+	req = req.WithContext(ctx)
+	b3.SpanInjector(req)(span.Context())
+
+	return req, span
 }

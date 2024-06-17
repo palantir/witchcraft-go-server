@@ -115,11 +115,7 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
 
 	// add route middleware
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteRequestLog())
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteLogTraceSpan())
-
-	// add a second, inner panic recovery middleware so panics within handler logic are correctly configured with logging, trace IDs, etc.
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRoutePanicRecovery())
+	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteTelemetry())
 
 	// add not found handler
 	rootRouter.RegisterNotFoundHandler(httpserver.NewJSONHandler(
