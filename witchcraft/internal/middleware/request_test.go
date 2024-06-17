@@ -44,7 +44,7 @@ import (
 )
 
 // TestRequestTelemetryMiddleware tests the behavior of the NewRequestTelemetry request
-// middleware and the NewRouteRequestLog route middleware. Verifies that service logs and request logs are emitted
+// middleware and the NewRouteTelemetry route middleware. Verifies that service logs and request logs are emitted
 // properly (and that properties like UID, SID, TokenID and TraceID are extracted from the request).
 func TestRequestTelemetryMiddleware(t *testing.T) {
 	// A bogus token without access to anything interesting. It encodes the UID, SID, and TokenID in testReqIDs below.
@@ -85,7 +85,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			NewRouteRequestLog(),
+			NewRouteTelemetry(),
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -101,27 +101,43 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 	defer func() {
-		matcher := objmatcher.MapMatcher{
-			"type": objmatcher.NewEqualsMatcher("trace.1"),
-			"time": objmatcher.NewRegExpMatcher(".+"),
-			"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
-				"name":      objmatcher.NewEqualsMatcher("witchcraft-go-server request middleware"),
-				"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
-				"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
-				"timestamp": objmatcher.NewAnyMatcher(),
-				"duration":  objmatcher.NewAnyMatcher(),
-				"tags": objmatcher.MapMatcher(
-					map[string]objmatcher.Matcher{
-						"http.status_code": objmatcher.NewEqualsMatcher("200"),
-						"http.method":      objmatcher.NewEqualsMatcher("GET"),
-						"http.useragent":   objmatcher.NewRegExpMatcher(".*"),
-					},
-				),
-			}),
+		matcher := objmatcher.SliceMatcher{
+			objmatcher.MapMatcher{
+				"type": objmatcher.NewEqualsMatcher("trace.1"),
+				"time": objmatcher.NewRegExpMatcher(".+"),
+				"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+					"name":      objmatcher.NewEqualsMatcher("GET /"),
+					"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"parentId":  objmatcher.NewAnyMatcher(),
+					"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"timestamp": objmatcher.NewAnyMatcher(),
+					"duration":  objmatcher.NewAnyMatcher(),
+				}),
+			},
+			objmatcher.MapMatcher{
+				"type": objmatcher.NewEqualsMatcher("trace.1"),
+				"time": objmatcher.NewRegExpMatcher(".+"),
+				"span": objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+					"name":      objmatcher.NewEqualsMatcher("witchcraft-go-server request middleware"),
+					"traceId":   objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"id":        objmatcher.NewRegExpMatcher("[a-f0-9]+"),
+					"timestamp": objmatcher.NewAnyMatcher(),
+					"duration":  objmatcher.NewAnyMatcher(),
+					"tags": objmatcher.MapMatcher(
+						map[string]objmatcher.Matcher{
+							"http.status_code": objmatcher.NewEqualsMatcher("200"),
+							"http.method":      objmatcher.NewEqualsMatcher("GET"),
+							"http.useragent":   objmatcher.NewRegExpMatcher(".*"),
+						},
+					),
+				}),
+			},
 		}
 		entries, err := logreader.EntriesFromContent(trcOutput.Bytes())
 		assert.NoError(t, err, "unexpected error when unmarshalling trace output")
-		assert.NoError(t, matcher.Matches(map[string]interface{}(entries[0])), "unexpected content in trace output")
+		assert.Len(t, entries, 2, "unexpected number of trace entries")
+		assert.NoError(t, (matcher[0]).Matches(map[string]any(entries[0])), "unexpected content in trace output")
+		assert.NoError(t, matcher[1].Matches(map[string]any(entries[1])), "unexpected content in trace output")
 	}()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL+"/", nil)
@@ -219,7 +235,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 				nil,
 			)),
 			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteRequestLog()),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry()),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
@@ -323,8 +339,7 @@ func TestRequestDisableTelemetry(t *testing.T) {
 
 	metricRegistry := metrics.NewRootMetricsRegistry()
 	reqMetricMiddleware := NewRequestMetricRequestMeter(metricRegistry)
-	reqSpanMiddleware := NewRouteLogTraceSpan()
-	reqRequstLogMiddleware := NewRouteRequestLog()
+	reqRequstLogMiddleware := NewRouteTelemetry()
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
@@ -338,9 +353,6 @@ func TestRequestDisableTelemetry(t *testing.T) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 	reqRequstLogMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
-		_, _ = fmt.Fprint(rw, "ok")
-	})
-	reqSpanMiddleware(w, req, wrouter.RequestVals{DisableTelemetry: true}, func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 
