@@ -135,16 +135,18 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 	sort.Sort(routeSpecs(r.routes))
 
 	// wrap provided handler with a handler that registers the path parameter information in the context
+	wrappedHandler := createRouteRequestHandler(func(rw http.ResponseWriter, req *http.Request, _ RequestVals) {
+		handler.ServeHTTP(rw, req)
+	}, append(append([]RouteHandlerMiddleware{}, r.routeHandlers...), b.middleware...))
+
 	r.impl.Register(method, pathTemplate.Segments(), &routeHandler{
 		impl:              r.impl,
 		disableTelemetry:  b.disableTelemetry,
 		metricTags:        b.toMetricTags(),
-		pathVarNames:      pathVarNames,
 		requestParamPerms: b.toRequestParamPerms(),
 		routeSpec:         routeSpec,
-		handler: createRouteRequestHandler(func(rw http.ResponseWriter, req *http.Request, _ RequestVals) {
-			handler.ServeHTTP(rw, req)
-		}, append(append([]RouteHandlerMiddleware{}, r.routeHandlers...), b.middleware...)),
+		pathVarNames:      pathVarNames,
+		handler:           wrappedHandler,
 	})
 	return nil
 }
@@ -153,11 +155,10 @@ type routeHandler struct {
 	impl              RouterImpl
 	disableTelemetry  bool
 	metricTags        metrics.Tags
-	pathVarNames      []string
 	requestParamPerms RouteParamPerms
 	routeSpec         RouteSpec
-
-	handler RouteRequestHandler
+	pathVarNames      []string
+	handler           RouteRequestHandler
 }
 
 func (r *routeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -170,10 +171,6 @@ func (r *routeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		MetricTags:       r.metricTags,
 		DisableTelemetry: r.disableTelemetry,
 	})
-}
-
-func (r *routeRequestHandlerWithNext) HandleRequest(rw http.ResponseWriter, req *http.Request, reqVals RequestVals) {
-	r.handler(rw, req, reqVals, r.next)
 }
 
 func (r *rootRouter) RegisteredRoutes() []RouteSpec {
@@ -276,17 +273,11 @@ func (r *requestHandlerWithNext) ServeHTTP(rw http.ResponseWriter, req *http.Req
 	r.handler(rw, req, r.next)
 }
 
-type routeRequestHandlerWithNext struct {
-	handler RouteHandlerMiddleware
-	next    RouteRequestHandler
-}
-
 func createRouteRequestHandler(baseHandler RouteRequestHandler, handlers []RouteHandlerMiddleware) RouteRequestHandler {
 	if len(handlers) == 0 {
 		return baseHandler
 	}
-	return (&routeRequestHandlerWithNext{
-		handler: handlers[0],
-		next:    createRouteRequestHandler(baseHandler, handlers[1:]),
-	}).HandleRequest
+	return func(rw http.ResponseWriter, req *http.Request, reqVals RequestVals) {
+		handlers[0](rw, req, reqVals, createRouteRequestHandler(baseHandler, handlers[1:]))
+	}
 }
