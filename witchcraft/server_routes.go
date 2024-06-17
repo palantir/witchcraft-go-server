@@ -88,26 +88,20 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 
 func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, tracerOptions []wtracing.TracerOption) {
 	rootRouter.AddRequestHandlerMiddleware(
-		// add middleware that recovers from panics in request middleware
-		middleware.NewRequestPanicRecovery(s.svcLogger, s.evtLogger),
-		// add middleware that injects metrics registry into request context
-		middleware.NewRequestContextMetricsRegistry(registry),
-		// add middleware that injects loggers into request context
-		middleware.NewRequestContextLoggers(
+		// add middleware that injects loggers into request context, extracts UID, SID, and TokenID
+		// into context for loggers, sets a tracer on the context, starts a root span and sets it on the context,
+		// and recovers from panics.
+		middleware.NewRequestTelemetry(
 			s.svcLogger,
 			s.evtLogger,
 			s.auditLogger,
 			s.metricLogger,
 			s.diagLogger,
 			s.reqLogger,
-		),
-		// add middleware that extracts UID, SID, and TokenID into context for loggers, sets a tracer on the context and
-		// starts a root span and sets it on the context.
-		middleware.NewRequestExtractIDs(
-			s.svcLogger,
 			s.trcLogger,
 			tracerOptions,
 			s.idsExtractor,
+			registry,
 		),
 	)
 

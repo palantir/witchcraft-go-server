@@ -43,10 +43,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCombinedMiddleware tests the combined behavior of the NewRequestContextLoggers and NewRequestExtractIDs request
+// TestRequestTelemetryMiddleware tests the behavior of the NewRequestTelemetry request
 // middleware and the NewRouteRequestLog route middleware. Verifies that service logs and request logs are emitted
 // properly (and that properties like UID, SID, TokenID and TraceID are extracted from the request).
-func TestCombinedMiddleware(t *testing.T) {
+func TestRequestTelemetryMiddleware(t *testing.T) {
 	// A bogus token without access to anything interesting. It encodes the UID, SID, and TokenID in testReqIDs below.
 	testToken := `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2cDlrWFZMZ1NlbTZNZHN5a25ZVjJ3PT0iLCJzaWQiOiJyVTFLNW1XdlRpcVJvODlBR3NzZFRBPT0iLCJqdGkiOiJrbmY1cjQyWlFJcVU3L1VlZ3I0ditBPT0ifQ.JTD36MhcwmSuvfdCkfSYc-LHOGNA1UQ-0FKLKqdXbF4`
 	testReqIDs := struct {
@@ -71,20 +71,17 @@ func TestCombinedMiddleware(t *testing.T) {
 	r := wrouter.New(
 		whttprouter.New(),
 		wrouter.RootRouterParamAddRequestHandlerMiddleware(
-			NewRequestContextMetricsRegistry(metricsRegistry),
-			NewRequestContextLoggers(
+			NewRequestTelemetry(
 				svcLog,
 				nil,
 				nil,
 				nil,
 				nil,
 				reqLog,
-			),
-			NewRequestExtractIDs(
-				svcLog,
 				trcLog,
 				nil,
 				extractor.NewDefaultIDsExtractor(),
+				metricsRegistry,
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
@@ -209,13 +206,17 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 		wRouter := wrouter.New(
 			whttprouter.New(),
 
-			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestContextLoggers(
+			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestTelemetry(
 				nil,
 				nil,
 				nil,
 				nil,
 				nil,
 				req2log.New(io.Discard),
+				nil,
+				nil,
+				nil,
+				nil,
 			)),
 			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRequestMetricRequestMeter(r)),
 			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteRequestLog()),
