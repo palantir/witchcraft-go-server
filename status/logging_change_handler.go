@@ -16,7 +16,6 @@ package status
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
@@ -37,9 +36,12 @@ func logIfHealthChanged(ctx context.Context, previousHealth, newHealth health.He
 			"newHealthStatusCode":      newCode,
 			"newHealthStatus":          newHealth.Checks,
 		}
-		if newCode == http.StatusOK {
+		switch newCode {
+		case 200: // HEALTHY
 			svc1log.FromContext(ctx).Info("Health status code changed.", svc1log.SafeParams(params))
-		} else {
+		case 518, 520: // DEFERRING, REPAIRING
+			svc1log.FromContext(ctx).Warn("Health status code changed.", svc1log.SafeParams(params))
+		default:
 			svc1log.FromContext(ctx).Error("Health status code changed.", svc1log.SafeParams(params))
 		}
 		return
