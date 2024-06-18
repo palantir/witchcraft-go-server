@@ -38,6 +38,11 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 )
 
+const (
+	strictTransportSecurityHeader = "Strict-Transport-Security"
+	strictTransportSecurityValue  = "max-age=31536000"
+)
+
 // now is a local copy of time.Now() for testing purposes.
 var now = time.Now
 
@@ -46,6 +51,7 @@ var now = time.Now
 // * Set loggers, metrics registry, and tracer on context
 // * Extract IDs from request and set on context
 // * Create outer trace span for request
+// * Set HSTS headers
 func NewRequestTelemetry(
 	svcLogger svc1log.Logger,
 	evtLogger evt2log.Logger,
@@ -69,6 +75,8 @@ func NewRequestTelemetry(
 		req = withTracer(req)
 		req, finishSpan := withSpan(req)
 		defer finishSpan(lrw)
+
+		lrw.Header().Set(strictTransportSecurityHeader, strictTransportSecurityValue) // set HSTS headers per RFC 6797
 
 		if err := wapp.RunWithFatalLogging(req.Context(), func(context.Context) error {
 			next.ServeHTTP(lrw, req)
@@ -120,7 +128,7 @@ func newRequestContextLoggers(
 			ctx = trc1log.WithLogger(ctx, trcLogger)
 		}
 		if metricsRegistry != nil {
-			ctx = metrics.WithRegistry(ctx, metricsRegistry)
+			ctx = metrics.WithRegistry(metrics.AddTags(ctx), metricsRegistry)
 		}
 		return req.WithContext(ctx)
 	}
@@ -187,47 +195,5 @@ func newRequestTraceSpan() func(req *http.Request) (*http.Request, func(writer l
 			span.Tag("http.status_code", strconv.Itoa(lrw.Status()))
 			span.Finish()
 		}
-	}
-}
-
-func NewRequestMetricRequestMeter(mr metrics.RootRegistry) wrouter.RouteHandlerMiddleware {
-	const (
-		serverResponseMetricName      = "server.response"
-		serverResponseErrorMetricName = "server.response.error"
-		serverRequestSizeMetricName   = "server.request.size"
-		serverResponseSizeMetricName  = "server.response.size"
-	)
-	return func(rw http.ResponseWriter, r *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-		if reqVals.DisableTelemetry {
-			next(rw, r, reqVals)
-			return
-		}
-		// add capability to store tags on the context
-		r = r.WithContext(metrics.AddTags(r.Context()))
-
-		start := now()
-		lrw := toLoggingResponseWriter(rw)
-		next(lrw, r, reqVals)
-		end := now()
-
-		tags := reqVals.MetricTags
-		// record metrics for call
-		mr.Timer(serverResponseMetricName, tags...).Update(end.Sub(start))
-		mr.Histogram(serverRequestSizeMetricName, tags...).Update(r.ContentLength)
-		mr.Histogram(serverResponseSizeMetricName, tags...).Update(int64(lrw.Size()))
-		if lrw.Status()/100 == 5 {
-			mr.Meter(serverResponseErrorMetricName, tags...).Mark(1)
-		}
-	}
-}
-
-func NewStrictTransportSecurityHeader() wrouter.RequestHandlerMiddleware {
-	const (
-		strictTransportSecurityHeader = "Strict-Transport-Security"
-		strictTransportSecurityValue  = "max-age=31536000"
-	)
-	return func(rw http.ResponseWriter, r *http.Request, next http.Handler) {
-		rw.Header().Set(strictTransportSecurityHeader, strictTransportSecurityValue)
-		next.ServeHTTP(rw, r)
 	}
 }

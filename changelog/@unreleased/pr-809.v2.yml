@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Make NewRequestMetricRequestMeter and NewStrictTransportSecurityHeader
+    internal
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/809

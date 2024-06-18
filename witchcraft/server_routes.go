@@ -105,17 +105,11 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 		),
 	)
 
-	// add middleware that records HTTP request stats as metrics in registry
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRequestMetricRequestMeter(registry))
-
-	// add middleware to enforce setting HSTS headers per RFC 6797
-	rootRouter.AddRequestHandlerMiddleware(middleware.NewStrictTransportSecurityHeader())
-
 	// add user-provided middleware
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
 
 	// add route middleware
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteTelemetry())
+	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteTelemetry(registry))
 
 	// add not found handler
 	rootRouter.RegisterNotFoundHandler(httpserver.NewJSONHandler(
