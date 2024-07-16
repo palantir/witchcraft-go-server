@@ -114,10 +114,10 @@ github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
 github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
-# github.com/palantir/witchcraft-go-params v1.34.0
+# github.com/palantir/witchcraft-go-params v1.35.0
 ## explicit; go 1.21
 github.com/palantir/witchcraft-go-params
-# github.com/palantir/witchcraft-go-tracing v1.36.0
+# github.com/palantir/witchcraft-go-tracing v1.37.0
 ## explicit; go 1.21
 github.com/palantir/witchcraft-go-tracing/wtracing
 github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3
