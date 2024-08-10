@@ -17,7 +17,6 @@ package codecs
 import (
 	"encoding"
 	"io"
-	"io/ioutil"
 	"reflect"
 
 	werror "github.com/palantir/witchcraft-go-error"
@@ -38,7 +37,7 @@ func (codecPlain) Accept() string {
 }
 
 func (codecPlain) Decode(r io.Reader, v interface{}) error {
-	text, err := ioutil.ReadAll(r)
+	text, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}
