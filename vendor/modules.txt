@@ -20,7 +20,7 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v2 v2.78.0
+# github.com/palantir/conjure-go-runtime/v2 v2.79.0
 ## explicit; go 1.21
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
@@ -84,7 +84,7 @@ github.com/palantir/pkg/transform
 ## explicit; go 1.19
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
-# github.com/palantir/witchcraft-go-error v1.38.0
+# github.com/palantir/witchcraft-go-error v1.39.0
 ## explicit; go 1.21
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
@@ -114,7 +114,7 @@ github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
 github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log
 github.com/palantir/witchcraft-go-logging/wlog/wapp
 github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
-# github.com/palantir/witchcraft-go-params v1.35.0
+# github.com/palantir/witchcraft-go-params v1.36.0
 ## explicit; go 1.21
 github.com/palantir/witchcraft-go-params
 # github.com/palantir/witchcraft-go-tracing v1.38.0
