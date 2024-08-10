@@ -15,7 +15,6 @@
 package codecs
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/golang/snappy"
@@ -49,7 +48,7 @@ func (c codecSNAPPY) Decode(r io.Reader, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return c.contentCodec.Decode(bytes.NewReader(decoded), v)
+	return c.contentCodec.Unmarshal(decoded, v)
 }
 
 func (c codecSNAPPY) Unmarshal(data []byte, v interface{}) error {
