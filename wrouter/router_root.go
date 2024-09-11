@@ -134,11 +134,6 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 	r.routes = append(r.routes, routeSpec)
 	sort.Sort(routeSpecs(r.routes))
 
-	// wrap provided handler with a handler that registers the path parameter information in the context
-	wrappedHandler := createRouteRequestHandler(func(rw http.ResponseWriter, req *http.Request, _ RequestVals) {
-		handler.ServeHTTP(rw, req)
-	}, append(append([]RouteHandlerMiddleware{}, r.routeHandlers...), b.middleware...))
-
 	r.impl.Register(method, pathTemplate.Segments(), &routeHandler{
 		impl:              r.impl,
 		disableTelemetry:  b.disableTelemetry,
@@ -146,7 +141,10 @@ func (r *rootRouter) Register(method, path string, handler http.Handler, params 
 		requestParamPerms: b.toRequestParamPerms(),
 		routeSpec:         routeSpec,
 		pathVarNames:      pathVarNames,
-		handler:           wrappedHandler,
+		handler: func(rw http.ResponseWriter, req *http.Request, reqVals RequestVals) {
+			middlewares := append(append([]RouteHandlerMiddleware{}, r.routeHandlers...), b.middleware...)
+			createRouteRequestHandler(handler, middlewares)(rw, req, reqVals)
+		},
 	})
 	return nil
 }
@@ -233,14 +231,10 @@ func (r *rootRouter) AddRouteHandlerMiddleware(handlers ...RouteHandlerMiddlewar
 }
 
 func (r *rootRouter) RegisterNotFoundHandler(handler http.Handler) {
-	wrappedHandlerFn := createRouteRequestHandler(func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals) {
-		handler.ServeHTTP(rw, r)
-	}, r.routeHandlers)
-
-	r.impl.RegisterNotFoundHandler(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		wrappedHandlerFn(rw, r, RequestVals{
+	r.impl.RegisterNotFoundHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		createRouteRequestHandler(handler, r.routeHandlers)(rw, req, RequestVals{
 			Spec: RouteSpec{
-				Method:       r.Method,
+				Method:       req.Method,
 				PathTemplate: "/*",
 			},
 			PathParamVals: map[string]string{},
@@ -273,9 +267,9 @@ func (r *requestHandlerWithNext) ServeHTTP(rw http.ResponseWriter, req *http.Req
 	r.handler(rw, req, r.next)
 }
 
-func createRouteRequestHandler(baseHandler RouteRequestHandler, handlers []RouteHandlerMiddleware) RouteRequestHandler {
+func createRouteRequestHandler(baseHandler http.Handler, handlers []RouteHandlerMiddleware) RouteRequestHandler {
 	if len(handlers) == 0 {
-		return baseHandler
+		return func(rw http.ResponseWriter, r *http.Request, _ RequestVals) { baseHandler.ServeHTTP(rw, r) }
 	}
 	return func(rw http.ResponseWriter, req *http.Request, reqVals RequestVals) {
 		handlers[0](rw, req, reqVals, createRouteRequestHandler(baseHandler, handlers[1:]))
