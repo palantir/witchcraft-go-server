@@ -43,7 +43,7 @@ const (
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
+func (s *Server[I, R]) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
@@ -91,7 +91,7 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 // The provided logLevel is used when initializing the service logs only.
 // productName is used as the entityName in wrapped.1 format logs
 // productVersion is used as the entityVersion in wrapped.1 format logs
-func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry) {
+func (s *Server[I, R]) initWrappedLoggers(useConsoleLog bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":

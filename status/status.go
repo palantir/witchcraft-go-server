@@ -20,7 +20,7 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/status"
 )
@@ -28,13 +28,13 @@ import (
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and
 // invoking a HealthCheckSource if the secret is correct or unset.
 type healthHandlerImpl struct {
-	healthCheckSharedSecret refreshable.String
+	healthCheckSharedSecret refreshable.Refreshable[string]
 	check                   status.HealthCheckSource
 	previousHealth          *atomic.Value
 	changeHandler           HealthStatusChangeHandler
 }
 
-func NewHealthCheckHandler(checkSource status.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []HealthStatusChangeHandler) http.Handler {
+func NewHealthCheckHandler(checkSource status.HealthCheckSource, sharedSecret refreshable.Refreshable[string], healthStatusChangeHandlers []HealthStatusChangeHandler) http.Handler {
 	previousHealth := &atomic.Value{}
 	previousHealth.Store(health.HealthStatus{})
 	allHandlers := []HealthStatusChangeHandler{loggingHealthStatusChangeHandler()}
@@ -50,7 +50,7 @@ func NewHealthCheckHandler(checkSource status.HealthCheckSource, sharedSecret re
 }
 
 func (h *healthHandlerImpl) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if sharedSecret := h.healthCheckSharedSecret.CurrentString(); sharedSecret != "" {
+	if sharedSecret := h.healthCheckSharedSecret.Current(); sharedSecret != "" {
 		token, err := httpserver.ParseBearerTokenHeader(req)
 		if err != nil {
 			errors.WriteErrorResponse(w, errors.NewUnauthorized())

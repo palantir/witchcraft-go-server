@@ -70,7 +70,7 @@ type seenMetricsSet struct {
 	seenSet map[string]struct{}
 }
 
-func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
+func (s *Server[I, R]) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
 	metricsRegistry := metrics.DefaultMetricsRegistry
 	metricsEmitFreq := defaultMetricEmitFrequency
 	if freq := installCfg.MetricsEmitFrequency; freq > 0 {
@@ -141,7 +141,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}, nil
 }
 
-func (s *Server) filterMetricValues(metricID string, metricVal metrics.MetricVal) map[string]interface{} {
+func (s *Server[I, R]) filterMetricValues(metricID string, metricVal metrics.MetricVal) map[string]interface{} {
 	if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
 		// skip emitting metric if it is blacklisted
 		return nil
@@ -269,7 +269,7 @@ func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registr
 	})
 }
 
-func (s *Server) initCardinalityMetric(ctx context.Context, metricsRegistry metrics.Registry) {
+func (s *Server[I, R]) initCardinalityMetric(ctx context.Context, metricsRegistry metrics.Registry) {
 	// start goroutine that updates the metric_cardinality metric
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 		t := time.NewTicker(10 * time.Second)

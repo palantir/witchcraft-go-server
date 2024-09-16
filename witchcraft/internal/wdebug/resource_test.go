@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/stretchr/testify/require"
@@ -33,8 +33,8 @@ import (
 func TestDebugResource(t *testing.T) {
 	ctx := context.Background()
 	r := wrouter.New(whttprouter.New())
-	secret := refreshable.NewDefaultRefreshable("secret1")
-	err := RegisterRoute(r, refreshable.NewString(secret))
+	secret := refreshable.New("secret1")
+	err := RegisterRoute(r, secret)
 	require.NoError(t, err)
 
 	server := httptest.NewServer(r)
@@ -84,7 +84,7 @@ func TestDebugResource(t *testing.T) {
 		t.Run(string(test.DiagnosticType), func(t *testing.T) {
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/%s", server.URL, test.DiagnosticType), nil)
 			require.NoError(t, err)
-			req.Header.Set("Authorization", "Bearer "+secret.Current().(string))
+			req.Header.Set("Authorization", "Bearer "+secret.Current())
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			test.Verify(t, resp)
@@ -94,7 +94,7 @@ func TestDebugResource(t *testing.T) {
 	t.Run("401 on invalid auth header", func(t *testing.T) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/%s", server.URL, DiagnosticTypeAllocsProfileV1), nil)
 		require.NoError(t, err)
-		req.Header.Set("Auth", "Bearer "+secret.Current().(string))
+		req.Header.Set("Auth", "Bearer "+secret.Current())
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)

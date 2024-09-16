@@ -19,7 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"path"
@@ -48,12 +48,12 @@ import (
 func TestFatalErrorLogging(t *testing.T) {
 	for _, test := range []struct {
 		Name      string
-		InitFn    witchcraft.InitFunc
+		InitFn    witchcraft.InitFunc[config.Install, config.Runtime]
 		VerifyLog func(t *testing.T, logOutput []byte)
 	}{
 		{
 			Name: "error returned by init function",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
@@ -69,7 +69,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		},
 		{
 			Name: "panic init function with error",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				panic(werror.Error("oops", werror.SafeParam("k", "v")))
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
@@ -85,7 +85,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		},
 		{
 			Name: "panic init function with object",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				panic(map[string]interface{}{"k": "v"})
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
@@ -101,7 +101,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		},
 		{
 			Name: "fails with shutdown server inside init func",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 				return nil, info.ShutdownServer(ctx)
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
@@ -118,7 +118,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		},
 		{
 			Name: "fails with async shutdown server inside init func",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 				go func() {
 					_ = info.ShutdownServer(ctx)
 				}()
@@ -139,7 +139,7 @@ func TestFatalErrorLogging(t *testing.T) {
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			logOutputBuffer := &bytes.Buffer{}
-			err := witchcraft.NewServer().
+			err := witchcraft.NewServer[config.Install, config.Runtime]().
 				WithInitFunc(test.InitFn).
 				WithInstallConfig(config.Install{UseConsoleLog: true}).
 				WithRuntimeConfig(config.Runtime{}).
@@ -160,7 +160,7 @@ func TestFatalErrorLogging(t *testing.T) {
 // before the metrics registry has been initialized. Logging should not panic in this case.
 func TestServer_StartFailsBeforeMetricRegistryInitialized(t *testing.T) {
 	// Missing install config
-	err := witchcraft.NewServer().Start()
+	err := witchcraft.NewServer[config.Install, config.Runtime]().Start()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Failed to load install configuration bytes")
 }
@@ -170,13 +170,13 @@ func TestServer_WithOriginFromCallLine(t *testing.T) {
 	for _, test := range []struct {
 		Name      string
 		Install   config.Install
-		InitFn    witchcraft.InitFunc
+		InitFn    witchcraft.InitFunc[config.Install, config.Runtime]
 		VerifyLog func(t *testing.T, logOutput []byte)
 	}{
 		{
 			Name:    "svc log in init function",
 			Install: config.Install{UseConsoleLog: true},
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				svc1log.FromContext(ctx).Info("a message", svc1log.SafeParam("k", "v"))
 				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
 			},
@@ -207,7 +207,7 @@ func TestServer_WithOriginFromCallLine(t *testing.T) {
 		{
 			Name:    "wrapped svc log in init function",
 			Install: config.Install{ProductName: productName, ProductVersion: productVersion, UseWrappedLogs: true, UseConsoleLog: true},
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				svc1log.FromContext(ctx).Info("a message", svc1log.SafeParam("k", "v"))
 				return nil, werror.Error("oops", werror.SafeParam("k", "v"))
 			},
@@ -238,7 +238,7 @@ func TestServer_WithOriginFromCallLine(t *testing.T) {
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			logOutputBuffer := &bytes.Buffer{}
-			err := witchcraft.NewServer().
+			err := witchcraft.NewServer[config.Install, config.Runtime]().
 				WithOriginFromCallLine().
 				WithInitFunc(test.InitFn).
 				WithInstallConfig(test.Install).
@@ -294,8 +294,8 @@ func BenchmarkServer_Loggers(b *testing.B) {
 		},
 	} {
 		b.Run(test.Name, func(b *testing.B) {
-			err := witchcraft.NewServer().
-				WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			err := witchcraft.NewServer[config.Install, config.Runtime]().
+				WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 					b.ResetTimer()
 					for i := 0; i < b.N; i++ {
 						test.LoggingBody(ctx)
@@ -305,7 +305,7 @@ func BenchmarkServer_Loggers(b *testing.B) {
 				}).
 				WithInstallConfig(config.Install{UseConsoleLog: true}).
 				WithRuntimeConfig(config.Runtime{}).
-				WithLoggerStdoutWriter(ioutil.Discard).
+				WithLoggerStdoutWriter(io.Discard).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 				WithDisableGoRuntimeMetrics().
 				WithSelfSignedCertificate().
@@ -322,12 +322,12 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 	productName, productVersion := "productName", "1.0.0"
 	for _, test := range []struct {
 		Name      string
-		InitFn    witchcraft.InitFunc
+		InitFn    witchcraft.InitFunc[config.Install, config.Runtime]
 		VerifyLog func(t *testing.T, logOutput []byte)
 	}{
 		{
 			Name: "svc1log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				svc1log.FromContext(ctx).Info("info!")
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
@@ -343,7 +343,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 		},
 		{
 			Name: "evt2log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				evt2log.FromContext(ctx).Event("info!")
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
@@ -357,7 +357,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 		},
 		{
 			Name: "metric1log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				metric1log.FromContext(ctx).Metric("metric!", metric1log.MetricTypeKey)
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
@@ -372,7 +372,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 		},
 		{
 			Name: "trc1log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				trc1log.FromContext(ctx).Log(wtracing.SpanModel{Name: "trace!"})
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
@@ -386,7 +386,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 		},
 		{
 			Name: "audit2log",
-			InitFn: func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 				audit2log.FromContext(ctx).Audit("audit!", audit2log.AuditResultSuccess)
 				return nil, werror.ErrorWithContextParams(ctx, "must error to get Start to return!")
 			},
@@ -402,7 +402,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			logOutputBuffer := &bytes.Buffer{}
-			err := witchcraft.NewServer().
+			err := witchcraft.NewServer[config.Install, config.Runtime]().
 				WithInitFunc(test.InitFn).
 				WithInstallConfig(config.Install{UseConsoleLog: true, UseWrappedLogs: true, ProductName: productName, ProductVersion: productVersion}).
 				WithRuntimeConfig(config.Runtime{}).
@@ -454,17 +454,17 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 
 func TestServer_Start_WithStop(t *testing.T) {
 	// test the same behavior for both Shutdown() and Close() on a Server
-	for name, stop := range map[string]func(*witchcraft.Server, context.Context) error{
-		"Shutdown": (*witchcraft.Server).Shutdown,
-		"Close": func(server *witchcraft.Server, _ context.Context) error {
+	for name, stop := range map[string]func(*witchcraft.Server[config.Install, config.Runtime], context.Context) error{
+		"Shutdown": (*witchcraft.Server[config.Install, config.Runtime]).Shutdown,
+		"Close": func(server *witchcraft.Server[config.Install, config.Runtime], _ context.Context) error {
 			return server.Close()
 		},
-		"SIGTERM": func(server *witchcraft.Server, _ context.Context) error {
+		"SIGTERM": func(server *witchcraft.Server[config.Install, config.Runtime], _ context.Context) error {
 			proc, err := os.FindProcess(os.Getpid())
 			require.NoError(t, err)
 			return proc.Signal(syscall.SIGTERM)
 		},
-		"SIGINT": func(server *witchcraft.Server, _ context.Context) error {
+		"SIGINT": func(server *witchcraft.Server[config.Install, config.Runtime], _ context.Context) error {
 			proc, err := os.FindProcess(os.Getpid())
 			require.NoError(t, err)
 			return proc.Signal(syscall.SIGINT)
@@ -476,7 +476,7 @@ func TestServer_Start_WithStop(t *testing.T) {
 	}
 }
 
-func testStop(t *testing.T, stop func(*witchcraft.Server, context.Context) error) {
+func testStop(t *testing.T, stop func(*witchcraft.Server[config.Install, config.Runtime], context.Context) error) {
 	// create and start server
 	server, cleanup := newServer("127.0.0.1", 0)
 	defer cleanup()
@@ -514,8 +514,8 @@ func testStop(t *testing.T, stop func(*witchcraft.Server, context.Context) error
 	}
 }
 
-func newServer(host string, port int) (*witchcraft.Server, func()) {
-	server := witchcraft.NewServer().
+func newServer(host string, port int) (*witchcraft.Server[config.Install, config.Runtime], func()) {
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
 		WithSelfSignedCertificate().
 		WithInstallConfig(config.Install{
 			Server: config.Server{
@@ -572,9 +572,4 @@ func getWrappedLogMessagesOfType(t *testing.T, entityName, entityVersion, typ st
 		}
 	}
 	return logLines
-}
-
-func getFileAndLine() (string, int) {
-	_, file, line, _ := runtime.Caller(1)
-	return path.Base(file), line
 }

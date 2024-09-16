@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
@@ -41,18 +41,17 @@ type AppRuntimeConfig struct {
 }
 
 func main() {
-	if err := witchcraft.
-		NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+	if err := witchcraft.NewServer[AppInstallConfig, AppRuntimeConfig]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[AppInstallConfig, AppRuntimeConfig]) (func(), error) {
 			// register endpoint that uses install configuration
-			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
+			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.MyNum); err != nil {
 				return nil, err
 			}
 
 			// register endpoint that uses runtime configuration
-			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
-				return in.(AppRuntimeConfig).MyNum
-			}))
+			myNumRefreshable, _ := refreshable.Map(info.RuntimeConfig, func(in AppRuntimeConfig) int {
+				return in.MyNum
+			})
 			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
@@ -83,8 +82,6 @@ func main() {
 			return nil, nil
 		},
 		).
-		WithInstallConfigType(AppInstallConfig{}).
-		WithRuntimeConfigType(AppRuntimeConfig{}).
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 		Start(); err != nil {
@@ -98,8 +95,8 @@ func registerInstallNumEndpoint(router wrouter.Router, num int) error {
 	}))
 }
 
-func registerRuntimeNumEndpoint(router wrouter.Router, numProvider refreshable.Int) error {
+func registerRuntimeNumEndpoint(router wrouter.Router, numProvider refreshable.Refreshable[int]) error {
 	return router.Get("/runtimeNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		httpserver.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
+		httpserver.WriteJSONResponse(rw, numProvider.Current(), http.StatusOK)
 	}))
 }

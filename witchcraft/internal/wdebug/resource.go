@@ -20,7 +20,7 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -34,10 +34,10 @@ const (
 type DiagnosticType string
 
 type debugResource struct {
-	SharedSecret refreshable.String
+	SharedSecret refreshable.Refreshable[string]
 }
 
-func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error {
+func RegisterRoute(router wrouter.Router, sharedSecret refreshable.Refreshable[string]) error {
 	r := &debugResource{SharedSecret: sharedSecret}
 	if err := wresource.New("witchcraftdebugservice", router).
 		Get("GetDiagnostic", "/debug/diagnostic/{diagnosticType}",
@@ -50,7 +50,7 @@ func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error
 
 func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) error {
 	ctx := req.Context()
-	if sharedSecret := r.SharedSecret.CurrentString(); sharedSecret != "" {
+	if sharedSecret := r.SharedSecret.Current(); sharedSecret != "" {
 		token, err := httpserver.ParseBearerTokenHeader(req)
 		if err != nil {
 			return errors.WrapWithUnauthorized(err)

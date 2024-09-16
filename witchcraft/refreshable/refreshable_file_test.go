@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +67,7 @@ func TestRefreshableFileSubscribes(t *testing.T) {
 	str := getStringFromRefreshable(t, r)
 	assert.Equal(t, str, "renderConf1")
 	var count int32
-	mappingFunc := func(mapped interface{}) {
+	mappingFunc := func(mapped []byte) {
 		atomic.AddInt32(&count, 1)
 		str := getStringFromInterface(t, mapped)
 		assert.Equal(t, str, "renderConf2")
@@ -176,15 +177,13 @@ func writeFileHelper(t *testing.T, path, value string) {
 	assert.NoError(t, err)
 }
 
-func getStringFromRefreshable(t *testing.T, r Refreshable) string {
+func getStringFromRefreshable(t *testing.T, r refreshable.Refreshable[[]byte]) string {
 	return getStringFromInterface(t, r.Current())
 }
 
-func getStringFromInterface(t *testing.T, current interface{}) string {
-	currentCasted, ok := current.([]uint8)
-	assert.True(t, ok)
-	b := make([]byte, len(currentCasted))
-	for i, v := range currentCasted {
+func getStringFromInterface(t *testing.T, current []byte) string {
+	b := make([]byte, len(current))
+	for i, v := range current {
 		b[i] = v
 	}
 	return string(b)

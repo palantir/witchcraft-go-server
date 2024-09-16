@@ -30,9 +30,9 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	pkgserver "github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/objmatcher"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +46,7 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 
 	var called bool
 	var initCtx context.Context
-	initFn := func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	initFn := func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		initCtx = ctx
 		// register handler that returns "ok"
 		if err := info.Router.Get("/ok", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -91,13 +91,13 @@ func TestServerPanicRecoveryMiddleware(t *testing.T) {
 		}
 	})
 
-	createTestServer := func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) (server *witchcraft.Server) {
+	createTestServer := func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) (server *witchcraft.Server[config.Install, config.Runtime]) {
 		server = witchcraft.
-			NewServer().
+			NewServer[config.Install, config.Runtime]().
 			WithInitFunc(initFn).
 			WithMiddleware(mware).
 			WithInstallConfig(installCfg).
-			WithRuntimeConfigProvider(refreshable.NewDefaultRefreshable([]byte{})).
+			WithRuntimeConfigProvider(refreshable.New([]byte{})).
 			WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 			WithDisableGoRuntimeMetrics().
 			WithSelfSignedCertificate()

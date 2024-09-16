@@ -46,13 +46,13 @@ func TestEmitMetrics(t *testing.T) {
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it
 	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
 		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
 		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(500)
 		}))
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		return createTestServer(t, initFn, installCfg, logOutputBuffer)
 	})
@@ -207,13 +207,13 @@ func TestEmitMetricsZeroValue(t *testing.T) {
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it
 	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
 		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
 		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(500)
 		}))
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		return createTestServer(t, initFn, installCfg, logOutputBuffer)
 	})
@@ -339,12 +339,12 @@ func TestMetricWriter(t *testing.T) {
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it
 	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		// These log lines will happen after the MetricWriters are initialized, so we should expect to see one sls.logging.length per line
 		audit2log.FromContext(ctx).Audit(superLongLogLine, audit2log.AuditResultSuccess)
 
 		return func() {}, nil
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		return createTestServer(t, initFn, installCfg, logOutputBuffer)
 	})
@@ -407,13 +407,13 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it
 	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
 		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
 		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(500)
 		}))
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlacklist(map[string]map[string]struct{}{})
 	})
@@ -562,13 +562,13 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it
 	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
 		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
 		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(500)
 		}))
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlacklist(map[string]map[string]struct{}{
 			"histogram": {"count": {}},
@@ -683,13 +683,13 @@ func TestMetricsBlacklist(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		ctx = metrics.AddTags(ctx, metrics.MustNewTag("key", "val"))
 		metrics.FromContext(ctx).Counter("my-counter").Inc(13)
 		return nil, info.Router.Post("/error", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(500)
 		}))
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		server := createTestServer(t, initFn, installCfg, logOutputBuffer)
 		server.WithMetricsBlacklist(map[string]struct{}{

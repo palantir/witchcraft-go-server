@@ -18,7 +18,7 @@ import (
 	"net/http"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
@@ -33,7 +33,7 @@ func AddReadinessRoutes(resource wresource.Resource, source healthstatus.Source)
 	return resource.Get("readiness", status.ReadinessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
-func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthCheckSource, sharedSecret refreshable.String, healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {
+func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthCheckSource, sharedSecret refreshable.Refreshable[string], healthStatusChangeHandlers []status.HealthStatusChangeHandler) error {
 	return resource.Get("health", status.HealthEndpoint, status.NewHealthCheckHandler(source, sharedSecret, healthStatusChangeHandlers), wrouter.DisableTelemetry())
 }
 

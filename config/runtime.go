@@ -30,6 +30,15 @@ type Runtime struct {
 	ServiceDiscovery  httpclient.ServicesConfig `yaml:"service-discovery,omitempty"`
 }
 
+// BaseRuntimeConfig is an interface implemented by Runtime and structs that embed it.
+type BaseRuntimeConfig interface {
+	BaseRuntimeConfig() Runtime
+}
+
+func (r Runtime) BaseRuntimeConfig() Runtime {
+	return r
+}
+
 type DiagnosticsConfig struct {
 	// DebugSharedSecret is a string which, if provided, will be used as the access key to the diagnostics route.
 	// This takes precedence over DebugSharedSecretFile.
