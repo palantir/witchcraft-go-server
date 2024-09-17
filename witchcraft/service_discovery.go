@@ -22,9 +22,32 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/config"
 )
 
+type Client[T any] interface {
+	Get() T
+	IsConfigured() bool
+}
+
+type clientWrapper[T any] struct {
+	client     func() T
+	configured func() bool
+}
+
+func (c *clientWrapper[T]) Get() T             { return c.client() }
+func (c *clientWrapper[T]) IsConfigured() bool { return c.configured() }
+
+// MapClient returns a new Client[U] that wraps the provided Client[T] and applies the provided mapper function to the
+// result of the Get method of the wrapped client. The IsConfigured method of the wrapped client is used as the IsConfigured method.
+// The provided mapper function is called each time the Get method of the returned client is called.
+func MapClient[T, U any](client Client[T], mapper func(T) U) Client[U] {
+	return &clientWrapper[U]{
+		client:     func() U { return mapper(client.Get()) },
+		configured: client.IsConfigured,
+	}
+}
+
 type ServiceDiscovery interface {
 	// NewClient is an alias for httpclient.NewClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
-	NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error)
+	NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (Client[httpclient.Client], error)
 	// NewHTTPClient is an alias for httpclient.NewHTTPClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
 	NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error)
 }
@@ -80,7 +103,7 @@ func (s *serviceDiscovery) ServiceConfig(serviceName string) httpclient.Refresha
 	return s.serviceConfig(serviceName)
 }
 
-func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error) {
+func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (Client[httpclient.Client], error) {
 	s.RLock()
 	defer s.RUnlock()
 	params := []httpclient.ClientParam{httpclient.WithUserAgent(s.UserAgent)}
@@ -95,7 +118,19 @@ func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, ad
 		params = append(params, s.ServiceParams[serviceName]...)
 	}
 	params = append(params, additionalParams...)
-	return httpclient.NewClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
+	serviceConfig := s.serviceConfig(serviceName)
+	client, err := httpclient.NewClientFromRefreshableConfig(ctx, serviceConfig, params...)
+	if err != nil {
+		return nil, err
+	}
+	return &clientWrapper[httpclient.Client]{
+		client: func() httpclient.Client {
+			return client
+		},
+		configured: func() bool {
+			return len(serviceConfig.Current().(httpclient.ClientConfig).URIs) > 0
+		},
+	}, nil
 }
 
 func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error) {
