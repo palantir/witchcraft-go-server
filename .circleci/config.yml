@@ -20,6 +20,13 @@ executors:
       - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/witchcraft-go-server
 
+jobs:
+  circle-all:
+    executor: circleci-go
+    resource_class: small
+    steps:
+      - run: { command: echo "All required jobs finished successfully" }
+
 workflows:
   version: 2
   verify-test:
@@ -30,13 +37,12 @@ workflows:
           <<: *homepath
           <<: *gopath
       - godel/test:
-          name: test-go-latest
+          name: test
           executor: circleci-go
           <<: *homepath
           <<: *gopath
-      - godel/test:
-          name: test-go-prev
-          executor: circleci-go
-          <<: *homepath
-          <<: *gopath
-          go-prev-version: 1
+      - circle-all:
+          name: circle-all
+          requires:
+            - verify
+            - test
