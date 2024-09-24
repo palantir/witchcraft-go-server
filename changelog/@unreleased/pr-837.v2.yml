@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Route middleware configured after route registration is applied to
+    http handler
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/837

@@ -352,7 +352,9 @@ func TestRouterMiddlewareRegistration(t *testing.T) {
 	// create router
 	r := wrouter.New(whttprouter.New(), wrouter.RootRouterParamAddRouteHandlerMiddleware(newMarkingMiddleware("global")))
 	require.NoError(t, r.Get("/one", echoMarkingHandler))
-	require.NoError(t, r.Get("/two", echoMarkingHandler, wrouter.RouteMiddleware(newMarkingMiddleware("handler"))))
+	require.NoError(t, r.Get("/two", echoMarkingHandler, wrouter.RouteMiddleware(newMarkingMiddleware("routeHandler"))))
+	// verify middleware configured after routes is still applied
+	r.AddRouteHandlerMiddleware(newMarkingMiddleware("globalHandler"))
 
 	// start server
 	server := httptest.NewServer(r)
@@ -365,7 +367,7 @@ func TestRouterMiddlewareRegistration(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		require.Equal(t, "[global]", string(body))
+		require.Equal(t, "[global globalHandler]", string(body))
 	})
 	t.Run("endpoint two", func(t *testing.T) {
 		resp, err := http.DefaultClient.Get(server.URL + "/two")
@@ -374,6 +376,6 @@ func TestRouterMiddlewareRegistration(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		require.Equal(t, "[global handler]", string(body))
+		require.Equal(t, "[global globalHandler routeHandler]", string(body))
 	})
 }
