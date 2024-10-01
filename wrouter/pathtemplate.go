@@ -41,7 +41,7 @@ func (p *pathTemplateImpl) Segments() []PathSegment {
 var (
 	fullPathRegExp           = regexp.MustCompile(`^/[a-zA-Z0-9_{}/.\-*]*$`)
 	pathParamMatcher         = regexp.MustCompile(`^\{([a-zA-Z0-9]+)(\*?)}$`)
-	regularPathSegmentRegExp = regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
+	regularPathSegmentRegExp = regexp.MustCompile(`^[a-zA-Z0-9.\-_]+$`)
 )
 
 // NewPathTemplate creates a new PathTemplate using the provided path. The provided path must be of the following form:

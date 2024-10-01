@@ -60,6 +60,15 @@ func TestValidPathSegments(t *testing.T) {
 				{Type: wrouter.LiteralSegment, Value: ""},
 			},
 		},
+		{
+			"dot in path segment",
+			"/a/b.c/",
+			[]wrouter.PathSegment{
+				{Type: wrouter.LiteralSegment, Value: "a"},
+				{Type: wrouter.LiteralSegment, Value: "b.c"},
+				{Type: wrouter.LiteralSegment, Value: ""},
+			},
+		},
 	} {
 		got, err := wrouter.NewPathTemplate(currCase.path)
 		require.NoError(t, err, "Case %d: %s", i, currCase.name)
