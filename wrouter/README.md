@@ -45,7 +45,7 @@ matches the following rules:
 * Must start with a '/'
 * Composed of one or more parts that are separated by a slash ('/')
 * A "part" may be one of 3 things:
-  * Literal: one or more "plain characters" (defined as alphanumeric characters, '-', and '_')
+  * Literal: one or more "plain characters" (defined as alphanumeric characters, '-', '_' and '.')
   * Path param: one or more "plain characters" within a single open and close curly brace
   * Trailing path param: if the part is the final part, it may be one or more "plain characters" followed by a single 
     '*' within a single open and close curly brace
