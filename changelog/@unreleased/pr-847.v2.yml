@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Tolerate missing client CA files at startup
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/847
