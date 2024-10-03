@@ -36,6 +36,7 @@ func (s *Server) newServer(productName string, serverConfig config.Server, handl
 	return newServerStartShutdownFns(
 		serverConfig,
 		s.useSelfSignedServerCertificate,
+		s.ignoreMissingClientCAFiles,
 		s.clientAuth,
 		productName,
 		s.svcLogger,
@@ -48,6 +49,7 @@ func (s *Server) newMgmtServer(productName string, serverConfig config.Server, h
 	_, start, shutdown, err := newServerStartShutdownFns(
 		serverConfig,
 		s.useSelfSignedServerCertificate,
+		s.ignoreMissingClientCAFiles,
 		tls.NoClientCert,
 		productName+"-management",
 		s.svcLogger,
@@ -59,12 +61,13 @@ func (s *Server) newMgmtServer(productName string, serverConfig config.Server, h
 func newServerStartShutdownFns(
 	serverConfig config.Server,
 	useSelfSignedServerCertificate bool,
+	ignoreMissingClientCAFiles bool,
 	clientAuthType tls.ClientAuthType,
 	serverName string,
 	svcLogger svc1log.Logger,
 	handler http.Handler,
 ) (rHTTPServer *http.Server, start func() error, shutdown func(context.Context) error, rErr error) {
-	tlsConfig, err := newTLSConfig(serverConfig, useSelfSignedServerCertificate, clientAuthType)
+	tlsConfig, err := newTLSConfig(serverConfig, useSelfSignedServerCertificate, ignoreMissingClientCAFiles, clientAuthType)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -90,7 +93,7 @@ func newServerStartShutdownFns(
 	}, httpServer.Shutdown, nil
 }
 
-func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate bool, clientAuthType tls.ClientAuthType) (*tls.Config, error) {
+func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate bool, ignoreMissingClientCAFiles bool, clientAuthType tls.ClientAuthType) (*tls.Config, error) {
 	if !useSelfSignedServerCertificate && (serverConfig.KeyFile == "" || serverConfig.CertFile == "") {
 		var msg string
 		if serverConfig.KeyFile == "" && serverConfig.CertFile == "" {
@@ -103,8 +106,10 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 		return nil, werror.Error(msg + " for server not specified in configuration")
 	}
 
+	tlsCertProvider := newTLSCertProvider(useSelfSignedServerCertificate, serverConfig.CertFile, serverConfig.KeyFile)
 	tlsConfig, err := tlsconfig.NewServerConfig(
-		newTLSCertProvider(useSelfSignedServerCertificate, serverConfig.CertFile, serverConfig.KeyFile),
+		tlsCertProvider,
+		serverClientCAFiles(tlsCertProvider, ignoreMissingClientCAFiles, serverConfig.ClientCAFiles...),
 		tlsconfig.ServerClientCAFiles(serverConfig.ClientCAFiles...),
 		tlsconfig.ServerClientAuthType(clientAuthType),
 		tlsconfig.ServerNextProtos("h2"),
@@ -113,6 +118,19 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 		return nil, werror.Wrap(err, "failed to initialize TLS configuration for server")
 	}
 	return tlsConfig, nil
+}
+
+func serverClientCAFiles(tlsCertProvider tlsconfig.TLSCertProvider, ignoreMissingClientCAFiles bool, clientCAFiles ...string) tlsconfig.ServerParam {
+	clientCAsParam := tlsconfig.ServerClientCAFiles(clientCAFiles...)
+	if !ignoreMissingClientCAFiles {
+		return clientCAsParam
+	}
+	_, err := tlsconfig.NewServerConfig(tlsCertProvider, clientCAsParam)
+	if err != nil {
+		// There was an error using fetching CAs from the files provided, so use the default system CAs
+		return tlsconfig.ServerClientCAFiles()
+	}
+	return clientCAsParam
 }
 
 func newTLSCertProvider(useSelfSignedServerCertificate bool, certFile, keyFile string) tlsconfig.TLSCertProvider {

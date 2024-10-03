@@ -80,6 +80,16 @@ type Server struct {
 	// If false, the key material at the paths specified in serverConfig.CertFile and serverConfig.KeyFile is used.
 	useSelfSignedServerCertificate bool
 
+	// ignoreMissingClientCAFiles specifies whether the server should fall back to the default system CAs if
+	// there are any errors with parsing the certificates at the paths specified in serverConfig.ClientCAFiles.
+	// This option should be used when the server expects the CA certificates used to verify the
+	// certificates of clients to exist at the paths specified in serverConfig.ClientCAFiles eventually,
+	// but not necessarily at startup.
+	//
+	// If false, the server will fail to start up if there are any issues parsing certificates from any of the paths
+	// specified in serverConfig.ClientCAFiles
+	ignoreMissingClientCAFiles bool
+
 	// manages storing and retrieving server state (idle, initializing, running)
 	stateManager serverStateManager
 
@@ -361,6 +371,16 @@ func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 // using separate external mechanisms.
 func (s *Server) WithSelfSignedCertificate() *Server {
 	s.useSelfSignedServerCertificate = true
+	return s
+}
+
+// WithIgnoreMissingClientCAFiles configures the server to fall back to the default system CAs if
+// there are any errors with parsing the certificates at the paths specified in serverConfig.ClientCAFiles.
+// This option should be used when the server expects the CA certificates used to verify the
+// certificates of clients to exist at the paths specified in serverConfig.ClientCAFiles eventually,
+// but not necessarily at startup.
+func (s *Server) WithIgnoreMissingClientCAFiles() *Server {
+	s.ignoreMissingClientCAFiles = true
 	return s
 }
 
