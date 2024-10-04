@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/palantir/pkg/tlsconfig"
@@ -106,11 +107,9 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 		return nil, werror.Error(msg + " for server not specified in configuration")
 	}
 
-	tlsCertProvider := newTLSCertProvider(useSelfSignedServerCertificate, serverConfig.CertFile, serverConfig.KeyFile)
 	tlsConfig, err := tlsconfig.NewServerConfig(
-		tlsCertProvider,
-		serverClientCAFiles(tlsCertProvider, ignoreMissingClientCAFiles, serverConfig.ClientCAFiles...),
-		tlsconfig.ServerClientCAFiles(serverConfig.ClientCAFiles...),
+		newTLSCertProvider(useSelfSignedServerCertificate, serverConfig.CertFile, serverConfig.KeyFile),
+		getServerClientCAs(ignoreMissingClientCAFiles, serverConfig.ClientCAFiles...),
 		tlsconfig.ServerClientAuthType(clientAuthType),
 		tlsconfig.ServerNextProtos("h2"),
 	)
@@ -120,15 +119,17 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 	return tlsConfig, nil
 }
 
-func serverClientCAFiles(tlsCertProvider tlsconfig.TLSCertProvider, ignoreMissingClientCAFiles bool, clientCAFiles ...string) tlsconfig.ServerParam {
+func getServerClientCAs(ignoreMissingClientCAFiles bool, clientCAFiles ...string) tlsconfig.ServerParam {
 	clientCAsParam := tlsconfig.ServerClientCAFiles(clientCAFiles...)
 	if !ignoreMissingClientCAFiles {
 		return clientCAsParam
 	}
-	_, err := tlsconfig.NewServerConfig(tlsCertProvider, clientCAsParam)
-	if err != nil {
-		// There was an error using fetching CAs from the files provided, so use the default system CAs
-		return tlsconfig.ServerClientCAFiles()
+	for _, caFilePath := range clientCAFiles {
+		_, err := os.ReadFile(caFilePath)
+		if err != nil {
+			// If any file is missing, use default system CAs
+			return tlsconfig.ServerClientCAFiles()
+		}
 	}
 	return clientCAsParam
 }
