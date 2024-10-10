@@ -334,7 +334,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				svc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "service.1", logOutput)
 				// An extra service log line is output when the server fails to start
-				require.Equal(t, 2, len(svc1LogLines), "Expected exactly 2 service log lines to be output")
+				require.Equal(t, 2, len(svc1LogLines), "Expected exactly 2 service log lines to be output", string(bytes.Join(svc1LogLines, []byte("\n"))))
 				var log logging.ServiceLogV1
 				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
 				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_INFO), log.Level)
@@ -349,7 +349,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				evt2LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "event.2", logOutput)
-				require.Equal(t, 1, len(evt2LogLines), "Expected exactly 1 event log line to be output")
+				require.Equal(t, 1, len(evt2LogLines), "Expected exactly 1 event log line to be output", string(bytes.Join(evt2LogLines, []byte("\n"))))
 				var log logging.EventLogV2
 				require.NoError(t, json.Unmarshal(evt2LogLines[0], &log))
 				assert.Equal(t, "info!", log.EventName)
@@ -363,7 +363,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				metric1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "metric.1", logOutput)
-				require.Equal(t, 1, len(metric1LogLines), "Expected exactly 1 metric log line to be output")
+				require.Equal(t, 1, len(metric1LogLines), "Expected exactly 1 metric log line to be output", string(bytes.Join(metric1LogLines, []byte("\n"))))
 				var log logging.MetricLogV1
 				require.NoError(t, json.Unmarshal(metric1LogLines[0], &log))
 				assert.Equal(t, "metric!", log.MetricName)
@@ -378,7 +378,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				trc1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "trace.1", logOutput)
-				require.Equal(t, 1, len(trc1LogLines), "Expected exactly 1 trace log line to be output")
+				require.Equal(t, 1, len(trc1LogLines), "Expected exactly 1 trace log line to be output", string(bytes.Join(trc1LogLines, []byte("\n"))))
 				var log logging.TraceLogV1
 				require.NoError(t, json.Unmarshal(trc1LogLines[0], &log))
 				assert.Equal(t, "trace!", log.Span.Name)
@@ -392,7 +392,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				audit2LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "audit.2", logOutput)
-				require.Equal(t, 1, len(audit2LogLines), "Expected exactly 1 audit log line to be output")
+				require.Equal(t, 1, len(audit2LogLines), "Expected exactly 1 audit log line to be output", string(bytes.Join(audit2LogLines, []byte("\n"))))
 				var log logging.AuditLogV2
 				require.NoError(t, json.Unmarshal(audit2LogLines[0], &log))
 				assert.Equal(t, "audit!", log.Name)
@@ -452,6 +452,17 @@ func TestServer_Start_WithPortInUse(t *testing.T) {
 	}
 }
 
+func TestServer_Start_MultipleRuns(t *testing.T) {
+	server, cleanup := newServer("127.0.0.1", 0)
+	defer cleanup()
+
+	for i := 0; i < 5; i++ {
+		testStop(t, server, func(server *witchcraft.Server, ctx context.Context) error {
+			return server.Close()
+		})
+	}
+}
+
 func TestServer_Start_WithStop(t *testing.T) {
 	// test the same behavior for both Shutdown() and Close() on a Server
 	for name, stop := range map[string]func(*witchcraft.Server, context.Context) error{
@@ -469,17 +480,30 @@ func TestServer_Start_WithStop(t *testing.T) {
 			require.NoError(t, err)
 			return proc.Signal(syscall.SIGINT)
 		},
+		"multiple stop": func(server *witchcraft.Server, ctx context.Context) error {
+			require.NoError(t, server.Shutdown(ctx))
+			require.NoError(t, server.Close())
+			require.NoError(t, server.Shutdown(ctx))
+			proc, err := os.FindProcess(os.Getpid())
+			require.NoError(t, err)
+			return proc.Signal(syscall.SIGTERM)
+		},
+		"shutdown after ctx done": func(server *witchcraft.Server, ctx context.Context) error {
+			ctx, cancel := context.WithCancel(ctx)
+			cancel()
+			return server.Shutdown(ctx)
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			testStop(t, stop)
+			server, cleanup := newServer("127.0.0.1", 0)
+			defer cleanup()
+			testStop(t, server, stop)
 		})
 	}
 }
 
-func testStop(t *testing.T, stop func(*witchcraft.Server, context.Context) error) {
-	// create and start server
-	server, cleanup := newServer("127.0.0.1", 0)
-	defer cleanup()
+func testStop(t *testing.T, server *witchcraft.Server, stop func(*witchcraft.Server, context.Context) error) {
+	// start server
 	errc := make(chan error)
 	go func() {
 		errc <- server.Start()
@@ -517,6 +541,7 @@ func testStop(t *testing.T, stop func(*witchcraft.Server, context.Context) error
 func newServer(host string, port int) (*witchcraft.Server, func()) {
 	server := witchcraft.NewServer().
 		WithSelfSignedCertificate().
+		WithDisableGoRuntimeMetrics().
 		WithInstallConfig(config.Install{
 			Server: config.Server{
 				Address: host,
