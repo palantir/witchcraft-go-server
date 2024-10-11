@@ -16,8 +16,6 @@ package httpclient
 
 import (
 	"net/http"
-
-	"github.com/palantir/pkg/refreshable"
 )
 
 // A Middleware wraps an http client's request and is able to read or modify the request and response.
@@ -54,16 +52,4 @@ type wrappedClient struct {
 
 func (c *wrappedClient) RoundTrip(req *http.Request) (*http.Response, error) {
 	return c.middleware.RoundTrip(req, c.baseTransport)
-}
-
-type conditionalMiddleware struct {
-	Disabled refreshable.Bool
-	Delegate Middleware
-}
-
-func (m *conditionalMiddleware) RoundTrip(req *http.Request, next http.RoundTripper) (*http.Response, error) {
-	if m.Disabled != nil && m.Disabled.CurrentBool() {
-		return next.RoundTrip(req)
-	}
-	return m.Delegate.RoundTrip(req, next)
 }
