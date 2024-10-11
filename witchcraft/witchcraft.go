@@ -959,15 +959,12 @@ func (s *Server) State() ServerState {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
-		err := svr.Shutdown(ctx)
-		if err != nil && ctx.Err() != nil && errors.Is(err, ctx.Err()) {
-			// Server shutdown was interrupted by context completion, but this still results in a successful shutdown
-			return nil
-		} else if err != nil {
+		if err := svr.Shutdown(ctx); err != nil && (ctx.Err() == nil || !errors.Is(err, ctx.Err())) {
+			// error is non-nil and not a context error: indicates that there was an error shutting down
 			return err
-		} else {
-			return nil
 		}
+		// errors was nil or server shutdown was interrupted by context completion: either one is considered a successful shutdown
+		return nil
 	})
 }
 
