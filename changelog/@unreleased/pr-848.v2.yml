@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Avoid server shutdown race conditions by adding new ServerShutdownInProgress
+    state
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/848

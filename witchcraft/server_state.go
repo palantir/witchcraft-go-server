@@ -30,6 +30,7 @@ const (
 	ServerIdle ServerState = iota
 	ServerInitializing
 	ServerRunning
+	ServerShuttingDown
 )
 
 func (s ServerState) String() string {
@@ -40,6 +41,8 @@ func (s ServerState) String() string {
 		return "initializing"
 	case ServerRunning:
 		return "running"
+	case ServerShuttingDown:
+		return "shutting down"
 	default:
 		return "unknown state: " + strconv.Itoa(int(s))
 	}
@@ -61,6 +64,8 @@ func (s *serverStateManager) Start() error {
 		return werror.Error("server is already initializing and must be stopped before it can be started again")
 	case ServerRunning:
 		return werror.Error("server is already running and must be stopped before it can be started again")
+	case ServerShuttingDown:
+		return werror.Error("server is in the process of shutting down and must complete shutdown before it can be started again")
 	default:
 		return werror.Error("server is in an unknown state and must be stopped before it can be started again")
 	}

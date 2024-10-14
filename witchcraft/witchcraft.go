@@ -17,6 +17,7 @@ package witchcraft
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"io/ioutil"
 	"math"
@@ -26,7 +27,6 @@ import (
 	"os/signal"
 	"reflect"
 	"runtime/debug"
-	"sync"
 	"syscall"
 	"time"
 
@@ -215,7 +215,7 @@ type Server struct {
 	httpServer *http.Server
 
 	// allows the server to wait until Close() or Shutdown() return prior to returning from Start()
-	shutdownFinished sync.WaitGroup
+	shutdownFinished chan struct{}
 }
 
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
@@ -589,10 +589,26 @@ func (s *Server) Start() (rErr error) {
 	if err := s.stateManager.Start(); err != nil {
 		return err
 	}
-	// Reset state if server terminated without calling s.Close() or s.Shutdown()
+	// Channel can be nil if this is the first Start() or closed if the previous run ended with a Close() or Shutdown().
+	// Since stateManager.Start() succeeded, we know that no shutdown of a previous run is ongoing.
+	s.shutdownFinished = make(chan struct{})
+	// Ensure that state is reset to "ServerIdle" before Start() returns.
 	defer func() {
-		if s.State() != ServerIdle {
-			s.stateManager.setState(ServerIdle)
+		curState := s.State()
+		for {
+			switch curState {
+			case ServerIdle:
+				return
+			case ServerShuttingDown:
+				// Wait for s.Close() or s.Shutdown() to return if called.
+				// Once the below channel is closed, the state is guaranteed to be "ServerIdle".
+				<-s.shutdownFinished
+			default:
+				if s.stateManager.compareAndSwapState(curState, ServerIdle) {
+					return
+				}
+			}
+			curState = s.State()
 		}
 	}()
 
@@ -685,9 +701,6 @@ func (s *Server) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
-
-	// wait for s.Close() or s.Shutdown() to return if called
-	defer s.shutdownFinished.Wait()
 
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
@@ -944,19 +957,18 @@ func (s *Server) State() ServerState {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.shutdownFinished.Add(1)
-	defer s.shutdownFinished.Done()
-
 	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
-		return svr.Shutdown(ctx)
+		if err := svr.Shutdown(ctx); err != nil && (ctx.Err() == nil || !errors.Is(err, ctx.Err())) {
+			// error is non-nil and not a context error: indicates that there was an error shutting down
+			return err
+		}
+		// errors was nil or server shutdown was interrupted by context completion: either one is considered a successful shutdown
+		return nil
 	})
 }
 
 func (s *Server) Close() error {
-	s.shutdownFinished.Add(1)
-	defer s.shutdownFinished.Done()
-
 	s.svcLogger.Info("Closing server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
@@ -1035,10 +1047,27 @@ func decryptNodeValues(n *yamlv3.Node, kwt *encryptedconfigvalue.KeyWithType) er
 }
 
 func stopServer(s *Server, stopper func(s *http.Server) error) error {
-	if s.stateManager.State() == ServerIdle {
-		return werror.Error("server is not running")
+	// use compare and swap so that the server can only be stopped once
+	curState := s.stateManager.State()
+	for {
+		if curState == ServerIdle || curState == ServerShuttingDown {
+			// already shutting down or stopped
+			return nil
+		}
+		// state could be ServerRunning or ServerInitializing
+		if s.stateManager.compareAndSwapState(curState, ServerShuttingDown) {
+			break
+		}
+		curState = s.stateManager.State()
 	}
-	s.stateManager.setState(ServerIdle)
+	// Only commit to finishing the shutdown if we won the state swap
+	defer func() {
+		// can avoid compare and swap here because:
+		// - Nothing else is allowed to move the state from ServerShuttingDown to ServerIdle
+		// - Only one goroutine can ever be in this block at a time due to the above compare and swap
+		s.stateManager.setState(ServerIdle)
+		close(s.shutdownFinished)
+	}()
 	if s.httpServer == nil {
 		return nil
 	}
