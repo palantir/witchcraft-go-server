@@ -599,7 +599,7 @@ func (s *Server) Start() (rErr error) {
 			switch curState {
 			case ServerIdle:
 				return
-			case ServerShutdownInProgress:
+			case ServerShuttingDown:
 				// Wait for s.Close() or s.Shutdown() to return if called.
 				// Once the below channel is closed, the state is guaranteed to be "ServerIdle".
 				<-s.shutdownFinished
@@ -1050,12 +1050,12 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	// use compare and swap so that the server can only be stopped once
 	curState := s.stateManager.State()
 	for {
-		if curState == ServerIdle || curState == ServerShutdownInProgress {
+		if curState == ServerIdle || curState == ServerShuttingDown {
 			// already shutting down or stopped
 			return nil
 		}
 		// state could be ServerRunning or ServerInitializing
-		if s.stateManager.compareAndSwapState(curState, ServerShutdownInProgress) {
+		if s.stateManager.compareAndSwapState(curState, ServerShuttingDown) {
 			break
 		}
 		curState = s.stateManager.State()
@@ -1063,7 +1063,7 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	// Only commit to finishing the shutdown if we won the state swap
 	defer func() {
 		// can avoid compare and swap here because:
-		// - Nothing else is allowed to move the state from ServerShutdownInProgress to ServerIdle
+		// - Nothing else is allowed to move the state from ServerShuttingDown to ServerIdle
 		// - Only one goroutine can ever be in this block at a time due to the above compare and swap
 		s.stateManager.setState(ServerIdle)
 		close(s.shutdownFinished)
