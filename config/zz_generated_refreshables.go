@@ -331,6 +331,8 @@ type RefreshableClientConfig interface {
 	IdleConnTimeout() refreshable.DurationPtr
 	TLSHandshakeTimeout() refreshable.DurationPtr
 	ExpectContinueTimeout() refreshable.DurationPtr
+	ResponseHeaderTimeout() refreshable.DurationPtr
+	KeepAlive() refreshable.DurationPtr
 	HTTP2ReadIdleTimeout() refreshable.DurationPtr
 	HTTP2PingTimeout() refreshable.DurationPtr
 	MaxIdleConns() refreshable.IntPtr
@@ -462,6 +464,18 @@ func (r RefreshingClientConfig) TLSHandshakeTimeout() refreshable.DurationPtr {
 func (r RefreshingClientConfig) ExpectContinueTimeout() refreshable.DurationPtr {
 	return refreshable.NewDurationPtr(r.MapClientConfig(func(i httpclient.ClientConfig) interface{} {
 		return i.ExpectContinueTimeout
+	}))
+}
+
+func (r RefreshingClientConfig) ResponseHeaderTimeout() refreshable.DurationPtr {
+	return refreshable.NewDurationPtr(r.MapClientConfig(func(i httpclient.ClientConfig) interface{} {
+		return i.ResponseHeaderTimeout
+	}))
+}
+
+func (r RefreshingClientConfig) KeepAlive() refreshable.DurationPtr {
+	return refreshable.NewDurationPtr(r.MapClientConfig(func(i httpclient.ClientConfig) interface{} {
+		return i.KeepAlive
 	}))
 }
 
@@ -679,6 +693,7 @@ type RefreshableSecurityConfig interface {
 	CAFiles() refreshable.StringSlice
 	CertFile() refreshable.String
 	KeyFile() refreshable.String
+	InsecureSkipVerify() refreshable.BoolPtr
 }
 
 type RefreshingSecurityConfig struct {
@@ -720,6 +735,12 @@ func (r RefreshingSecurityConfig) CertFile() refreshable.String {
 func (r RefreshingSecurityConfig) KeyFile() refreshable.String {
 	return refreshable.NewString(r.MapSecurityConfig(func(i httpclient.SecurityConfig) interface{} {
 		return i.KeyFile
+	}))
+}
+
+func (r RefreshingSecurityConfig) InsecureSkipVerify() refreshable.BoolPtr {
+	return refreshable.NewBoolPtr(r.MapSecurityConfig(func(i httpclient.SecurityConfig) interface{} {
+		return i.InsecureSkipVerify
 	}))
 }
 

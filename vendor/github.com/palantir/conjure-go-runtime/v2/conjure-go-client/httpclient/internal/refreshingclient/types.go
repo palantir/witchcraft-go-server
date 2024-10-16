@@ -32,6 +32,7 @@ type ValidatedClientParams struct {
 	MaxAttempts    *int
 	MetricsTags    metrics.Tags
 	Retry          RetryParams
+	ServiceName    string
 	Timeout        time.Duration
 	Transport      TransportParams
 	URIs           []string
