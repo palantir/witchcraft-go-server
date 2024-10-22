@@ -66,7 +66,7 @@ func (h handlerGoroutinesV1) Type() DiagnosticType {
 }
 
 func (h handlerGoroutinesV1) ContentType() string {
-	return codecs.Binary.ContentType()
+	return codecs.Plain.ContentType()
 }
 
 func (h handlerGoroutinesV1) Documentation() string {
@@ -82,7 +82,7 @@ func (h handlerGoroutinesV1) Extension() string {
 }
 
 func (h handlerGoroutinesV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
-	if err := pprof.Lookup("goroutine").WriteTo(w, 0); err != nil {
+	if err := pprof.Lookup("goroutine").WriteTo(w, 2); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to write goroutine dump")
 	}
 	return nil
