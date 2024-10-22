@@ -78,7 +78,7 @@ func (h handlerGoroutinesV1) SafeLoggable() bool {
 }
 
 func (h handlerGoroutinesV1) Extension() string {
-	return "prof"
+	return "txt"
 }
 
 func (h handlerGoroutinesV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
