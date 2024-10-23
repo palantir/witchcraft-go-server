@@ -50,6 +50,7 @@ type Client interface {
 }
 
 type clientImpl struct {
+	serviceName            refreshable.String
 	client                 RefreshableHTTPClient
 	middlewares            []Middleware
 	errorDecoderMiddleware Middleware
@@ -84,7 +85,7 @@ func (c *clientImpl) Delete(ctx context.Context, params ...RequestParam) (*http.
 func (c *clientImpl) Do(ctx context.Context, params ...RequestParam) (*http.Response, error) {
 	uris := c.uriScorer.CurrentURIScoringMiddleware().GetURIsInOrderOfIncreasingScore()
 	if len(uris) == 0 {
-		return nil, werror.ErrorWithContextParams(ctx, "no base URIs are configured")
+		return nil, werror.WrapWithContextParams(ctx, ErrEmptyURIs, "", werror.SafeParam("serviceName", c.serviceName.CurrentString()))
 	}
 
 	attempts := 2 * len(uris)

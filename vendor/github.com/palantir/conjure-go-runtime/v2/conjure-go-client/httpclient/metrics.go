@@ -78,44 +78,32 @@ func (s StaticTagsProvider) Tags(_ *http.Request, _ *http.Response, _ error) met
 	return metrics.Tags(s)
 }
 
-type refreshableMetricsTagsProvider struct {
-	refreshable.Refreshable // contains metrics.Tags
-}
-
-func (r refreshableMetricsTagsProvider) Tags(_ *http.Request, _ *http.Response, _ error) metrics.Tags {
-	return r.Current().(metrics.Tags)
-}
-
 // MetricsMiddleware updates the "client.response" timer metric on every request.
 // By default, metrics are tagged with 'service-name', 'method', and 'family' (of the
 // status code). This metric name and tag set matches http-remoting's DefaultHostMetrics:
 // https://github.com/palantir/http-remoting/blob/develop/okhttp-clients/src/main/java/com/palantir/remoting3/okhttp/DefaultHostMetrics.java
 func MetricsMiddleware(serviceName string, tagProviders ...TagsProvider) (Middleware, error) {
-	serviceNameTag, err := metrics.NewTag(MetricTagServiceName, serviceName)
-	if err != nil {
-		return nil, werror.Wrap(err, "failed to construct service-name metric tag", werror.SafeParam("serviceName", serviceName))
-	}
-	return newMetricsMiddleware(serviceNameTag, tagProviders, nil), nil
+	refreshableName := refreshable.NewString(refreshable.NewDefaultRefreshable(serviceName))
+	return newMetricsMiddleware(refreshableName, tagProviders, nil), nil
 }
 
-func newMetricsMiddleware(serviceNameTag metrics.Tag, tagProviders []TagsProvider, disabled refreshable.Bool) Middleware {
+func newMetricsMiddleware(serviceName refreshable.String, tagProviders []TagsProvider, disabled refreshable.Bool) Middleware {
 	return &metricsMiddleware{
-		Disabled:       disabled,
-		ServiceNameTag: serviceNameTag,
+		Disabled:    disabled,
+		ServiceName: serviceName,
 		Tags: append(
 			tagProviders,
 			TagsProviderFunc(tagStatusFamily),
 			TagsProviderFunc(tagRequestMethod),
 			TagsProviderFunc(tagRequestMethodName),
-			StaticTagsProvider(metrics.Tags{serviceNameTag}),
 		),
 	}
 }
 
 type metricsMiddleware struct {
-	Disabled       refreshable.Bool
-	ServiceNameTag metrics.Tag
-	Tags           []TagsProvider
+	Disabled    refreshable.Bool
+	ServiceName refreshable.String
+	Tags        []TagsProvider
 }
 
 // RoundTrip will emit counter and timer metrics with the name 'mariner.k8sClient.request'
@@ -125,15 +113,16 @@ func (h *metricsMiddleware) RoundTrip(req *http.Request, next http.RoundTripper)
 		// If we have a Disabled refreshable and it is true, no-op.
 		return next.RoundTrip(req)
 	}
+	serviceNameTag := metrics.NewTagWithFallbackValue(MetricTagServiceName, h.ServiceName.CurrentString(), "unknown")
 
-	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, h.ServiceNameTag).Inc(1)
+	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, serviceNameTag).Inc(1)
 	start := time.Now()
-	tlsMetricsContext := h.tlsTraceContext(req.Context())
+	tlsMetricsContext := h.tlsTraceContext(req.Context(), serviceNameTag)
 	resp, err := next.RoundTrip(req.WithContext(tlsMetricsContext))
 	duration := time.Since(start)
-	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, h.ServiceNameTag).Dec(1)
+	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, serviceNameTag).Dec(1)
 
-	var tags metrics.Tags
+	tags := []metrics.Tag{serviceNameTag}
 	for _, tagProvider := range h.Tags {
 		tags = append(tags, tagProvider.Tags(req, resp, err)...)
 	}
@@ -179,20 +168,20 @@ func tagRequestMethodName(req *http.Request, _ *http.Response, _ error) metrics.
 	return metrics.Tags{metrics.MustNewTag(metricRPCMethodName, "RPCMethodNameInvalid")}
 }
 
-func (h *metricsMiddleware) tlsTraceContext(ctx context.Context) context.Context {
+func (h *metricsMiddleware) tlsTraceContext(ctx context.Context, serviceNameTag metrics.Tag) context.Context {
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
 			if info.Reused {
-				metrics.FromContext(ctx).Counter(MetricConnCreate, h.ServiceNameTag, MetricTagConnectionReused).Inc(1)
+				metrics.FromContext(ctx).Counter(MetricConnCreate, serviceNameTag, MetricTagConnectionReused).Inc(1)
 			} else {
-				metrics.FromContext(ctx).Counter(MetricConnCreate, h.ServiceNameTag, MetricTagConnectionNew).Inc(1)
+				metrics.FromContext(ctx).Counter(MetricConnCreate, serviceNameTag, MetricTagConnectionNew).Inc(1)
 			}
 		},
 		TLSHandshakeStart: func() {
-			metrics.FromContext(ctx).Meter(MetricTLSHandshakeAttempt, h.ServiceNameTag).Mark(1)
+			metrics.FromContext(ctx).Meter(MetricTLSHandshakeAttempt, serviceNameTag).Mark(1)
 		},
 		TLSHandshakeDone: func(state tls.ConnectionState, err error) {
-			tags := []metrics.Tag{h.ServiceNameTag}
+			tags := []metrics.Tag{serviceNameTag}
 			cipherSuite := tls.CipherSuiteName(state.CipherSuite)
 			if cipherSuite != "" {
 				tags = append(tags, metrics.MustNewTag(CipherTagKey, cipherSuite))

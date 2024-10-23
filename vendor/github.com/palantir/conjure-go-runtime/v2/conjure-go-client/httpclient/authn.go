@@ -44,21 +44,20 @@ func (h *authTokenMiddleware) RoundTrip(req *http.Request, next http.RoundTrippe
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	if token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
 	return next.RoundTrip(req)
 }
 
 func newAuthTokenMiddlewareFromRefreshable(token refreshable.StringPtr) Middleware {
-	return &conditionalMiddleware{
-		Disabled: refreshable.NewBool(token.MapStringPtr(func(s *string) interface{} {
-			return s == nil
-		})),
-		Delegate: &authTokenMiddleware{provideToken: func(ctx context.Context) (string, error) {
+	return &authTokenMiddleware{
+		provideToken: func(ctx context.Context) (string, error) {
 			if s := token.CurrentStringPtr(); s != nil {
 				return *s, nil
 			}
 			return "", nil
-		}},
+		},
 	}
 }
 
@@ -69,32 +68,22 @@ func newAuthTokenMiddlewareFromRefreshable(token refreshable.StringPtr) Middlewa
 // (2) an empty BasicAuth and a non-nil error.
 type BasicAuthProvider func(context.Context) (BasicAuth, error)
 
-// basicAuthMiddleware wraps a refreshing BasicAuth pointer and injects basic auth credentials if the pointer is not nil
-type basicAuthMiddleware struct {
-	provider BasicAuthProvider
-}
-
-func (b *basicAuthMiddleware) RoundTrip(req *http.Request, next http.RoundTripper) (*http.Response, error) {
-	basicAuth, err := b.provider(req.Context())
-	if err != nil {
-		return nil, err
-	}
-	setBasicAuth(req.Header, basicAuth.User, basicAuth.Password)
-	return next.RoundTrip(req)
-}
+// BasicAuthOptionalProvider accepts a context and returns either:
+//
+// (1) nil, nil to indicate that no BasicAuth should not be set on the request, or
+//
+// (2) a nonempty BasicAuth and a nil error, or
+//
+// (3) a nil BasicAuth and a non-nil error.
+type BasicAuthOptionalProvider func(context.Context) (*BasicAuth, error)
 
 func newBasicAuthMiddlewareFromRefreshable(auth refreshingclient.RefreshableBasicAuthPtr) Middleware {
-	return &conditionalMiddleware{
-		Disabled: refreshable.NewBool(auth.MapBasicAuthPtr(func(auth *refreshingclient.BasicAuth) interface{} {
-			return auth == nil
-		})),
-		Delegate: &basicAuthMiddleware{provider: func(ctx context.Context) (BasicAuth, error) {
-			if b := auth.CurrentBasicAuthPtr(); b != nil {
-				return BasicAuth{User: b.User, Password: b.Password}, nil
-			}
-			return BasicAuth{}, nil
-		}},
-	}
+	return MiddlewareFunc(func(req *http.Request, next http.RoundTripper) (*http.Response, error) {
+		if basicAuth := auth.CurrentBasicAuthPtr(); basicAuth != nil {
+			setBasicAuth(req.Header, basicAuth.User, basicAuth.Password)
+		}
+		return next.RoundTrip(req)
+	})
 }
 
 func setBasicAuth(h http.Header, username, password string) {
