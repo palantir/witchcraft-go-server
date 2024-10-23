@@ -34,6 +34,7 @@ const (
 	DiagnosticTypeAllocsProfileV1     DiagnosticType = "go.profile.allocs.v1"
 	DiagnosticTypeTrace1MinuteV1      DiagnosticType = "go.trace.1minute.v1"
 	DiagnosticTypeGoroutinesV1        DiagnosticType = "go.goroutines.v1"
+	DiagnosticTypeGoroutinesV2        DiagnosticType = "go.goroutines.v2"
 	DiagnosticTypeMetricNamesV1       DiagnosticType = "metric.names.v1"
 	DiagnosticTypeSystemTimeV1        DiagnosticType = "os.system.clock.v1"
 )
@@ -44,6 +45,7 @@ var diagnosticHandlers = map[DiagnosticType]DiagnosticHandler{
 	DiagnosticTypeAllocsProfileV1:     handlerAllocsProfileV1{},
 	DiagnosticTypeTrace1MinuteV1:      handlerTrace1MinuteV1{},
 	DiagnosticTypeGoroutinesV1:        handlerGoroutinesV1{},
+	DiagnosticTypeGoroutinesV2:        handlerGoroutinesV2{},
 	DiagnosticTypeMetricNamesV1:       handlerMetricNamesV1{},
 	DiagnosticTypeSystemTimeV1:        handlerSystemTimeV1{},
 }
@@ -81,6 +83,35 @@ func (h handlerGoroutinesV1) Extension() string {
 
 func (h handlerGoroutinesV1) WriteDiagnostic(ctx context.Context, w io.Writer) error {
 	if err := pprof.Lookup("goroutine").WriteTo(w, 2); err != nil {
+		return werror.WrapWithContextParams(ctx, err, "failed to write goroutine dump")
+	}
+	return nil
+}
+
+type handlerGoroutinesV2 struct{}
+
+func (h handlerGoroutinesV2) Type() DiagnosticType {
+	return DiagnosticTypeGoroutinesV2
+}
+
+func (h handlerGoroutinesV2) ContentType() string {
+	return codecs.Binary.ContentType()
+}
+
+func (h handlerGoroutinesV2) Documentation() string {
+	return "Returns the pprof representation of currently running goroutines, as well as their labels and stacktraces"
+}
+
+func (h handlerGoroutinesV2) SafeLoggable() bool {
+	return true
+}
+
+func (h handlerGoroutinesV2) Extension() string {
+	return "prof"
+}
+
+func (h handlerGoroutinesV2) WriteDiagnostic(ctx context.Context, w io.Writer) error {
+	if err := pprof.Lookup("goroutine").WriteTo(w, 0); err != nil {
 		return werror.WrapWithContextParams(ctx, err, "failed to write goroutine dump")
 	}
 	return nil

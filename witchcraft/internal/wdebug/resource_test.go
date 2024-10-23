@@ -57,6 +57,17 @@ func TestDebugResource(t *testing.T) {
 			},
 		},
 		{
+			DiagnosticType: DiagnosticTypeGoroutinesV2,
+			Verify: func(t *testing.T, resp *http.Response) {
+				require.Equal(t, 200, resp.StatusCode)
+				require.Equal(t, "application/octet-stream", resp.Header.Get("Content-Type"))
+				require.Equal(t, "true", resp.Header.Get("Safe-Loggable"))
+				var body bytes.Buffer
+				require.NoError(t, codecs.Binary.Decode(resp.Body, &body))
+				require.NotEmpty(t, body.Bytes())
+			},
+		},
+		{
 			DiagnosticType: DiagnosticTypeHeapProfileV1,
 			Verify: func(t *testing.T, resp *http.Response) {
 				require.Equal(t, 200, resp.StatusCode)

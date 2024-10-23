@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: |
+    Add DiagnosticTypeGoroutinesV2 debug handler.
+  
+    This diagnostic emits a goroutines pprof, compatible with go tool pprof. It provides additional information which the existing DiagnosticTypeGoroutinesV1 does not, such as pprof.LabelSet attribution of goroutines.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/850
