@@ -20,6 +20,7 @@ type RefreshableValidatedClientParams interface {
 	MaxAttempts() refreshable.IntPtr
 	MetricsTags() RefreshableTags
 	Retry() RefreshableRetryParams
+	ServiceName() refreshable.String
 	Timeout() refreshable.Duration
 	Transport() RefreshableTransportParams
 	URIs() refreshable.StringSlice
@@ -88,6 +89,12 @@ func (r RefreshingValidatedClientParams) MetricsTags() RefreshableTags {
 func (r RefreshingValidatedClientParams) Retry() RefreshableRetryParams {
 	return NewRefreshingRetryParams(r.MapValidatedClientParams(func(i ValidatedClientParams) interface{} {
 		return i.Retry
+	}))
+}
+
+func (r RefreshingValidatedClientParams) ServiceName() refreshable.String {
+	return refreshable.NewString(r.MapValidatedClientParams(func(i ValidatedClientParams) interface{} {
+		return i.ServiceName
 	}))
 }
 
@@ -403,6 +410,7 @@ type RefreshableTransportParams interface {
 	ProxyFromEnvironment() refreshable.Bool
 	HTTP2ReadIdleTimeout() refreshable.Duration
 	HTTP2PingTimeout() refreshable.Duration
+	TLS() RefreshableTLSParams
 }
 
 type RefreshingTransportParams struct {
@@ -492,5 +500,71 @@ func (r RefreshingTransportParams) HTTP2ReadIdleTimeout() refreshable.Duration {
 func (r RefreshingTransportParams) HTTP2PingTimeout() refreshable.Duration {
 	return refreshable.NewDuration(r.MapTransportParams(func(i TransportParams) interface{} {
 		return i.HTTP2PingTimeout
+	}))
+}
+
+func (r RefreshingTransportParams) TLS() RefreshableTLSParams {
+	return NewRefreshingTLSParams(r.MapTransportParams(func(i TransportParams) interface{} {
+		return i.TLS
+	}))
+}
+
+type RefreshableTLSParams interface {
+	refreshable.Refreshable
+	CurrentTLSParams() TLSParams
+	MapTLSParams(func(TLSParams) interface{}) refreshable.Refreshable
+	SubscribeToTLSParams(func(TLSParams)) (unsubscribe func())
+
+	CAFiles() refreshable.StringSlice
+	CertFile() refreshable.String
+	KeyFile() refreshable.String
+	InsecureSkipVerify() refreshable.Bool
+}
+
+type RefreshingTLSParams struct {
+	refreshable.Refreshable
+}
+
+func NewRefreshingTLSParams(in refreshable.Refreshable) RefreshingTLSParams {
+	return RefreshingTLSParams{Refreshable: in}
+}
+
+func (r RefreshingTLSParams) CurrentTLSParams() TLSParams {
+	return r.Current().(TLSParams)
+}
+
+func (r RefreshingTLSParams) MapTLSParams(mapFn func(TLSParams) interface{}) refreshable.Refreshable {
+	return r.Map(func(i interface{}) interface{} {
+		return mapFn(i.(TLSParams))
+	})
+}
+
+func (r RefreshingTLSParams) SubscribeToTLSParams(consumer func(TLSParams)) (unsubscribe func()) {
+	return r.Subscribe(func(i interface{}) {
+		consumer(i.(TLSParams))
+	})
+}
+
+func (r RefreshingTLSParams) CAFiles() refreshable.StringSlice {
+	return refreshable.NewStringSlice(r.MapTLSParams(func(i TLSParams) interface{} {
+		return i.CAFiles
+	}))
+}
+
+func (r RefreshingTLSParams) CertFile() refreshable.String {
+	return refreshable.NewString(r.MapTLSParams(func(i TLSParams) interface{} {
+		return i.CertFile
+	}))
+}
+
+func (r RefreshingTLSParams) KeyFile() refreshable.String {
+	return refreshable.NewString(r.MapTLSParams(func(i TLSParams) interface{} {
+		return i.KeyFile
+	}))
+}
+
+func (r RefreshingTLSParams) InsecureSkipVerify() refreshable.Bool {
+	return refreshable.NewBool(r.MapTLSParams(func(i TLSParams) interface{} {
+		return i.InsecureSkipVerify
 	}))
 }

@@ -1,13 +1,15 @@
 module github.com/palantir/witchcraft-go-server/v2
 
-go 1.22
+go 1.22.0
+
+toolchain go1.22.7
 
 require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
-	github.com/palantir/conjure-go-runtime/v2 v2.79.0
-	github.com/palantir/go-encrypted-config-value v1.36.0
+	github.com/palantir/conjure-go-runtime/v2 v2.83.0
+	github.com/palantir/go-encrypted-config-value v1.37.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
 	github.com/palantir/pkg/metrics v1.7.0
@@ -45,7 +47,7 @@ require (
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )
