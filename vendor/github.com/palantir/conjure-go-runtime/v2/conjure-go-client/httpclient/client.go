@@ -95,24 +95,21 @@ func (c *clientImpl) Do(ctx context.Context, params ...RequestParam) (*http.Resp
 		}
 	}
 
-	var err error
-	var resp *http.Response
-
 	retrier := internal.NewRequestRetrier(uris, c.backoffOptions.CurrentRetryParams().Start(ctx), attempts)
+	uri, isRelocated := retrier.GetNextURI(nil, nil)
 	for {
-		uri, isRelocated := retrier.GetNextURI(resp, err)
+		resp, retryable, err := c.doOnce(ctx, uri, isRelocated, params...)
+		if !retryable {
+			return resp, err
+		}
+		uri, isRelocated = retrier.GetNextURI(resp, err)
 		if uri == "" {
-			break
+			return resp, err
 		}
 		if err != nil {
 			svc1log.FromContext(ctx).Debug("Retrying request", svc1log.Stacktrace(err))
 		}
-		resp, err = c.doOnce(ctx, uri, isRelocated, params...)
 	}
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
 }
 
 func (c *clientImpl) doOnce(
@@ -120,7 +117,7 @@ func (c *clientImpl) doOnce(
 	baseURI string,
 	useBaseURIOnly bool,
 	params ...RequestParam,
-) (*http.Response, error) {
+) (_ *http.Response, retryable bool, _ error) {
 
 	// 1. create the request
 	b := &requestBuilder{
@@ -134,7 +131,7 @@ func (c *clientImpl) doOnce(
 			continue
 		}
 		if err := p.apply(b); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 	if useBaseURIOnly {
@@ -146,12 +143,12 @@ func (c *clientImpl) doOnce(
 	}
 
 	if b.method == "" {
-		return nil, werror.ErrorWithContextParams(ctx, "httpclient: use WithRequestMethod() to specify HTTP method")
+		return nil, false, werror.ErrorWithContextParams(ctx, "httpclient: use WithRequestMethod() to specify HTTP method")
 	}
 	reqURI := joinURIAndPath(baseURI, b.path)
 	req, err := http.NewRequestWithContext(ctx, b.method, reqURI, nil)
 	if err != nil {
-		return nil, werror.WrapWithContextParams(ctx, err, "failed to build new HTTP request")
+		return nil, false, werror.WrapWithContextParams(ctx, err, "failed to build new HTTP request")
 	}
 
 	req.Header = b.headers
@@ -195,7 +192,17 @@ func (c *clientImpl) doOnce(
 		internal.DrainBody(ctx, resp)
 	}
 
-	return resp, unwrapURLError(ctx, respErr)
+	// doOnce should be retried unless the body specifically indicates it can not be replayed.
+	if respErr != nil {
+		if !b.bodyMiddleware.noRetriesRequestBody() {
+			retryable = true
+		} else {
+			svc1log.FromContext(ctx).Debug("Request body can not be replayed, not retrying.")
+		}
+		return nil, retryable, unwrapURLError(ctx, respErr)
+	}
+
+	return resp, false, nil
 }
 
 // unwrapURLError converts a *url.Error to a werror. We need this because all
