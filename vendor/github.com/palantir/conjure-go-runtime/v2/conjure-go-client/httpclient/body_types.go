@@ -36,8 +36,17 @@ type RequestBody interface {
 // fields of the provided *http.Request to the values returned by the function.
 type requestBodyFunc func() (length int64, body io.ReadCloser, getBody func() (io.ReadCloser, error), err error)
 
-func (f requestBodyFunc) setRequestBody(req *http.Request) (err error) {
-	req.ContentLength, req.Body, req.GetBody, err = f()
+func (f requestBodyFunc) setRequestBody(req *http.Request) error {
+	contentLength, body, getBody, err := f()
+	if err != nil {
+		return err
+	}
+	if body == nil {
+		body = http.NoBody
+		contentLength = 0
+		getBody = nil
+	}
+	req.ContentLength, req.Body, req.GetBody = contentLength, body, getBody
 	return err
 }
 
@@ -187,4 +196,16 @@ func RequestBodyEncoderObjectBuffer(input any, encoder codecs.Encoder, buffer *b
 		body, _ = getBody()
 		return int64(len(raw)), body, getBody, nil
 	})
+}
+
+// RetrieveReaderFromRequestBody extracts the io.ReadCloser and ContentLength from the RequestBody.
+// It is primarily useful for testing.
+// This reader does not 'count' as a stream for RequestBodyStreamOnce constraints and
+// subsequent requests made using the same RequestBody will use a corrupt already-read body.
+func RetrieveReaderFromRequestBody(body RequestBody) (io.ReadCloser, int64, error) {
+	req := &http.Request{}
+	if err := body.setRequestBody(req); err != nil {
+		return nil, 0, err
+	}
+	return req.Body, req.ContentLength, nil
 }
