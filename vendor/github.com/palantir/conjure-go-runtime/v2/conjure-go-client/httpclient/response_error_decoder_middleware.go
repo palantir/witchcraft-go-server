@@ -66,7 +66,9 @@ func (e errorDecoderMiddleware) RoundTrip(req *http.Request, next http.RoundTrip
 // If the response has a Content-Type containing 'application/json', we attempt
 // to unmarshal the error as a conjure error. See TestErrorDecoderMiddlewares for
 // example error messages and parameters.
-type restErrorDecoder struct{}
+type restErrorDecoder struct {
+	conjureErrorDecoder errors.ConjureErrorDecoder
+}
 
 var _ ErrorDecoder = restErrorDecoder{}
 
@@ -102,7 +104,13 @@ func (d restErrorDecoder) DecodeError(resp *http.Response) error {
 	if isJSON := strings.Contains(resp.Header.Get("Content-Type"), codecs.JSON.ContentType()); !isJSON {
 		return werror.Error(resp.Status, wSafeParams, wUnsafeParams, werror.UnsafeParam("responseBody", string(body)))
 	}
-	conjureErr, jsonErr := errors.UnmarshalError(body)
+	var conjureErr errors.Error
+	var jsonErr error
+	if d.conjureErrorDecoder != nil {
+		conjureErr, jsonErr = errors.UnmarshalErrorWithDecoder(d.conjureErrorDecoder, body)
+	} else {
+		conjureErr, jsonErr = errors.UnmarshalError(body)
+	}
 	if jsonErr != nil {
 		return werror.Error(resp.Status, wSafeParams, wUnsafeParams, werror.UnsafeParam("responseBody", string(body)))
 	}
