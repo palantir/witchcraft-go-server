@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	werror "github.com/palantir/witchcraft-go-error"
 )
 
@@ -240,6 +241,17 @@ func WithRequestBasicAuth(username, password string) RequestParam {
 func WithRequestTimeout(timeout time.Duration) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		b.requestTimeout = &timeout
+		return nil
+	})
+}
+
+func WithRequestConjureErrorDecoder(ced errors.ConjureErrorDecoder) RequestParam {
+	return requestParamFunc(func(b *requestBuilder) error {
+		b.errorDecoderMiddleware = errorDecoderMiddleware{
+			errorDecoder: restErrorDecoder{
+				conjureErrorDecoder: ced,
+			},
+		}
 		return nil
 	})
 }
