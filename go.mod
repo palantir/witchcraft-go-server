@@ -1,15 +1,15 @@
 module github.com/palantir/witchcraft-go-server/v2
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.22.7
+toolchain go1.23.4
 
 require (
 	github.com/gorilla/mux v1.7.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
 	github.com/palantir/conjure-go-runtime/v2 v2.88.0
-	github.com/palantir/go-encrypted-config-value v1.37.0
+	github.com/palantir/go-encrypted-config-value v1.38.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
 	github.com/palantir/pkg/metrics v1.7.0
