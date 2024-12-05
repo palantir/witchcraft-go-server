@@ -38,14 +38,14 @@ func (c codecGZIP) Accept() string {
 
 func (c codecGZIP) Decode(r io.Reader, v interface{}) (err error) {
 	gzipReader, err := gzip.NewReader(r)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %w", err)
+	}
 	defer func() {
 		if closeErr := gzipReader.Close(); err == nil && closeErr != nil {
 			err = closeErr
 		}
 	}()
-	if err != nil {
-		return fmt.Errorf("failed to create gzip reader: %s", err.Error())
-	}
 	return c.contentCodec.Decode(gzipReader, v)
 }
 
