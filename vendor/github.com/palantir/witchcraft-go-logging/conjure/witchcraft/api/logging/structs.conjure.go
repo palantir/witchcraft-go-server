@@ -74,13 +74,13 @@ func (o AuditLogV2) MarshalJSON() ([]byte, error) {
 	if o.ResultParams == nil {
 		o.ResultParams = make(map[string]interface{}, 0)
 	}
-	type AuditLogV2Alias AuditLogV2
-	return safejson.Marshal(AuditLogV2Alias(o))
+	type _tmpAuditLogV2 AuditLogV2
+	return safejson.Marshal(_tmpAuditLogV2(o))
 }
 
 func (o *AuditLogV2) UnmarshalJSON(data []byte) error {
-	type AuditLogV2Alias AuditLogV2
-	var rawAuditLogV2 AuditLogV2Alias
+	type _tmpAuditLogV2 AuditLogV2
+	var rawAuditLogV2 _tmpAuditLogV2
 	if err := safejson.Unmarshal(data, &rawAuditLogV2); err != nil {
 		return err
 	}
@@ -144,13 +144,13 @@ func (o BeaconLogV1) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type BeaconLogV1Alias BeaconLogV1
-	return safejson.Marshal(BeaconLogV1Alias(o))
+	type _tmpBeaconLogV1 BeaconLogV1
+	return safejson.Marshal(_tmpBeaconLogV1(o))
 }
 
 func (o *BeaconLogV1) UnmarshalJSON(data []byte) error {
-	type BeaconLogV1Alias BeaconLogV1
-	var rawBeaconLogV1 BeaconLogV1Alias
+	type _tmpBeaconLogV1 BeaconLogV1
+	var rawBeaconLogV1 _tmpBeaconLogV1
 	if err := safejson.Unmarshal(data, &rawBeaconLogV1); err != nil {
 		return err
 	}
@@ -195,13 +195,13 @@ func (o DiagnosticLogV1) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type DiagnosticLogV1Alias DiagnosticLogV1
-	return safejson.Marshal(DiagnosticLogV1Alias(o))
+	type _tmpDiagnosticLogV1 DiagnosticLogV1
+	return safejson.Marshal(_tmpDiagnosticLogV1(o))
 }
 
 func (o *DiagnosticLogV1) UnmarshalJSON(data []byte) error {
-	type DiagnosticLogV1Alias DiagnosticLogV1
-	var rawDiagnosticLogV1 DiagnosticLogV1Alias
+	type _tmpDiagnosticLogV1 DiagnosticLogV1
+	var rawDiagnosticLogV1 _tmpDiagnosticLogV1
 	if err := safejson.Unmarshal(data, &rawDiagnosticLogV1); err != nil {
 		return err
 	}
@@ -280,13 +280,13 @@ func (o EventLogV1) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type EventLogV1Alias EventLogV1
-	return safejson.Marshal(EventLogV1Alias(o))
+	type _tmpEventLogV1 EventLogV1
+	return safejson.Marshal(_tmpEventLogV1(o))
 }
 
 func (o *EventLogV1) UnmarshalJSON(data []byte) error {
-	type EventLogV1Alias EventLogV1
-	var rawEventLogV1 EventLogV1Alias
+	type _tmpEventLogV1 EventLogV1
+	var rawEventLogV1 _tmpEventLogV1
 	if err := safejson.Unmarshal(data, &rawEventLogV1); err != nil {
 		return err
 	}
@@ -348,13 +348,13 @@ func (o EventLogV2) MarshalJSON() ([]byte, error) {
 	if o.Tags == nil {
 		o.Tags = make(map[string]string, 0)
 	}
-	type EventLogV2Alias EventLogV2
-	return safejson.Marshal(EventLogV2Alias(o))
+	type _tmpEventLogV2 EventLogV2
+	return safejson.Marshal(_tmpEventLogV2(o))
 }
 
 func (o *EventLogV2) UnmarshalJSON(data []byte) error {
-	type EventLogV2Alias EventLogV2
-	var rawEventLogV2 EventLogV2Alias
+	type _tmpEventLogV2 EventLogV2
+	var rawEventLogV2 _tmpEventLogV2
 	if err := safejson.Unmarshal(data, &rawEventLogV2); err != nil {
 		return err
 	}
@@ -442,13 +442,13 @@ func (o MetricLogV1) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type MetricLogV1Alias MetricLogV1
-	return safejson.Marshal(MetricLogV1Alias(o))
+	type _tmpMetricLogV1 MetricLogV1
+	return safejson.Marshal(_tmpMetricLogV1(o))
 }
 
 func (o *MetricLogV1) UnmarshalJSON(data []byte) error {
-	type MetricLogV1Alias MetricLogV1
-	var rawMetricLogV1 MetricLogV1Alias
+	type _tmpMetricLogV1 MetricLogV1
+	var rawMetricLogV1 _tmpMetricLogV1
 	if err := safejson.Unmarshal(data, &rawMetricLogV1); err != nil {
 		return err
 	}
@@ -535,13 +535,13 @@ func (o RequestLogV1) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type RequestLogV1Alias RequestLogV1
-	return safejson.Marshal(RequestLogV1Alias(o))
+	type _tmpRequestLogV1 RequestLogV1
+	return safejson.Marshal(_tmpRequestLogV1(o))
 }
 
 func (o *RequestLogV1) UnmarshalJSON(data []byte) error {
-	type RequestLogV1Alias RequestLogV1
-	var rawRequestLogV1 RequestLogV1Alias
+	type _tmpRequestLogV1 RequestLogV1
+	var rawRequestLogV1 _tmpRequestLogV1
 	if err := safejson.Unmarshal(data, &rawRequestLogV1); err != nil {
 		return err
 	}
@@ -619,13 +619,13 @@ func (o RequestLogV2) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type RequestLogV2Alias RequestLogV2
-	return safejson.Marshal(RequestLogV2Alias(o))
+	type _tmpRequestLogV2 RequestLogV2
+	return safejson.Marshal(_tmpRequestLogV2(o))
 }
 
 func (o *RequestLogV2) UnmarshalJSON(data []byte) error {
-	type RequestLogV2Alias RequestLogV2
-	var rawRequestLogV2 RequestLogV2Alias
+	type _tmpRequestLogV2 RequestLogV2
+	var rawRequestLogV2 _tmpRequestLogV2
 	if err := safejson.Unmarshal(data, &rawRequestLogV2); err != nil {
 		return err
 	}
@@ -697,13 +697,13 @@ func (o ServiceLogV1) MarshalJSON() ([]byte, error) {
 	if o.Tags == nil {
 		o.Tags = make(map[string]string, 0)
 	}
-	type ServiceLogV1Alias ServiceLogV1
-	return safejson.Marshal(ServiceLogV1Alias(o))
+	type _tmpServiceLogV1 ServiceLogV1
+	return safejson.Marshal(_tmpServiceLogV1(o))
 }
 
 func (o *ServiceLogV1) UnmarshalJSON(data []byte) error {
-	type ServiceLogV1Alias ServiceLogV1
-	var rawServiceLogV1 ServiceLogV1Alias
+	type _tmpServiceLogV1 ServiceLogV1
+	var rawServiceLogV1 _tmpServiceLogV1
 	if err := safejson.Unmarshal(data, &rawServiceLogV1); err != nil {
 		return err
 	}
@@ -762,13 +762,13 @@ func (o Span) MarshalJSON() ([]byte, error) {
 	if o.Tags == nil {
 		o.Tags = make(map[string]string, 0)
 	}
-	type SpanAlias Span
-	return safejson.Marshal(SpanAlias(o))
+	type _tmpSpan Span
+	return safejson.Marshal(_tmpSpan(o))
 }
 
 func (o *Span) UnmarshalJSON(data []byte) error {
-	type SpanAlias Span
-	var rawSpan SpanAlias
+	type _tmpSpan Span
+	var rawSpan _tmpSpan
 	if err := safejson.Unmarshal(data, &rawSpan); err != nil {
 		return err
 	}
@@ -815,13 +815,13 @@ func (o StackFrameV1) MarshalJSON() ([]byte, error) {
 	if o.Params == nil {
 		o.Params = make(map[string]interface{}, 0)
 	}
-	type StackFrameV1Alias StackFrameV1
-	return safejson.Marshal(StackFrameV1Alias(o))
+	type _tmpStackFrameV1 StackFrameV1
+	return safejson.Marshal(_tmpStackFrameV1(o))
 }
 
 func (o *StackFrameV1) UnmarshalJSON(data []byte) error {
-	type StackFrameV1Alias StackFrameV1
-	var rawStackFrameV1 StackFrameV1Alias
+	type _tmpStackFrameV1 StackFrameV1
+	var rawStackFrameV1 _tmpStackFrameV1
 	if err := safejson.Unmarshal(data, &rawStackFrameV1); err != nil {
 		return err
 	}
@@ -857,13 +857,13 @@ func (o ThreadDumpV1) MarshalJSON() ([]byte, error) {
 	if o.Threads == nil {
 		o.Threads = make([]ThreadInfoV1, 0)
 	}
-	type ThreadDumpV1Alias ThreadDumpV1
-	return safejson.Marshal(ThreadDumpV1Alias(o))
+	type _tmpThreadDumpV1 ThreadDumpV1
+	return safejson.Marshal(_tmpThreadDumpV1(o))
 }
 
 func (o *ThreadDumpV1) UnmarshalJSON(data []byte) error {
-	type ThreadDumpV1Alias ThreadDumpV1
-	var rawThreadDumpV1 ThreadDumpV1Alias
+	type _tmpThreadDumpV1 ThreadDumpV1
+	var rawThreadDumpV1 _tmpThreadDumpV1
 	if err := safejson.Unmarshal(data, &rawThreadDumpV1); err != nil {
 		return err
 	}
@@ -908,13 +908,13 @@ func (o ThreadInfoV1) MarshalJSON() ([]byte, error) {
 	if o.Params == nil {
 		o.Params = make(map[string]interface{}, 0)
 	}
-	type ThreadInfoV1Alias ThreadInfoV1
-	return safejson.Marshal(ThreadInfoV1Alias(o))
+	type _tmpThreadInfoV1 ThreadInfoV1
+	return safejson.Marshal(_tmpThreadInfoV1(o))
 }
 
 func (o *ThreadInfoV1) UnmarshalJSON(data []byte) error {
-	type ThreadInfoV1Alias ThreadInfoV1
-	var rawThreadInfoV1 ThreadInfoV1Alias
+	type _tmpThreadInfoV1 ThreadInfoV1
+	var rawThreadInfoV1 _tmpThreadInfoV1
 	if err := safejson.Unmarshal(data, &rawThreadInfoV1); err != nil {
 		return err
 	}
@@ -959,13 +959,13 @@ func (o TraceLogV1) MarshalJSON() ([]byte, error) {
 	if o.UnsafeParams == nil {
 		o.UnsafeParams = make(map[string]interface{}, 0)
 	}
-	type TraceLogV1Alias TraceLogV1
-	return safejson.Marshal(TraceLogV1Alias(o))
+	type _tmpTraceLogV1 TraceLogV1
+	return safejson.Marshal(_tmpTraceLogV1(o))
 }
 
 func (o *TraceLogV1) UnmarshalJSON(data []byte) error {
-	type TraceLogV1Alias TraceLogV1
-	var rawTraceLogV1 TraceLogV1Alias
+	type _tmpTraceLogV1 TraceLogV1
+	var rawTraceLogV1 _tmpTraceLogV1
 	if err := safejson.Unmarshal(data, &rawTraceLogV1); err != nil {
 		return err
 	}
