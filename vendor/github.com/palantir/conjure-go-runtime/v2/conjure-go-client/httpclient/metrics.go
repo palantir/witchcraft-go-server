@@ -23,6 +23,7 @@ import (
 	"net/http/httptrace"
 	"time"
 
+	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
@@ -74,8 +75,16 @@ func (f TagsProviderFunc) Tags(req *http.Request, resp *http.Response, respErr e
 
 type StaticTagsProvider metrics.Tags
 
-func (s StaticTagsProvider) Tags(_ *http.Request, _ *http.Response, _ error) metrics.Tags {
+func (s StaticTagsProvider) Tags(*http.Request, *http.Response, error) metrics.Tags {
 	return metrics.Tags(s)
+}
+
+type refreshableTagsProvider struct {
+	refreshingclient.RefreshableTags
+}
+
+func (r refreshableTagsProvider) Tags(*http.Request, *http.Response, error) metrics.Tags {
+	return r.CurrentTags()
 }
 
 // MetricsMiddleware updates the "client.response" timer metric on every request.
