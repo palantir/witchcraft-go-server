@@ -50,6 +50,14 @@ func NewRefreshableTransport(ctx context.Context, p RefreshableTransportParams, 
 	}
 }
 
+// ConfigureTransport accepts a mapping function which will be applied to the params value as it is evaluated.
+// This can be used to layer/overwrite configuration before building the RefreshableTransportParams.
+func ConfigureTransport(r RefreshableTransportParams, mapFn func(p TransportParams) TransportParams) RefreshableTransportParams {
+	return NewRefreshingTransportParams(r.MapTransportParams(func(params TransportParams) interface{} {
+		return mapFn(params)
+	}))
+}
+
 // RefreshableTransport implements http.RoundTripper backed by a refreshable *http.Transport.
 // The transport and internal dialer are each rebuilt when any of their respective parameters are updated.
 type RefreshableTransport struct {
