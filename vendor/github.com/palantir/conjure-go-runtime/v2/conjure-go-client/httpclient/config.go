@@ -15,9 +15,10 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
 	"net/url"
-	"os"
 	"slices"
 	"time"
 
@@ -256,6 +257,128 @@ func MergeClientConfig(conf, defaults ClientConfig) ClientConfig {
 	return conf
 }
 
+func configToParams(c ClientConfig) ([]ClientParam, error) {
+	var params []ClientParam
+
+	if len(c.URIs) > 0 {
+		params = append(params, WithBaseURLs(c.URIs))
+	}
+
+	if c.ServiceName != "" {
+		params = append(params, WithServiceName(c.ServiceName))
+	}
+
+	// Bearer Token
+
+	if c.APIToken != nil && *c.APIToken != "" {
+		params = append(params, WithAuthToken(*c.APIToken))
+	} else if c.APITokenFile != nil && *c.APITokenFile != "" {
+		token, err := ioutil.ReadFile(*c.APITokenFile)
+		if err != nil {
+			return nil, werror.Wrap(err, "failed to read api-token-file", werror.SafeParam("file", *c.APITokenFile))
+		}
+		params = append(params, WithAuthToken(string(bytes.TrimSpace(token))))
+	} else if c.BasicAuth != nil && c.BasicAuth.User != "" && c.BasicAuth.Password != "" {
+		params = append(params, WithBasicAuth(c.BasicAuth.User, c.BasicAuth.Password))
+	}
+
+	// Disable HTTP2 (http2 is enabled by default)
+	if c.DisableHTTP2 != nil && *c.DisableHTTP2 {
+		params = append(params, WithDisableHTTP2())
+	}
+
+	// Retries
+
+	if c.MaxNumRetries != nil {
+		params = append(params, WithMaxRetries(*c.MaxNumRetries))
+	}
+
+	// Backoff
+
+	if c.MaxBackoff != nil {
+		params = append(params, WithMaxBackoff(*c.MaxBackoff))
+	}
+
+	if c.InitialBackoff != nil {
+		params = append(params, WithInitialBackoff(*c.InitialBackoff))
+	}
+
+	// Metrics (default enabled)
+
+	if c.Metrics.Enabled == nil || (c.Metrics.Enabled != nil && *c.Metrics.Enabled) {
+		configuredTags, err := metrics.NewTags(c.Metrics.Tags)
+		if err != nil {
+			return nil, werror.Wrap(err, "invalid metrics configuration")
+		}
+		params = append(params, WithMetrics(StaticTagsProvider(configuredTags)))
+	}
+
+	// Proxy
+
+	if c.ProxyFromEnvironment != nil && *c.ProxyFromEnvironment {
+		params = append(params, WithProxyFromEnvironment())
+	}
+	if c.ProxyURL != nil {
+		params = append(params, WithProxyURL(*c.ProxyURL))
+	}
+
+	// Timeouts
+
+	if c.ConnectTimeout != nil && *c.ConnectTimeout != 0 {
+		params = append(params, WithDialTimeout(*c.ConnectTimeout))
+	}
+	if c.IdleConnTimeout != nil && *c.IdleConnTimeout != 0 {
+		params = append(params, WithIdleConnTimeout(*c.IdleConnTimeout))
+	}
+	if c.TLSHandshakeTimeout != nil && *c.TLSHandshakeTimeout != 0 {
+		params = append(params, WithTLSHandshakeTimeout(*c.TLSHandshakeTimeout))
+	}
+	if c.ExpectContinueTimeout != nil && *c.ExpectContinueTimeout != 0 {
+		params = append(params, WithExpectContinueTimeout(*c.ExpectContinueTimeout))
+	}
+	if c.ResponseHeaderTimeout != nil && *c.ResponseHeaderTimeout != 0 {
+		params = append(params, WithResponseHeaderTimeout(*c.ResponseHeaderTimeout))
+	}
+	if c.KeepAlive != nil && *c.KeepAlive != 0 {
+		params = append(params, WithKeepAlive(*c.KeepAlive))
+	}
+	if c.HTTP2ReadIdleTimeout != nil && *c.HTTP2ReadIdleTimeout >= 0 {
+		params = append(params, WithHTTP2ReadIdleTimeout(*c.HTTP2ReadIdleTimeout))
+	}
+	if c.HTTP2PingTimeout != nil && *c.HTTP2PingTimeout >= 0 {
+		params = append(params, WithHTTP2PingTimeout(*c.HTTP2PingTimeout))
+	}
+
+	// Connections
+
+	if c.MaxIdleConns != nil && *c.MaxIdleConns != 0 {
+		params = append(params, WithMaxIdleConns(*c.MaxIdleConns))
+	}
+	if c.MaxIdleConnsPerHost != nil && *c.MaxIdleConnsPerHost != 0 {
+		params = append(params, WithMaxIdleConnsPerHost(*c.MaxIdleConnsPerHost))
+	}
+
+	// N.B. we only have one timeout field (not based on method) so just take the max of read and write for now.
+	timeout := max(derefPtr(c.WriteTimeout, 0), derefPtr(c.ReadTimeout, 0))
+	if timeout != 0 {
+		params = append(params, WithHTTPTimeout(timeout))
+	}
+
+	// Security (TLS) Config
+	if tlsConfig, err := refreshingclient.NewTLSConfig(context.TODO(), refreshingclient.TLSParams{
+		CAFiles:            c.Security.CAFiles,
+		CertFile:           c.Security.CertFile,
+		KeyFile:            c.Security.KeyFile,
+		InsecureSkipVerify: derefPtr(c.Security.InsecureSkipVerify, false),
+	}); err != nil {
+		return nil, err
+	} else if tlsConfig != nil {
+		params = append(params, WithTLSConfig(tlsConfig))
+	}
+
+	return params, nil
+}
+
 func RefreshableClientConfigFromServiceConfig(servicesConfig RefreshableServicesConfig, serviceName string) RefreshableClientConfig {
 	return NewRefreshingClientConfig(servicesConfig.MapServicesConfig(func(servicesConfig ServicesConfig) interface{} {
 		return servicesConfig.ClientConfig(serviceName)
@@ -272,7 +395,6 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		MaxIdleConns:          derefPtr(config.MaxIdleConns, defaultMaxIdleConns),
 		MaxIdleConnsPerHost:   derefPtr(config.MaxIdleConnsPerHost, defaultMaxIdleConnsPerHost),
 		DisableHTTP2:          derefPtr(config.DisableHTTP2, false),
-		DisableKeepAlives:     derefPtr(config.KeepAlive, defaultKeepAlive) == 0,
 		IdleConnTimeout:       derefPtr(config.IdleConnTimeout, defaultIdleConnTimeout),
 		ExpectContinueTimeout: derefPtr(config.ExpectContinueTimeout, defaultExpectContinueTimeout),
 		ResponseHeaderTimeout: derefPtr(config.ResponseHeaderTimeout, 0),
@@ -309,7 +431,7 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		apiToken = config.APIToken
 	} else if config.APITokenFile != nil {
 		file := *config.APITokenFile
-		token, err := os.ReadFile(file)
+		token, err := ioutil.ReadFile(file)
 		if err != nil {
 			return refreshingclient.ValidatedClientParams{}, werror.WrapWithContextParams(ctx, err, "failed to read api-token-file", werror.SafeParam("file", file))
 		}
@@ -322,7 +444,7 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		}
 	}
 
-	disableMetrics := !derefPtr(config.Metrics.Enabled, true)
+	disableMetrics := config.Metrics.Enabled != nil && !*config.Metrics.Enabled
 
 	metricsTags, err := metrics.NewTags(config.Metrics.Tags)
 	if err != nil {
@@ -335,7 +457,8 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 	}
 	var maxAttempts *int
 	if config.MaxNumRetries != nil {
-		maxAttempts = newPtr(*config.MaxNumRetries + 1)
+		attempts := *config.MaxNumRetries + 1
+		maxAttempts = &attempts
 	}
 
 	timeout := defaultHTTPTimeout

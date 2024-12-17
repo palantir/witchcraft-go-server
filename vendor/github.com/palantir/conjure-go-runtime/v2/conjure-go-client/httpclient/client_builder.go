@@ -25,6 +25,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
 	"github.com/palantir/pkg/bytesbuffers"
+	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
 )
@@ -54,6 +55,7 @@ var (
 type clientBuilder struct {
 	HTTP *httpClientBuilder
 
+	URIs             refreshable.StringSlice
 	URIScorerBuilder func([]string) internal.URIScoringMiddleware
 
 	// If false, NewClient() will return an error when URIs.Current() is empty.
@@ -63,15 +65,19 @@ type clientBuilder struct {
 	ErrorDecoder ErrorDecoder
 
 	BytesBufferPool bytesbuffers.Pool
+	MaxAttempts     refreshable.IntPtr
+	RetryParams     refreshingclient.RefreshableRetryParams
 }
 
 type httpClientBuilder struct {
-	// A set of functions that modify the ClientConfig before it is used to build the client.
-	// Populated by client params and applied using Map on the underlying refreshable config.
-	ConfigOverride []func(c *ClientConfig)
+	ServiceName     refreshable.String
+	Timeout         refreshable.Duration
+	DialerParams    refreshingclient.RefreshableDialerParams
+	TLSConfig       *tls.Config // If unset, config in TransportParams will be used.
+	TransportParams refreshingclient.RefreshableTransportParams
+	Middlewares     []Middleware
 
-	TLSConfig           *tls.Config // Optionally set by WithTLSConfig(). If unset, config.Security is used.
-	Middlewares         []Middleware
+	DisableMetrics      refreshable.Bool
 	MetricsTagProviders []TagsProvider
 
 	// These middleware options are not refreshed anywhere because they are not in ClientConfig,
@@ -81,69 +87,57 @@ type httpClientBuilder struct {
 	DisableTraceHeaders bool
 }
 
-func (b *httpClientBuilder) Build(ctx context.Context, config RefreshableClientConfig, reloadErrorSubmitter func(error), params ...HTTPClientParam) (RefreshableHTTPClient, refreshingclient.RefreshableValidatedClientParams, error) {
+func (b *httpClientBuilder) Build(ctx context.Context, params ...HTTPClientParam) (RefreshableHTTPClient, error) {
 	for _, p := range params {
 		if p == nil {
 			continue
 		}
 		if err := p.applyHTTPClient(b); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
-	finalConfig := newRefreshingClientConfigWithConfigOverrides(config, b.ConfigOverride...)
-
-	validParams, err := newRefreshingValidatedClientParams(ctx, finalConfig, reloadErrorSubmitter)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Build the transport with a refreshable dialer and tls config.
-	// Each component attempts to rebuild as infrequently as possible.
-	serviceName := validParams.ServiceName()
-	transportParams := validParams.Transport()
-	metricsTagProviders := append(b.MetricsTagProviders, refreshableTagsProvider{validParams.MetricsTags()})
 
 	var tlsProvider refreshingclient.TLSProvider
 	if b.TLSConfig != nil {
 		tlsProvider = refreshingclient.NewStaticTLSConfigProvider(b.TLSConfig)
 	} else {
-		refreshableProvider, err := refreshingclient.NewRefreshableTLSConfig(ctx, transportParams.TLS())
+		refreshableProvider, err := refreshingclient.NewRefreshableTLSConfig(ctx, b.TransportParams.TLS())
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		tlsProvider = refreshableProvider
 	}
 
-	dialer := refreshingclient.NewRefreshableDialer(ctx, validParams.Dialer())
-	transport := refreshingclient.NewRefreshableTransport(ctx, transportParams, tlsProvider, dialer)
-	transport = wrapTransport(transport, newMetricsMiddleware(serviceName, metricsTagProviders, validParams.DisableMetrics()))
-	transport = wrapTransport(transport, newTraceMiddleware(serviceName, b.DisableRequestSpan, b.DisableTraceHeaders))
+	dialer := refreshingclient.NewRefreshableDialer(ctx, b.DialerParams)
+	transport := refreshingclient.NewRefreshableTransport(ctx, b.TransportParams, tlsProvider, dialer)
+	transport = wrapTransport(transport, newMetricsMiddleware(b.ServiceName, b.MetricsTagProviders, b.DisableMetrics))
+	transport = wrapTransport(transport, newTraceMiddleware(b.ServiceName, b.DisableRequestSpan, b.DisableTraceHeaders))
 	if !b.DisableRecovery {
 		transport = wrapTransport(transport, recoveryMiddleware{})
 	}
 	transport = wrapTransport(transport, b.Middlewares...)
 
-	client := refreshingclient.NewRefreshableHTTPClient(transport, validParams.Timeout())
-	return client, validParams, nil
+	return refreshingclient.NewRefreshableHTTPClient(transport, b.Timeout), nil
 }
 
 // NewClient returns a configured client ready for use.
 // We apply "sane defaults" before applying the provided params.
 func NewClient(params ...ClientParam) (Client, error) {
-	return NewClientFromRefreshableConfig(context.TODO(), nil, params...)
+	b := newClientBuilder()
+	return newClient(context.TODO(), b, params...)
 }
 
 // NewClientFromRefreshableConfig returns a configured client ready for use.
 // We apply "sane defaults" before applying the provided params.
 func NewClientFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, params ...ClientParam) (Client, error) {
-	b := &clientBuilder{
-		HTTP:         &httpClientBuilder{},
-		ErrorDecoder: restErrorDecoder{},
+	b := newClientBuilder()
+	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil); err != nil {
+		return nil, err
 	}
-	return newClient(ctx, config, b, nil, params...)
+	return newClient(ctx, b, params...)
 }
 
-func newClient(ctx context.Context, config RefreshableClientConfig, b *clientBuilder, reloadErrorSubmitter func(error), params ...ClientParam) (Client, error) {
+func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (Client, error) {
 	for _, p := range params {
 		if p == nil {
 			continue
@@ -151,6 +145,12 @@ func newClient(ctx context.Context, config RefreshableClientConfig, b *clientBui
 		if err := p.apply(b); err != nil {
 			return nil, err
 		}
+	}
+	if b.URIs == nil {
+		return nil, werror.ErrorWithContextParams(ctx, "httpclient URLs must be set in configuration or by constructor param", werror.SafeParam("serviceName", b.HTTP.ServiceName.CurrentString()))
+	}
+	if !b.AllowEmptyURIs && len(b.URIs.CurrentStringSlice()) == 0 {
+		return nil, werror.WrapWithContextParams(ctx, ErrEmptyURIs, "", werror.SafeParam("serviceName", b.HTTP.ServiceName.CurrentString()))
 	}
 
 	var edm Middleware
@@ -161,40 +161,27 @@ func newClient(ctx context.Context, config RefreshableClientConfig, b *clientBui
 	middleware := b.HTTP.Middlewares
 	b.HTTP.Middlewares = nil
 
-	httpClient, validParams, err := b.HTTP.Build(ctx, config, reloadErrorSubmitter)
+	httpClient, err := b.HTTP.Build(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	if !b.AllowEmptyURIs {
-		// Validate that the URIs are not empty.
-		if curr := validParams.CurrentValidatedClientParams(); len(curr.URIs) == 0 {
-			return nil, werror.ErrorWithContextParams(ctx, "httpclient URIs must be set in configuration or by constructor param",
-				werror.SafeParam("serviceName", curr.ServiceName))
-		}
 	}
 
 	var recovery Middleware
 	if !b.HTTP.DisableRecovery {
 		recovery = recoveryMiddleware{}
 	}
-	uriScorer := internal.NewRefreshableURIScoringMiddleware(validParams.URIs(), func(uris []string) internal.URIScoringMiddleware {
+	uriScorer := internal.NewRefreshableURIScoringMiddleware(b.URIs, func(uris []string) internal.URIScoringMiddleware {
 		if b.URIScorerBuilder == nil {
 			return internal.NewBalancedURIScoringMiddleware(uris, func() int64 { return time.Now().UnixNano() })
 		}
 		return b.URIScorerBuilder(uris)
 	})
-
-	middleware = append(middleware,
-		newAuthTokenMiddlewareFromRefreshable(validParams.APIToken()),
-		newBasicAuthMiddlewareFromRefreshable(validParams.BasicAuth()))
-
 	return &clientImpl{
-		serviceName:            validParams.ServiceName(),
+		serviceName:            b.HTTP.ServiceName,
 		client:                 httpClient,
 		uriScorer:              uriScorer,
-		maxAttempts:            validParams.MaxAttempts(),
-		backoffOptions:         validParams.Retry(),
+		maxAttempts:            b.MaxAttempts,
+		backoffOptions:         b.RetryParams,
 		middlewares:            middleware,
 		errorDecoderMiddleware: edm,
 		recoveryMiddleware:     recovery,
@@ -205,7 +192,8 @@ func newClient(ctx context.Context, config RefreshableClientConfig, b *clientBui
 // NewHTTPClient returns a configured http client ready for use.
 // We apply "sane defaults" before applying the provided params.
 func NewHTTPClient(params ...HTTPClientParam) (*http.Client, error) {
-	provider, err := NewHTTPClientFromRefreshableConfig(context.TODO(), nil, params...)
+	b := newClientBuilder()
+	provider, err := b.HTTP.Build(context.TODO(), params...)
 	if err != nil {
 		return nil, err
 	}
@@ -217,16 +205,57 @@ type RefreshableHTTPClient = refreshingclient.RefreshableHTTPClient
 
 // NewHTTPClientFromRefreshableConfig returns a configured http client ready for use.
 // We apply "sane defaults" before applying the provided params.
-//
-// The RefreshableClientConfig is not accepted as a client param because there must be exactly one
-// subscription used to build the ValidatedClientParams in Build().
 func NewHTTPClientFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, params ...HTTPClientParam) (RefreshableHTTPClient, error) {
-	client, _, err := new(httpClientBuilder).Build(ctx, config, nil, params...)
-	return client, err
+	b := newClientBuilder()
+	if err := newClientBuilderFromRefreshableConfig(ctx, config, b, nil); err != nil {
+		return nil, err
+	}
+	return b.HTTP.Build(ctx, params...)
 }
 
-// Map the final config to a set of validated client params used to build the dialer, retrier, tls config, and transport.
-func newRefreshingValidatedClientParams(ctx context.Context, config RefreshableClientConfig, reloadErrorSubmitter func(error)) (refreshingclient.RefreshableValidatedClientParams, error) {
+func newClientBuilder() *clientBuilder {
+	return &clientBuilder{
+		HTTP: &httpClientBuilder{
+			ServiceName: refreshable.NewString(refreshable.NewDefaultRefreshable("")),
+			Timeout:     refreshable.NewDuration(refreshable.NewDefaultRefreshable(defaultHTTPTimeout)),
+			DialerParams: refreshingclient.NewRefreshingDialerParams(refreshable.NewDefaultRefreshable(refreshingclient.DialerParams{
+				DialTimeout:   defaultDialTimeout,
+				KeepAlive:     defaultKeepAlive,
+				SocksProxyURL: nil,
+			})),
+			TransportParams: refreshingclient.NewRefreshingTransportParams(refreshable.NewDefaultRefreshable(refreshingclient.TransportParams{
+				MaxIdleConns:          defaultMaxIdleConns,
+				MaxIdleConnsPerHost:   defaultMaxIdleConnsPerHost,
+				DisableHTTP2:          false,
+				DisableKeepAlives:     false,
+				IdleConnTimeout:       defaultIdleConnTimeout,
+				ExpectContinueTimeout: defaultExpectContinueTimeout,
+				ResponseHeaderTimeout: 0,
+				TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
+				HTTPProxyURL:          nil,
+				ProxyFromEnvironment:  true,
+				HTTP2ReadIdleTimeout:  defaultHTTP2ReadIdleTimeout,
+				HTTP2PingTimeout:      defaultHTTP2PingTimeout,
+			})),
+			Middlewares:         nil,
+			DisableMetrics:      refreshable.NewBool(refreshable.NewDefaultRefreshable(false)),
+			MetricsTagProviders: nil,
+			DisableRecovery:     false,
+			DisableRequestSpan:  false,
+			DisableTraceHeaders: false,
+		},
+		URIs:            nil,
+		BytesBufferPool: nil,
+		ErrorDecoder:    restErrorDecoder{},
+		MaxAttempts:     nil,
+		RetryParams: refreshingclient.NewRefreshingRetryParams(refreshable.NewDefaultRefreshable(refreshingclient.RetryParams{
+			InitialBackoff: defaultInitialBackoff,
+			MaxBackoff:     defaultMaxBackoff,
+		})),
+	}
+}
+
+func newClientBuilderFromRefreshableConfig(ctx context.Context, config RefreshableClientConfig, b *clientBuilder, reloadErrorSubmitter func(error)) error {
 	refreshingParams, err := refreshable.NewMapValidatingRefreshable(config, func(i interface{}) (interface{}, error) {
 		p, err := newValidatedClientParamsFromConfig(ctx, i.(ClientConfig))
 		if reloadErrorSubmitter != nil {
@@ -235,21 +264,25 @@ func newRefreshingValidatedClientParams(ctx context.Context, config RefreshableC
 		return p, err
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	validParams := refreshingclient.NewRefreshingValidatedClientParams(refreshingParams)
-	return validParams, nil
-}
 
-func newRefreshingClientConfigWithConfigOverrides(config RefreshableClientConfig, configOverride ...func(c *ClientConfig)) RefreshableClientConfig {
-	// Build the final config refreshable by applying the overrides.
-	if config == nil {
-		config = NewRefreshingClientConfig(refreshable.NewDefaultRefreshable(ClientConfig{}))
-	}
-	return NewRefreshingClientConfig(config.MapClientConfig(func(c ClientConfig) interface{} {
-		for _, o := range configOverride {
-			o(&c)
-		}
-		return c
-	}))
+	b.HTTP.ServiceName = validParams.ServiceName()
+	b.HTTP.DialerParams = validParams.Dialer()
+	b.HTTP.TransportParams = validParams.Transport()
+	b.HTTP.Timeout = validParams.Timeout()
+	b.HTTP.DisableMetrics = validParams.DisableMetrics()
+	b.HTTP.MetricsTagProviders = append(b.HTTP.MetricsTagProviders,
+		TagsProviderFunc(func(*http.Request, *http.Response, error) metrics.Tags {
+			return validParams.CurrentValidatedClientParams().MetricsTags
+		}))
+	b.HTTP.Middlewares = append(b.HTTP.Middlewares,
+		newAuthTokenMiddlewareFromRefreshable(validParams.APIToken()),
+		newBasicAuthMiddlewareFromRefreshable(validParams.BasicAuth()))
+
+	b.URIs = validParams.URIs()
+	b.MaxAttempts = validParams.MaxAttempts()
+	b.RetryParams = validParams.Retry()
+	return nil
 }
