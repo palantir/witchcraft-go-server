@@ -53,6 +53,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -127,6 +128,9 @@ type Server struct {
 	// provides the RouterImpl used by the server (and management server if it is separate). If nil, a default function
 	// that returns a new whttprouter is used.
 	routerImplProvider func() wrouter.RouterImpl
+
+	// stores diagnostic handlers provided by the caller. Must not duplicate any of the default handlers in internal/wdebug/handlers.go.
+	customDiagnostics []wdebug.DiagnosticHandler
 
 	// called on server initialization before the server starts. Is provided with a context that is active for the
 	// duration of the server lifetime, the server router (which can be used to register endpoints), the unmarshaled
@@ -539,6 +543,11 @@ func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 // returns a health status with differing check states.
 func (s *Server) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusChangeHandler) *Server {
 	s.healthStatusChangeHandlers = append(s.healthStatusChangeHandlers, handlers...)
+	return s
+}
+
+func (s *Server) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server {
+	s.customDiagnostics = append(s.customDiagnostics, handlers...)
 	return s
 }
 

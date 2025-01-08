@@ -15,6 +15,7 @@
 package wdebug
 
 import (
+	"maps"
 	"net/http"
 	"strconv"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
@@ -31,14 +33,20 @@ const (
 	headerKeySafeLoggable = "Safe-Loggable"
 )
 
-type DiagnosticType string
-
 type debugResource struct {
 	SharedSecret refreshable.String
+	Handlers     map[wdebug.DiagnosticType]wdebug.DiagnosticHandler
 }
 
-func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error {
-	r := &debugResource{SharedSecret: sharedSecret}
+func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String, customHandlers []wdebug.DiagnosticHandler) error {
+	handlers := maps.Clone(diagnosticHandlers)
+	for _, handler := range customHandlers {
+		if _, ok := handlers[handler.Type()]; ok {
+			return werror.Error("diagnostic handler already registered", werror.SafeParam("diagnosticType", handler.Type()))
+		}
+		handlers[handler.Type()] = handler
+	}
+	r := &debugResource{SharedSecret: sharedSecret, Handlers: handlers}
 	if err := wresource.New("witchcraftdebugservice", router).
 		Get("GetDiagnostic", "/debug/diagnostic/{diagnosticType}",
 			httpserver.NewJSONHandler(r.ServeHTTP, httpserver.StatusCodeMapper, httpserver.ErrHandler),
@@ -68,7 +76,7 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	if !ok {
 		return werror.WrapWithContextParams(ctx, errors.NewInvalidArgument(), "path param not present", werror.SafeParam("pathParamName", "diagnosticType"))
 	}
-	diagnosticType := DiagnosticType(diagnosticTypeStr)
+	diagnosticType := wdebug.DiagnosticType(diagnosticTypeStr)
 
 	handler, ok := diagnosticHandlers[diagnosticType]
 	if !ok {
