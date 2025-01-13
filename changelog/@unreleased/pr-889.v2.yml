@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: |
+    Set the Subject field for the self-signed certificate that is generated when "--use-self-signed-cert" is specified.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/889
