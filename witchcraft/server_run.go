@@ -20,6 +20,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -140,6 +141,10 @@ func newSelfSignedCertificate() (tls.Certificate, error) {
 		SerialNumber: big.NewInt(1),
 		NotBefore:    time.Now().Add(-30 * time.Second),
 		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		Subject: pkix.Name{
+			CommonName:   "localhost",
+			Organization: []string{"Palantir"},
+		},
 	}
 	certDERBytes, err := x509.CreateCertificate(rand.Reader, template, template, &privKey.PublicKey, privKey)
 	if err != nil {
