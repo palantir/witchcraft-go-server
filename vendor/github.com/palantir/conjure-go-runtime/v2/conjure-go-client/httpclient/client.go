@@ -18,7 +18,6 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient"
@@ -145,13 +144,16 @@ func (c *clientImpl) doOnce(
 	if b.method == "" {
 		return nil, false, werror.ErrorWithContextParams(ctx, "httpclient: use WithRequestMethod() to specify HTTP method")
 	}
-	reqURI := joinURIAndPath(baseURI, b.path)
+	baseURL, err := url.Parse(baseURI)
+	if err != nil {
+		return nil, false, werror.WrapWithContextParams(ctx, err, "invalid URL")
+	}
+	reqURI := baseURL.JoinPath(b.path).String()
 	req, err := http.NewRequestWithContext(ctx, b.method, reqURI, nil)
 	if err != nil {
 		return nil, false, werror.WrapWithContextParams(ctx, err, "failed to build new HTTP request")
 	}
 
-	req.Header = b.headers
 	if q := b.query.Encode(); q != "" {
 		req.URL.RawQuery = q
 	}
@@ -172,6 +174,8 @@ func (c *clientImpl) doOnce(
 	// request decoder must precede the client decoder
 	// must precede the body middleware to read the response body
 	transport = wrapTransport(transport, b.errorDecoderMiddleware, c.errorDecoderMiddleware)
+	// must precede client's user-configured middlewares to set request-specific headers
+	transport = wrapTransport(transport, requestHeadersMiddlewareFunc(b.headers))
 	// must precede the body middleware to read the request body
 	transport = wrapTransport(transport, c.middlewares...)
 	// must wrap inner middlewares to mutate the return values
@@ -230,10 +234,11 @@ func unwrapURLError(ctx context.Context, respErr error) error {
 	return werror.WrapWithContextParams(ctx, urlErr.Err, "httpclient request failed", params...)
 }
 
-func joinURIAndPath(baseURI, reqPath string) string {
-	fullURI := strings.TrimRight(baseURI, "/")
-	if reqPath != "" {
-		fullURI += "/" + strings.TrimLeft(reqPath, "/")
+func requestHeadersMiddlewareFunc(headers http.Header) MiddlewareFunc {
+	return func(req *http.Request, next http.RoundTripper) (*http.Response, error) {
+		for k, v := range headers {
+			req.Header[k] = v
+		}
+		return next.RoundTrip(req)
 	}
-	return fullURI
 }
