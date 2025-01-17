@@ -16,7 +16,6 @@ package wdebug
 
 import (
 	"context"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"io"
 	"runtime/pprof"
 	"runtime/trace"
@@ -27,6 +26,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
 	wparams "github.com/palantir/witchcraft-go-params"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 )
 
 // DiagnosticHandler is deprecated in favor of the exported/non-external wdebug.DiagnosticHandler.
