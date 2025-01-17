@@ -15,6 +15,7 @@
 package wdebug
 
 import (
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"net/http"
 	"strconv"
 
@@ -30,8 +31,6 @@ const (
 	headerKeyContentType  = "Content-Type"
 	headerKeySafeLoggable = "Safe-Loggable"
 )
-
-type DiagnosticType string
 
 type debugResource struct {
 	SharedSecret refreshable.String
@@ -68,7 +67,7 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	if !ok {
 		return werror.WrapWithContextParams(ctx, errors.NewInvalidArgument(), "path param not present", werror.SafeParam("pathParamName", "diagnosticType"))
 	}
-	diagnosticType := DiagnosticType(diagnosticTypeStr)
+	diagnosticType := wdebug.DiagnosticType(diagnosticTypeStr)
 
 	handler, ok := diagnosticHandlers[diagnosticType]
 	if !ok {

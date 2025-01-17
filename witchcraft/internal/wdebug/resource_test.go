@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -41,7 +42,7 @@ func TestDebugResource(t *testing.T) {
 	defer server.Close()
 
 	for _, test := range []struct {
-		DiagnosticType DiagnosticType
+		DiagnosticType wdebug.DiagnosticType
 		Verify         func(t *testing.T, resp *http.Response)
 	}{
 		{
