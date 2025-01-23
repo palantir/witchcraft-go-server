@@ -33,11 +33,16 @@ const (
 )
 
 type debugResource struct {
-	SharedSecret refreshable.String
+	SharedSecret             refreshable.String
+	customDiagnosticHandlers map[wdebug.DiagnosticType]wdebug.DiagnosticHandler
 }
 
-func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error {
-	r := &debugResource{SharedSecret: sharedSecret}
+func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String, customDiagnosticHandlers ...wdebug.DiagnosticHandler) error {
+	customHandlersByType := make(map[wdebug.DiagnosticType]wdebug.DiagnosticHandler, len(customDiagnosticHandlers))
+	for _, handler := range customDiagnosticHandlers {
+		customHandlersByType[handler.Type()] = handler
+	}
+	r := &debugResource{SharedSecret: sharedSecret, customDiagnosticHandlers: customHandlersByType}
 	if err := wresource.New("witchcraftdebugservice", router).
 		Get("GetDiagnostic", "/debug/diagnostic/{diagnosticType}",
 			httpserver.NewJSONHandler(r.ServeHTTP, httpserver.StatusCodeMapper, httpserver.ErrHandler),
@@ -69,7 +74,7 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	}
 	diagnosticType := wdebug.DiagnosticType(diagnosticTypeStr)
 
-	handler, ok := diagnosticHandlers[diagnosticType]
+	handler, ok := r.resolveHandlerForType(diagnosticType)
 	if !ok {
 		return errors.WrapWithInvalidArgument(werror.ErrorWithContextParams(ctx, "unsupported diagnosticType", werror.SafeParam("diagnosticType", diagnosticType)))
 	}
@@ -77,4 +82,13 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	rw.Header().Set(headerKeyContentType, handler.ContentType())
 	rw.Header().Set(headerKeySafeLoggable, strconv.FormatBool(handler.SafeLoggable()))
 	return handler.WriteDiagnostic(ctx, rw)
+}
+
+func (r *debugResource) resolveHandlerForType(diagnosticType wdebug.DiagnosticType) (wdebug.DiagnosticHandler, bool) {
+	handler, ok := diagnosticHandlers[diagnosticType]
+	if ok {
+		return handler, true
+	}
+	handler, ok = r.customDiagnosticHandlers[diagnosticType]
+	return handler, ok
 }
