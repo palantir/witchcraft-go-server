@@ -154,6 +154,7 @@ func (c *clientImpl) doOnce(
 		return nil, false, werror.WrapWithContextParams(ctx, err, "failed to build new HTTP request")
 	}
 
+	req.Header = b.headers
 	if q := b.query.Encode(); q != "" {
 		req.URL.RawQuery = q
 	}
@@ -174,8 +175,6 @@ func (c *clientImpl) doOnce(
 	// request decoder must precede the client decoder
 	// must precede the body middleware to read the response body
 	transport = wrapTransport(transport, b.errorDecoderMiddleware, c.errorDecoderMiddleware)
-	// must precede client's user-configured middlewares to set request-specific headers
-	transport = wrapTransport(transport, requestHeadersMiddlewareFunc(b.headers))
 	// must precede the body middleware to read the request body
 	transport = wrapTransport(transport, c.middlewares...)
 	// must wrap inner middlewares to mutate the return values
@@ -232,13 +231,4 @@ func unwrapURLError(ctx context.Context, respErr error) error {
 	}
 
 	return werror.WrapWithContextParams(ctx, urlErr.Err, "httpclient request failed", params...)
-}
-
-func requestHeadersMiddlewareFunc(headers http.Header) MiddlewareFunc {
-	return func(req *http.Request, next http.RoundTripper) (*http.Response, error) {
-		for k, v := range headers {
-			req.Header[k] = v
-		}
-		return next.RoundTrip(req)
-	}
 }
