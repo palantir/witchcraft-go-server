@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: ENDPOINT_FIVE_HUNDREDS health check
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/896
