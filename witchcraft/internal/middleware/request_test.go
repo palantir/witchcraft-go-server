@@ -85,7 +85,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 			),
 		),
 		wrouter.RootRouterParamAddRouteHandlerMiddleware(
-			NewRouteTelemetry(metricsRegistry),
+			NewRouteTelemetry(metricsRegistry, nil),
 		),
 	)
 	err := r.Register(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -173,7 +173,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 
 func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 	r := metrics.NewRootMetricsRegistry()
-	reqMiddleware := NewRouteTelemetry(r)
+	reqMiddleware := NewRouteTelemetry(r, nil)
 
 	now = func() time.Time { return time.UnixMilli(0) }
 	w := httptest.NewRecorder()
@@ -235,7 +235,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 				nil,
 				r,
 			)),
-			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry(r)),
+			wrouter.RootRouterParamAddRouteHandlerMiddleware(NewRouteTelemetry(r, nil)),
 		)
 
 		authResource := wresource.New("AuthResource", wRouter)
@@ -325,7 +325,7 @@ func TestRequestDisableTelemetry(t *testing.T) {
 	spanLog := trc1log.NewFromCreator(&spanOutput, wlogzap.LoggerProvider().NewLogger)
 
 	metricRegistry := metrics.NewRootMetricsRegistry()
-	reqRouteTelemetryMiddleware := NewRouteTelemetry(metricRegistry)
+	reqRouteTelemetryMiddleware := NewRouteTelemetry(metricRegistry, nil)
 
 	tracer, err := wzipkin.NewTracer(spanLog)
 	require.NoError(t, err)
