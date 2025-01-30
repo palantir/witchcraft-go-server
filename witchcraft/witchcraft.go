@@ -534,6 +534,7 @@ func (s *Server) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]s
 	return s
 }
 
+// WithDisableEndpointFiveHundredsHealthCheck disables the ENDPOINT_FIVE_HUNDREDS healthcheck.
 func (s *Server) WithDisableEndpointFiveHundredsHealthCheck() *Server {
 	s.endpoint500sHealthCheckFunc = func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck {
 		return nil
@@ -541,6 +542,8 @@ func (s *Server) WithDisableEndpointFiveHundredsHealthCheck() *Server {
 	return s
 }
 
+// WithAlwaysHealthyEndpointFiveHundredsHealthCheck configures the server to always report the ENDPOINT_FIVE_HUNDREDS
+// as healthy, even if the parameters include failing or broken endpoints.
 func (s *Server) WithAlwaysHealthyEndpointFiveHundredsHealthCheck() *Server {
 	s.endpoint500sHealthCheckFunc = func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck {
 		return middleware.NewEndpointFiveHundredsHealthCheck(ctx, true)
