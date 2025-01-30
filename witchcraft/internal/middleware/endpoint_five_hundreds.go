@@ -27,10 +27,11 @@ import (
 )
 
 const (
-	endpointFiveHundredsCheckType   = "ENDPOINT_FIVE_HUNDREDS"
-	endpointFiveHundredsWindowCount = 5
-	endpointFiveHundredsWindowSize  = 2 * time.Minute
-	endpointFiveHundredsMessage     = "There have been HTTP 500s returned by endpoints in every 2 minutes rolling period in the last 10 minutes. This indicates a non-transient error."
+	endpointFiveHundredsCheckType              = "ENDPOINT_FIVE_HUNDREDS"
+	endpointFiveHundredsWindowCount            = 5
+	endpointFiveHundredsWindowSize             = 2 * time.Minute
+	endpointFiveHundredsMessage                = "There have been HTTP 500s returned by endpoints in every 2 minutes rolling period in the last 10 minutes. This indicates a non-transient error."
+	endpointFiveHundredsBrokenEndpointsMessage = "At least one endpoint is consistently failing since startup"
 )
 
 type EndpointFiveHundredsHealthCheck struct {
@@ -106,7 +107,11 @@ func (e *EndpointFiveHundredsHealthCheck) currentStatus() *health.HealthCheckRes
 		State: health.New_HealthState(health.HealthState_HEALTHY),
 	}
 	if len(failingEndpoints) > 0 || len(brokenEndpoints) > 0 {
-		result.Message = ptrTo(endpointFiveHundredsMessage)
+		message := endpointFiveHundredsMessage
+		if len(brokenEndpoints) > 0 {
+			message += "\n" + endpointFiveHundredsBrokenEndpointsMessage
+		}
+		result.Message = &message
 		result.Params = map[string]interface{}{
 			"brokenEndpoints":  brokenEndpoints,  // endpoints that have never returned a non-500 status code
 			"failingEndpoints": failingEndpoints, // endpoints that have returned 500 status codes in every window
@@ -170,8 +175,4 @@ func (e *endpointFiveHundredsStatus) shift() {
 	// reset the current window
 	e.windows[0] = false
 	e.mutex.Unlock()
-}
-
-func ptrTo[T any](v T) *T {
-	return &v
 }

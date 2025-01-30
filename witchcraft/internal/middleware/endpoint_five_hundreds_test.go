@@ -90,7 +90,7 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			},
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
-				Message: ptrTo(endpointFiveHundredsMessage),
+				Message: ptrTo(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
 				State:   health.New_HealthState(health.HealthState_WARNING),
 				Params: map[string]interface{}{
 					"brokenEndpoints":  []string{"GET /test"},
@@ -168,7 +168,7 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
-				Message: ptrTo(endpointFiveHundredsMessage),
+				Message: ptrTo(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
 				Params: map[string]interface{}{
 					"brokenEndpoints":  []string{"GET /test"},
 					"failingEndpoints": []string{},
@@ -187,7 +187,7 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			},
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
-				Message: ptrTo(endpointFiveHundredsMessage),
+				Message: ptrTo(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
 				State:   health.New_HealthState(health.HealthState_WARNING),
 				Params: map[string]interface{}{
 					"brokenEndpoints":  []string{"GET /test"},
@@ -217,4 +217,8 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 		})
 	}
 
+}
+
+func ptrTo[T any](v T) *T {
+	return &v
 }
