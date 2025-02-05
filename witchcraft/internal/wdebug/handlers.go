@@ -29,7 +29,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 )
 
-// DiagnosticHandler is deprecated in favor of the exported/non-external wdebug.DiagnosticHandler.
+// DiagnosticHandler is deprecated in favor of the exported wdebug.DiagnosticHandler.
 // Deprecated
 type DiagnosticHandler interface {
 	wdebug.DiagnosticHandler

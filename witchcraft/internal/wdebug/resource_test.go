@@ -35,7 +35,7 @@ func TestDebugResource(t *testing.T) {
 	ctx := context.Background()
 	r := wrouter.New(whttprouter.New())
 	secret := refreshable.NewDefaultRefreshable("secret1")
-	err := RegisterRoute(r, refreshable.NewString(secret))
+	err := RegisterRoute(ctx, r, refreshable.NewString(secret))
 	require.NoError(t, err)
 
 	server := httptest.NewServer(r)

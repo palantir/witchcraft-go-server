@@ -15,6 +15,7 @@
 package wdebug
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -37,9 +38,12 @@ type debugResource struct {
 	customDiagnosticHandlers map[wdebug.DiagnosticType]wdebug.DiagnosticHandler
 }
 
-func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String, customDiagnosticHandlers ...wdebug.DiagnosticHandler) error {
+func RegisterRoute(ctx context.Context, router wrouter.Router, sharedSecret refreshable.String, customDiagnosticHandlers ...wdebug.DiagnosticHandler) error {
 	customHandlersByType := make(map[wdebug.DiagnosticType]wdebug.DiagnosticHandler, len(customDiagnosticHandlers))
 	for _, handler := range customDiagnosticHandlers {
+		if err := handler.Type().Validate(); err != nil {
+			return werror.WrapWithContextParams(ctx, err, "failed to register WitchcraftDebugService")
+		}
 		customHandlersByType[handler.Type()] = handler
 	}
 	r := &debugResource{SharedSecret: sharedSecret, customDiagnosticHandlers: customHandlersByType}
