@@ -39,7 +39,8 @@ func (d DiagnosticType) Validate() error {
 
 // DiagnosticHandler provides methods for describing the type and nature of a diagnostic payload, as well as writing the payload to a writer.
 type DiagnosticHandler interface {
-	// Type returns the DiagnosticType for
+	// Type returns the DiagnosticType for payloads written by this diagnostic handler.
+	// See DiagnosticType docs for more information.
 	Type() DiagnosticType
 	// Documentation returns a human-readable description of the diagnostic payload.
 	Documentation() string
