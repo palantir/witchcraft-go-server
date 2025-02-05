@@ -378,6 +378,7 @@ func TestMetricWriter(t *testing.T) {
 		}
 	}
 
+	var foundAudit2Entry, foundAudit3Entry bool
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
 		case "logging.sls.length":
@@ -397,10 +398,28 @@ func TestMetricWriter(t *testing.T) {
 				max, err := maxJSON.Int64()
 				require.NoError(t, err)
 				require.Greater(t, max, int64(len(superLongLogLine)))
+				foundAudit2Entry = true
+			}
+			if metricLog.Tags["type"] == "audit.v3" {
+				// skip log entry that emits "0", as it is the auto-generated zero value entry
+				if metricLog.Values["count"] == json.Number("0") {
+					continue
+				}
+				require.Equal(t, json.Number("1"), metricLog.Values["count"])
+
+				maxJSON, ok := metricLog.Values["max"].(json.Number)
+				require.True(t, ok)
+				max, err := maxJSON.Int64()
+				require.NoError(t, err)
+				require.Greater(t, max, int64(len(superLongLogLine)))
+				foundAudit3Entry = true
 			}
 		default:
 		}
 	}
+
+	assert.True(t, foundAudit2Entry, "audit.2 output not found")
+	assert.True(t, foundAudit3Entry, "audit.3 output not found")
 
 	select {
 	case err := <-serverErr:

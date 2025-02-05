@@ -75,7 +75,7 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		trc1log.New(logWriterFn("trace")), registry)
 	s.auditLogger = metricloggers.NewAudit2Logger(
-		audit2log.New(logWriterFn("audit")), registry)
+		audit2log.NewDualLogger(logWriterFn("audit"), logWriterFn("audit.v3")), registry)
 	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
 		req2log.Extractor(s.idsExtractor),

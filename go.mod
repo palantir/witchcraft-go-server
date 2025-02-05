@@ -27,6 +27,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
+replace github.com/palantir/witchcraft-go-logging => ../witchcraft-go-logging
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -36,6 +38,7 @@ require (
 	github.com/palantir/pkg/datetime v1.1.0 // indirect
 	github.com/palantir/pkg/refreshable/v2 v2.0.0 // indirect
 	github.com/palantir/pkg/retry v1.2.0 // indirect
+	github.com/palantir/pkg/rid v1.1.0 // indirect
 	github.com/palantir/pkg/safelong v1.1.0 // indirect
 	github.com/palantir/pkg/safeyaml v1.1.0 // indirect
 	github.com/palantir/pkg/transform v1.1.0 // indirect

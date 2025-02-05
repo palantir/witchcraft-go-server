@@ -17,23 +17,27 @@ package metricloggers
 import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 )
 
 var _ audit2log.Logger = (*audit2Logger)(nil)
 
 type audit2Logger struct {
-	logger   audit2log.Logger
-	recorder metricRecorder
+	logger         audit2log.Logger
+	audit2Recorder metricRecorder
+	audit3Recorder metricRecorder
 }
 
 func NewAudit2Logger(logger audit2log.Logger, registry metrics.Registry) audit2log.Logger {
 	return &audit2Logger{
-		logger:   logger,
-		recorder: newMetricRecorder(registry, audit2log.TypeValue),
+		logger:         logger,
+		audit2Recorder: newMetricRecorder(registry, audit2log.TypeValue),
+		audit3Recorder: newMetricRecorder(registry, audit3log.TypeValue),
 	}
 }
 
 func (m *audit2Logger) Audit(name string, result audit2log.AuditResultType, params ...audit2log.Param) {
 	m.logger.Audit(name, result, params...)
-	m.recorder.RecordSLSLog()
+	m.audit2Recorder.RecordSLSLog()
+	m.audit3Recorder.RecordSLSLog()
 }
