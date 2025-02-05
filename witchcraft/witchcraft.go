@@ -53,6 +53,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -117,6 +118,8 @@ type Server struct {
 
 	// specifies the handlers to invoke upon health status changes. The LoggingHealthStatusChangeHandler is added by default.
 	healthStatusChangeHandlers []status.HealthStatusChangeHandler
+
+	customDiagnosticHandlers []wdebug.DiagnosticHandler
 
 	// if true, disables the SERVICE_DEPENDENCY health check.
 	disableServiceDependencyHealth bool
@@ -258,6 +261,7 @@ type ConfigurableRouter interface {
 	WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server
 	WithReadiness(readiness healthstatus.Source) *Server
 	WithLiveness(liveness healthstatus.Source) *Server
+	WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server
 }
 
 const defaultSampleRate = 0.01
@@ -539,6 +543,13 @@ func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
 // returns a health status with differing check states.
 func (s *Server) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusChangeHandler) *Server {
 	s.healthStatusChangeHandlers = append(s.healthStatusChangeHandlers, handlers...)
+	return s
+}
+
+// WithCustomDiagnosticHandlers configures the application's custom diagnostic handlers.
+// This adds to the default diagnostic handlers provided by the server.
+func (s *Server) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server {
+	s.customDiagnosticHandlers = append(s.customDiagnosticHandlers, handlers...)
 	return s
 }
 

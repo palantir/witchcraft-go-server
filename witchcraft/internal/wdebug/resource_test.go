@@ -25,6 +25,7 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
 	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
 	"github.com/stretchr/testify/require"
@@ -34,14 +35,14 @@ func TestDebugResource(t *testing.T) {
 	ctx := context.Background()
 	r := wrouter.New(whttprouter.New())
 	secret := refreshable.NewDefaultRefreshable("secret1")
-	err := RegisterRoute(r, refreshable.NewString(secret))
+	err := RegisterRoute(ctx, r, refreshable.NewString(secret))
 	require.NoError(t, err)
 
 	server := httptest.NewServer(r)
 	defer server.Close()
 
 	for _, test := range []struct {
-		DiagnosticType DiagnosticType
+		DiagnosticType wdebug.DiagnosticType
 		Verify         func(t *testing.T, resp *http.Response)
 	}{
 		{

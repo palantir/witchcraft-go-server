@@ -15,6 +15,7 @@
 package wdebug
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
@@ -31,14 +33,20 @@ const (
 	headerKeySafeLoggable = "Safe-Loggable"
 )
 
-type DiagnosticType string
-
 type debugResource struct {
-	SharedSecret refreshable.String
+	SharedSecret             refreshable.String
+	customDiagnosticHandlers map[wdebug.DiagnosticType]wdebug.DiagnosticHandler
 }
 
-func RegisterRoute(router wrouter.Router, sharedSecret refreshable.String) error {
-	r := &debugResource{SharedSecret: sharedSecret}
+func RegisterRoute(ctx context.Context, router wrouter.Router, sharedSecret refreshable.String, customDiagnosticHandlers ...wdebug.DiagnosticHandler) error {
+	customHandlersByType := make(map[wdebug.DiagnosticType]wdebug.DiagnosticHandler, len(customDiagnosticHandlers))
+	for _, handler := range customDiagnosticHandlers {
+		if err := handler.Type().Validate(); err != nil {
+			return werror.WrapWithContextParams(ctx, err, "failed to register WitchcraftDebugService")
+		}
+		customHandlersByType[handler.Type()] = handler
+	}
+	r := &debugResource{SharedSecret: sharedSecret, customDiagnosticHandlers: customHandlersByType}
 	if err := wresource.New("witchcraftdebugservice", router).
 		Get("GetDiagnostic", "/debug/diagnostic/{diagnosticType}",
 			httpserver.NewJSONHandler(r.ServeHTTP, httpserver.StatusCodeMapper, httpserver.ErrHandler),
@@ -68,9 +76,9 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	if !ok {
 		return werror.WrapWithContextParams(ctx, errors.NewInvalidArgument(), "path param not present", werror.SafeParam("pathParamName", "diagnosticType"))
 	}
-	diagnosticType := DiagnosticType(diagnosticTypeStr)
+	diagnosticType := wdebug.DiagnosticType(diagnosticTypeStr)
 
-	handler, ok := diagnosticHandlers[diagnosticType]
+	handler, ok := r.resolveHandlerForType(diagnosticType)
 	if !ok {
 		return errors.WrapWithInvalidArgument(werror.ErrorWithContextParams(ctx, "unsupported diagnosticType", werror.SafeParam("diagnosticType", diagnosticType)))
 	}
@@ -78,4 +86,13 @@ func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) err
 	rw.Header().Set(headerKeyContentType, handler.ContentType())
 	rw.Header().Set(headerKeySafeLoggable, strconv.FormatBool(handler.SafeLoggable()))
 	return handler.WriteDiagnostic(ctx, rw)
+}
+
+func (r *debugResource) resolveHandlerForType(diagnosticType wdebug.DiagnosticType) (wdebug.DiagnosticHandler, bool) {
+	handler, ok := diagnosticHandlers[diagnosticType]
+	if ok {
+		return handler, true
+	}
+	handler, ok = r.customDiagnosticHandlers[diagnosticType]
+	return handler, ok
 }

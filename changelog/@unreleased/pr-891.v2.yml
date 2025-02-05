@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Export DiagnosticHandler interface and enable registration of custom diagnostic handlers.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/891
