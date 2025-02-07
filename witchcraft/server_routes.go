@@ -86,7 +86,7 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 	return nil
 }
 
-func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, tracerOptions []wtracing.TracerOption) {
+func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, endpoint500s *middleware.EndpointFiveHundredsHealthCheck, tracerOptions []wtracing.TracerOption) {
 	rootRouter.AddRequestHandlerMiddleware(
 		// add middleware that injects loggers into request context, extracts UID, SID, and TokenID
 		// into context for loggers, sets a tracer on the context, starts a root span and sets it on the context,
@@ -109,7 +109,7 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 	rootRouter.AddRequestHandlerMiddleware(s.handlers...)
 
 	// add route middleware
-	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteTelemetry(registry))
+	rootRouter.AddRouteHandlerMiddleware(middleware.NewRouteTelemetry(registry, endpoint500s))
 
 	// add not found handler
 	rootRouter.RegisterNotFoundHandler(httpserver.NewJSONHandler(

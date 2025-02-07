@@ -30,7 +30,7 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing/propagation/b3"
 )
 
-func NewRouteTelemetry(mr metrics.Registry) wrouter.RouteHandlerMiddleware {
+func NewRouteTelemetry(mr metrics.Registry, endpoint500s *EndpointFiveHundredsHealthCheck) wrouter.RouteHandlerMiddleware {
 	return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
 		if reqVals.DisableTelemetry {
 			next(rw, req, reqVals)
@@ -47,6 +47,7 @@ func NewRouteTelemetry(mr metrics.Registry) wrouter.RouteHandlerMiddleware {
 			duration := now().Sub(start)
 			newRouteRequestLog(req, reqVals, lrw, duration)
 			markRequestMetricRequestMeter(mr, req, reqVals, lrw, duration)
+			markEndpointFiveHundredsHealthCheck(endpoint500s, reqVals, lrw)
 		}()
 
 		// Add a panic recovery after the context is fully configured to maximize traceability.
@@ -139,5 +140,11 @@ func markRequestMetricRequestMeter(mr metrics.Registry, req *http.Request, reqVa
 	mr.Histogram("server.response.size", reqVals.MetricTags...).Update(int64(lrw.Size()))
 	if lrw.Status()/100 == 5 {
 		mr.Meter("server.response.error", reqVals.MetricTags...).Mark(1)
+	}
+}
+
+func markEndpointFiveHundredsHealthCheck(hc *EndpointFiveHundredsHealthCheck, reqVals wrouter.RequestVals, lrw loggingResponseWriter) {
+	if hc != nil {
+		hc.MarkResponse(reqVals.Spec, lrw.Status())
 	}
 }

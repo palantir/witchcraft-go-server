@@ -51,6 +51,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
+	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
 	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
@@ -162,6 +163,12 @@ type Server struct {
 	// example, if the map is set to {"timer":{"5m":{}}}, then the value for "5m" will be omitted from all timer metric
 	// output. If nil, the default value is the map returned by defaultMetricTypeValuesBlacklist().
 	metricTypeValuesBlacklist map[string]map[string]struct{}
+
+	// endpoint500sHealthCheckFunc builds the ENDPOINT_FIVE_HUNDREDS health check source. If nil, the check is disabled.
+	// The health check source is enabled by default.
+	// Use WithDisableEndpointFiveHundredsHealthCheck to disable the health check.
+	// Use WithAlwaysHealthyEndpointFiveHundredsHealthCheck to always report the health check as healthy.
+	endpoint500sHealthCheckFunc func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck
 
 	// specifies the TLS client authentication mode used by the server. If not specified, the default value is
 	// tls.NoClientCert.
@@ -531,6 +538,23 @@ func (s *Server) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]s
 	return s
 }
 
+// WithDisableEndpointFiveHundredsHealthCheck disables the ENDPOINT_FIVE_HUNDREDS healthcheck.
+func (s *Server) WithDisableEndpointFiveHundredsHealthCheck() *Server {
+	s.endpoint500sHealthCheckFunc = func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck {
+		return nil
+	}
+	return s
+}
+
+// WithAlwaysHealthyEndpointFiveHundredsHealthCheck configures the server to always report the ENDPOINT_FIVE_HUNDREDS
+// as healthy, even if the parameters include failing or broken endpoints.
+func (s *Server) WithAlwaysHealthyEndpointFiveHundredsHealthCheck() *Server {
+	s.endpoint500sHealthCheckFunc = func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck {
+		return middleware.NewEndpointFiveHundredsHealthCheck(ctx, true)
+	}
+	return s
+}
+
 // WithLoggerStdoutWriter configures the writer that loggers will write to IF they are configured to write to STDOUT.
 // This configuration is typically only used in specialized scenarios (for example, to write logger output to an
 // in-memory buffer rather than Stdout for tests).
@@ -688,14 +712,21 @@ func (s *Server) Start() (rErr error) {
 		}
 	}
 
+	var endpoint500s *middleware.EndpointFiveHundredsHealthCheck
+	if s.endpoint500sHealthCheckFunc != nil {
+		endpoint500s = s.endpoint500sHealthCheckFunc(ctx)
+	} else {
+		endpoint500s = middleware.NewEndpointFiveHundredsHealthCheck(ctx, false)
+	}
+
 	// initialize routers
 	router, mgmtRouter := s.initRouters(baseInstallCfg)
 
 	// add middleware
-	s.addMiddleware(router.RootRouter(), metricsRegistry, s.getApplicationTracingOptions(baseInstallCfg))
+	s.addMiddleware(router.RootRouter(), metricsRegistry, endpoint500s, s.getApplicationTracingOptions(baseInstallCfg))
 	if mgmtRouter != router {
 		// add middleware to management router as well if it is distinct
-		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, s.getManagementTracingOptions(baseInstallCfg))
+		s.addMiddleware(mgmtRouter.RootRouter(), metricsRegistry, endpoint500s, s.getManagementTracingOptions(baseInstallCfg))
 		// add debugging endpoints to management router
 		if err := addPprofRoutes(mgmtRouter); err != nil {
 			return werror.Wrap(err, "failed to register debugging routes")
