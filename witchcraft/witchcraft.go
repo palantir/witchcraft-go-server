@@ -718,6 +718,7 @@ func (s *Server) Start() (rErr error) {
 	} else {
 		endpoint500s = middleware.NewEndpointFiveHundredsHealthCheck(ctx, false)
 	}
+	internalHealthCheckSources = append(internalHealthCheckSources, endpoint500s)
 
 	// initialize routers
 	router, mgmtRouter := s.initRouters(baseInstallCfg)

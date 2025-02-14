@@ -81,6 +81,12 @@ func TestAddHealthCheckSources(t *testing.T) {
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:    health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
+				Message: nil,
+				Params:  make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:    health.CheckType("SERVER_STATUS"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
@@ -153,6 +159,11 @@ func TestServiceDependencyHealth(t *testing.T) {
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
@@ -169,6 +180,11 @@ func TestServiceDependencyHealth(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
@@ -197,6 +213,11 @@ func TestServiceDependencyHealth(t *testing.T) {
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
@@ -221,6 +242,11 @@ func TestServiceDependencyHealth(t *testing.T) {
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
@@ -351,6 +377,11 @@ func TestHealthReporter(t *testing.T) {
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
@@ -402,6 +433,11 @@ func TestPeriodicHealthSource(t *testing.T) {
 		},
 		health.CheckType("CONFIG_RELOAD"): {
 			Type:   health.CheckType("CONFIG_RELOAD"),
+			State:  health.New_HealthState(health.HealthState_HEALTHY),
+			Params: make(map[string]interface{}),
+		},
+		health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+			Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
 			State:  health.New_HealthState(health.HealthState_HEALTHY),
 			Params: make(map[string]interface{}),
 		},
@@ -488,6 +524,11 @@ func TestHealthSharedSecret(t *testing.T) {
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
@@ -552,6 +593,11 @@ invalid-key: invalid-value
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
@@ -579,6 +625,11 @@ invalid-key: invalid-value
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			health.CheckType("CONFIG_RELOAD"): {
 				Type:   health.CheckType("CONFIG_RELOAD"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
@@ -641,6 +692,11 @@ invalid-key: invalid-value
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
+			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
@@ -671,6 +727,11 @@ invalid-key: invalid-value
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Params:  make(map[string]interface{}),
 				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
+			},
+			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
+				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+				State:  health.New_HealthState(health.HealthState_HEALTHY),
+				Params: make(map[string]interface{}),
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
