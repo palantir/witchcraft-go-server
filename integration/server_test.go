@@ -207,8 +207,9 @@ func TestManagementRoutes(t *testing.T) {
 			var healthResp health.HealthStatus
 			require.NoError(t, json.Unmarshal(body, &healthResp))
 			require.Equal(t, health.HealthStatus{Checks: map[health.CheckType]health.HealthCheckResult{
-				"CONFIG_RELOAD": {Type: "CONFIG_RELOAD", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
-				"SERVER_STATUS": {Type: "SERVER_STATUS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
+				"CONFIG_RELOAD":          {Type: "CONFIG_RELOAD", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
+				"ENDPOINT_FIVE_HUNDREDS": {Type: "ENDPOINT_FIVE_HUNDREDS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
+				"SERVER_STATUS":          {Type: "SERVER_STATUS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
 			}}, healthResp)
 		})
 	}

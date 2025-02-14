@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Register ENDPOINT_FIVE_HUNDREDS healthcheck
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/906
