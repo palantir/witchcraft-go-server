@@ -226,6 +226,8 @@ type Server struct {
 
 	// allows the server to wait until Close() or Shutdown() return prior to returning from Start()
 	shutdownFinished chan struct{}
+
+	connStateMetrics bool
 }
 
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
@@ -577,6 +579,11 @@ func (s *Server) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandl
 	return s
 }
 
+func (s *Server) WithConnectionMetrics() *Server {
+	s.connStateMetrics = true
+	return s
+}
+
 const (
 	defaultMetricEmitFrequency = time.Second * 30
 
@@ -817,7 +824,7 @@ func (s *Server) Start() (rErr error) {
 		}()
 	}
 
-	httpServer, svrStart, _, err := s.newServer(baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter())
+	httpServer, svrStart, _, err := s.newServer(baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter(), s.connStateFunc(ctx))
 	if err != nil {
 		return err
 	}
@@ -831,6 +838,15 @@ func (s *Server) Start() (rErr error) {
 		return werror.ErrorWithContextParams(ctx, "server was shut down before it could start")
 	}
 	return svrStart()
+}
+
+func (s *Server) connStateFunc(ctx context.Context) func(conn net.Conn, state http.ConnState) {
+	if !s.connStateMetrics {
+		return nil
+	}
+	return func(conn net.Conn, state http.ConnState) {
+		metrics.FromContext(ctx).Counter("conn_state_change", metrics.MustNewTag("state", state.String())).Inc(1)
+	}
 }
 
 func (s *Server) withLoggers(ctx context.Context) context.Context {
