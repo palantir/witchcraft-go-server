@@ -454,7 +454,8 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		seenResponseSize,
 		seenRequestSize,
 		seenResponseError,
-		seenUptime bool
+		seenUptime,
+		seenConnStateChange bool
 	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
@@ -540,6 +541,9 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			seenUptime = true
 			assert.Equal(t, "gauge", metricLog.MetricType, "server.uptime metric had incorrect type")
 			assert.NotZero(t, metricLog.Values["value"])
+		case "server.conn_state_change":
+			seenConnStateChange = true
+			assert.Equal(t, "counter", metricLog.MetricType, "server.conn_state_change metric had incorrect type")
 		default:
 			assert.Fail(t, "unexpected metric encountered", "%s", metricLog.MetricName)
 		}
@@ -552,6 +556,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
 	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
 	assert.True(t, seenUptime, "server.uptime metric was not emitted")
+	assert.True(t, seenConnStateChange, "server.conn_state_change metric was not emitted")
 
 	select {
 	case err := <-serverErr:
@@ -611,7 +616,8 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		seenResponseSize,
 		seenRequestSize,
 		seenResponseError,
-		seenUptime bool
+		seenUptime,
+		seenConnStateChange bool
 	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
@@ -665,6 +671,10 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 			seenUptime = true
 			assert.Equal(t, "gauge", metricLog.MetricType, "server.uptime metric had incorrect type")
 			assert.NotZero(t, metricLog.Values["value"])
+		case "server.conn_state_change":
+			seenConnStateChange = true
+			assert.Equal(t, "counter", metricLog.MetricType, "server.conn_state_change metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
@@ -677,6 +687,7 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
 	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
 	assert.True(t, seenUptime, "server.uptime metric was not emitted")
+	assert.True(t, seenConnStateChange, "server.conn_state_change metric was not emitted")
 
 	select {
 	case err := <-serverErr:
@@ -737,7 +748,8 @@ func TestMetricsBlacklist(t *testing.T) {
 		seenResponseTimer,
 		seenResponseSize,
 		seenRequestSize,
-		seenResponseError bool
+		seenResponseError,
+		seenConnStateChange bool
 	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
@@ -761,6 +773,10 @@ func TestMetricsBlacklist(t *testing.T) {
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
 			assert.NotZero(t, metricLog.Values["count"])
+		case "server.conn_state_change":
+			seenConnStateChange = true
+			assert.Equal(t, "counter", metricLog.MetricType, "server.conn_state_change metric had incorrect type")
+			assert.NotZero(t, metricLog.Values["count"])
 		default:
 			assert.Fail(t, "unexpected metric encountered: %s", metricLog.MetricName)
 		}
@@ -773,6 +789,7 @@ func TestMetricsBlacklist(t *testing.T) {
 	assert.True(t, seenResponseTimer, "server.response metric was not emitted")
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
 	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
+	assert.True(t, seenConnStateChange, "server.conn_state_change metric was not emitted")
 
 	select {
 	case err := <-serverErr:
