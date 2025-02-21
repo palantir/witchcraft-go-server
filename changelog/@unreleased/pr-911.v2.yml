@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    Add counter metric tracking main server connection state changes.
+  links:
+    - https://github.com/palantir/witchcraft-go-server/pull/911
+

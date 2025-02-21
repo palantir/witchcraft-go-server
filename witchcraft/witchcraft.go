@@ -817,7 +817,7 @@ func (s *Server) Start() (rErr error) {
 		}()
 	}
 
-	httpServer, svrStart, _, err := s.newServer(baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter())
+	httpServer, svrStart, _, err := s.newServer(baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter(), s.connStateCallback(ctx))
 	if err != nil {
 		return err
 	}
@@ -831,6 +831,12 @@ func (s *Server) Start() (rErr error) {
 		return werror.ErrorWithContextParams(ctx, "server was shut down before it could start")
 	}
 	return svrStart()
+}
+
+func (s *Server) connStateCallback(ctx context.Context) func(conn net.Conn, state http.ConnState) {
+	return func(conn net.Conn, state http.ConnState) {
+		metrics.FromContext(ctx).Counter("server.conn_state_change", metrics.MustNewTag("state", state.String())).Inc(1)
+	}
 }
 
 func (s *Server) withLoggers(ctx context.Context) context.Context {
