@@ -86,7 +86,8 @@ func TestEmitMetrics(t *testing.T) {
 		seenUptime,
 		seenResponseSize,
 		seenRequestSize,
-		seenResponseError bool
+		seenResponseError,
+		seenConnStateChange bool
 	)
 	for _, metricLog := range metricLogs {
 		switch metricLog.MetricName {
@@ -177,6 +178,11 @@ func TestEmitMetrics(t *testing.T) {
 				"go_version": runtime.Version(),
 			}, metricLog.Tags)
 			assert.NotZero(t, metricLog.Values["value"])
+		case "server.conn_state_change":
+			seenConnStateChange = true
+			assert.Equal(t, "counter", metricLog.MetricType, "server.conn_state_change metric had incorrect type")
+			assert.NotNil(t, metricLog.Values["count"])
+			assert.NotEmpty(t, metricLog.Tags["state"], "server.conn_state_change metric did not have 'state' tag")
 		default:
 			assert.Fail(t, "unexpected metric encountered", "%s", metricLog.MetricName)
 		}
@@ -190,6 +196,7 @@ func TestEmitMetrics(t *testing.T) {
 	assert.True(t, seenResponseSize, "server.response.size metric was not emitted")
 	assert.True(t, seenResponseError, "server.response.error metric was not emitted")
 	assert.True(t, seenUptime, "server.uptime metric was not emitted")
+	assert.True(t, seenConnStateChange, "server.conn_state_change metric was not emitted")
 
 	select {
 	case err := <-serverErr:
