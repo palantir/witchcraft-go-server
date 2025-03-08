@@ -16,7 +16,7 @@ import (
 type SerializedEncryptedValue string
 
 func newSerializedEncryptedValue(bytes []byte) SerializedEncryptedValue {
-	return SerializedEncryptedValue(fmt.Sprintf(encPrefix + base64.StdEncoding.EncodeToString(bytes)))
+	return SerializedEncryptedValue(fmt.Sprint(encPrefix + base64.StdEncoding.EncodeToString(bytes)))
 }
 
 // EncryptedValue represents a value that has been encrypted using encrypted-config-value. The value can be decrypted
