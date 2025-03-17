@@ -87,18 +87,12 @@ func (u *UnionEventLogWithT[T]) Accept(ctx context.Context, v UnionEventLogVisit
 			return result, fmt.Errorf("field \"eventLogV2\" is required")
 		}
 		return v.VisitEventLogV2(ctx, *u.eventLogV2)
-	case "beaconLog":
-		if u.beaconLog == nil {
-			return result, fmt.Errorf("field \"beaconLog\" is required")
-		}
-		return v.VisitBeaconLog(ctx, *u.beaconLog)
 	}
 }
 
 type UnionEventLogVisitorWithT[T any] interface {
 	VisitEventLog(ctx context.Context, v EventLogV1) (T, error)
 	VisitEventLogV2(ctx context.Context, v EventLogV2) (T, error)
-	VisitBeaconLog(ctx context.Context, v BeaconLogV1) (T, error)
 	VisitUnknown(ctx context.Context, typ string) (T, error)
 }
 
@@ -142,6 +136,11 @@ func (u *WrappedLogV1PayloadWithT[T]) Accept(ctx context.Context, v WrappedLogV1
 			return result, fmt.Errorf("field \"auditLogV2\" is required")
 		}
 		return v.VisitAuditLogV2(ctx, *u.auditLogV2)
+	case "auditLogV3":
+		if u.auditLogV3 == nil {
+			return result, fmt.Errorf("field \"auditLogV3\" is required")
+		}
+		return v.VisitAuditLogV3(ctx, *u.auditLogV3)
 	case "diagnosticLogV1":
 		if u.diagnosticLogV1 == nil {
 			return result, fmt.Errorf("field \"diagnosticLogV1\" is required")
@@ -157,6 +156,7 @@ type WrappedLogV1PayloadVisitorWithT[T any] interface {
 	VisitEventLogV2(ctx context.Context, v EventLogV2) (T, error)
 	VisitMetricLogV1(ctx context.Context, v MetricLogV1) (T, error)
 	VisitAuditLogV2(ctx context.Context, v AuditLogV2) (T, error)
+	VisitAuditLogV3(ctx context.Context, v AuditLogV3) (T, error)
 	VisitDiagnosticLogV1(ctx context.Context, v DiagnosticLogV1) (T, error)
 	VisitUnknown(ctx context.Context, typ string) (T, error)
 }

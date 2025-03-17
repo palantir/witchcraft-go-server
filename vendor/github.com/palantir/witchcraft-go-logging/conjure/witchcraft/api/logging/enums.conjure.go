@@ -6,6 +6,63 @@ import (
 	"strings"
 )
 
+type AuditProducer struct {
+	val AuditProducer_Value
+}
+
+type AuditProducer_Value string
+
+const (
+	AuditProducer_SERVER  AuditProducer_Value = "SERVER"
+	AuditProducer_CLIENT  AuditProducer_Value = "CLIENT"
+	AuditProducer_UNKNOWN AuditProducer_Value = "UNKNOWN"
+)
+
+// AuditProducer_Values returns all known variants of AuditProducer.
+func AuditProducer_Values() []AuditProducer_Value {
+	return []AuditProducer_Value{AuditProducer_SERVER, AuditProducer_CLIENT}
+}
+
+func New_AuditProducer(value AuditProducer_Value) AuditProducer {
+	return AuditProducer{val: value}
+}
+
+// IsUnknown returns false for all known variants of AuditProducer and true otherwise.
+func (e AuditProducer) IsUnknown() bool {
+	switch e.val {
+	case AuditProducer_SERVER, AuditProducer_CLIENT:
+		return false
+	}
+	return true
+}
+
+func (e AuditProducer) Value() AuditProducer_Value {
+	if e.IsUnknown() {
+		return AuditProducer_UNKNOWN
+	}
+	return e.val
+}
+
+func (e AuditProducer) String() string {
+	return string(e.val)
+}
+
+func (e AuditProducer) MarshalText() ([]byte, error) {
+	return []byte(e.val), nil
+}
+
+func (e *AuditProducer) UnmarshalText(data []byte) error {
+	switch v := strings.ToUpper(string(data)); v {
+	default:
+		*e = New_AuditProducer(AuditProducer_Value(v))
+	case "SERVER":
+		*e = New_AuditProducer(AuditProducer_SERVER)
+	case "CLIENT":
+		*e = New_AuditProducer(AuditProducer_CLIENT)
+	}
+	return nil
+}
+
 type AuditResult struct {
 	val AuditResult_Value
 }
@@ -14,14 +71,16 @@ type AuditResult_Value string
 
 const (
 	AuditResult_SUCCESS      AuditResult_Value = "SUCCESS"
-	AuditResult_UNAUTHORIZED AuditResult_Value = "UNAUTHORIZED"
 	AuditResult_ERROR        AuditResult_Value = "ERROR"
-	AuditResult_UNKNOWN      AuditResult_Value = "UNKNOWN"
+	AuditResult_UNAUTHORIZED AuditResult_Value = "UNAUTHORIZED"
+	// A result that has not yet been finalized. It may be missing fields from resultParams, and it is expected that a non-partial log should occur in the future with the same event ID.
+	AuditResult_PARTIAL AuditResult_Value = "PARTIAL"
+	AuditResult_UNKNOWN AuditResult_Value = "UNKNOWN"
 )
 
 // AuditResult_Values returns all known variants of AuditResult.
 func AuditResult_Values() []AuditResult_Value {
-	return []AuditResult_Value{AuditResult_SUCCESS, AuditResult_UNAUTHORIZED, AuditResult_ERROR}
+	return []AuditResult_Value{AuditResult_SUCCESS, AuditResult_ERROR, AuditResult_UNAUTHORIZED, AuditResult_PARTIAL}
 }
 
 func New_AuditResult(value AuditResult_Value) AuditResult {
@@ -31,7 +90,7 @@ func New_AuditResult(value AuditResult_Value) AuditResult {
 // IsUnknown returns false for all known variants of AuditResult and true otherwise.
 func (e AuditResult) IsUnknown() bool {
 	switch e.val {
-	case AuditResult_SUCCESS, AuditResult_UNAUTHORIZED, AuditResult_ERROR:
+	case AuditResult_SUCCESS, AuditResult_ERROR, AuditResult_UNAUTHORIZED, AuditResult_PARTIAL:
 		return false
 	}
 	return true
@@ -58,10 +117,12 @@ func (e *AuditResult) UnmarshalText(data []byte) error {
 		*e = New_AuditResult(AuditResult_Value(v))
 	case "SUCCESS":
 		*e = New_AuditResult(AuditResult_SUCCESS)
-	case "UNAUTHORIZED":
-		*e = New_AuditResult(AuditResult_UNAUTHORIZED)
 	case "ERROR":
 		*e = New_AuditResult(AuditResult_ERROR)
+	case "UNAUTHORIZED":
+		*e = New_AuditResult(AuditResult_UNAUTHORIZED)
+	case "PARTIAL":
+		*e = New_AuditResult(AuditResult_PARTIAL)
 	}
 	return nil
 }

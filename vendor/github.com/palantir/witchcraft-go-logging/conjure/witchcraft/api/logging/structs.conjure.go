@@ -7,6 +7,7 @@ import (
 	"github.com/palantir/pkg/safejson"
 	"github.com/palantir/pkg/safelong"
 	"github.com/palantir/pkg/safeyaml"
+	"github.com/palantir/pkg/uuid"
 )
 
 // A Zipkin-compatible Annotation object.
@@ -45,6 +46,8 @@ type AuditLogV2 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Zipkin trace id (if available)
 	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// All users upstream of the user currently taking an action. The first element in this list is the uid of the most upstream caller. This list does not include the `uid`.
@@ -113,58 +116,210 @@ func (o *AuditLogV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return safejson.Unmarshal(jsonBytes, *&o)
 }
 
-// Definition of the beacon.1 format.
-type BeaconLogV1 struct {
-	Type string            `json:"type"`
-	Time datetime.DateTime `json:"time"`
-	// Dot-delimited name for the structure of the params block, e.g. `compass.SearchEvent.v1`
-	EventType string `conjure-docs:"Dot-delimited name for the structure of the params block, e.g. \"compass.SearchEvent.v1\"" json:"eventType"`
-	// Name of the application that created the log
-	AppName string `conjure-docs:"Name of the application that created the log" json:"appName"`
-	// Version of the application that created the log
-	AppVersion string `conjure-docs:"Version of the application that created the log" json:"appVersion"`
-	// Known-safe parameters (redaction may be used to make params knowably safe, but is not required)
-	Params map[string]interface{} `conjure-docs:"Known-safe parameters (redaction may be used to make params knowably safe, but is not required)" json:"params"`
-	// Browser identifier (if available)
-	BrowserId *string `conjure-docs:"Browser identifier (if available)" json:"browserId"`
-	// User id (if available)
-	Uid *UserId `conjure-docs:"User id (if available)" json:"uid"`
+type AuditLogV3 struct {
+	// "audit.3"
+	Type string `conjure-docs:"\"audit.3\"" json:"type"`
+	// The deployment that produced this log. Not exposed to downstream consumers.
+	Deployment string `conjure-docs:"The deployment that produced this log. Not exposed to downstream consumers." json:"deployment"`
+	// The host of the service that produced this log.
+	Host string `conjure-docs:"The host of the service that produced this log." json:"host"`
+	// The name of the product that produced this log.
+	Product string `conjure-docs:"The name of the product that produced this log." json:"product"`
+	// The version of the product that produced this log.
+	ProductVersion string `conjure-docs:"The version of the product that produced this log." json:"productVersion"`
+	// The stack that this log was generated on.
+	Stack *string `conjure-docs:"The stack that this log was generated on." json:"stack"`
+	// The service name that produced this log.
+	Service *string `conjure-docs:"The service name that produced this log." json:"service"`
+	// The environment that produced this log.
+	Environment *string `conjure-docs:"The environment that produced this log." json:"environment"`
+	// How this audit log was produced, eg. from a backend Server, frontend Client etc.
+	ProducerType AuditProducer `conjure-docs:"How this audit log was produced, eg. from a backend Server, frontend Client etc." json:"producerType"`
+	/*
+	   A list of organizations that have been attributed to this log.
+	   Attribution is typically based on the user that originated this log, and the resources that
+	   they targeted.
+	   Not exposed to downstream consumers.
+	*/
+	Organizations []Organization `conjure-docs:"A list of organizations that have been attributed to this log.\nAttribution is typically based on the user that originated this log, and the resources that\nthey targeted.\nNot exposed to downstream consumers." json:"organizations"`
+	/*
+	   Unique identifier for this audit log event. If there are multiple log entries associated with this
+	   particular audit event, they will share the same eventId but will have different logEntryId and different
+	   sequenceId.
+	*/
+	EventId uuid.UUID `conjure-docs:"Unique identifier for this audit log event. If there are multiple log entries associated with this\nparticular audit event, they will share the same eventId but will have different logEntryId and different\nsequenceId." json:"eventId"`
+	// Unique identifier for this audit log.
+	LogEntryId *uuid.UUID `conjure-docs:"Unique identifier for this audit log." json:"logEntryId"`
+	// Orders the log entries when there are multiple entries for the same event.
+	SequenceId *int `conjure-docs:"Orders the log entries when there are multiple entries for the same event." json:"sequenceId"`
+	// The user agent of the user that originated this log.
+	UserAgent *string `conjure-docs:"The user agent of the user that originated this log." json:"userAgent"`
+	/*
+	   All audit categories produced by this audit event.
+	   Each audit categories produces a set of keys that will be distributed between the request and
+	   response params.
+	*/
+	Categories []string `conjure-docs:"All audit categories produced by this audit event.\nEach audit categories produces a set of keys that will be distributed between the request and\nresponse params." json:"categories"`
+	/*
+	   All contextualized entities present in the request and response params of this log.
+	   Note: Some resources cannot be contextualized, and will not be included in this list as a result.
+	*/
+	Entities []interface{} `conjure-docs:"All contextualized entities present in the request and response params of this log.\nNote: Some resources cannot be contextualized, and will not be included in this list as a result." json:"entities"`
+	/*
+	   All contextualized users present in the request and response params of this log, including the top level
+	   UUID of this log.
+	*/
+	Users []ContextualizedUser `conjure-docs:"All contextualized users present in the request and response params of this log, including the top level\nUUID of this log." json:"users"`
+	/*
+	   All addresses attached to the request. Contains information
+	   from unreliable sources such as the X-Forwarded-For header.
+
+	   This value can be spoofed.
+	*/
+	Origins []string `conjure-docs:"All addresses attached to the request. Contains information\nfrom unreliable sources such as the X-Forwarded-For header.\n\nThis value can be spoofed." json:"origins"`
+	/*
+	   Origin of the network request. If a request goes through a proxy,
+	   this will contain the proxy''s address.
+
+	   This value is verified through the TCP stack.
+	*/
+	SourceOrigin *string `conjure-docs:"Origin of the network request. If a request goes through a proxy,\nthis will contain the proxy''s address.\n\nThis value is verified through the TCP stack." json:"sourceOrigin"`
+	/*
+	   The parameters known at method invocation time.
+
+	   Note that all keys must be known to the audit library. Typically, entries in the request and response
+	   params will be dependent on the `categories` field defined above.
+
+	   Deprecated: Use requestFields instead.
+
+	   Should be translated to requestFields during emitting if requestFields is missing, by dropping the level
+	   from the SensitivityTaggedValue and directly using the payload as the value for the map.
+	*/
+	RequestParams map[string]SensitivityTaggedValue `conjure-docs:"The parameters known at method invocation time.\n\nNote that all keys must be known to the audit library. Typically, entries in the request and response\nparams will be dependent on the \"categories\" field defined above." json:"requestParams"`
+	/*
+	   The fields known at method invocation time.
+
+	   Note that all keys must be known to the audit library. Typically, entries in the request and result
+	   fields will be dependent on the `categories` field defined above.
+
+	   This replaces requestParams and will take priority if present.
+	*/
+	RequestFields map[string]interface{} `conjure-docs:"The fields known at method invocation time.\n\nNote that all keys must be known to the audit library. Typically, entries in the request and result\nfields will be dependent on the \"categories\" field defined above.\n\nThis replaces requestParams and will take priority if present." json:"requestFields"`
+	/*
+	   Information derived within a method, commonly parts of the return value.
+
+	   Note that all keys must be known to the audit library. Typically, entries in the request and response
+	   params will be dependent on the `categories` field defined above.
+
+	   Deprecated: Use resultFields instead.
+
+	   Should be translated to resultFields during emitting if resultFields is missing, by dropping the level
+	   from the SensitivityTaggedValue and directly using the payload as the value for the map.
+	*/
+	ResultParams map[string]SensitivityTaggedValue `conjure-docs:"Information derived within a method, commonly parts of the return value.\n\nNote that all keys must be known to the audit library. Typically, entries in the request and response\nparams will be dependent on the \"categories\" field defined above." json:"resultParams"`
+	/*
+	   Information derived within a method, commonly parts of the return value.
+
+	   Note that all keys must be known to the audit library. Typically, entries in the request and result
+	   fields will be dependent on the `categories` field defined above.
+
+	   This replaces resultParams and will take priority if present.
+	*/
+	ResultFields map[string]interface{} `conjure-docs:"Information derived within a method, commonly parts of the return value.\n\nNote that all keys must be known to the audit library. Typically, entries in the request and result\nfields will be dependent on the \"categories\" field defined above.\n\nThis replaces resultParams and will take priority if present." json:"resultFields"`
+	Time         datetime.DateTime      `json:"time"`
+	// User id (if available). This is the most downstream caller.
+	Uid *UserId `conjure-docs:"User id (if available). This is the most downstream caller." json:"uid"`
 	// Session id (if available)
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
+	// API token id (if available)
+	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Zipkin trace id (if available)
 	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
-	// Unredacted parameters
-	UnsafeParams map[string]interface{} `conjure-docs:"Unredacted parameters" json:"unsafeParams"`
+	/*
+	   Best-effort identifier of the originating machine, e.g. an
+	   IP address, a Kubernetes node identifier, or similar.
+
+	   This value can be spoofed.
+	*/
+	Origin *string `conjure-docs:"Best-effort identifier of the originating machine, e.g. an\nIP address, a Kubernetes node identifier, or similar.\n\nThis value can be spoofed." json:"origin"`
+	// Name of the audit event, e.g. PUT_FILE
+	Name string `conjure-docs:"Name of the audit event, e.g. PUT_FILE" json:"name"`
+	// Indicates whether the request was successful or the type of failure, e.g. ERROR or UNAUTHORIZED
+	Result AuditResult `conjure-docs:"Indicates whether the request was successful or the type of failure, e.g. ERROR or UNAUTHORIZED" json:"result"`
 }
 
-func (o BeaconLogV1) MarshalJSON() ([]byte, error) {
-	if o.Params == nil {
-		o.Params = make(map[string]interface{}, 0)
+func (o AuditLogV3) MarshalJSON() ([]byte, error) {
+	if o.Organizations == nil {
+		o.Organizations = make([]Organization, 0)
 	}
-	if o.UnsafeParams == nil {
-		o.UnsafeParams = make(map[string]interface{}, 0)
+	if o.Categories == nil {
+		o.Categories = make([]string, 0)
 	}
-	type _tmpBeaconLogV1 BeaconLogV1
-	return safejson.Marshal(_tmpBeaconLogV1(o))
+	if o.Entities == nil {
+		o.Entities = make([]interface{}, 0)
+	}
+	if o.Users == nil {
+		o.Users = make([]ContextualizedUser, 0)
+	}
+	if o.Origins == nil {
+		o.Origins = make([]string, 0)
+	}
+	if o.RequestParams == nil {
+		o.RequestParams = make(map[string]SensitivityTaggedValue, 0)
+	}
+	if o.RequestFields == nil {
+		o.RequestFields = make(map[string]interface{}, 0)
+	}
+	if o.ResultParams == nil {
+		o.ResultParams = make(map[string]SensitivityTaggedValue, 0)
+	}
+	if o.ResultFields == nil {
+		o.ResultFields = make(map[string]interface{}, 0)
+	}
+	type _tmpAuditLogV3 AuditLogV3
+	return safejson.Marshal(_tmpAuditLogV3(o))
 }
 
-func (o *BeaconLogV1) UnmarshalJSON(data []byte) error {
-	type _tmpBeaconLogV1 BeaconLogV1
-	var rawBeaconLogV1 _tmpBeaconLogV1
-	if err := safejson.Unmarshal(data, &rawBeaconLogV1); err != nil {
+func (o *AuditLogV3) UnmarshalJSON(data []byte) error {
+	type _tmpAuditLogV3 AuditLogV3
+	var rawAuditLogV3 _tmpAuditLogV3
+	if err := safejson.Unmarshal(data, &rawAuditLogV3); err != nil {
 		return err
 	}
-	if rawBeaconLogV1.Params == nil {
-		rawBeaconLogV1.Params = make(map[string]interface{}, 0)
+	if rawAuditLogV3.Organizations == nil {
+		rawAuditLogV3.Organizations = make([]Organization, 0)
 	}
-	if rawBeaconLogV1.UnsafeParams == nil {
-		rawBeaconLogV1.UnsafeParams = make(map[string]interface{}, 0)
+	if rawAuditLogV3.Categories == nil {
+		rawAuditLogV3.Categories = make([]string, 0)
 	}
-	*o = BeaconLogV1(rawBeaconLogV1)
+	if rawAuditLogV3.Entities == nil {
+		rawAuditLogV3.Entities = make([]interface{}, 0)
+	}
+	if rawAuditLogV3.Users == nil {
+		rawAuditLogV3.Users = make([]ContextualizedUser, 0)
+	}
+	if rawAuditLogV3.Origins == nil {
+		rawAuditLogV3.Origins = make([]string, 0)
+	}
+	if rawAuditLogV3.RequestParams == nil {
+		rawAuditLogV3.RequestParams = make(map[string]SensitivityTaggedValue, 0)
+	}
+	if rawAuditLogV3.RequestFields == nil {
+		rawAuditLogV3.RequestFields = make(map[string]interface{}, 0)
+	}
+	if rawAuditLogV3.ResultParams == nil {
+		rawAuditLogV3.ResultParams = make(map[string]SensitivityTaggedValue, 0)
+	}
+	if rawAuditLogV3.ResultFields == nil {
+		rawAuditLogV3.ResultFields = make(map[string]interface{}, 0)
+	}
+	*o = AuditLogV3(rawAuditLogV3)
 	return nil
 }
 
-func (o BeaconLogV1) MarshalYAML() (interface{}, error) {
+func (o AuditLogV3) MarshalYAML() (interface{}, error) {
 	jsonBytes, err := safejson.Marshal(o)
 	if err != nil {
 		return nil, err
@@ -172,7 +327,53 @@ func (o BeaconLogV1) MarshalYAML() (interface{}, error) {
 	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
 }
 
-func (o *BeaconLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (o *AuditLogV3) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+type ContextualizedUser struct {
+	Uid       UserId   `json:"uid"`
+	UserName  *string  `json:"userName"`
+	FirstName *string  `json:"firstName"`
+	LastName  *string  `json:"lastName"`
+	Groups    []string `json:"groups"`
+	Realm     *string  `json:"realm"`
+}
+
+func (o ContextualizedUser) MarshalJSON() ([]byte, error) {
+	if o.Groups == nil {
+		o.Groups = make([]string, 0)
+	}
+	type _tmpContextualizedUser ContextualizedUser
+	return safejson.Marshal(_tmpContextualizedUser(o))
+}
+
+func (o *ContextualizedUser) UnmarshalJSON(data []byte) error {
+	type _tmpContextualizedUser ContextualizedUser
+	var rawContextualizedUser _tmpContextualizedUser
+	if err := safejson.Unmarshal(data, &rawContextualizedUser); err != nil {
+		return err
+	}
+	if rawContextualizedUser.Groups == nil {
+		rawContextualizedUser.Groups = make([]string, 0)
+	}
+	*o = ContextualizedUser(rawContextualizedUser)
+	return nil
+}
+
+func (o ContextualizedUser) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *ContextualizedUser) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
 	if err != nil {
 		return err
@@ -269,6 +470,8 @@ type EventLogV1 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Unsafe metadata describing the event
 	UnsafeParams map[string]interface{} `conjure-docs:"Unsafe metadata describing the event" json:"unsafeParams"`
 }
@@ -330,6 +533,8 @@ type EventLogV2 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Zipkin trace id (if available)
 	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unsafe metadata describing the event
@@ -420,6 +625,8 @@ type MetricLogV1 struct {
 	MetricType string `conjure-docs:"Type of metric being represented, e.g. \"gauge\", \"histogram\", \"counter\"" json:"metricType"`
 	// Observations, measurements and context associated with the metric
 	Values map[string]interface{} `conjure-docs:"Observations, measurements and context associated with the metric" json:"values"`
+	// List of samples (if any) associated with the metric
+	Samples []Sample `conjure-docs:"List of samples (if any) associated with the metric" json:"samples"`
 	// Additional dimensions that describe the instance of the metric
 	Tags map[string]string `conjure-docs:"Additional dimensions that describe the instance of the metric" json:"tags"`
 	// User id (if available)
@@ -428,6 +635,8 @@ type MetricLogV1 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Unsafe metadata describing the event
 	UnsafeParams map[string]interface{} `conjure-docs:"Unsafe metadata describing the event" json:"unsafeParams"`
 }
@@ -435,6 +644,9 @@ type MetricLogV1 struct {
 func (o MetricLogV1) MarshalJSON() ([]byte, error) {
 	if o.Values == nil {
 		o.Values = make(map[string]interface{}, 0)
+	}
+	if o.Samples == nil {
+		o.Samples = make([]Sample, 0)
 	}
 	if o.Tags == nil {
 		o.Tags = make(map[string]string, 0)
@@ -455,6 +667,9 @@ func (o *MetricLogV1) UnmarshalJSON(data []byte) error {
 	if rawMetricLogV1.Values == nil {
 		rawMetricLogV1.Values = make(map[string]interface{}, 0)
 	}
+	if rawMetricLogV1.Samples == nil {
+		rawMetricLogV1.Samples = make([]Sample, 0)
+	}
 	if rawMetricLogV1.Tags == nil {
 		rawMetricLogV1.Tags = make(map[string]string, 0)
 	}
@@ -474,6 +689,29 @@ func (o MetricLogV1) MarshalYAML() (interface{}, error) {
 }
 
 func (o *MetricLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+type Organization struct {
+	// Organization RID. Not exposed to downstream consumers.
+	Id string `conjure-docs:"Organization RID. Not exposed to downstream consumers." json:"id"`
+	// Explanation of why this organization was attributed to this log.
+	Reason string `conjure-docs:"Explanation of why this organization was attributed to this log." json:"reason"`
+}
+
+func (o Organization) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *Organization) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
 	if err != nil {
 		return err
@@ -513,6 +751,8 @@ type RequestLogV1 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Zipkin trace id (if available)
 	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unredacted parameters such as path, query and header parameters
@@ -606,6 +846,8 @@ type RequestLogV2 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Zipkin trace id (if available)
 	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Unredacted parameters such as path, query and header parameters
@@ -655,12 +897,80 @@ func (o *RequestLogV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return safejson.Unmarshal(jsonBytes, *&o)
 }
 
+type Sample struct {
+	// Exact value of this metric sample
+	Value interface{} `conjure-docs:"Exact value of this metric sample" json:"value"`
+	// RFC3339Nano UTC datetime string of when the sample was taken
+	Time datetime.DateTime `conjure-docs:"RFC3339Nano UTC datetime string of when the sample was taken" json:"time"`
+	// Zipkin trace id associated with this sample, if available
+	TraceId *TraceId `conjure-docs:"Zipkin trace id associated with this sample, if available" json:"traceId"`
+}
+
+func (o Sample) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *Sample) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+type SensitivityTaggedValue struct {
+	// Sensitivity level of this value; must be a known level in sls-spec.
+	Level   []string    `conjure-docs:"Sensitivity level of this value; must be a known level in sls-spec." json:"level"`
+	Payload interface{} `json:"payload"`
+}
+
+func (o SensitivityTaggedValue) MarshalJSON() ([]byte, error) {
+	if o.Level == nil {
+		o.Level = make([]string, 0)
+	}
+	type _tmpSensitivityTaggedValue SensitivityTaggedValue
+	return safejson.Marshal(_tmpSensitivityTaggedValue(o))
+}
+
+func (o *SensitivityTaggedValue) UnmarshalJSON(data []byte) error {
+	type _tmpSensitivityTaggedValue SensitivityTaggedValue
+	var rawSensitivityTaggedValue _tmpSensitivityTaggedValue
+	if err := safejson.Unmarshal(data, &rawSensitivityTaggedValue); err != nil {
+		return err
+	}
+	if rawSensitivityTaggedValue.Level == nil {
+		rawSensitivityTaggedValue.Level = make([]string, 0)
+	}
+	*o = SensitivityTaggedValue(rawSensitivityTaggedValue)
+	return nil
+}
+
+func (o SensitivityTaggedValue) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *SensitivityTaggedValue) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
 // Definition of the service.1 format.
 type ServiceLogV1 struct {
 	// "service.1"
 	Type string `conjure-docs:"\"service.1\"" json:"type"`
-	// The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE}.
-	Level LogLevel `conjure-docs:"The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE}." json:"level"`
+	// The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE} based on [log level coding guidelines](https://github.com/palantir/gradle-baseline/blob/develop/docs/best-practices/java-coding-guidelines/readme.md#log-levels)
+	Level LogLevel `conjure-docs:"The logger output level. One of {FATAL,ERROR,WARN,INFO,DEBUG,TRACE} based on [log level coding guidelines](https://github.com/palantir/gradle-baseline/blob/develop/docs/best-practices/java-coding-guidelines/readme.md#log-levels)" json:"level"`
 	// RFC3339Nano UTC datetime string when the log event was emitted
 	Time datetime.DateTime `conjure-docs:"RFC3339Nano UTC datetime string when the log event was emitted" json:"time"`
 	// Class or file name. May include line number.
@@ -669,6 +979,8 @@ type ServiceLogV1 struct {
 	Thread *string `conjure-docs:"Thread name" json:"thread"`
 	// Log message. Palantir Java services using slf4j should not use slf4j placeholders ({}). Logs obtained from 3rd party libraries or services that use slf4j and contain slf4j placeholders will always produce `unsafeParams` with numeric indexes corresponding to the zero-indexed order of placeholders. Renderers should substitute numeric parameters from `unsafeParams` and may leave placeholders that do not match indexes as the original placeholder text.
 	Message string `conjure-docs:"Log message. Palantir Java services using slf4j should not use slf4j placeholders ({}). Logs obtained from 3rd party libraries or services that use slf4j and contain slf4j placeholders will always produce \"unsafeParams\" with numeric indexes corresponding to the zero-indexed order of placeholders. Renderers should substitute numeric parameters from \"unsafeParams\" and may leave placeholders that do not match indexes as the original placeholder text." json:"message"`
+	// Describes the safety of this log event based on prior knowledge within the application which produced the message. This field should not be set to `true` without _total_ confidence that it is correct. * _empty_:  Considered unsafe unless the logging pipeline has special configuration for this `origin`. Eventually these will all be equivalent to `false`. * `true`: All safe components can be trusted. * `false`: Event is _unsafe_ and cannot be exported.
+	Safe *bool `conjure-docs:"Describes the safety of this log event based on prior knowledge within the application which produced the message. This field should not be set to \"true\" without _total_ confidence that it is correct. * _empty_:  Considered unsafe unless the logging pipeline has special configuration for this \"origin\". Eventually these will all be equivalent to \"false\". * \"true\": All safe components can be trusted. * \"false\": Event is _unsafe_ and cannot be exported." json:"safe"`
 	// Known-safe parameters (redaction may be used to make params knowably safe, but is not required).
 	Params map[string]interface{} `conjure-docs:"Known-safe parameters (redaction may be used to make params knowably safe, but is not required)." json:"params"`
 	// User id (if available).
@@ -677,6 +989,8 @@ type ServiceLogV1 struct {
 	Sid *SessionId `conjure-docs:"Session id (if available)" json:"sid"`
 	// API token id (if available)
 	TokenId *TokenId `conjure-docs:"API token id (if available)" json:"tokenId"`
+	// Organization id (if available)
+	OrgId *OrganizationId `conjure-docs:"Organization id (if available)" json:"orgId"`
 	// Zipkin trace id (if available)
 	TraceId *TraceId `conjure-docs:"Zipkin trace id (if available)" json:"traceId"`
 	// Language-specific stack trace. Content is knowably safe. Renderers should substitute named placeholders ({name}, for name as a key) with keyed value from unsafeParams and leave non-matching keys as the original placeholder text.
@@ -951,6 +1265,7 @@ type TraceLogV1 struct {
 	Uid          *UserId                `json:"uid"`
 	Sid          *SessionId             `json:"sid"`
 	TokenId      *TokenId               `json:"tokenId"`
+	OrgId        *OrganizationId        `json:"orgId"`
 	UnsafeParams map[string]interface{} `json:"unsafeParams"`
 	Span         Span                   `json:"span"`
 }
@@ -992,6 +1307,56 @@ func (o *TraceLogV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return safejson.Unmarshal(jsonBytes, *&o)
 }
 
+// Wraps a log entry with metadata on where it is coming from and the source service that generated it.
+type WitchcraftEnvelopeV1 struct {
+	// "envelope.1"
+	Type string `conjure-docs:"\"envelope.1\"" json:"type"`
+	// Color or other codename for the customer infra
+	Deployment string `conjure-docs:"Color or other codename for the customer infra" json:"deployment"`
+	// prod/staging/integration etc.
+	Environment string `conjure-docs:"prod/staging/integration etc." json:"environment"`
+	// Skylab environment ID
+	EnvironmentId string `conjure-docs:"Skylab environment ID" json:"environmentId"`
+	// Hostname where the log message originated
+	Host string `conjure-docs:"Hostname where the log message originated" json:"host"`
+	// Skylab node ID
+	NodeId string `conjure-docs:"Skylab node ID" json:"nodeId"`
+	// Skylab service name
+	Service string `conjure-docs:"Skylab service name" json:"service"`
+	// Skylab service ID
+	ServiceId string `conjure-docs:"Skylab service ID" json:"serviceId"`
+	// Skylab stack name
+	Stack string `conjure-docs:"Skylab stack name" json:"stack"`
+	// Skylab stack ID
+	StackId string `conjure-docs:"Skylab stack ID" json:"stackId"`
+	// Artifact part of product's maven coordinate
+	Product string `conjure-docs:"Artifact part of product's maven coordinate" json:"product"`
+	// Artifact semantic version
+	ProductVersion string `conjure-docs:"Artifact semantic version" json:"productVersion"`
+	// One of the Witchcraft log types; see [witchcraft-api](https://github.com/palantir/witchcraft-api) for details.
+	Payload interface{} `conjure-docs:"One of the Witchcraft log types; see [witchcraft-api](https://github.com/palantir/witchcraft-api) for details." json:"payload"`
+	// Apollo entity id
+	ApolloEntityId string `conjure-docs:"Apollo entity id" json:"apolloEntityId"`
+	// Apollo environment id
+	ApolloEnvironmentId string `conjure-docs:"Apollo environment id" json:"apolloEnvironmentId"`
+}
+
+func (o WitchcraftEnvelopeV1) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *WitchcraftEnvelopeV1) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
 // Wraps a log entry with entity information.
 type WrappedLogV1 struct {
 	// "wrapped.1"
@@ -1000,6 +1365,14 @@ type WrappedLogV1 struct {
 	// Artifact part of entity's maven coordinate
 	EntityName    string `conjure-docs:"Artifact part of entity's maven coordinate" json:"entityName"`
 	EntityVersion string `json:"entityVersion"`
+	// Defaults to the wrapped log producer's Skylab service name.
+	Service *string `conjure-docs:"Defaults to the wrapped log producer's Skylab service name." json:"service"`
+	// Defaults to the wrapped log producer's Skylab service ID.
+	ServiceId *string `conjure-docs:"Defaults to the wrapped log producer's Skylab service ID." json:"serviceId"`
+	// Defaults to the wrapped log producer's Skylab stack name.
+	Stack *string `conjure-docs:"Defaults to the wrapped log producer's Skylab stack name." json:"stack"`
+	// Defaults to the wrapped log producer's Skylab stack ID.
+	StackId *string `conjure-docs:"Defaults to the wrapped log producer's Skylab stack ID." json:"stackId"`
 }
 
 func (o WrappedLogV1) MarshalYAML() (interface{}, error) {

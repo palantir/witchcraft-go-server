@@ -363,18 +363,16 @@ type UnionEventLog struct {
 	typ        string
 	eventLog   *EventLogV1
 	eventLogV2 *EventLogV2
-	beaconLog  *BeaconLogV1
 }
 
 type unionEventLogDeserializer struct {
-	Type       string       `json:"type"`
-	EventLog   *EventLogV1  `json:"eventLog"`
-	EventLogV2 *EventLogV2  `json:"eventLogV2"`
-	BeaconLog  *BeaconLogV1 `json:"beaconLog"`
+	Type       string      `json:"type"`
+	EventLog   *EventLogV1 `json:"eventLog"`
+	EventLogV2 *EventLogV2 `json:"eventLogV2"`
 }
 
 func (u *unionEventLogDeserializer) toStruct() UnionEventLog {
-	return UnionEventLog{typ: u.Type, eventLog: u.EventLog, eventLogV2: u.EventLogV2, beaconLog: u.BeaconLog}
+	return UnionEventLog{typ: u.Type, eventLog: u.EventLog, eventLogV2: u.EventLogV2}
 }
 
 func (u *UnionEventLog) toSerializer() (interface{}, error) {
@@ -397,14 +395,6 @@ func (u *UnionEventLog) toSerializer() (interface{}, error) {
 			Type       string     `json:"type"`
 			EventLogV2 EventLogV2 `json:"eventLogV2"`
 		}{Type: "eventLogV2", EventLogV2: *u.eventLogV2}, nil
-	case "beaconLog":
-		if u.beaconLog == nil {
-			return nil, fmt.Errorf("field \"beaconLog\" is required")
-		}
-		return struct {
-			Type      string      `json:"type"`
-			BeaconLog BeaconLogV1 `json:"beaconLog"`
-		}{Type: "beaconLog", BeaconLog: *u.beaconLog}, nil
 	}
 }
 
@@ -431,10 +421,6 @@ func (u *UnionEventLog) UnmarshalJSON(data []byte) error {
 		if u.eventLogV2 == nil {
 			return fmt.Errorf("field \"eventLogV2\" is required")
 		}
-	case "beaconLog":
-		if u.beaconLog == nil {
-			return fmt.Errorf("field \"beaconLog\" is required")
-		}
 	}
 	return nil
 }
@@ -455,7 +441,7 @@ func (u *UnionEventLog) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
-func (u *UnionEventLog) AcceptFuncs(eventLogFunc func(EventLogV1) error, eventLogV2Func func(EventLogV2) error, beaconLogFunc func(BeaconLogV1) error, unknownFunc func(string) error) error {
+func (u *UnionEventLog) AcceptFuncs(eventLogFunc func(EventLogV1) error, eventLogV2Func func(EventLogV2) error, unknownFunc func(string) error) error {
 	switch u.typ {
 	default:
 		if u.typ == "" {
@@ -472,11 +458,6 @@ func (u *UnionEventLog) AcceptFuncs(eventLogFunc func(EventLogV1) error, eventLo
 			return fmt.Errorf("field \"eventLogV2\" is required")
 		}
 		return eventLogV2Func(*u.eventLogV2)
-	case "beaconLog":
-		if u.beaconLog == nil {
-			return fmt.Errorf("field \"beaconLog\" is required")
-		}
-		return beaconLogFunc(*u.beaconLog)
 	}
 }
 
@@ -485,10 +466,6 @@ func (u *UnionEventLog) EventLogNoopSuccess(EventLogV1) error {
 }
 
 func (u *UnionEventLog) EventLogV2NoopSuccess(EventLogV2) error {
-	return nil
-}
-
-func (u *UnionEventLog) BeaconLogNoopSuccess(BeaconLogV1) error {
 	return nil
 }
 
@@ -513,18 +490,12 @@ func (u *UnionEventLog) Accept(v UnionEventLogVisitor) error {
 			return fmt.Errorf("field \"eventLogV2\" is required")
 		}
 		return v.VisitEventLogV2(*u.eventLogV2)
-	case "beaconLog":
-		if u.beaconLog == nil {
-			return fmt.Errorf("field \"beaconLog\" is required")
-		}
-		return v.VisitBeaconLog(*u.beaconLog)
 	}
 }
 
 type UnionEventLogVisitor interface {
 	VisitEventLog(v EventLogV1) error
 	VisitEventLogV2(v EventLogV2) error
-	VisitBeaconLog(v BeaconLogV1) error
 	VisitUnknown(typeName string) error
 }
 
@@ -545,18 +516,12 @@ func (u *UnionEventLog) AcceptWithContext(ctx context.Context, v UnionEventLogVi
 			return fmt.Errorf("field \"eventLogV2\" is required")
 		}
 		return v.VisitEventLogV2WithContext(ctx, *u.eventLogV2)
-	case "beaconLog":
-		if u.beaconLog == nil {
-			return fmt.Errorf("field \"beaconLog\" is required")
-		}
-		return v.VisitBeaconLogWithContext(ctx, *u.beaconLog)
 	}
 }
 
 type UnionEventLogVisitorWithContext interface {
 	VisitEventLogWithContext(ctx context.Context, v EventLogV1) error
 	VisitEventLogV2WithContext(ctx context.Context, v EventLogV2) error
-	VisitBeaconLogWithContext(ctx context.Context, v BeaconLogV1) error
 	VisitUnknownWithContext(ctx context.Context, typeName string) error
 }
 
@@ -568,10 +533,6 @@ func NewUnionEventLogFromEventLogV2(v EventLogV2) UnionEventLog {
 	return UnionEventLog{typ: "eventLogV2", eventLogV2: &v}
 }
 
-func NewUnionEventLogFromBeaconLog(v BeaconLogV1) UnionEventLog {
-	return UnionEventLog{typ: "beaconLog", beaconLog: &v}
-}
-
 type WrappedLogV1Payload struct {
 	typ             string
 	serviceLogV1    *ServiceLogV1
@@ -580,6 +541,7 @@ type WrappedLogV1Payload struct {
 	eventLogV2      *EventLogV2
 	metricLogV1     *MetricLogV1
 	auditLogV2      *AuditLogV2
+	auditLogV3      *AuditLogV3
 	diagnosticLogV1 *DiagnosticLogV1
 }
 
@@ -591,11 +553,12 @@ type wrappedLogV1PayloadDeserializer struct {
 	EventLogV2      *EventLogV2      `json:"eventLogV2"`
 	MetricLogV1     *MetricLogV1     `json:"metricLogV1"`
 	AuditLogV2      *AuditLogV2      `json:"auditLogV2"`
+	AuditLogV3      *AuditLogV3      `json:"auditLogV3"`
 	DiagnosticLogV1 *DiagnosticLogV1 `json:"diagnosticLogV1"`
 }
 
 func (u *wrappedLogV1PayloadDeserializer) toStruct() WrappedLogV1Payload {
-	return WrappedLogV1Payload{typ: u.Type, serviceLogV1: u.ServiceLogV1, requestLogV2: u.RequestLogV2, traceLogV1: u.TraceLogV1, eventLogV2: u.EventLogV2, metricLogV1: u.MetricLogV1, auditLogV2: u.AuditLogV2, diagnosticLogV1: u.DiagnosticLogV1}
+	return WrappedLogV1Payload{typ: u.Type, serviceLogV1: u.ServiceLogV1, requestLogV2: u.RequestLogV2, traceLogV1: u.TraceLogV1, eventLogV2: u.EventLogV2, metricLogV1: u.MetricLogV1, auditLogV2: u.AuditLogV2, auditLogV3: u.AuditLogV3, diagnosticLogV1: u.DiagnosticLogV1}
 }
 
 func (u *WrappedLogV1Payload) toSerializer() (interface{}, error) {
@@ -650,6 +613,14 @@ func (u *WrappedLogV1Payload) toSerializer() (interface{}, error) {
 			Type       string     `json:"type"`
 			AuditLogV2 AuditLogV2 `json:"auditLogV2"`
 		}{Type: "auditLogV2", AuditLogV2: *u.auditLogV2}, nil
+	case "auditLogV3":
+		if u.auditLogV3 == nil {
+			return nil, fmt.Errorf("field \"auditLogV3\" is required")
+		}
+		return struct {
+			Type       string     `json:"type"`
+			AuditLogV3 AuditLogV3 `json:"auditLogV3"`
+		}{Type: "auditLogV3", AuditLogV3: *u.auditLogV3}, nil
 	case "diagnosticLogV1":
 		if u.diagnosticLogV1 == nil {
 			return nil, fmt.Errorf("field \"diagnosticLogV1\" is required")
@@ -700,6 +671,10 @@ func (u *WrappedLogV1Payload) UnmarshalJSON(data []byte) error {
 		if u.auditLogV2 == nil {
 			return fmt.Errorf("field \"auditLogV2\" is required")
 		}
+	case "auditLogV3":
+		if u.auditLogV3 == nil {
+			return fmt.Errorf("field \"auditLogV3\" is required")
+		}
 	case "diagnosticLogV1":
 		if u.diagnosticLogV1 == nil {
 			return fmt.Errorf("field \"diagnosticLogV1\" is required")
@@ -724,7 +699,7 @@ func (u *WrappedLogV1Payload) UnmarshalYAML(unmarshal func(interface{}) error) e
 	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
-func (u *WrappedLogV1Payload) AcceptFuncs(serviceLogV1Func func(ServiceLogV1) error, requestLogV2Func func(RequestLogV2) error, traceLogV1Func func(TraceLogV1) error, eventLogV2Func func(EventLogV2) error, metricLogV1Func func(MetricLogV1) error, auditLogV2Func func(AuditLogV2) error, diagnosticLogV1Func func(DiagnosticLogV1) error, unknownFunc func(string) error) error {
+func (u *WrappedLogV1Payload) AcceptFuncs(serviceLogV1Func func(ServiceLogV1) error, requestLogV2Func func(RequestLogV2) error, traceLogV1Func func(TraceLogV1) error, eventLogV2Func func(EventLogV2) error, metricLogV1Func func(MetricLogV1) error, auditLogV2Func func(AuditLogV2) error, auditLogV3Func func(AuditLogV3) error, diagnosticLogV1Func func(DiagnosticLogV1) error, unknownFunc func(string) error) error {
 	switch u.typ {
 	default:
 		if u.typ == "" {
@@ -761,6 +736,11 @@ func (u *WrappedLogV1Payload) AcceptFuncs(serviceLogV1Func func(ServiceLogV1) er
 			return fmt.Errorf("field \"auditLogV2\" is required")
 		}
 		return auditLogV2Func(*u.auditLogV2)
+	case "auditLogV3":
+		if u.auditLogV3 == nil {
+			return fmt.Errorf("field \"auditLogV3\" is required")
+		}
+		return auditLogV3Func(*u.auditLogV3)
 	case "diagnosticLogV1":
 		if u.diagnosticLogV1 == nil {
 			return fmt.Errorf("field \"diagnosticLogV1\" is required")
@@ -790,6 +770,10 @@ func (u *WrappedLogV1Payload) MetricLogV1NoopSuccess(MetricLogV1) error {
 }
 
 func (u *WrappedLogV1Payload) AuditLogV2NoopSuccess(AuditLogV2) error {
+	return nil
+}
+
+func (u *WrappedLogV1Payload) AuditLogV3NoopSuccess(AuditLogV3) error {
 	return nil
 }
 
@@ -838,6 +822,11 @@ func (u *WrappedLogV1Payload) Accept(v WrappedLogV1PayloadVisitor) error {
 			return fmt.Errorf("field \"auditLogV2\" is required")
 		}
 		return v.VisitAuditLogV2(*u.auditLogV2)
+	case "auditLogV3":
+		if u.auditLogV3 == nil {
+			return fmt.Errorf("field \"auditLogV3\" is required")
+		}
+		return v.VisitAuditLogV3(*u.auditLogV3)
 	case "diagnosticLogV1":
 		if u.diagnosticLogV1 == nil {
 			return fmt.Errorf("field \"diagnosticLogV1\" is required")
@@ -853,6 +842,7 @@ type WrappedLogV1PayloadVisitor interface {
 	VisitEventLogV2(v EventLogV2) error
 	VisitMetricLogV1(v MetricLogV1) error
 	VisitAuditLogV2(v AuditLogV2) error
+	VisitAuditLogV3(v AuditLogV3) error
 	VisitDiagnosticLogV1(v DiagnosticLogV1) error
 	VisitUnknown(typeName string) error
 }
@@ -894,6 +884,11 @@ func (u *WrappedLogV1Payload) AcceptWithContext(ctx context.Context, v WrappedLo
 			return fmt.Errorf("field \"auditLogV2\" is required")
 		}
 		return v.VisitAuditLogV2WithContext(ctx, *u.auditLogV2)
+	case "auditLogV3":
+		if u.auditLogV3 == nil {
+			return fmt.Errorf("field \"auditLogV3\" is required")
+		}
+		return v.VisitAuditLogV3WithContext(ctx, *u.auditLogV3)
 	case "diagnosticLogV1":
 		if u.diagnosticLogV1 == nil {
 			return fmt.Errorf("field \"diagnosticLogV1\" is required")
@@ -909,6 +904,7 @@ type WrappedLogV1PayloadVisitorWithContext interface {
 	VisitEventLogV2WithContext(ctx context.Context, v EventLogV2) error
 	VisitMetricLogV1WithContext(ctx context.Context, v MetricLogV1) error
 	VisitAuditLogV2WithContext(ctx context.Context, v AuditLogV2) error
+	VisitAuditLogV3WithContext(ctx context.Context, v AuditLogV3) error
 	VisitDiagnosticLogV1WithContext(ctx context.Context, v DiagnosticLogV1) error
 	VisitUnknownWithContext(ctx context.Context, typeName string) error
 }
@@ -935,6 +931,10 @@ func NewWrappedLogV1PayloadFromMetricLogV1(v MetricLogV1) WrappedLogV1Payload {
 
 func NewWrappedLogV1PayloadFromAuditLogV2(v AuditLogV2) WrappedLogV1Payload {
 	return WrappedLogV1Payload{typ: "auditLogV2", auditLogV2: &v}
+}
+
+func NewWrappedLogV1PayloadFromAuditLogV3(v AuditLogV3) WrappedLogV1Payload {
+	return WrappedLogV1Payload{typ: "auditLogV3", auditLogV3: &v}
 }
 
 func NewWrappedLogV1PayloadFromDiagnosticLogV1(v DiagnosticLogV1) WrappedLogV1Payload {
