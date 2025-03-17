@@ -2,6 +2,7 @@
 
 package logging
 
+type OrganizationId string
 type SessionId string
 type TokenId string
 type TraceId string
