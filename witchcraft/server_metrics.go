@@ -78,7 +78,6 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}
 
 	initServerUptimeMetric(ctx, metricsRegistry)
-	s.initCardinalityMetric(ctx, metricsRegistry)
 
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
@@ -132,7 +131,16 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 
 	// start goroutine that logs metrics at the given frequency
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		metrics.RunEmittingRegistry(ctx, metricsRegistry, metricsEmitFreq, emitFn)
+		tick := time.Tick(metricsEmitFreq)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-tick:
+				markCardinalityMetric(metricsRegistry, s.metricsBlacklist, s.metricTypeValuesBlacklist)
+				metricsRegistry.Each(emitFn)
+			}
+		}
 	})
 
 	return metricsRegistry, func() {
@@ -247,45 +255,44 @@ func removeDisallowedKeys(metricType string, metricVals map[string]interface{}, 
 }
 
 func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {
-	ctx = metrics.WithRegistry(ctx, metricsRegistry)
-	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_version", runtime.Version()))
-	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_os", runtime.GOOS))
-	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_arch", runtime.GOARCH))
-
-	metrics.FromContext(ctx).Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+	tagVersion := metrics.MustNewTag("go_version", runtime.Version())
+	tagGoOS := metrics.MustNewTag("go_os", runtime.GOOS)
+	tagGoArch := metrics.MustNewTag("go_arch", runtime.GOARCH)
 
 	// start goroutine that updates the uptime metric
 	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
 		t := time.NewTicker(5.0 * time.Second)
 		defer t.Stop()
 		for {
+			metricsRegistry.Gauge("server.uptime", tagVersion, tagGoOS, tagGoArch).Update(int64(time.Since(initTime) / time.Microsecond))
 			select {
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				metrics.FromContext(ctx).Gauge("server.uptime").Update(int64(time.Since(initTime) / time.Microsecond))
+				continue
 			}
 		}
 	})
 }
 
-func (s *Server) initCardinalityMetric(ctx context.Context, metricsRegistry metrics.Registry) {
-	// start goroutine that updates the metric_cardinality metric
-	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		t := time.NewTicker(10 * time.Second)
-		defer t.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-t.C:
-				var count int64
-				metricsRegistry.Each(func(metricID string, _ metrics.Tags, metricVal metrics.MetricVal) {
-					valuesToUse := s.filterMetricValues(metricID, metricVal)
-					count += int64(len(valuesToUse))
-				})
-				metricsRegistry.Gauge("server.metric_cardinality").Update(count)
+func markCardinalityMetric(
+	metricsRegistry metrics.RootRegistry,
+	metricNameBlacklist map[string]struct{},
+	metricTypeValuesBlacklist map[string]map[string]struct{},
+) {
+	metricsRegistry.Gauge("server.metric_cardinality").Update(int64(metrics.RegistryCardinality(
+		metricsRegistry,
+		func(metricType string, metricName string, valueKey string) bool {
+			if _, blackListed := metricNameBlacklist[metricName]; blackListed {
+				// skip emitting metric if it is blacklisted
+				return true
 			}
-		}
-	})
+			if disallowedKeysForType, ok := metricTypeValuesBlacklist[metricType]; ok {
+				if _, disallowed := disallowedKeysForType[valueKey]; disallowed {
+					return true
+				}
+			}
+			return false
+		},
+	)))
 }
