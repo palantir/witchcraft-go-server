@@ -137,7 +137,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 			case <-ctx.Done():
 				return
 			case <-tick:
-				markCardinalityMetric(metricsRegistry, s.metricsBlacklist, s.metricTypeValuesBlacklist)
+				s.markMetricCardinality(metricsRegistry)
 				metricsRegistry.Each(emitFn)
 			}
 		}
@@ -275,24 +275,38 @@ func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registr
 	})
 }
 
-func markCardinalityMetric(
-	metricsRegistry metrics.RootRegistry,
-	metricNameBlacklist map[string]struct{},
-	metricTypeValuesBlacklist map[string]map[string]struct{},
-) {
-	metricsRegistry.Gauge("server.metric_cardinality").Update(int64(metrics.RegistryCardinality(
-		metricsRegistry,
-		func(metricType string, metricName string, valueKey string) bool {
-			if _, blackListed := metricNameBlacklist[metricName]; blackListed {
-				// skip emitting metric if it is blacklisted
-				return true
-			}
-			if disallowedKeysForType, ok := metricTypeValuesBlacklist[metricType]; ok {
-				if _, disallowed := disallowedKeysForType[valueKey]; disallowed {
-					return true
+func (s *Server) markMetricCardinality(metricsRegistry metrics.RootRegistry) {
+	var cardinality int64
+
+	metricsRegistry.Each(func(metricName string, tags metrics.Tags, value metrics.MetricVal) {
+		// If the value implements MetricValWithKeys, use the ValueKeys to avoid calculating all the values.
+		if valueWithKeys, ok := value.(metrics.MetricValWithKeys); ok {
+			for _, valueKey := range valueWithKeys.ValueKeys() {
+				if s.includeMetricInCardinality(value.Type(), metricName, valueKey) {
+					cardinality++
 				}
 			}
+		} else {
+			for valueKey := range value.Values() {
+				if s.includeMetricInCardinality(value.Type(), metricName, valueKey) {
+					cardinality++
+				}
+			}
+		}
+	})
+
+	metricsRegistry.Gauge("server.metric_cardinality").Update(cardinality)
+}
+
+func (s *Server) includeMetricInCardinality(metricType string, metricName string, valueKey string) bool {
+	if _, blackListed := s.metricsBlacklist[metricName]; blackListed {
+		// skip emitting metric if it is blacklisted
+		return false
+	}
+	if disallowedKeysForType, ok := s.metricTypeValuesBlacklist[metricType]; ok {
+		if _, disallowed := disallowedKeysForType[valueKey]; disallowed {
 			return false
-		},
-	)))
+		}
+	}
+	return true
 }
