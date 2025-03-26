@@ -48,6 +48,18 @@ type Param interface {
 	getParam() auditloginternal.AuditParam
 }
 
+type multiParam []Param
+
+var _ Param = (multiParam)(nil)
+
+func (m multiParam) getParam() auditloginternal.AuditParam {
+	var params []auditloginternal.AuditParam
+	for _, param := range m {
+		params = append(params, param.getParam())
+	}
+	return auditloginternal.MultiAuditParam(params...)
+}
+
 var _ Param = (*paramStruct)(nil)
 
 type paramStruct struct {
@@ -132,7 +144,8 @@ func UserAgent(userAgent string) Param {
 	return convertInternalParamToExportedParam(auditloginternal.Audit3UserAgent(userAgent))
 }
 
-func Categories(categories ...string) Param {
+// unexported because this should only be set by the "Category" param
+func categories(categories ...string) Param {
 	return convertInternalParamToExportedParam(auditloginternal.Audit3Categories(categories))
 }
 

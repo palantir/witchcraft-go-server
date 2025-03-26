@@ -24,6 +24,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
@@ -55,7 +56,8 @@ var now = time.Now
 func NewRequestTelemetry(
 	svcLogger svc1log.Logger,
 	evtLogger evt2log.Logger,
-	auditLogger audit2log.Logger,
+	audit2Logger audit2log.Logger,
+	audit3Logger audit3log.Logger,
 	metricLogger metric1log.Logger,
 	diagLogger diag1log.Logger,
 	reqLogger req2log.Logger,
@@ -64,7 +66,7 @@ func NewRequestTelemetry(
 	idsExtractor extractor.IDsFromRequest,
 	metricsRegistry metrics.Registry,
 ) wrouter.RequestHandlerMiddleware {
-	withLoggers := newRequestContextLoggers(svcLogger, evtLogger, auditLogger, metricLogger, diagLogger, reqLogger, trcLogger, metricsRegistry)
+	withLoggers := newRequestContextLoggers(svcLogger, evtLogger, audit2Logger, audit3Logger, metricLogger, diagLogger, reqLogger, trcLogger, metricsRegistry)
 	withIDs := newRequestExtractIDs(idsExtractor)
 	withTracer := newRequestTracer(svcLogger, trcLogger, tracerOptions)
 	withSpan := newRequestTraceSpan()
@@ -97,7 +99,8 @@ func NewRequestTelemetry(
 func newRequestContextLoggers(
 	svcLogger svc1log.Logger,
 	evtLogger evt2log.Logger,
-	auditLogger audit2log.Logger,
+	audit2Logger audit2log.Logger,
+	audit3Logger audit3log.Logger,
 	metricLogger metric1log.Logger,
 	diagLogger diag1log.Logger,
 	reqLogger req2log.Logger,
@@ -112,8 +115,11 @@ func newRequestContextLoggers(
 		if evtLogger != nil {
 			ctx = evt2log.WithLogger(ctx, evtLogger)
 		}
-		if auditLogger != nil {
-			ctx = audit2log.WithLogger(ctx, auditLogger)
+		if audit2Logger != nil {
+			ctx = audit2log.WithLogger(ctx, audit2Logger)
+		}
+		if audit3Logger != nil {
+			ctx = audit3log.WithLogger(ctx, audit3Logger)
 		}
 		if metricLogger != nil {
 			ctx = metric1log.WithLogger(ctx, metricLogger)

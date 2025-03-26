@@ -23,6 +23,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
@@ -74,8 +75,10 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 		metric1log.New(logWriterFn("metrics")), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		trc1log.New(logWriterFn("trace")), registry)
-	s.auditLogger = metricloggers.NewAudit2Logger(
+	s.audit2Logger = metricloggers.NewAudit2Logger(
 		audit2log.NewDualLogger(logWriterFn("audit"), logWriterFn("audit.v3")), registry)
+	s.audit3Logger = metricloggers.NewAudit3Logger(
+		audit3log.NewDualLogger(logWriterFn("audit.v3"), logWriterFn("audit")), registry)
 	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
 		req2log.Extractor(s.idsExtractor),
@@ -123,8 +126,10 @@ func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVers
 		wrapped1log.New(logWriterFn("metrics"), logLevel, productName, productVersion).Metric(), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		wrapped1log.New(logWriterFn("trace"), logLevel, productName, productVersion).Trace(), registry)
-	s.auditLogger = metricloggers.NewAudit2Logger(
+	s.audit2Logger = metricloggers.NewAudit2Logger(
 		wrapped1log.New(logWriterFn("audit"), logLevel, productName, productVersion).Audit(), registry)
+	s.audit3Logger = metricloggers.NewAudit3Logger(
+		wrapped1log.New(logWriterFn("audit.v3"), logLevel, productName, productVersion).AuditV3(), registry)
 	s.diagLogger = metricloggers.NewDiag1Logger(
 		wrapped1log.New(logWriterFn("diagnostic"), logLevel, productName, productVersion).Diagnostic(), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(wrapped1log.New(logWriterFn("request"), logLevel, productName, productVersion).Request(

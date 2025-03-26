@@ -40,6 +40,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
@@ -215,7 +216,8 @@ type Server struct {
 	// loggers
 	svcLogger    svc1log.Logger
 	evtLogger    evt2log.Logger
-	auditLogger  audit2log.Logger
+	audit2Logger audit2log.Logger
+	audit3Logger audit3log.Logger
 	metricLogger metric1log.Logger
 	trcLogger    trc1log.Logger
 	diagLogger   diag1log.Logger
@@ -844,7 +846,8 @@ func (s *Server) withLoggers(ctx context.Context) context.Context {
 	ctx = evt2log.WithLogger(ctx, s.evtLogger)
 	ctx = metric1log.WithLogger(ctx, s.metricLogger)
 	ctx = trc1log.WithLogger(ctx, s.trcLogger)
-	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	ctx = audit2log.WithLogger(ctx, s.audit2Logger)
+	ctx = audit3log.WithLogger(ctx, s.audit3Logger)
 	ctx = diag1log.WithLogger(ctx, s.diagLogger)
 	return ctx
 }

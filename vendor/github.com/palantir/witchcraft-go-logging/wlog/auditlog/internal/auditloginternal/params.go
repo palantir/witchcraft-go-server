@@ -23,6 +23,23 @@ type AuditParam struct {
 	Audit3ParamFn func(entry wlog.LogEntry)
 }
 
+// MultiAuditParam returns a new AuditParam that is the functional equivalent of applying each of the provided audit
+// params in order.
+func MultiAuditParam(in ...AuditParam) AuditParam {
+	return AuditParam{
+		Audit2ParamFn: func(entry wlog.LogEntry) {
+			for _, param := range in {
+				param.Audit2ParamFn(entry)
+			}
+		},
+		Audit3ParamFn: func(entry wlog.LogEntry) {
+			for _, param := range in {
+				param.Audit3ParamFn(entry)
+			}
+		},
+	}
+}
+
 func auditNameResultParam(name string, resultType AuditResultType) AuditParam {
 	return AuditParam{
 		Audit2ParamFn: func(entry wlog.LogEntry) {
