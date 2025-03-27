@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Mark uptime, cardinality, and go runtime metrics immediately before
+    logging metric.1 lines
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/929
