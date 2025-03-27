@@ -363,11 +363,17 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				metric1LogLines := getWrappedLogMessagesOfType(t, productName, productVersion, "metric.1", logOutput)
-				require.Equal(t, 1, len(metric1LogLines), "Expected exactly 1 metric log line to be output", string(bytes.Join(metric1LogLines, []byte("\n"))))
-				var log logging.MetricLogV1
-				require.NoError(t, json.Unmarshal(metric1LogLines[0], &log))
-				assert.Equal(t, "metric!", log.MetricName)
-				assert.Equal(t, metric1log.MetricTypeKey, log.MetricType)
+				require.Equal(t, 2, len(metric1LogLines), "Expected exactly 2 metric log lines to be output", string(bytes.Join(metric1LogLines, []byte("\n"))))
+				var log1 logging.MetricLogV1
+				require.NoError(t, json.Unmarshal(metric1LogLines[0], &log1))
+				assert.Equal(t, "metric!", log1.MetricName)
+				assert.Equal(t, metric1log.MetricTypeKey, log1.MetricType)
+
+				var log2 logging.MetricLogV1
+				require.NoError(t, json.Unmarshal(metric1LogLines[1], &log2))
+				assert.Equal(t, "server.metric_cardinality", log2.MetricName)
+				assert.Equal(t, "gauge", log2.MetricType)
+				assert.NotZero(t, log2.Values["value"])
 			},
 		},
 		{

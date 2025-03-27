@@ -47,8 +47,8 @@ github.com/palantir/pkg/datetime
 # github.com/palantir/pkg/httpserver v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg/httpserver
-# github.com/palantir/pkg/metrics v1.7.0
-## explicit; go 1.21
+# github.com/palantir/pkg/metrics v1.7.1-0.20250327175645-72c2fb0f8d96
+## explicit; go 1.24.0
 github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.1.0
 ## explicit; go 1.19
