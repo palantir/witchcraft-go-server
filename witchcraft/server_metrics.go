@@ -77,9 +77,11 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		metricsEmitFreq = freq
 	}
 
-	// start routine that capture Go runtime metrics
+	var collectGoRuntimeMetrics func()
 	if !s.disableGoRuntimeMetrics {
-		if ok := metrics.CaptureRuntimeMemStatsWithContext(ctx, metricsRegistry, metricsEmitFreq); !ok {
+		var ok bool
+		collectGoRuntimeMetrics, ok = metrics.CaptureRuntimeMemStatsFunc(metricsRegistry)
+		if !ok {
 			return nil, nil, werror.Error("metricsRegistry does not support capturing runtime memory statistics")
 		}
 	}
@@ -128,9 +130,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}
 
 	emitAllFn := func() {
-		// emit all metrics a final time on termination
 		if !s.disableGoRuntimeMetrics {
-			metrics.CaptureRuntimeMemStatsOnce(metricsRegistry)
+			collectGoRuntimeMetrics()
 		}
 		markServerUptimeMetric(metricsRegistry)
 		s.markCardinalityMetric(metricsRegistry)
