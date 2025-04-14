@@ -98,7 +98,35 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		seenSet: make(map[string]struct{}),
 	}
 
-	emitVisitorFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
+	// start goroutine that logs metrics at the given frequency
+	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
+		tick := time.Tick(metricsEmitFreq)
+		for {
+			select {
+			case <-tick:
+				s.emitMetricsOnce(metricsRegistry, collectGoRuntimeMetrics, seenMetrics)
+			case <-ctx.Done():
+				return
+			}
+		}
+	})
+
+	return metricsRegistry, func() {
+		// emit all metrics a final time on termination
+		s.emitMetricsOnce(metricsRegistry, collectGoRuntimeMetrics, seenMetrics)
+	}, nil
+}
+
+// emitMetricsOnce records updated values for runtime, uptime, and cardinality metrics,
+// then logs all metrics stored in the registry using the Server's metricLogger.
+func (s *Server) emitMetricsOnce(metricsRegistry metrics.Registry, collectGoRuntimeMetrics func(), seenMetrics *seenMetricsSet) {
+	if collectGoRuntimeMetrics != nil {
+		collectGoRuntimeMetrics()
+	}
+	markServerUptimeMetric(metricsRegistry)
+	s.markCardinalityMetric(metricsRegistry)
+
+	metricsRegistry.Each(func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
 		metricType := metricVal.Type()
 		valuesToUse := s.filterMetricValues(metricID, metricVal)
 		if len(valuesToUse) == 0 {
@@ -115,47 +143,18 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		}
 
 		tagsMap := tags.ToMap()
-		metricTagsParam := metric1log.Tags(tagsMap)
 
 		// if metric is one for which a zero value should be logged on first observation, log a zero value if necessary
 		if isZeroValueMetric(metricType) {
-			zeroValuesLogged := logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, s.metricTypeValuesBlacklist, metricTagsParam)
+			zeroValuesLogged := logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, s.metricTypeValuesBlacklist)
 
 			// if the zeroValueLogged is equivalent to valuesToUse, then there's no need to log the metric again
 			if zeroValuesLogged != nil && reflect.DeepEqual(zeroValuesLogged, valuesToUse) {
 				return
 			}
 		}
-		localMetricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metricTagsParam)
-	}
-
-	emitAllFn := func() {
-		if !s.disableGoRuntimeMetrics {
-			collectGoRuntimeMetrics()
-		}
-		markServerUptimeMetric(metricsRegistry)
-		s.markCardinalityMetric(metricsRegistry)
-
-		metricsRegistry.Each(emitVisitorFn)
-	}
-
-	// start goroutine that logs metrics at the given frequency
-	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		tick := time.Tick(metricsEmitFreq)
-		for {
-			select {
-			case <-tick:
-				emitAllFn()
-			case <-ctx.Done():
-				return
-			}
-		}
+		localMetricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tagsMap))
 	})
-
-	return metricsRegistry, func() {
-		// emit all metrics a final time on termination
-		emitAllFn()
-	}, nil
 }
 
 func (s *Server) filterMetricValues(metricID string, metricVal metrics.MetricVal) map[string]interface{} {
@@ -206,7 +205,6 @@ func logZeroValueMetric(
 	tags map[string]string,
 	seenMetrics *seenMetricsSet,
 	metricTypeValuesDisallowedList map[string]map[string]struct{},
-	metricTagsParam metric1log.Param,
 ) (zeroValuesLogged map[string]interface{}) {
 
 	// Acquire lock to ensure that map access is safe. Safe to lock for the entirety of the function rather than
@@ -217,7 +215,6 @@ func logZeroValueMetric(
 
 	// if metric has been seen before, no need to log zero value
 	mapKey := tagMapKey(metricID, metricType, tags)
-
 	_, metricSeen := seenMetrics.seenSet[mapKey]
 	if metricSeen {
 		return nil
@@ -232,7 +229,7 @@ func logZeroValueMetric(
 	}
 
 	// metric not seen before: emit zero-value and record
-	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
+	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metric1log.Tags(tags))
 	seenMetrics.seenSet[mapKey] = struct{}{}
 	return zeroValuesToUse
 }
