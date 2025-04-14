@@ -141,16 +141,17 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	}, nil
 }
 
-func (s *Server) collectMetricValues(metricName string, metricVal metrics.MetricVal) map[string]interface{} {
-	valuesToUse := make(map[string]interface{})
+func (s *Server) collectMetricValues(metricName string, metricVal metrics.MetricVal) map[string]any {
+	valuesToUse := make(map[string]any)
 	s.visitMetricValues(metricName, metricVal, func(key string) {
 		valuesToUse[key] = metricVal.Value(key)
 	})
 	return valuesToUse
 }
 
-// visitMetricValues calls the provided visit function for each key in the provided metric value,
-// If the metric name or key is blacklisted, the visit function is not called.
+// visitMetricValues calls the provided visit function for each key in the provided metric value.
+// If the metric with the provided metricID is in the metrics blacklist, the visit function is not called for any keys.
+// The visit function is not called for keys that are in the metric type value blacklist for the type.
 func (s *Server) visitMetricValues(metricID string, metricVal metrics.MetricVal, visit func(key string)) {
 	if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
 		// skip emitting metric if it is blacklisted
@@ -180,8 +181,8 @@ func isZeroValueMetric(metricType string) bool {
 // zeroValuesForMetricType returns the metric values for the "zero" value of the metric of the given type. The provided
 // metric type must be a valid type that returns true when provided to the "isZeroValueMetric" function: panics
 // otherwise.
-func (s *Server) zeroValuesForMetricType(metricName string, metricType string) map[string]interface{} {
-	var zeroMetric interface{}
+func (s *Server) zeroValuesForMetricType(metricName string, metricType string) map[string]any {
+	var zeroMetric any
 	switch metricType {
 	case "meter":
 		zeroMetric = gometrics.NewMeter()
@@ -206,7 +207,7 @@ func (s *Server) logZeroValueMetric(
 	tags map[string]string,
 	seenMetrics *seenMetricsSet,
 	metricTagsParam metric1log.Param,
-) (zeroValuesLogged map[string]interface{}) {
+) (zeroValuesLogged map[string]any) {
 
 	// Acquire lock to ensure that map access is safe. Safe to lock for the entirety of the function rather than
 	// selectively locking just the read and write of the map because this function will be called in a single goroutine
