@@ -143,17 +143,18 @@ func (s *Server) emitMetricsOnce(metricsRegistry metrics.Registry, collectGoRunt
 		}
 
 		tagsMap := tags.ToMap()
+		metricTagsParam := metric1log.Tags(tagsMap)
 
 		// if metric is one for which a zero value should be logged on first observation, log a zero value if necessary
 		if isZeroValueMetric(metricType) {
-			zeroValuesLogged := logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, s.metricTypeValuesBlacklist)
+			zeroValuesLogged := logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, s.metricTypeValuesBlacklist, metricTagsParam)
 
 			// if the zeroValueLogged is equivalent to valuesToUse, then there's no need to log the metric again
 			if zeroValuesLogged != nil && reflect.DeepEqual(zeroValuesLogged, valuesToUse) {
 				return
 			}
 		}
-		localMetricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tagsMap))
+		localMetricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metricTagsParam)
 	})
 }
 
@@ -205,6 +206,7 @@ func logZeroValueMetric(
 	tags map[string]string,
 	seenMetrics *seenMetricsSet,
 	metricTypeValuesDisallowedList map[string]map[string]struct{},
+	metricTagsParam metric1log.Param,
 ) (zeroValuesLogged map[string]interface{}) {
 
 	// Acquire lock to ensure that map access is safe. Safe to lock for the entirety of the function rather than
@@ -215,6 +217,7 @@ func logZeroValueMetric(
 
 	// if metric has been seen before, no need to log zero value
 	mapKey := tagMapKey(metricID, metricType, tags)
+
 	_, metricSeen := seenMetrics.seenSet[mapKey]
 	if metricSeen {
 		return nil
@@ -229,7 +232,7 @@ func logZeroValueMetric(
 	}
 
 	// metric not seen before: emit zero-value and record
-	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metric1log.Tags(tags))
+	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
 	seenMetrics.seenSet[mapKey] = struct{}{}
 	return zeroValuesToUse
 }
