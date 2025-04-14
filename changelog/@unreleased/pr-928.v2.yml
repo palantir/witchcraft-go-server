@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Avoid computing unused metric values
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/928
