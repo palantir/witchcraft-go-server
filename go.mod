@@ -10,7 +10,7 @@ require (
 	github.com/palantir/go-encrypted-config-value v1.39.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
-	github.com/palantir/pkg/metrics v1.7.1-0.20250327175756-b74771023a41
+	github.com/palantir/pkg/metrics v1.7.1-0.20250408030427-3a9c4072d7ff
 	github.com/palantir/pkg/objmatcher v1.1.0
 	github.com/palantir/pkg/refreshable v1.5.0
 	github.com/palantir/pkg/safejson v1.1.0
@@ -45,7 +45,7 @@ require (
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

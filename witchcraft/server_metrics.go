@@ -77,9 +77,6 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		metricsEmitFreq = freq
 	}
 
-	initServerUptimeMetric(ctx, metricsRegistry)
-	s.initCardinalityMetric(ctx, metricsRegistry)
-
 	// start routine that capture Go runtime metrics
 	if !s.disableGoRuntimeMetrics {
 		if ok := metrics.CaptureRuntimeMemStatsWithContext(ctx, metricsRegistry, metricsEmitFreq); !ok {
@@ -97,12 +94,32 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 	// seenMetrics tracks the metrics that have been seen so far. Uses a lock to protect access because emitFn that
 	// reads and writes this map can be called in the "emit" goroutine and in the goroutine that runs the rDeferFn
 	// returned by this function.
-	seenMetrics := &seenMetricsSet{
-		// keys should be created by tagMapKey function
-		seenSet: make(map[string]struct{}),
+	seenMetrics := &seenMetricsSet{}
+
+	emitFn := func() {
+		s.markServerUptimeMetric(metricsRegistry)
+		s.markServerCardinalityMetric(metricsRegistry)
+		metricsRegistry.Each(s.emitMetricLogsFunc(seenMetrics))
 	}
 
-	emitFn := func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
+	// start goroutine that logs metrics at the given frequency
+	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(metricsEmitFreq):
+				emitFn()
+			}
+		}
+	})
+
+	// return emitFn to be called a final time on termination
+	return metricsRegistry, emitFn, nil
+}
+
+func (s *Server) emitMetricLogsFunc(seenMetrics *seenMetricsSet) metrics.MetricVisitor {
+	return func(metricID string, tags metrics.Tags, metricVal metrics.MetricVal) {
 		metricType := metricVal.Type()
 		valuesToUse := s.collectMetricValues(metricID, metricVal)
 		if len(valuesToUse) == 0 {
@@ -119,11 +136,10 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 		}
 
 		tagsMap := tags.ToMap()
-		metricTagsParam := metric1log.Tags(tagsMap)
 
 		// if metric is one for which a zero value should be logged on first observation, log a zero value if necessary
 		if isZeroValueMetric(metricType) {
-			zeroValuesLogged := s.logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics, metricTagsParam)
+			zeroValuesLogged := s.logZeroValueMetric(localMetricLogger, metricID, metricType, tagsMap, seenMetrics)
 
 			// if the zeroValueLogged is equivalent to valuesToUse, then there's no need to log the metric again
 			if zeroValuesLogged != nil && reflect.DeepEqual(zeroValuesLogged, valuesToUse) {
@@ -131,18 +147,8 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 			}
 		}
 
-		localMetricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metricTagsParam)
+		localMetricLogger.Metric(metricID, metricType, metric1log.Values(valuesToUse), metric1log.Tags(tagsMap))
 	}
-
-	// start goroutine that logs metrics at the given frequency
-	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		metrics.RunEmittingRegistry(ctx, metricsRegistry, metricsEmitFreq, emitFn)
-	})
-
-	return metricsRegistry, func() {
-		// emit all metrics a final time on termination
-		metricsRegistry.Each(emitFn)
-	}, nil
 }
 
 func (s *Server) collectMetricValues(metricName string, metricVal metrics.MetricVal) map[string]interface{} {
@@ -160,7 +166,7 @@ func (s *Server) visitMetricValues(metricID string, metricVal metrics.MetricVal,
 		// skip emitting metric if it is blacklisted
 		return
 	}
-	for key := range metricVal.Keys {
+	for key := range metricVal.Keys() {
 		if s.metricTypeValuesBlacklist != nil {
 			if disallowedKeysForType, ok := s.metricTypeValuesBlacklist[metricVal.Type()]; ok {
 				if _, disallowed := disallowedKeysForType[key]; disallowed {
@@ -207,9 +213,8 @@ func (s *Server) logZeroValueMetric(
 	metricLogger metric1log.Logger,
 	metricID string,
 	metricType string,
-	tags map[string]string,
+	tagsMap map[string]string,
 	seenMetrics *seenMetricsSet,
-	metricTagsParam metric1log.Param,
 ) (zeroValuesLogged map[string]interface{}) {
 
 	// Acquire lock to ensure that map access is safe. Safe to lock for the entirety of the function rather than
@@ -219,11 +224,12 @@ func (s *Server) logZeroValueMetric(
 	defer seenMetrics.lock.Unlock()
 
 	// if metric has been seen before, no need to log zero value
-	mapKey := tagMapKey(metricID, metricType, tags)
+	mapKey := tagMapKey(metricID, metricType, tagsMap)
 
-	_, metricSeen := seenMetrics.seenSet[mapKey]
-	if metricSeen {
-		return nil
+	if seenMetrics.seenSet != nil {
+		if _, metricSeen := seenMetrics.seenSet[mapKey]; metricSeen {
+			return nil
+		}
 	}
 
 	zeroValuesToUse := s.zeroValuesForMetricType(metricID, metricType)
@@ -234,7 +240,10 @@ func (s *Server) logZeroValueMetric(
 	}
 
 	// metric not seen before: emit zero-value and record
-	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metricTagsParam)
+	metricLogger.Metric(metricID, metricType, metric1log.Values(zeroValuesToUse), metric1log.Tags(tagsMap))
+	if seenMetrics.seenSet == nil {
+		seenMetrics.seenSet = make(map[string]struct{})
+	}
 	seenMetrics.seenSet[mapKey] = struct{}{}
 	return zeroValuesToUse
 }
@@ -254,47 +263,20 @@ func tagMapKey(metricID, metricType string, tagsMap map[string]string) string {
 	return fmt.Sprintf("%s:%s:%v", metricID, metricType, tagsSlice)
 }
 
-func initServerUptimeMetric(ctx context.Context, metricsRegistry metrics.Registry) {
-	ctx = metrics.WithRegistry(ctx, metricsRegistry)
-	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_version", runtime.Version()))
-	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_os", runtime.GOOS))
-	ctx = metrics.AddTags(ctx, metrics.MustNewTag("go_arch", runtime.GOARCH))
-
-	metrics.FromContext(ctx).Gauge("server.uptime").Update(time.Since(initTime).Microseconds())
-
-	// start goroutine that updates the uptime metric
-	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		t := time.NewTicker(5.0 * time.Second)
-		defer t.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-t.C:
-				metrics.FromContext(ctx).Gauge("server.uptime").Update(time.Since(initTime).Microseconds())
-			}
-		}
-	})
+func (s *Server) markServerUptimeMetric(metricsRegistry metrics.Registry) {
+	uptimeGauge := metricsRegistry.Gauge("server.uptime",
+		metrics.MustNewTag("go_version", runtime.Version()),
+		metrics.MustNewTag("go_os", runtime.GOOS),
+		metrics.MustNewTag("go_arch", runtime.GOARCH))
+	uptimeGauge.Update(time.Since(initTime).Microseconds())
 }
 
-func (s *Server) initCardinalityMetric(ctx context.Context, metricsRegistry metrics.Registry) {
-	// start goroutine that updates the metric_cardinality metric
-	go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
-		t := time.NewTicker(10 * time.Second)
-		defer t.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-t.C:
-				var count int64
-				metricsRegistry.Each(func(metricName string, tags metrics.Tags, val metrics.MetricVal) {
-					s.visitMetricValues(metricName, val, func(key string) {
-						count++
-					})
-				})
-				metricsRegistry.Gauge("server.metric_cardinality").Update(count)
-			}
-		}
+func (s *Server) markServerCardinalityMetric(metricsRegistry metrics.Registry) {
+	var count int64
+	metricsRegistry.Each(func(metricName string, tags metrics.Tags, val metrics.MetricVal) {
+		s.visitMetricValues(metricName, val, func(key string) {
+			count++
+		})
 	})
+	metricsRegistry.Gauge("server.metric_cardinality").Update(count)
 }
