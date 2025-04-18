@@ -77,6 +77,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 				nil,
 				nil,
 				nil,
+				nil,
 				reqLog,
 				trcLog,
 				nil,
@@ -224,6 +225,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 			whttprouter.New(),
 
 			wrouter.RootRouterParamAddRequestHandlerMiddleware(NewRequestTelemetry(
+				nil,
 				nil,
 				nil,
 				nil,

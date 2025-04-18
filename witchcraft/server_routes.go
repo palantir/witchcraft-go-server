@@ -94,7 +94,8 @@ func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.R
 		middleware.NewRequestTelemetry(
 			s.svcLogger,
 			s.evtLogger,
-			s.auditLogger,
+			s.audit2Logger,
+			&s.audit3Logger,
 			s.metricLogger,
 			s.diagLogger,
 			s.reqLogger,

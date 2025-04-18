@@ -26,8 +26,23 @@ import (
 type Runtime struct {
 	DiagnosticsConfig DiagnosticsConfig         `yaml:"diagnostics,omitempty"`
 	HealthChecks      HealthChecksConfig        `yaml:"health-checks,omitempty"`
+	AuditConfig       *AuditConfig              `yaml:"audit,omitempty"`
 	LoggerConfig      *LoggerConfig             `yaml:"logging,omitempty"`
 	ServiceDiscovery  httpclient.ServicesConfig `yaml:"service-discovery,omitempty"`
+}
+
+type AuditConfig struct {
+	Deployment string `yaml:"deployment,omitempty"`
+
+	Product string `yaml:"product-name,omitempty"`
+
+	ProductVersion string `yaml:"product-version,omitempty"`
+
+	Stack string `yaml:"stack,omitempty"`
+
+	Service string `yaml:"service,omitempty"`
+
+	Environment string `yaml:"environment,omitempty"`
 }
 
 type DiagnosticsConfig struct {

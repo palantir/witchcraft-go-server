@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -31,6 +30,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
 	pkgserver "github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/witchcraft-go-logging/wlog"
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
@@ -66,8 +66,9 @@ type serverCreatorFn func(t *testing.T, initFn witchcraft.InitFunc, installCfg c
 
 func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn witchcraft.InitFunc, logOutputBuffer io.Writer, createServer serverCreatorFn) (server *witchcraft.Server, serverErr <-chan error, cleanup func()) {
 	installCfg := config.Install{
-		ProductName:   productName,
-		UseConsoleLog: true,
+		ProductName:    productName,
+		ProductVersion: productVersion,
+		UseConsoleLog:  true,
 		Server: config.Server{
 			Address:        "localhost",
 			Port:           port,
@@ -98,9 +99,9 @@ func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn
 	require.NoError(t, err)
 	installCfgYML, err := yaml.Marshal(installCfg)
 	require.NoError(t, err)
-	err = ioutil.WriteFile(installYML, installCfgYML, 0644)
+	err = os.WriteFile(installYML, installCfgYML, 0644)
 	require.NoError(t, err)
-	err = ioutil.WriteFile(runtimeYML, []byte(`logging:\n  level: info`), 0644)
+	err = os.WriteFile(runtimeYML, getRuntimeConfigYAMLBytes(t), 0644)
 	require.NoError(t, err)
 
 	server = createServer(t, initFn, installCfg, logOutputBuffer)
@@ -123,10 +124,37 @@ func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn
 	return server, serverErr, cleanup
 }
 
+func getRuntimeConfigYAMLBytes(t *testing.T) []byte {
+	runtimeCfg := config.Runtime{
+		LoggerConfig: &config.LoggerConfig{
+			Level: wlog.InfoLevel,
+		},
+		AuditConfig: &config.AuditConfig{
+			Deployment:     "test-deployment",
+			Product:        productName,
+			ProductVersion: productVersion,
+			Stack:          "test-stack",
+			Service:        "test-service",
+			Environment:    "test-environment",
+		},
+	}
+	runtimeCfgYML, err := yaml.Marshal(runtimeCfg)
+	require.NoError(t, err)
+	return runtimeCfgYML
+}
+
 // createTestServer creates a test *witchcraft.Server that has been constructed but not started. The server has the
 // context path "/example" and has a handler for an "/ok" method that returns the JSON "ok" on GET calls. Returns the
-// server and the port that the server will use when started.
+// server and the port that the server will use when started. Uses a default in-memory hard-coded runtime configuration.
 func createTestServer(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) (server *witchcraft.Server) {
+	return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, refreshable.NewDefaultRefreshable(getRuntimeConfigYAMLBytes(t)))
+}
+
+// createTestServer creates a test *witchcraft.Server that has been constructed but not started. The server has the
+// context path "/example" and has a handler for an "/ok" method that returns the JSON "ok" on GET calls. Returns the
+// server and the port that the server will use when started. Uses the provided refreshable as the runtime configuration
+// provider.
+func createTestServerWithRuntimeConfigProvider(initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer, runtimeConfigProvider refreshable.Refreshable) (server *witchcraft.Server) {
 	server = witchcraft.
 		NewServer().
 		WithInitFunc(func(ctx context.Context, initInfo witchcraft.InitInfo) (func(), error) {
@@ -143,7 +171,7 @@ func createTestServer(t *testing.T, initFn witchcraft.InitFunc, installCfg confi
 			return nil, nil
 		}).
 		WithInstallConfig(installCfg).
-		WithRuntimeConfigProvider(refreshable.NewDefaultRefreshable([]byte{})).
+		WithRuntimeConfigProvider(runtimeConfigProvider).
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate()

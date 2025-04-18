@@ -19,6 +19,7 @@ import (
 
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
@@ -29,6 +30,7 @@ import (
 
 type Logger interface {
 	Audit() audit2log.Logger
+	AuditV3() audit3log.Logger
 	Diagnostic() diag1log.Logger
 	Event() evt2log.Logger
 	Metric() metric1log.Logger

@@ -18,5 +18,6 @@ func NewDefaultIDsExtractor() IDsFromRequest {
 	return newCompoundExtractor(
 		newIDsFromJWTExtractor(),
 		newTraceIDFromHeaderExtractor(),
+		newAudit3IDsFromHeaderExtractor(),
 	)
 }

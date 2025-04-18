@@ -21,8 +21,10 @@ import (
 	"strings"
 
 	"github.com/palantir/pkg/metrics"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/metriclog/metric1log"
@@ -30,6 +32,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/metricloggers"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -74,8 +77,24 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 		metric1log.New(logWriterFn("metrics")), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		trc1log.New(logWriterFn("trace")), registry)
-	s.auditLogger = metricloggers.NewAudit2Logger(
-		audit2log.New(logWriterFn("audit")), registry)
+
+	var audit2Logger audit2log.Logger
+	if s.dualLogAuditV2ToAuditV3 {
+		audit2Logger = audit2log.NewDualLogger(logWriterFn("audit"), logWriterFn("audit.v3"))
+	} else {
+		audit2Logger = audit2log.New(logWriterFn("audit"))
+	}
+	s.audit2Logger = metricloggers.NewAudit2Logger(audit2Logger, registry)
+
+	var audit3Logger audit3log.Logger
+	if s.dualLogAuditV3ToAuditV2 {
+		audit3Logger = audit3log.NewDualLogger(logWriterFn("audit.v3"), logWriterFn("audit"))
+	} else {
+		audit3Logger = audit3log.New(logWriterFn("audit.v3"))
+	}
+	audit3Logger = metricloggers.NewAudit3Logger(audit3Logger, registry)
+	s.audit3Logger.Store(&audit3Logger)
+
 	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(req2log.New(logWriterFn("request"),
 		req2log.Extractor(s.idsExtractor),
@@ -123,8 +142,11 @@ func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVers
 		wrapped1log.New(logWriterFn("metrics"), logLevel, productName, productVersion).Metric(), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		wrapped1log.New(logWriterFn("trace"), logLevel, productName, productVersion).Trace(), registry)
-	s.auditLogger = metricloggers.NewAudit2Logger(
+	s.audit2Logger = metricloggers.NewAudit2Logger(
 		wrapped1log.New(logWriterFn("audit"), logLevel, productName, productVersion).Audit(), registry)
+	audit3Logger := metricloggers.NewAudit3Logger(
+		wrapped1log.New(logWriterFn("audit.v3"), logLevel, productName, productVersion).AuditV3(), registry)
+	s.audit3Logger.Store(&audit3Logger)
 	s.diagLogger = metricloggers.NewDiag1Logger(
 		wrapped1log.New(logWriterFn("diagnostic"), logLevel, productName, productVersion).Diagnostic(), registry)
 	s.reqLogger = metricloggers.NewReq2Logger(wrapped1log.New(logWriterFn("request"), logLevel, productName, productVersion).Request(
@@ -133,6 +155,56 @@ func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVers
 		req2log.SafeHeaderParams(s.safeHeaderParams...),
 		req2log.SafeQueryParams(s.safeQueryParams...),
 	), registry)
+}
+
+// resolveHostName resolves the hostname using os.Hostname. Returns an error if the hostname cannot be resolved or if
+// the resolved hostname is "localhost". Used to determine the hostname field for audit logs.
+func resolveHostName() (string, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", werror.Wrap(err, "failed to get hostname")
+	}
+	if hostname == "localhost" {
+		return "", werror.Error("hostname discovery failed", werror.SafeParam("host", hostname))
+	}
+	return hostname, nil
+}
+
+func (s *Server) updateAuditLoggerConfig(auditConfig *config.AuditConfig) {
+	audit3Logger := *s.audit3Logger.Load()
+	if audit3Logger == nil {
+		return
+	}
+
+	// set values based on configuration (empty string if not set)
+	var deployment, product, productVersion, stack, service, environment string
+	if auditConfig != nil {
+		deployment = auditConfig.Deployment
+		product = auditConfig.Product
+		productVersion = auditConfig.ProductVersion
+		stack = auditConfig.Stack
+		service = auditConfig.Service
+		environment = auditConfig.Environment
+	}
+
+	host, err := resolveHostName()
+	if err != nil && s.svcLogger != nil {
+		s.svcLogger.Warn("failed to resolve hostname for audit logger", svc1log.Stacktrace(err))
+	}
+
+	audit3Logger = audit3log.WithParams(audit3Logger,
+		audit3log.Deployment(deployment),
+		audit3log.Host(host),
+		audit3log.Product(product),
+		audit3log.ProductVersion(productVersion),
+		audit3log.Stack(stack),
+		audit3log.Service(service),
+		audit3log.Environment(environment),
+		audit3log.ProducerType(audit3log.AuditProducerServer),
+	)
+
+	// set audit3 logger params
+	s.audit3Logger.Store(&audit3Logger)
 }
 
 // Returns a io.Writer that can be used as the underlying writer for a logger.

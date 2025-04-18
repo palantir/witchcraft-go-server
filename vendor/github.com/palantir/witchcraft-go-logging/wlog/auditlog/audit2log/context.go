@@ -66,6 +66,14 @@ func FromContext(ctx context.Context) Logger {
 	return WithParams(logger, params...)
 }
 
+// IsSetOnContext returns true if an audit.2 logger is set on the provided context, false otherwise.
+// Note that, even if this function returns "false", that does not mean that "FromContext" cannot called on this
+// context, as "FromContext" will use the defaultLoggerCreator to create a logger if none is set on the context.
+func IsSetOnContext(ctx context.Context) bool {
+	_, ok := ctx.Value(contextKey).(Logger)
+	return ok
+}
+
 // loggerFromContext returns the logger stored in the provided context. If no logger is set on the context, returns the
 // logger created by calling DefaultLogger.
 func loggerFromContext(ctx context.Context) Logger {
