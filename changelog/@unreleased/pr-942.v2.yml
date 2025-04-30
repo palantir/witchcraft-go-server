@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Adds support for `audit.3` logs.
+
+    Specifically, ensures that an `audit3.Logger` is set on all server contexts and that there is a middleware that properly populates required fields. Also defines an `AuditConfig` struct and adds it as an optional field to the base `Runtime` configuration.
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/942
