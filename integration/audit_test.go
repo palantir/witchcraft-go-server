@@ -383,6 +383,12 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 				assert.Equal(t, "jrocket@example.com", uidValue)
 				assert.Equal(t, "eecb9bf34bbb4c8eb87dbba3aa1523c6", sidValue)
 				assert.Equal(t, "org_vIK75NKFvaozQsFy", orgIDValue)
+				assert.Equal(t, []logging.ContextualizedUser{
+					{
+						Uid:    "jrocket@example.com",
+						Groups: []string{},
+					},
+				}, audit3LogEntry.Users)
 				assert.Regexp(t, ".+", originValue)
 				assert.Regexp(t, ".+", sourceOriginValue)
 				assert.Equal(t, "Go-http-client/1.1", userAgentValue)

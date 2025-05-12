@@ -175,6 +175,11 @@ func newRequestExtractIDs(idsExtractor extractor.IDsFromRequest) func(req *http.
 		if uid := ids[extractor.UIDKey]; uid != "" {
 			ctx = wlog.ContextWithUID(ctx, uid)
 			trc1LogParams = append(trc1LogParams, trc1log.UID(uid))
+			audit3LogParams = append(audit3LogParams, audit3log.Users([]audit3log.ContextualizedUser{
+				{
+					UID: uid,
+				},
+			}))
 		}
 		if sid := ids[extractor.SIDKey]; sid != "" {
 			ctx = wlog.ContextWithSID(ctx, sid)
