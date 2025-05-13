@@ -61,6 +61,29 @@ func (o *ApplicationResource) UnmarshalYAML(unmarshal func(interface{}) error) e
 	return safejson.Unmarshal(jsonBytes, *&o)
 }
 
+// Uniquely identifies a static asset through its product name, version and track.
+type AssetCoordinate struct {
+	ArtifactId ArtifactId   `json:"artifactId"`
+	Track      AssetTrack   `json:"track"`
+	Version    MavenVersion `json:"version"`
+}
+
+func (o AssetCoordinate) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *AssetCoordinate) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
 type AssetLocator struct {
 	AssetServerLocator ServiceLocator `json:"assetServerLocator"`
 	Product            string         `json:"product"`
@@ -97,6 +120,31 @@ func (o AuditDataShare) MarshalYAML() (interface{}, error) {
 }
 
 func (o *AuditDataShare) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+type ContentAddressableFileIdentifier struct {
+	// The namespace for the requested content-addressable-storage file.
+	Namespace string `conjure-docs:"The namespace for the requested content-addressable-storage file." json:"namespace"`
+	// The CAS file being requested.
+	HashedFileName string `conjure-docs:"The CAS file being requested." json:"hashedFileName"`
+	// Represents whether the request is for source maps or not.
+	ForSourceMap bool `conjure-docs:"Represents whether the request is for source maps or not." json:"forSourceMap"`
+}
+
+func (o ContentAddressableFileIdentifier) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *ContentAddressableFileIdentifier) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
 	if err != nil {
 		return err
@@ -517,6 +565,27 @@ func (o MavenCoordinate) MarshalYAML() (interface{}, error) {
 }
 
 func (o *MavenCoordinate) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+type MavenCoordinateAndPathIdentifier struct {
+	MavenCoordinate PartialMavenCoordinate `json:"mavenCoordinate"`
+	Path            string                 `json:"path"`
+}
+
+func (o MavenCoordinateAndPathIdentifier) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *MavenCoordinateAndPathIdentifier) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
 	if err != nil {
 		return err

@@ -92,16 +92,29 @@ func (e *zapLogEntry) ObjectValue(k string, v interface{}, marshalerType reflect
 	zapLogEntrySetValue(e, zap.Reflect, k, v)
 }
 
+func (e *zapLogEntry) ObjectListValue(k string, v []any) {
+	e.delete(k)
+	e.mutableValueEntries.ObjectListValue(k, v)
+}
+
+func (e *zapLogEntry) ObjectListAppendValue(k string, v []any) {
+	e.ObjectListValue(k, append(e.mutableValueEntries.ObjectListValues()[k], v...))
+}
+
 func (e *zapLogEntry) Fields() []zapcore.Field {
 	stringListValues := e.mutableValueEntries.StringListValues()
 	stringMapValues := e.mutableValueEntries.StringMapValues()
 	anyMapValues := e.mutableValueEntries.AnyMapValues()
-	fields := make([]zapcore.Field, 0, len(e.fields)+len(stringMapValues)+len(anyMapValues)+len(stringListValues))
+	objectListValues := e.mutableValueEntries.ObjectListValues()
+	fields := make([]zapcore.Field, 0, len(e.fields)+len(stringMapValues)+len(anyMapValues)+len(stringListValues)+len(objectListValues))
 	for _, field := range e.fields {
 		fields = append(fields, *field)
 	}
 	for k, v := range stringListValues {
 		fields = append(fields, zap.Strings(k, v))
+	}
+	for k, v := range objectListValues {
+		fields = append(fields, zap.Any(k, v))
 	}
 	fields = append(fields, zapLogEntryMapValuesToFields(stringMapValues, func(k string, v string, enc zapcore.ObjectEncoder) error {
 		enc.AddString(k, v)

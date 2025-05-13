@@ -11,6 +11,354 @@ import (
 	"github.com/palantir/pkg/safeyaml"
 )
 
+type AssetFileLoadIdentifier struct {
+	typ                              string
+	mavenCoordinateAndPath           *MavenCoordinateAndPathIdentifier
+	contentAddressableFileIdentifier *ContentAddressableFileIdentifier
+}
+
+type assetFileLoadIdentifierDeserializer struct {
+	Type                             string                            `json:"type"`
+	MavenCoordinateAndPath           *MavenCoordinateAndPathIdentifier `json:"mavenCoordinateAndPath"`
+	ContentAddressableFileIdentifier *ContentAddressableFileIdentifier `json:"contentAddressableFileIdentifier"`
+}
+
+func (u *assetFileLoadIdentifierDeserializer) toStruct() AssetFileLoadIdentifier {
+	return AssetFileLoadIdentifier{typ: u.Type, mavenCoordinateAndPath: u.MavenCoordinateAndPath, contentAddressableFileIdentifier: u.ContentAddressableFileIdentifier}
+}
+
+func (u *AssetFileLoadIdentifier) toSerializer() (interface{}, error) {
+	switch u.typ {
+	default:
+		return nil, fmt.Errorf("unknown type %q", u.typ)
+	case "mavenCoordinateAndPath":
+		if u.mavenCoordinateAndPath == nil {
+			return nil, fmt.Errorf("field \"mavenCoordinateAndPath\" is required")
+		}
+		return struct {
+			Type                   string                           `json:"type"`
+			MavenCoordinateAndPath MavenCoordinateAndPathIdentifier `json:"mavenCoordinateAndPath"`
+		}{Type: "mavenCoordinateAndPath", MavenCoordinateAndPath: *u.mavenCoordinateAndPath}, nil
+	case "contentAddressableFileIdentifier":
+		if u.contentAddressableFileIdentifier == nil {
+			return nil, fmt.Errorf("field \"contentAddressableFileIdentifier\" is required")
+		}
+		return struct {
+			Type                             string                           `json:"type"`
+			ContentAddressableFileIdentifier ContentAddressableFileIdentifier `json:"contentAddressableFileIdentifier"`
+		}{Type: "contentAddressableFileIdentifier", ContentAddressableFileIdentifier: *u.contentAddressableFileIdentifier}, nil
+	}
+}
+
+func (u AssetFileLoadIdentifier) MarshalJSON() ([]byte, error) {
+	ser, err := u.toSerializer()
+	if err != nil {
+		return nil, err
+	}
+	return safejson.Marshal(ser)
+}
+
+func (u *AssetFileLoadIdentifier) UnmarshalJSON(data []byte) error {
+	var deser assetFileLoadIdentifierDeserializer
+	if err := safejson.Unmarshal(data, &deser); err != nil {
+		return err
+	}
+	*u = deser.toStruct()
+	switch u.typ {
+	case "mavenCoordinateAndPath":
+		if u.mavenCoordinateAndPath == nil {
+			return fmt.Errorf("field \"mavenCoordinateAndPath\" is required")
+		}
+	case "contentAddressableFileIdentifier":
+		if u.contentAddressableFileIdentifier == nil {
+			return fmt.Errorf("field \"contentAddressableFileIdentifier\" is required")
+		}
+	}
+	return nil
+}
+
+func (u AssetFileLoadIdentifier) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(u)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (u *AssetFileLoadIdentifier) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&u)
+}
+
+func (u *AssetFileLoadIdentifier) AcceptFuncs(mavenCoordinateAndPathFunc func(MavenCoordinateAndPathIdentifier) error, contentAddressableFileIdentifierFunc func(ContentAddressableFileIdentifier) error, unknownFunc func(string) error) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return unknownFunc(u.typ)
+	case "mavenCoordinateAndPath":
+		if u.mavenCoordinateAndPath == nil {
+			return fmt.Errorf("field \"mavenCoordinateAndPath\" is required")
+		}
+		return mavenCoordinateAndPathFunc(*u.mavenCoordinateAndPath)
+	case "contentAddressableFileIdentifier":
+		if u.contentAddressableFileIdentifier == nil {
+			return fmt.Errorf("field \"contentAddressableFileIdentifier\" is required")
+		}
+		return contentAddressableFileIdentifierFunc(*u.contentAddressableFileIdentifier)
+	}
+}
+
+func (u *AssetFileLoadIdentifier) MavenCoordinateAndPathNoopSuccess(MavenCoordinateAndPathIdentifier) error {
+	return nil
+}
+
+func (u *AssetFileLoadIdentifier) ContentAddressableFileIdentifierNoopSuccess(ContentAddressableFileIdentifier) error {
+	return nil
+}
+
+func (u *AssetFileLoadIdentifier) ErrorOnUnknown(typeName string) error {
+	return fmt.Errorf("invalid value in union type. Type name: %s", typeName)
+}
+
+func (u *AssetFileLoadIdentifier) Accept(v AssetFileLoadIdentifierVisitor) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknown(u.typ)
+	case "mavenCoordinateAndPath":
+		if u.mavenCoordinateAndPath == nil {
+			return fmt.Errorf("field \"mavenCoordinateAndPath\" is required")
+		}
+		return v.VisitMavenCoordinateAndPath(*u.mavenCoordinateAndPath)
+	case "contentAddressableFileIdentifier":
+		if u.contentAddressableFileIdentifier == nil {
+			return fmt.Errorf("field \"contentAddressableFileIdentifier\" is required")
+		}
+		return v.VisitContentAddressableFileIdentifier(*u.contentAddressableFileIdentifier)
+	}
+}
+
+type AssetFileLoadIdentifierVisitor interface {
+	VisitMavenCoordinateAndPath(v MavenCoordinateAndPathIdentifier) error
+	VisitContentAddressableFileIdentifier(v ContentAddressableFileIdentifier) error
+	VisitUnknown(typeName string) error
+}
+
+func (u *AssetFileLoadIdentifier) AcceptWithContext(ctx context.Context, v AssetFileLoadIdentifierVisitorWithContext) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknownWithContext(ctx, u.typ)
+	case "mavenCoordinateAndPath":
+		if u.mavenCoordinateAndPath == nil {
+			return fmt.Errorf("field \"mavenCoordinateAndPath\" is required")
+		}
+		return v.VisitMavenCoordinateAndPathWithContext(ctx, *u.mavenCoordinateAndPath)
+	case "contentAddressableFileIdentifier":
+		if u.contentAddressableFileIdentifier == nil {
+			return fmt.Errorf("field \"contentAddressableFileIdentifier\" is required")
+		}
+		return v.VisitContentAddressableFileIdentifierWithContext(ctx, *u.contentAddressableFileIdentifier)
+	}
+}
+
+type AssetFileLoadIdentifierVisitorWithContext interface {
+	VisitMavenCoordinateAndPathWithContext(ctx context.Context, v MavenCoordinateAndPathIdentifier) error
+	VisitContentAddressableFileIdentifierWithContext(ctx context.Context, v ContentAddressableFileIdentifier) error
+	VisitUnknownWithContext(ctx context.Context, typeName string) error
+}
+
+func NewAssetFileLoadIdentifierFromMavenCoordinateAndPath(v MavenCoordinateAndPathIdentifier) AssetFileLoadIdentifier {
+	return AssetFileLoadIdentifier{typ: "mavenCoordinateAndPath", mavenCoordinateAndPath: &v}
+}
+
+func NewAssetFileLoadIdentifierFromContentAddressableFileIdentifier(v ContentAddressableFileIdentifier) AssetFileLoadIdentifier {
+	return AssetFileLoadIdentifier{typ: "contentAddressableFileIdentifier", contentAddressableFileIdentifier: &v}
+}
+
+type AssetFileLoadResponse struct {
+	typ             string
+	mavenCoordinate *MavenCoordinate
+	assetCoordinate *AssetCoordinate
+}
+
+type assetFileLoadResponseDeserializer struct {
+	Type            string           `json:"type"`
+	MavenCoordinate *MavenCoordinate `json:"mavenCoordinate"`
+	AssetCoordinate *AssetCoordinate `json:"assetCoordinate"`
+}
+
+func (u *assetFileLoadResponseDeserializer) toStruct() AssetFileLoadResponse {
+	return AssetFileLoadResponse{typ: u.Type, mavenCoordinate: u.MavenCoordinate, assetCoordinate: u.AssetCoordinate}
+}
+
+func (u *AssetFileLoadResponse) toSerializer() (interface{}, error) {
+	switch u.typ {
+	default:
+		return nil, fmt.Errorf("unknown type %q", u.typ)
+	case "mavenCoordinate":
+		if u.mavenCoordinate == nil {
+			return nil, fmt.Errorf("field \"mavenCoordinate\" is required")
+		}
+		return struct {
+			Type            string          `json:"type"`
+			MavenCoordinate MavenCoordinate `json:"mavenCoordinate"`
+		}{Type: "mavenCoordinate", MavenCoordinate: *u.mavenCoordinate}, nil
+	case "assetCoordinate":
+		if u.assetCoordinate == nil {
+			return nil, fmt.Errorf("field \"assetCoordinate\" is required")
+		}
+		return struct {
+			Type            string          `json:"type"`
+			AssetCoordinate AssetCoordinate `json:"assetCoordinate"`
+		}{Type: "assetCoordinate", AssetCoordinate: *u.assetCoordinate}, nil
+	}
+}
+
+func (u AssetFileLoadResponse) MarshalJSON() ([]byte, error) {
+	ser, err := u.toSerializer()
+	if err != nil {
+		return nil, err
+	}
+	return safejson.Marshal(ser)
+}
+
+func (u *AssetFileLoadResponse) UnmarshalJSON(data []byte) error {
+	var deser assetFileLoadResponseDeserializer
+	if err := safejson.Unmarshal(data, &deser); err != nil {
+		return err
+	}
+	*u = deser.toStruct()
+	switch u.typ {
+	case "mavenCoordinate":
+		if u.mavenCoordinate == nil {
+			return fmt.Errorf("field \"mavenCoordinate\" is required")
+		}
+	case "assetCoordinate":
+		if u.assetCoordinate == nil {
+			return fmt.Errorf("field \"assetCoordinate\" is required")
+		}
+	}
+	return nil
+}
+
+func (u AssetFileLoadResponse) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(u)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (u *AssetFileLoadResponse) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&u)
+}
+
+func (u *AssetFileLoadResponse) AcceptFuncs(mavenCoordinateFunc func(MavenCoordinate) error, assetCoordinateFunc func(AssetCoordinate) error, unknownFunc func(string) error) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return unknownFunc(u.typ)
+	case "mavenCoordinate":
+		if u.mavenCoordinate == nil {
+			return fmt.Errorf("field \"mavenCoordinate\" is required")
+		}
+		return mavenCoordinateFunc(*u.mavenCoordinate)
+	case "assetCoordinate":
+		if u.assetCoordinate == nil {
+			return fmt.Errorf("field \"assetCoordinate\" is required")
+		}
+		return assetCoordinateFunc(*u.assetCoordinate)
+	}
+}
+
+func (u *AssetFileLoadResponse) MavenCoordinateNoopSuccess(MavenCoordinate) error {
+	return nil
+}
+
+func (u *AssetFileLoadResponse) AssetCoordinateNoopSuccess(AssetCoordinate) error {
+	return nil
+}
+
+func (u *AssetFileLoadResponse) ErrorOnUnknown(typeName string) error {
+	return fmt.Errorf("invalid value in union type. Type name: %s", typeName)
+}
+
+func (u *AssetFileLoadResponse) Accept(v AssetFileLoadResponseVisitor) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknown(u.typ)
+	case "mavenCoordinate":
+		if u.mavenCoordinate == nil {
+			return fmt.Errorf("field \"mavenCoordinate\" is required")
+		}
+		return v.VisitMavenCoordinate(*u.mavenCoordinate)
+	case "assetCoordinate":
+		if u.assetCoordinate == nil {
+			return fmt.Errorf("field \"assetCoordinate\" is required")
+		}
+		return v.VisitAssetCoordinate(*u.assetCoordinate)
+	}
+}
+
+type AssetFileLoadResponseVisitor interface {
+	VisitMavenCoordinate(v MavenCoordinate) error
+	VisitAssetCoordinate(v AssetCoordinate) error
+	VisitUnknown(typeName string) error
+}
+
+func (u *AssetFileLoadResponse) AcceptWithContext(ctx context.Context, v AssetFileLoadResponseVisitorWithContext) error {
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknownWithContext(ctx, u.typ)
+	case "mavenCoordinate":
+		if u.mavenCoordinate == nil {
+			return fmt.Errorf("field \"mavenCoordinate\" is required")
+		}
+		return v.VisitMavenCoordinateWithContext(ctx, *u.mavenCoordinate)
+	case "assetCoordinate":
+		if u.assetCoordinate == nil {
+			return fmt.Errorf("field \"assetCoordinate\" is required")
+		}
+		return v.VisitAssetCoordinateWithContext(ctx, *u.assetCoordinate)
+	}
+}
+
+type AssetFileLoadResponseVisitorWithContext interface {
+	VisitMavenCoordinateWithContext(ctx context.Context, v MavenCoordinate) error
+	VisitAssetCoordinateWithContext(ctx context.Context, v AssetCoordinate) error
+	VisitUnknownWithContext(ctx context.Context, typeName string) error
+}
+
+func NewAssetFileLoadResponseFromMavenCoordinate(v MavenCoordinate) AssetFileLoadResponse {
+	return AssetFileLoadResponse{typ: "mavenCoordinate", mavenCoordinate: &v}
+}
+
+func NewAssetFileLoadResponseFromAssetCoordinate(v AssetCoordinate) AssetFileLoadResponse {
+	return AssetFileLoadResponse{typ: "assetCoordinate", assetCoordinate: &v}
+}
+
 type EntityLocator struct {
 	typ           string
 	service       *ServiceLocator

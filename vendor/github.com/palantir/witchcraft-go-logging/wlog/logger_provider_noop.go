@@ -61,3 +61,5 @@ func (*noopLogEntry) IntValue(k string, v int32)                                
 func (*noopLogEntry) StringMapValue(k string, v map[string]string)                    {}
 func (*noopLogEntry) AnyMapValue(k string, v map[string]interface{})                  {}
 func (*noopLogEntry) ObjectValue(k string, v interface{}, marshalerType reflect.Type) {}
+func (*noopLogEntry) ObjectListValue(k string, v []any)                               {}
+func (*noopLogEntry) ObjectListAppendValue(k string, v []any)                         {}

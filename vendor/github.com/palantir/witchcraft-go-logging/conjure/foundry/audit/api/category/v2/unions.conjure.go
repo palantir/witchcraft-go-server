@@ -71,6 +71,7 @@ type AuditCategoryV2 struct {
 	tokenAccess            *TokenAccess
 	oauth2InitiateAuthFlow *Oauth2InitiateAuthFlow
 	assetFileLoad          *AssetFileLoad
+	assetFileLoadV2        *AssetFileLoadV2
 	containerLaunch        *ContainerLaunch
 	containerLoad          *ContainerLoad
 	containerSearch        *ContainerSearch
@@ -170,6 +171,7 @@ type auditCategoryV2Deserializer struct {
 	TokenAccess            *TokenAccess            `json:"tokenAccess"`
 	Oauth2InitiateAuthFlow *Oauth2InitiateAuthFlow `json:"oauth2InitiateAuthFlow"`
 	AssetFileLoad          *AssetFileLoad          `json:"assetFileLoad"`
+	AssetFileLoadV2        *AssetFileLoadV2        `json:"assetFileLoadV2"`
 	ContainerLaunch        *ContainerLaunch        `json:"containerLaunch"`
 	ContainerLoad          *ContainerLoad          `json:"containerLoad"`
 	ContainerSearch        *ContainerSearch        `json:"containerSearch"`
@@ -210,7 +212,7 @@ type auditCategoryV2Deserializer struct {
 }
 
 func (u *auditCategoryV2Deserializer) toStruct() AuditCategoryV2 {
-	return AuditCategoryV2{typ: u.Type, dataCreate: u.DataCreate, dataDelete: u.DataDelete, dataLoad: u.DataLoad, dataMerge: u.DataMerge, dataPromote: u.DataPromote, dataTransform: u.DataTransform, dataExport: u.DataExport, dataImport: u.DataImport, dataSearch: u.DataSearch, bulkDataImport: u.BulkDataImport, codeExecution: u.CodeExecution, cancelCodeExecution: u.CancelCodeExecution, dataShareCreate: u.DataShareCreate, dataShareDisable: u.DataShareDisable, dataShare: u.DataShare, metaDataAccess: u.MetaDataAccess, metaDataCreate: u.MetaDataCreate, metaDataDelete: u.MetaDataDelete, metaDataUpdate: u.MetaDataUpdate, metaDataSearch: u.MetaDataSearch, appConfigAccess: u.AppConfigAccess, appConfigUpdate: u.AppConfigUpdate, appConfigCreate: u.AppConfigCreate, appConfigDelete: u.AppConfigDelete, appConfigSearch: u.AppConfigSearch, monitorRun: u.MonitorRun, monitorCreate: u.MonitorCreate, monitorDelete: u.MonitorDelete, monitorUpdate: u.MonitorUpdate, monitorAccess: u.MonitorAccess, monitorSearch: u.MonitorSearch, logicCreate: u.LogicCreate, logicUpdate: u.LogicUpdate, logicAccess: u.LogicAccess, logicDelete: u.LogicDelete, logicSearch: u.LogicSearch, requestCreate: u.RequestCreate, requestAccess: u.RequestAccess, requestSearch: u.RequestSearch, requestUpdate: u.RequestUpdate, requestApprove: u.RequestApprove, requestDisapprove: u.RequestDisapprove, requestExecute: u.RequestExecute, requestCancel: u.RequestCancel, managementUsers: u.ManagementUsers, managementGroups: u.ManagementGroups, managementMarkings: u.ManagementMarkings, managementPermissions: u.ManagementPermissions, managementTokens: u.ManagementTokens, authenticationCheck: u.AuthenticationCheck, authorizationCheck: u.AuthorizationCheck, userLogin: u.UserLogin, userLogout: u.UserLogout, tokenGeneration: u.TokenGeneration, tokenRevoke: u.TokenRevoke, tokenAccess: u.TokenAccess, oauth2InitiateAuthFlow: u.Oauth2InitiateAuthFlow, assetFileLoad: u.AssetFileLoad, containerLaunch: u.ContainerLaunch, containerLoad: u.ContainerLoad, containerSearch: u.ContainerSearch, containerStop: u.ContainerStop, infraLogsAccess: u.InfraLogsAccess, createInfra: u.CreateInfra, configureInfra: u.ConfigureInfra, reviewInfraAction: u.ReviewInfraAction, restartInfra: u.RestartInfra, upgradeInfra: u.UpgradeInfra, ontologyDataLoad: u.OntologyDataLoad, ontologyDataSearch: u.OntologyDataSearch, ontologyDataTransform: u.OntologyDataTransform, ontologyLogicAccess: u.OntologyLogicAccess, ontologyLogicCreate: u.OntologyLogicCreate, ontologyLogicDelete: u.OntologyLogicDelete, ontologyLogicUpdate: u.OntologyLogicUpdate, ontologyMetaDataLoad: u.OntologyMetaDataLoad, ontologyMetaDataCreate: u.OntologyMetaDataCreate, ontologyMetaDataDelete: u.OntologyMetaDataDelete, ontologyMetaDataUpdate: u.OntologyMetaDataUpdate, ontologyMetaDataSearch: u.OntologyMetaDataSearch, secretCreate: u.SecretCreate, secretUse: u.SecretUse, secretLoad: u.SecretLoad, secretDeprecate: u.SecretDeprecate, onBehalfOf: u.OnBehalfOf, inApplicationContext: u.InApplicationContext, inEnrollmentContext: u.InEnrollmentContext, internal: u.Internal, userJustify: u.UserJustify, passThrough: u.PassThrough, llmInference: u.LlmInference, llmRoute: u.LlmRoute, auditDataTransform: u.AuditDataTransform, auditDataShareCreate: u.AuditDataShareCreate, apiGatewayRequest: u.ApiGatewayRequest}
+	return AuditCategoryV2{typ: u.Type, dataCreate: u.DataCreate, dataDelete: u.DataDelete, dataLoad: u.DataLoad, dataMerge: u.DataMerge, dataPromote: u.DataPromote, dataTransform: u.DataTransform, dataExport: u.DataExport, dataImport: u.DataImport, dataSearch: u.DataSearch, bulkDataImport: u.BulkDataImport, codeExecution: u.CodeExecution, cancelCodeExecution: u.CancelCodeExecution, dataShareCreate: u.DataShareCreate, dataShareDisable: u.DataShareDisable, dataShare: u.DataShare, metaDataAccess: u.MetaDataAccess, metaDataCreate: u.MetaDataCreate, metaDataDelete: u.MetaDataDelete, metaDataUpdate: u.MetaDataUpdate, metaDataSearch: u.MetaDataSearch, appConfigAccess: u.AppConfigAccess, appConfigUpdate: u.AppConfigUpdate, appConfigCreate: u.AppConfigCreate, appConfigDelete: u.AppConfigDelete, appConfigSearch: u.AppConfigSearch, monitorRun: u.MonitorRun, monitorCreate: u.MonitorCreate, monitorDelete: u.MonitorDelete, monitorUpdate: u.MonitorUpdate, monitorAccess: u.MonitorAccess, monitorSearch: u.MonitorSearch, logicCreate: u.LogicCreate, logicUpdate: u.LogicUpdate, logicAccess: u.LogicAccess, logicDelete: u.LogicDelete, logicSearch: u.LogicSearch, requestCreate: u.RequestCreate, requestAccess: u.RequestAccess, requestSearch: u.RequestSearch, requestUpdate: u.RequestUpdate, requestApprove: u.RequestApprove, requestDisapprove: u.RequestDisapprove, requestExecute: u.RequestExecute, requestCancel: u.RequestCancel, managementUsers: u.ManagementUsers, managementGroups: u.ManagementGroups, managementMarkings: u.ManagementMarkings, managementPermissions: u.ManagementPermissions, managementTokens: u.ManagementTokens, authenticationCheck: u.AuthenticationCheck, authorizationCheck: u.AuthorizationCheck, userLogin: u.UserLogin, userLogout: u.UserLogout, tokenGeneration: u.TokenGeneration, tokenRevoke: u.TokenRevoke, tokenAccess: u.TokenAccess, oauth2InitiateAuthFlow: u.Oauth2InitiateAuthFlow, assetFileLoad: u.AssetFileLoad, assetFileLoadV2: u.AssetFileLoadV2, containerLaunch: u.ContainerLaunch, containerLoad: u.ContainerLoad, containerSearch: u.ContainerSearch, containerStop: u.ContainerStop, infraLogsAccess: u.InfraLogsAccess, createInfra: u.CreateInfra, configureInfra: u.ConfigureInfra, reviewInfraAction: u.ReviewInfraAction, restartInfra: u.RestartInfra, upgradeInfra: u.UpgradeInfra, ontologyDataLoad: u.OntologyDataLoad, ontologyDataSearch: u.OntologyDataSearch, ontologyDataTransform: u.OntologyDataTransform, ontologyLogicAccess: u.OntologyLogicAccess, ontologyLogicCreate: u.OntologyLogicCreate, ontologyLogicDelete: u.OntologyLogicDelete, ontologyLogicUpdate: u.OntologyLogicUpdate, ontologyMetaDataLoad: u.OntologyMetaDataLoad, ontologyMetaDataCreate: u.OntologyMetaDataCreate, ontologyMetaDataDelete: u.OntologyMetaDataDelete, ontologyMetaDataUpdate: u.OntologyMetaDataUpdate, ontologyMetaDataSearch: u.OntologyMetaDataSearch, secretCreate: u.SecretCreate, secretUse: u.SecretUse, secretLoad: u.SecretLoad, secretDeprecate: u.SecretDeprecate, onBehalfOf: u.OnBehalfOf, inApplicationContext: u.InApplicationContext, inEnrollmentContext: u.InEnrollmentContext, internal: u.Internal, userJustify: u.UserJustify, passThrough: u.PassThrough, llmInference: u.LlmInference, llmRoute: u.LlmRoute, auditDataTransform: u.AuditDataTransform, auditDataShareCreate: u.AuditDataShareCreate, apiGatewayRequest: u.ApiGatewayRequest}
 }
 
 func (u *AuditCategoryV2) toSerializer() (interface{}, error) {
@@ -681,6 +683,14 @@ func (u *AuditCategoryV2) toSerializer() (interface{}, error) {
 			Type          string        `json:"type"`
 			AssetFileLoad AssetFileLoad `json:"assetFileLoad"`
 		}{Type: "assetFileLoad", AssetFileLoad: *u.assetFileLoad}, nil
+	case "assetFileLoadV2":
+		if u.assetFileLoadV2 == nil {
+			return nil, fmt.Errorf("field \"assetFileLoadV2\" is required")
+		}
+		return struct {
+			Type            string          `json:"type"`
+			AssetFileLoadV2 AssetFileLoadV2 `json:"assetFileLoadV2"`
+		}{Type: "assetFileLoadV2", AssetFileLoadV2: *u.assetFileLoadV2}, nil
 	case "containerLaunch":
 		if u.containerLaunch == nil {
 			return nil, fmt.Errorf("field \"containerLaunch\" is required")
@@ -1227,6 +1237,10 @@ func (u *AuditCategoryV2) UnmarshalJSON(data []byte) error {
 		if u.assetFileLoad == nil {
 			return fmt.Errorf("field \"assetFileLoad\" is required")
 		}
+	case "assetFileLoadV2":
+		if u.assetFileLoadV2 == nil {
+			return fmt.Errorf("field \"assetFileLoadV2\" is required")
+		}
 	case "containerLaunch":
 		if u.containerLaunch == nil {
 			return fmt.Errorf("field \"containerLaunch\" is required")
@@ -1395,7 +1409,7 @@ func (u *AuditCategoryV2) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return safejson.Unmarshal(jsonBytes, *&u)
 }
 
-func (u *AuditCategoryV2) AcceptFuncs(dataCreateFunc func(DataCreate) error, dataDeleteFunc func(DataDelete) error, dataLoadFunc func(DataLoad) error, dataMergeFunc func(DataMerge) error, dataPromoteFunc func(DataPromote) error, dataTransformFunc func(DataTransform) error, dataExportFunc func(DataExport) error, dataImportFunc func(DataImport) error, dataSearchFunc func(DataSearch) error, bulkDataImportFunc func(BulkDataImport) error, codeExecutionFunc func(CodeExecution) error, cancelCodeExecutionFunc func(CancelCodeExecution) error, dataShareCreateFunc func(DataShareCreate) error, dataShareDisableFunc func(DataShareDisable) error, dataShareFunc func(DataShare) error, metaDataAccessFunc func(MetaDataAccess) error, metaDataCreateFunc func(MetaDataCreate) error, metaDataDeleteFunc func(MetaDataDelete) error, metaDataUpdateFunc func(MetaDataUpdate) error, metaDataSearchFunc func(MetaDataSearch) error, appConfigAccessFunc func(AppConfigAccess) error, appConfigUpdateFunc func(AppConfigUpdate) error, appConfigCreateFunc func(AppConfigCreate) error, appConfigDeleteFunc func(AppConfigDelete) error, appConfigSearchFunc func(AppConfigSearch) error, monitorRunFunc func(MonitorRun) error, monitorCreateFunc func(MonitorCreate) error, monitorDeleteFunc func(MonitorDelete) error, monitorUpdateFunc func(MonitorUpdate) error, monitorAccessFunc func(MonitorAccess) error, monitorSearchFunc func(MonitorSearch) error, logicCreateFunc func(LogicCreate) error, logicUpdateFunc func(LogicUpdate) error, logicAccessFunc func(LogicAccess) error, logicDeleteFunc func(LogicDelete) error, logicSearchFunc func(LogicSearch) error, requestCreateFunc func(RequestCreate) error, requestAccessFunc func(RequestAccess) error, requestSearchFunc func(RequestSearch) error, requestUpdateFunc func(RequestUpdate) error, requestApproveFunc func(RequestApprove) error, requestDisapproveFunc func(RequestDisapprove) error, requestExecuteFunc func(RequestExecute) error, requestCancelFunc func(RequestCancel) error, managementUsersFunc func(ManagementUsers) error, managementGroupsFunc func(ManagementGroups) error, managementMarkingsFunc func(ManagementMarkings) error, managementPermissionsFunc func(ManagementPermissions) error, managementTokensFunc func(ManagementTokens) error, authenticationCheckFunc func(AuthenticationCheck) error, authorizationCheckFunc func(AuthorizationCheck) error, userLoginFunc func(UserLogin) error, userLogoutFunc func(UserLogout) error, tokenGenerationFunc func(TokenGeneration) error, tokenRevokeFunc func(TokenRevoke) error, tokenAccessFunc func(TokenAccess) error, oauth2InitiateAuthFlowFunc func(Oauth2InitiateAuthFlow) error, assetFileLoadFunc func(AssetFileLoad) error, containerLaunchFunc func(ContainerLaunch) error, containerLoadFunc func(ContainerLoad) error, containerSearchFunc func(ContainerSearch) error, containerStopFunc func(ContainerStop) error, infraLogsAccessFunc func(InfraLogsAccess) error, createInfraFunc func(CreateInfra) error, configureInfraFunc func(ConfigureInfra) error, reviewInfraActionFunc func(ReviewInfraAction) error, restartInfraFunc func(RestartInfra) error, upgradeInfraFunc func(UpgradeInfra) error, ontologyDataLoadFunc func(OntologyDataLoad) error, ontologyDataSearchFunc func(OntologyDataSearch) error, ontologyDataTransformFunc func(OntologyDataTransform) error, ontologyLogicAccessFunc func(OntologyLogicAccess) error, ontologyLogicCreateFunc func(OntologyLogicCreate) error, ontologyLogicDeleteFunc func(OntologyLogicDelete) error, ontologyLogicUpdateFunc func(OntologyLogicUpdate) error, ontologyMetaDataLoadFunc func(OntologyMetaDataLoad) error, ontologyMetaDataCreateFunc func(OntologyMetaDataCreate) error, ontologyMetaDataDeleteFunc func(OntologyMetaDataDelete) error, ontologyMetaDataUpdateFunc func(OntologyMetaDataUpdate) error, ontologyMetaDataSearchFunc func(OntologyMetaDataSearch) error, secretCreateFunc func(SecretCreate) error, secretUseFunc func(SecretUse) error, secretLoadFunc func(SecretLoad) error, secretDeprecateFunc func(SecretDeprecate) error, onBehalfOfFunc func(OnBehalfOf) error, inApplicationContextFunc func(InApplicationContext) error, inEnrollmentContextFunc func(InEnrollmentContext) error, internalFunc func(category.Internal) error, userJustifyFunc func(UserJustify) error, passThroughFunc func(PassThrough) error, llmInferenceFunc func(LlmInference) error, llmRouteFunc func(LlmRoute) error, auditDataTransformFunc func(AuditDataTransform) error, auditDataShareCreateFunc func(AuditDataShareCreate) error, apiGatewayRequestFunc func(ApiGatewayRequest) error, unknownFunc func(string) error) error {
+func (u *AuditCategoryV2) AcceptFuncs(dataCreateFunc func(DataCreate) error, dataDeleteFunc func(DataDelete) error, dataLoadFunc func(DataLoad) error, dataMergeFunc func(DataMerge) error, dataPromoteFunc func(DataPromote) error, dataTransformFunc func(DataTransform) error, dataExportFunc func(DataExport) error, dataImportFunc func(DataImport) error, dataSearchFunc func(DataSearch) error, bulkDataImportFunc func(BulkDataImport) error, codeExecutionFunc func(CodeExecution) error, cancelCodeExecutionFunc func(CancelCodeExecution) error, dataShareCreateFunc func(DataShareCreate) error, dataShareDisableFunc func(DataShareDisable) error, dataShareFunc func(DataShare) error, metaDataAccessFunc func(MetaDataAccess) error, metaDataCreateFunc func(MetaDataCreate) error, metaDataDeleteFunc func(MetaDataDelete) error, metaDataUpdateFunc func(MetaDataUpdate) error, metaDataSearchFunc func(MetaDataSearch) error, appConfigAccessFunc func(AppConfigAccess) error, appConfigUpdateFunc func(AppConfigUpdate) error, appConfigCreateFunc func(AppConfigCreate) error, appConfigDeleteFunc func(AppConfigDelete) error, appConfigSearchFunc func(AppConfigSearch) error, monitorRunFunc func(MonitorRun) error, monitorCreateFunc func(MonitorCreate) error, monitorDeleteFunc func(MonitorDelete) error, monitorUpdateFunc func(MonitorUpdate) error, monitorAccessFunc func(MonitorAccess) error, monitorSearchFunc func(MonitorSearch) error, logicCreateFunc func(LogicCreate) error, logicUpdateFunc func(LogicUpdate) error, logicAccessFunc func(LogicAccess) error, logicDeleteFunc func(LogicDelete) error, logicSearchFunc func(LogicSearch) error, requestCreateFunc func(RequestCreate) error, requestAccessFunc func(RequestAccess) error, requestSearchFunc func(RequestSearch) error, requestUpdateFunc func(RequestUpdate) error, requestApproveFunc func(RequestApprove) error, requestDisapproveFunc func(RequestDisapprove) error, requestExecuteFunc func(RequestExecute) error, requestCancelFunc func(RequestCancel) error, managementUsersFunc func(ManagementUsers) error, managementGroupsFunc func(ManagementGroups) error, managementMarkingsFunc func(ManagementMarkings) error, managementPermissionsFunc func(ManagementPermissions) error, managementTokensFunc func(ManagementTokens) error, authenticationCheckFunc func(AuthenticationCheck) error, authorizationCheckFunc func(AuthorizationCheck) error, userLoginFunc func(UserLogin) error, userLogoutFunc func(UserLogout) error, tokenGenerationFunc func(TokenGeneration) error, tokenRevokeFunc func(TokenRevoke) error, tokenAccessFunc func(TokenAccess) error, oauth2InitiateAuthFlowFunc func(Oauth2InitiateAuthFlow) error, assetFileLoadFunc func(AssetFileLoad) error, assetFileLoadV2Func func(AssetFileLoadV2) error, containerLaunchFunc func(ContainerLaunch) error, containerLoadFunc func(ContainerLoad) error, containerSearchFunc func(ContainerSearch) error, containerStopFunc func(ContainerStop) error, infraLogsAccessFunc func(InfraLogsAccess) error, createInfraFunc func(CreateInfra) error, configureInfraFunc func(ConfigureInfra) error, reviewInfraActionFunc func(ReviewInfraAction) error, restartInfraFunc func(RestartInfra) error, upgradeInfraFunc func(UpgradeInfra) error, ontologyDataLoadFunc func(OntologyDataLoad) error, ontologyDataSearchFunc func(OntologyDataSearch) error, ontologyDataTransformFunc func(OntologyDataTransform) error, ontologyLogicAccessFunc func(OntologyLogicAccess) error, ontologyLogicCreateFunc func(OntologyLogicCreate) error, ontologyLogicDeleteFunc func(OntologyLogicDelete) error, ontologyLogicUpdateFunc func(OntologyLogicUpdate) error, ontologyMetaDataLoadFunc func(OntologyMetaDataLoad) error, ontologyMetaDataCreateFunc func(OntologyMetaDataCreate) error, ontologyMetaDataDeleteFunc func(OntologyMetaDataDelete) error, ontologyMetaDataUpdateFunc func(OntologyMetaDataUpdate) error, ontologyMetaDataSearchFunc func(OntologyMetaDataSearch) error, secretCreateFunc func(SecretCreate) error, secretUseFunc func(SecretUse) error, secretLoadFunc func(SecretLoad) error, secretDeprecateFunc func(SecretDeprecate) error, onBehalfOfFunc func(OnBehalfOf) error, inApplicationContextFunc func(InApplicationContext) error, inEnrollmentContextFunc func(InEnrollmentContext) error, internalFunc func(category.Internal) error, userJustifyFunc func(UserJustify) error, passThroughFunc func(PassThrough) error, llmInferenceFunc func(LlmInference) error, llmRouteFunc func(LlmRoute) error, auditDataTransformFunc func(AuditDataTransform) error, auditDataShareCreateFunc func(AuditDataShareCreate) error, apiGatewayRequestFunc func(ApiGatewayRequest) error, unknownFunc func(string) error) error {
 	switch u.typ {
 	default:
 		if u.typ == "" {
@@ -1692,6 +1706,11 @@ func (u *AuditCategoryV2) AcceptFuncs(dataCreateFunc func(DataCreate) error, dat
 			return fmt.Errorf("field \"assetFileLoad\" is required")
 		}
 		return assetFileLoadFunc(*u.assetFileLoad)
+	case "assetFileLoadV2":
+		if u.assetFileLoadV2 == nil {
+			return fmt.Errorf("field \"assetFileLoadV2\" is required")
+		}
+		return assetFileLoadV2Func(*u.assetFileLoadV2)
 	case "containerLaunch":
 		if u.containerLaunch == nil {
 			return fmt.Errorf("field \"containerLaunch\" is required")
@@ -2109,6 +2128,10 @@ func (u *AuditCategoryV2) Oauth2InitiateAuthFlowNoopSuccess(Oauth2InitiateAuthFl
 }
 
 func (u *AuditCategoryV2) AssetFileLoadNoopSuccess(AssetFileLoad) error {
+	return nil
+}
+
+func (u *AuditCategoryV2) AssetFileLoadV2NoopSuccess(AssetFileLoadV2) error {
 	return nil
 }
 
@@ -2561,6 +2584,11 @@ func (u *AuditCategoryV2) Accept(v AuditCategoryV2Visitor) error {
 			return fmt.Errorf("field \"assetFileLoad\" is required")
 		}
 		return v.VisitAssetFileLoad(*u.assetFileLoad)
+	case "assetFileLoadV2":
+		if u.assetFileLoadV2 == nil {
+			return fmt.Errorf("field \"assetFileLoadV2\" is required")
+		}
+		return v.VisitAssetFileLoadV2(*u.assetFileLoadV2)
 	case "containerLaunch":
 		if u.containerLaunch == nil {
 			return fmt.Errorf("field \"containerLaunch\" is required")
@@ -2808,6 +2836,7 @@ type AuditCategoryV2Visitor interface {
 	VisitTokenAccess(v TokenAccess) error
 	VisitOauth2InitiateAuthFlow(v Oauth2InitiateAuthFlow) error
 	VisitAssetFileLoad(v AssetFileLoad) error
+	VisitAssetFileLoadV2(v AssetFileLoadV2) error
 	VisitContainerLaunch(v ContainerLaunch) error
 	VisitContainerLoad(v ContainerLoad) error
 	VisitContainerSearch(v ContainerSearch) error
@@ -3145,6 +3174,11 @@ func (u *AuditCategoryV2) AcceptWithContext(ctx context.Context, v AuditCategory
 			return fmt.Errorf("field \"assetFileLoad\" is required")
 		}
 		return v.VisitAssetFileLoadWithContext(ctx, *u.assetFileLoad)
+	case "assetFileLoadV2":
+		if u.assetFileLoadV2 == nil {
+			return fmt.Errorf("field \"assetFileLoadV2\" is required")
+		}
+		return v.VisitAssetFileLoadV2WithContext(ctx, *u.assetFileLoadV2)
 	case "containerLaunch":
 		if u.containerLaunch == nil {
 			return fmt.Errorf("field \"containerLaunch\" is required")
@@ -3392,6 +3426,7 @@ type AuditCategoryV2VisitorWithContext interface {
 	VisitTokenAccessWithContext(ctx context.Context, v TokenAccess) error
 	VisitOauth2InitiateAuthFlowWithContext(ctx context.Context, v Oauth2InitiateAuthFlow) error
 	VisitAssetFileLoadWithContext(ctx context.Context, v AssetFileLoad) error
+	VisitAssetFileLoadV2WithContext(ctx context.Context, v AssetFileLoadV2) error
 	VisitContainerLaunchWithContext(ctx context.Context, v ContainerLaunch) error
 	VisitContainerLoadWithContext(ctx context.Context, v ContainerLoad) error
 	VisitContainerSearchWithContext(ctx context.Context, v ContainerSearch) error
@@ -3662,6 +3697,10 @@ func NewAuditCategoryV2FromOauth2InitiateAuthFlow(v Oauth2InitiateAuthFlow) Audi
 
 func NewAuditCategoryV2FromAssetFileLoad(v AssetFileLoad) AuditCategoryV2 {
 	return AuditCategoryV2{typ: "assetFileLoad", assetFileLoad: &v}
+}
+
+func NewAuditCategoryV2FromAssetFileLoadV2(v AssetFileLoadV2) AuditCategoryV2 {
+	return AuditCategoryV2{typ: "assetFileLoadV2", assetFileLoadV2: &v}
 }
 
 func NewAuditCategoryV2FromContainerLaunch(v ContainerLaunch) AuditCategoryV2 {

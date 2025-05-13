@@ -29,6 +29,7 @@ type MapLogEntry interface {
 	StringMapValues() map[string]map[string]string
 	AnyMapValues() map[string]map[string]interface{}
 	ObjectValues() map[string]ObjectValue
+	ObjectListValues() map[string][]any
 
 	// Apply applies the values of all of the stored entries of this MapLogEntry to the provided LogEntry.
 	Apply(logEntry LogEntry)
@@ -50,6 +51,7 @@ func NewMapLogEntry() MapLogEntry {
 		stringMapValues:  make(map[string]map[string]string),
 		anyMapValues:     make(map[string]map[string]interface{}),
 		objectValues:     make(map[string]ObjectValue),
+		objectListValues: make(map[string][]any),
 	}
 }
 
@@ -64,6 +66,7 @@ type mapLogEntry struct {
 	stringMapValues  map[string]map[string]string
 	anyMapValues     map[string]map[string]interface{}
 	objectValues     map[string]ObjectValue
+	objectListValues map[string][]any
 }
 
 func (le *mapLogEntry) delete(k string) {
@@ -74,6 +77,7 @@ func (le *mapLogEntry) delete(k string) {
 	delete(le.stringMapValues, k)
 	delete(le.anyMapValues, k)
 	delete(le.objectValues, k)
+	delete(le.objectListValues, k)
 }
 
 // mapLogEntrySetKey sets the key in the provided map to be the provided value. The provided map should be a map in the
@@ -112,6 +116,10 @@ func (le *mapLogEntry) ObjectValues() map[string]ObjectValue {
 	return le.objectValues
 }
 
+func (le *mapLogEntry) ObjectListValues() map[string][]any {
+	return le.objectListValues
+}
+
 func (le *mapLogEntry) StringValue(k, v string) {
 	mapLogEntrySetKey(le, le.stringValues, k, v)
 }
@@ -146,6 +154,14 @@ func (le *mapLogEntry) StringMapValue(k string, v map[string]string) {
 
 func (le *mapLogEntry) AnyMapValue(k string, v map[string]interface{}) {
 	mapLogEntryAddValuesToMap(le, le.anyMapValues, k, v)
+}
+
+func (le *mapLogEntry) ObjectListValue(k string, v []any) {
+	mapLogEntrySetKey(le, le.objectListValues, k, v)
+}
+
+func (le *mapLogEntry) ObjectListAppendValue(k string, v []any) {
+	le.ObjectListValue(k, append(le.objectListValues[k], v...))
 }
 
 func mapLogEntryAddValuesToMap[ValT any](m *mapLogEntry, mapValues map[string]map[string]ValT, k string, v map[string]ValT) {
@@ -194,6 +210,9 @@ func (le *mapLogEntry) Apply(logEntry LogEntry) {
 	for k, v := range le.objectValues {
 		logEntry.ObjectValue(k, v.Value, v.MarshalerType)
 	}
+	for k, v := range le.objectListValues {
+		logEntry.ObjectListValue(k, v)
+	}
 }
 
 func (le *mapLogEntry) AllValues() map[string]interface{} {
@@ -218,6 +237,9 @@ func (le *mapLogEntry) AllValues() map[string]interface{} {
 	}
 	for k, v := range le.objectValues {
 		out[k] = v.Value
+	}
+	for k, v := range le.objectListValues {
+		out[k] = v
 	}
 	return out
 }

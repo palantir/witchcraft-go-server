@@ -311,6 +311,11 @@ func (u *AuditCategoryV2WithT[T]) Accept(ctx context.Context, v AuditCategoryV2V
 			return result, fmt.Errorf("field \"assetFileLoad\" is required")
 		}
 		return v.VisitAssetFileLoad(ctx, *u.assetFileLoad)
+	case "assetFileLoadV2":
+		if u.assetFileLoadV2 == nil {
+			return result, fmt.Errorf("field \"assetFileLoadV2\" is required")
+		}
+		return v.VisitAssetFileLoadV2(ctx, *u.assetFileLoadV2)
 	case "containerLaunch":
 		if u.containerLaunch == nil {
 			return result, fmt.Errorf("field \"containerLaunch\" is required")
@@ -558,6 +563,7 @@ type AuditCategoryV2VisitorWithT[T any] interface {
 	VisitTokenAccess(ctx context.Context, v TokenAccess) (T, error)
 	VisitOauth2InitiateAuthFlow(ctx context.Context, v Oauth2InitiateAuthFlow) (T, error)
 	VisitAssetFileLoad(ctx context.Context, v AssetFileLoad) (T, error)
+	VisitAssetFileLoadV2(ctx context.Context, v AssetFileLoadV2) (T, error)
 	VisitContainerLaunch(ctx context.Context, v ContainerLaunch) (T, error)
 	VisitContainerLoad(ctx context.Context, v ContainerLoad) (T, error)
 	VisitContainerSearch(ctx context.Context, v ContainerSearch) (T, error)

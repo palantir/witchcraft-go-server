@@ -119,7 +119,7 @@ func Audit3ProducerType(producerType Audit3AuditProducerType) Audit3Param {
 
 func Audit3Organizations(organizations []Audit3Organization) Audit3Param {
 	return audit3OnlyParamFn(func(entry wlog.LogEntry) {
-		entry.ObjectValue(Audit3OrganizationsKey, organizations, nil)
+		entry.ObjectListAppendValue(Audit3OrganizationsKey, toAnySlice(organizations))
 	})
 }
 
@@ -170,13 +170,13 @@ func Audit3Categories(categories []string) Audit3Param {
 
 func Audit3Entities(entities []any) Audit3Param {
 	return audit3OnlyParamFn(func(entry wlog.LogEntry) {
-		entry.ObjectValue(Audit3EntitiesKey, entities, nil)
+		entry.ObjectListAppendValue(Audit3EntitiesKey, entities)
 	})
 }
 
 func Audit3Users(users []Audit3ContextualizedUser) Audit3Param {
 	return audit3OnlyParamFn(func(entry wlog.LogEntry) {
-		entry.ObjectValue(Audit3UsersKey, users, nil)
+		entry.ObjectListAppendValue(Audit3UsersKey, toAnySlice(users))
 	})
 }
 
@@ -187,7 +187,7 @@ func Audit3Origins(origins []string) Audit3Param {
 				Audit2RequestParam("_forwardedOrigins", origins).Param.Audit2ParamFn(entry)
 			},
 			Audit3ParamFn: func(entry wlog.LogEntry) {
-				entry.StringListValue(Audit3OriginsKey, origins)
+				entry.StringListAppendValue(Audit3OriginsKey, origins)
 			},
 		},
 	}
@@ -297,4 +297,12 @@ func audit3OnlyParamFn(fn func(entry wlog.LogEntry)) Audit3Param {
 			Audit3ParamFn: fn,
 		},
 	}
+}
+
+func toAnySlice[T any](in []T) []any {
+	out := make([]any, len(in))
+	for i, v := range in {
+		out[i] = v
+	}
+	return out
 }

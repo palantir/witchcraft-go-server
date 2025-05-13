@@ -4,6 +4,9 @@ package v2
 
 type ArtifactId string
 
+// Represents the track used in asset server.
+type AssetTrack string
+
 // An environment within a system.
 type EnvironmentId string
 type GroupId string

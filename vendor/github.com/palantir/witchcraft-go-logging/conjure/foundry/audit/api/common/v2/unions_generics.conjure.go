@@ -11,6 +11,64 @@ import (
 	"github.com/palantir/pkg/rid"
 )
 
+type AssetFileLoadIdentifierWithT[T any] AssetFileLoadIdentifier
+
+func (u *AssetFileLoadIdentifierWithT[T]) Accept(ctx context.Context, v AssetFileLoadIdentifierVisitorWithT[T]) (T, error) {
+	var result T
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return result, fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknown(ctx, u.typ)
+	case "mavenCoordinateAndPath":
+		if u.mavenCoordinateAndPath == nil {
+			return result, fmt.Errorf("field \"mavenCoordinateAndPath\" is required")
+		}
+		return v.VisitMavenCoordinateAndPath(ctx, *u.mavenCoordinateAndPath)
+	case "contentAddressableFileIdentifier":
+		if u.contentAddressableFileIdentifier == nil {
+			return result, fmt.Errorf("field \"contentAddressableFileIdentifier\" is required")
+		}
+		return v.VisitContentAddressableFileIdentifier(ctx, *u.contentAddressableFileIdentifier)
+	}
+}
+
+type AssetFileLoadIdentifierVisitorWithT[T any] interface {
+	VisitMavenCoordinateAndPath(ctx context.Context, v MavenCoordinateAndPathIdentifier) (T, error)
+	VisitContentAddressableFileIdentifier(ctx context.Context, v ContentAddressableFileIdentifier) (T, error)
+	VisitUnknown(ctx context.Context, typ string) (T, error)
+}
+
+type AssetFileLoadResponseWithT[T any] AssetFileLoadResponse
+
+func (u *AssetFileLoadResponseWithT[T]) Accept(ctx context.Context, v AssetFileLoadResponseVisitorWithT[T]) (T, error) {
+	var result T
+	switch u.typ {
+	default:
+		if u.typ == "" {
+			return result, fmt.Errorf("invalid value in union type")
+		}
+		return v.VisitUnknown(ctx, u.typ)
+	case "mavenCoordinate":
+		if u.mavenCoordinate == nil {
+			return result, fmt.Errorf("field \"mavenCoordinate\" is required")
+		}
+		return v.VisitMavenCoordinate(ctx, *u.mavenCoordinate)
+	case "assetCoordinate":
+		if u.assetCoordinate == nil {
+			return result, fmt.Errorf("field \"assetCoordinate\" is required")
+		}
+		return v.VisitAssetCoordinate(ctx, *u.assetCoordinate)
+	}
+}
+
+type AssetFileLoadResponseVisitorWithT[T any] interface {
+	VisitMavenCoordinate(ctx context.Context, v MavenCoordinate) (T, error)
+	VisitAssetCoordinate(ctx context.Context, v AssetCoordinate) (T, error)
+	VisitUnknown(ctx context.Context, typ string) (T, error)
+}
+
 type EntityLocatorWithT[T any] EntityLocator
 
 func (u *EntityLocatorWithT[T]) Accept(ctx context.Context, v EntityLocatorVisitorWithT[T]) (T, error) {

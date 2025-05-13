@@ -289,7 +289,10 @@ func (o *AppConfigUpdate) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return safejson.Unmarshal(jsonBytes, *&o)
 }
 
-// Loads a file from a static asset its full coordinate (group, artifact, and version).
+/*
+Deprecated, please use AssetFileLoadV2.
+Loads a file from a static asset its full coordinate (group, artifact, and version).
+*/
 type AssetFileLoad struct {
 	// Maven coordinate for the asset requested. Might not include groupId or version.
 	RequestMavenCoordinate v2.PartialMavenCoordinate `conjure-docs:"Maven coordinate for the asset requested. Might not include groupId or version." json:"requestMavenCoordinate"`
@@ -308,6 +311,28 @@ func (o AssetFileLoad) MarshalYAML() (interface{}, error) {
 }
 
 func (o *AssetFileLoad) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+// Loads a file either from the asset coordiate or through the content addressable storage.
+type AssetFileLoadV2 struct {
+	FileIdentifier   v2.AssetFileLoadIdentifier `json:"fileIdentifier"`
+	FileLoadResponse *v2.AssetFileLoadResponse  `json:"fileLoadResponse"`
+}
+
+func (o AssetFileLoadV2) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *AssetFileLoadV2) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
 	if err != nil {
 		return err

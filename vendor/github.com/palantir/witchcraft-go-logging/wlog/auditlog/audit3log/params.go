@@ -21,27 +21,9 @@ import (
 const (
 	TypeValue = auditloginternal.Audit3TypeValue
 
-	DeploymentKey     = auditloginternal.Audit3DeploymentKey
-	HostKey           = auditloginternal.Audit3HostKey
-	ProductKey        = auditloginternal.Audit3ProductKey
-	ProductVersionKey = auditloginternal.Audit3ProductVersionKey
-	StackKey          = auditloginternal.Audit3StackKey
-	ServiceKey        = auditloginternal.Audit3ServiceKey
-	EnvironmentKey    = auditloginternal.Audit3EnvironmentKey
-	ProducerTypeKey   = auditloginternal.Audit3ProducerTypeKey
-	OrganizationsKey  = auditloginternal.Audit3OrganizationsKey
-	EventIDKey        = auditloginternal.Audit3EventIDKey
-	UserAgentKey      = auditloginternal.Audit3UserAgentKey
-	CategoriesKey     = auditloginternal.Audit3CategoriesKey
-	EntitiesKey       = auditloginternal.Audit3EntitiesKey
-	UsersKey          = auditloginternal.Audit3UsersKey
-	OriginsKey        = auditloginternal.Audit3OriginsKey
-	SourceOriginKey   = auditloginternal.Audit3SourceOriginKey
-	RequestFieldsKey  = auditloginternal.Audit3RequestFieldsKey
-	ResultFieldsKey   = auditloginternal.Audit3ResultFieldsKey
-	OriginKey         = auditloginternal.Audit3OriginKey
-	NameKey           = auditloginternal.Audit3NameKey
-	ResultKey         = auditloginternal.Audit3ResultKey
+	NameKey       = auditloginternal.Audit3NameKey
+	ResultKey     = auditloginternal.Audit3ResultKey
+	LogEntryIDKey = auditloginternal.Audit3LogEntryIDKey
 )
 
 type Param interface {

@@ -98,7 +98,7 @@ github.com/palantir/witchcraft-go-health/reporter
 github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/status
-# github.com/palantir/witchcraft-go-logging v1.60.1-0.20250430185740-e150c26eb011
+# github.com/palantir/witchcraft-go-logging v1.60.1-0.20250513171106-a1d1f95c73a0
 ## explicit; go 1.24.0
 github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category
 github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category/v2
@@ -111,6 +111,7 @@ github.com/palantir/witchcraft-go-logging/wlog-zap
 github.com/palantir/witchcraft-go-logging/wlog-zap/internal
 github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log
 github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log
+github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log/internal/categories
 github.com/palantir/witchcraft-go-logging/wlog/auditlog/internal/auditloginternal
 github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log
 github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log
