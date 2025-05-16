@@ -33,10 +33,10 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
 	github.com/palantir/pkg v1.1.0 // indirect
 	github.com/palantir/pkg/bytesbuffers v1.2.0 // indirect
-	github.com/palantir/pkg/datetime v1.1.0 // indirect
+	github.com/palantir/pkg/datetime v1.2.0 // indirect
 	github.com/palantir/pkg/refreshable/v2 v2.0.0 // indirect
 	github.com/palantir/pkg/retry v1.2.0 // indirect
-	github.com/palantir/pkg/safelong v1.1.0 // indirect
+	github.com/palantir/pkg/safelong v1.2.0 // indirect
 	github.com/palantir/pkg/safeyaml v1.1.0 // indirect
 	github.com/palantir/pkg/transform v1.1.0 // indirect
 	github.com/palantir/pkg/uuid v1.2.0 // indirect
