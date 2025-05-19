@@ -20,7 +20,7 @@ require (
 	github.com/palantir/pkg/uuid v1.2.0
 	github.com/palantir/witchcraft-go-error v1.41.0
 	github.com/palantir/witchcraft-go-health v1.15.0
-	github.com/palantir/witchcraft-go-logging v1.60.1-0.20250513171106-a1d1f95c73a0
+	github.com/palantir/witchcraft-go-logging v1.61.0
 	github.com/palantir/witchcraft-go-params v1.38.0
 	github.com/palantir/witchcraft-go-tracing v1.40.0
 	github.com/stretchr/testify v1.10.0
@@ -35,10 +35,10 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2 // indirect
 	github.com/palantir/pkg v1.1.0 // indirect
 	github.com/palantir/pkg/bytesbuffers v1.2.0 // indirect
-	github.com/palantir/pkg/datetime v1.1.0 // indirect
+	github.com/palantir/pkg/datetime v1.2.0 // indirect
 	github.com/palantir/pkg/refreshable/v2 v2.0.0 // indirect
 	github.com/palantir/pkg/retry v1.2.0 // indirect
-	github.com/palantir/pkg/safelong v1.1.0 // indirect
+	github.com/palantir/pkg/safelong v1.2.0 // indirect
 	github.com/palantir/pkg/safeyaml v1.1.0 // indirect
 	github.com/palantir/pkg/transform v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
