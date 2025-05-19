@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2025 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package audit2log
+package audit3log
 
 import (
 	"context"
@@ -21,25 +21,15 @@ import (
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 )
 
-type audit2LogContextKeyType string
+type audit3LogContextKeyType string
 
-const contextKey = audit2LogContextKeyType(TypeValue)
+const contextKey = audit3LogContextKeyType(TypeValue)
 
 // WithLogger returns a copy of the provided context with the provided Logger included as a value. This operation will
 // replace any logger that was previously set on the context (along with all parameters that may have been set on the
 // logger).
 func WithLogger(ctx context.Context, logger Logger) context.Context {
 	return context.WithValue(ctx, contextKey, logger)
-}
-
-// WithLoggerParams returns a copy of the provided context whose logger is configured with the provided parameters. If
-// no parameters are provided, the original context is returned unmodified. If the provided context did not have a
-// logger set on it, the returned context will contain the default logger configured with the provided parameters.
-func WithLoggerParams(ctx context.Context, params ...Param) context.Context {
-	if len(params) == 0 {
-		return ctx
-	}
-	return WithLogger(ctx, WithParams(loggerFromContext(ctx), params...))
 }
 
 // FromContext returns the Logger stored in the provided context. If no logger is set on the context, returns the logger
@@ -66,7 +56,7 @@ func FromContext(ctx context.Context) Logger {
 	return WithParams(logger, params...)
 }
 
-// IsSetOnContext returns true if an audit.2 logger is set on the provided context, false otherwise.
+// IsSetOnContext returns true if an audit.3 logger is set on the provided context, false otherwise.
 // Note that, even if this function returns "false", that does not mean that "FromContext" cannot called on this
 // context, as "FromContext" will use the defaultLoggerCreator to create a logger if none is set on the context.
 func IsSetOnContext(ctx context.Context) bool {

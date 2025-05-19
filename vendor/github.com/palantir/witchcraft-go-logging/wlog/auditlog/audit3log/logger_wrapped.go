@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Copyright (c) 2025 Palantir Technologies. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package extractor
+package audit3log
 
-func NewDefaultIDsExtractor() IDsFromRequest {
-	return newCompoundExtractor(
-		newIDsFromJWTExtractor(),
-		newTraceIDFromHeaderExtractor(),
-		newAudit3IDsFromHeaderExtractor(),
-	)
+type wrappedLogger struct {
+	logger Logger
+	params []Param
+}
+
+func (w *wrappedLogger) Audit(name string, result AuditResultType, params ...Param) {
+	w.logger.Audit(name, result, append(w.params, params...)...)
 }

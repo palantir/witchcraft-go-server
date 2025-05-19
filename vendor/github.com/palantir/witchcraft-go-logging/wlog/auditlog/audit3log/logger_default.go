@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package extractor
+package audit3log
 
-func NewDefaultIDsExtractor() IDsFromRequest {
-	return newCompoundExtractor(
-		newIDsFromJWTExtractor(),
-		newTraceIDFromHeaderExtractor(),
-		newAudit3IDsFromHeaderExtractor(),
-	)
+import (
+	"github.com/palantir/witchcraft-go-logging/wlog"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/internal/auditloginternal"
+)
+
+func ToParams(name string, result AuditResultType, inParams []Param) []wlog.Param {
+	return auditloginternal.Audit3ToParams(nil, name, auditloginternal.AuditResultType(result), convertExternalParamsToInternalParams(inParams))
 }
