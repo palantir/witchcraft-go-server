@@ -16,105 +16,100 @@ package audit2log
 
 import (
 	"github.com/palantir/witchcraft-go-logging/wlog"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/internal/auditloginternal"
 )
 
 const (
-	TypeValue = "audit.2"
+	TypeValue = auditloginternal.Audit2TypeValue
 
-	OtherUIDsKey     = "otherUids"
-	OriginKey        = "origin"
-	NameKey          = "name"
-	ResultKey        = "result"
-	RequestParamsKey = "requestParams"
-	ResultParamsKey  = "resultParams"
+	OtherUIDsKey     = auditloginternal.Audit2OtherUIDsKey
+	OriginKey        = auditloginternal.Audit2OriginKey
+	NameKey          = auditloginternal.Audit2NameKey
+	ResultKey        = auditloginternal.Audit2ResultKey
+	RequestParamsKey = auditloginternal.Audit2RequestParamsKey
+	ResultParamsKey  = auditloginternal.Audit2ResultParamsKey
 )
 
 type Param interface {
-	apply(entry wlog.LogEntry)
+	getParam() auditloginternal.AuditParam
+}
+
+var _ Param = (*paramStruct)(nil)
+
+type paramStruct struct {
+	param auditloginternal.Audit2Param
+}
+
+func (p *paramStruct) getParam() auditloginternal.AuditParam {
+	return p.param.Param
 }
 
 func ApplyParam(p Param, entry wlog.LogEntry) {
 	if p == nil {
 		return
 	}
-	p.apply(entry)
+	p.getParam().Audit2ParamFn(entry)
 }
 
-type paramFunc func(entry wlog.LogEntry)
-
-func (f paramFunc) apply(entry wlog.LogEntry) {
-	f(entry)
+func convertInternalParamToExportedParam(param auditloginternal.Audit2Param) Param {
+	return &paramStruct{
+		param: param,
+	}
 }
 
-func auditNameResultParam(name string, resultType AuditResultType) Param {
-	return paramFunc(func(logger wlog.LogEntry) {
-		logger.StringValue(NameKey, name)
-		logger.StringValue(ResultKey, string(resultType))
-	})
+func convertExternalParamsToInternalParams(params []Param) []auditloginternal.Audit2Param {
+	if params == nil {
+		return nil
+	}
+	out := make([]auditloginternal.Audit2Param, len(params))
+	for i, param := range params {
+		out[i] = auditloginternal.Audit2Param{
+			Param: param.getParam(),
+		}
+	}
+	return out
 }
 
 func UID(uid string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.OptionalStringValue(wlog.UIDKey, uid)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2UID(uid))
 }
 
 func SID(sid string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.OptionalStringValue(wlog.SIDKey, sid)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2SID(sid))
 }
 
 func TokenID(tokenID string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.OptionalStringValue(wlog.TokenIDKey, tokenID)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2TokenID(tokenID))
 }
 
 func OrgID(orgID string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.OptionalStringValue(wlog.OrgIDKey, orgID)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2OrgID(orgID))
 }
 
 func TraceID(traceID string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.OptionalStringValue(wlog.TraceIDKey, traceID)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2TraceID(traceID))
 }
 
 func OtherUIDs(otherUIDs ...string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.StringListValue(OtherUIDsKey, otherUIDs)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2OtherUIDs(otherUIDs...))
 }
 
 func Origin(origin string) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.OptionalStringValue(OriginKey, origin)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2Origin(origin))
 }
 
 func RequestParam(key string, value interface{}) Param {
-	return RequestParams(map[string]interface{}{
-		key: value,
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2RequestParam(key, value))
 }
 
 func RequestParams(requestParams map[string]interface{}) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.AnyMapValue(RequestParamsKey, requestParams)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2RequestParams(requestParams))
 }
 
 func ResultParam(key string, value interface{}) Param {
-	return ResultParams(map[string]interface{}{
-		key: value,
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2ResultParam(key, value))
 }
 
 func ResultParams(resultParams map[string]interface{}) Param {
-	return paramFunc(func(entry wlog.LogEntry) {
-		entry.AnyMapValue(ResultParamsKey, resultParams)
-	})
+	return convertInternalParamToExportedParam(auditloginternal.Audit2ResultParams(resultParams))
 }

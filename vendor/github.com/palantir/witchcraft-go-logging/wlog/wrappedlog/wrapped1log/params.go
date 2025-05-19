@@ -18,6 +18,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
@@ -42,6 +43,7 @@ const (
 	PayloadEventLogV2      = "eventLogV2"
 	PayloadMetricLogV1     = "metricLogV1"
 	PayloadAuditLogV2      = "auditLogV2"
+	PayloadAuditLogV3      = "auditLogV3"
 	PayloadDiagnosticLogV1 = "diagnosticLogV1"
 )
 
@@ -69,6 +71,18 @@ func audit2PayloadParams(name string, result audit2log.AuditResultType, params [
 		payload := wlog.NewMapLogEntry()
 		payload.StringValue(PayloadTypeKey, PayloadAuditLogV2)
 		payload.AnyMapValue(PayloadAuditLogV2, audit2Log.AllValues())
+
+		entry.AnyMapValue(PayloadKey, payload.AllValues())
+	})
+}
+
+func audit3PayloadParams(name string, result audit3log.AuditResultType, params []audit3log.Param) Param {
+	return paramFunc(func(entry wlog.LogEntry) {
+		audit3Log := wlog.NewMapLogEntry()
+		wlog.ApplyParams(audit3Log, audit3log.ToParams(name, result, params))
+		payload := wlog.NewMapLogEntry()
+		payload.StringValue(PayloadTypeKey, PayloadAuditLogV3)
+		payload.AnyMapValue(PayloadAuditLogV3, audit3Log.AllValues())
 
 		entry.AnyMapValue(PayloadKey, payload.AllValues())
 	})

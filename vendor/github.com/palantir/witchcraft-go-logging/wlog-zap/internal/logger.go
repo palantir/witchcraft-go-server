@@ -25,9 +25,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var _ wlog.LogEntry = (*zapLogEntry)(nil)
+
 type zapLogEntry struct {
-	fields map[string]*zapcore.Field
-	wlog.MapValueEntries
+	fields              map[string]*zapcore.Field
+	mutableValueEntries wlog.MutableValueEntries
 }
 
 func newZapLogEntry() *zapLogEntry {
@@ -36,77 +38,119 @@ func newZapLogEntry() *zapLogEntry {
 	}
 }
 
-func (e *zapLogEntry) StringValue(key, value string) {
-	s := zap.String(key, value)
-	e.fields[key] = &s
+func zapLogEntrySetValue[ValT any](entry *zapLogEntry, fn func(k string, v ValT) zap.Field, k string, v ValT) {
+	entry.delete(k)
+	field := fn(k, v)
+	entry.fields[k] = &field
 }
 
-func (e *zapLogEntry) OptionalStringValue(key, value string) {
-	if value != "" {
-		e.StringValue(key, value)
+func (e *zapLogEntry) delete(k string) {
+	delete(e.fields, k)
+	e.mutableValueEntries.Delete(k)
+}
+
+func (e *zapLogEntry) StringValue(k, v string) {
+	zapLogEntrySetValue(e, zap.String, k, v)
+}
+
+func (e *zapLogEntry) OptionalStringValue(k, v string) {
+	if v == "" {
+		e.delete(k)
+	} else {
+		e.StringValue(k, v)
 	}
 }
 
 func (e *zapLogEntry) StringListValue(k string, v []string) {
-	if len(v) > 0 {
-		s := zap.Strings(k, v)
-		e.fields[k] = &s
-	}
+	e.delete(k)
+	e.mutableValueEntries.StringListValue(k, v)
 }
 
-func (e *zapLogEntry) SafeLongValue(key string, value int64) {
-	s := zap.Int64(key, value)
-	e.fields[key] = &s
+func (e *zapLogEntry) StringListAppendValue(k string, v []string) {
+	e.StringListValue(k, append(e.mutableValueEntries.StringListValues()[k], v...))
 }
 
-func (e *zapLogEntry) IntValue(key string, value int32) {
-	s := zap.Int32(key, value)
-	e.fields[key] = &s
+func (e *zapLogEntry) SafeLongValue(k string, v int64) {
+	zapLogEntrySetValue(e, zap.Int64, k, v)
+}
+
+func (e *zapLogEntry) IntValue(k string, v int32) {
+	zapLogEntrySetValue(e, zap.Int32, k, v)
+}
+
+func (e *zapLogEntry) StringMapValue(k string, v map[string]string) {
+	delete(e.fields, k)
+	e.mutableValueEntries.StringMapValue(k, v)
+}
+
+func (e *zapLogEntry) AnyMapValue(k string, v map[string]any) {
+	delete(e.fields, k)
+	e.mutableValueEntries.AnyMapValue(k, v)
 }
 
 func (e *zapLogEntry) ObjectValue(k string, v interface{}, marshalerType reflect.Type) {
-	s := zap.Reflect(k, v)
-	e.fields[k] = &s
+	zapLogEntrySetValue(e, zap.Reflect, k, v)
+}
+
+func (e *zapLogEntry) ObjectListValue(k string, v []any) {
+	e.delete(k)
+	e.mutableValueEntries.ObjectListValue(k, v)
+}
+
+func (e *zapLogEntry) ObjectListAppendValue(k string, v []any) {
+	e.ObjectListValue(k, append(e.mutableValueEntries.ObjectListValues()[k], v...))
 }
 
 func (e *zapLogEntry) Fields() []zapcore.Field {
-	stringMapValues := e.StringMapValues()
-	anyMapValues := e.AnyMapValues()
-	fields := make([]zapcore.Field, 0, len(e.fields)+len(stringMapValues)+len(anyMapValues))
+	stringListValues := e.mutableValueEntries.StringListValues()
+	stringMapValues := e.mutableValueEntries.StringMapValues()
+	anyMapValues := e.mutableValueEntries.AnyMapValues()
+	objectListValues := e.mutableValueEntries.ObjectListValues()
+	fields := make([]zapcore.Field, 0, len(e.fields)+len(stringMapValues)+len(anyMapValues)+len(stringListValues)+len(objectListValues))
 	for _, field := range e.fields {
 		fields = append(fields, *field)
 	}
-	for key, values := range stringMapValues {
-		key := key
-		values := values
-		fields = append(fields, zap.Object(key, zapcore.ObjectMarshalerFunc(func(enc zapcore.ObjectEncoder) error {
-			keys := make([]string, 0, len(values))
-			for k := range values {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-			for _, k := range keys {
-				enc.AddString(k, values[k])
-			}
-			return nil
-		})))
+	for k, v := range stringListValues {
+		fields = append(fields, zap.Strings(k, v))
 	}
-	for key, values := range anyMapValues {
-		key := key
-		values := values
-		fields = append(fields, zap.Object(key, zapcore.ObjectMarshalerFunc(func(enc zapcore.ObjectEncoder) error {
-			keys := make([]string, 0, len(values))
-			for k := range values {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-			for _, k := range keys {
-				if err := encodeField(k, values[k], enc); err != nil {
-					return fmt.Errorf("failed to encode field %s: %v", k, err)
+	for k, v := range objectListValues {
+		fields = append(fields, zap.Any(k, v))
+	}
+	fields = append(fields, zapLogEntryMapValuesToFields(stringMapValues, func(k string, v string, enc zapcore.ObjectEncoder) error {
+		enc.AddString(k, v)
+		return nil
+	})...)
+	fields = append(fields, zapLogEntryMapValuesToFields(anyMapValues, func(k string, v any, enc zapcore.ObjectEncoder) error {
+		if err := encodeField(k, v, enc); err != nil {
+			return fmt.Errorf("failed to encode field %s: %v", k, err)
+		}
+		return nil
+	})...)
+	return fields
+}
+
+func zapLogEntryMapValuesToFields[ValType any](inputMap map[string]map[string]ValType, valFn func(k string, v ValType, enc zapcore.ObjectEncoder) error) []zapcore.Field {
+	var fields []zapcore.Field
+	for key, values := range inputMap {
+		if len(values) == 0 {
+			// this logic makes it such that "values" is encoded in a manner that matches the actual value, whether that
+			// be nil or empty.
+			fields = append(fields, zap.Any(key, values))
+		} else {
+			fields = append(fields, zap.Object(key, zapcore.ObjectMarshalerFunc(func(enc zapcore.ObjectEncoder) error {
+				keys := make([]string, 0, len(values))
+				for k := range values {
+					keys = append(keys, k)
 				}
-			}
-			return nil
-		})))
+				sort.Strings(keys)
+				for _, k := range keys {
+					if err := valFn(k, values[k], enc); err != nil {
+						return err
+					}
+				}
+				return nil
+			})))
+		}
 	}
 	return fields
 }
