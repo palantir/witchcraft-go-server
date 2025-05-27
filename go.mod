@@ -13,9 +13,11 @@ require (
 	github.com/palantir/pkg/metrics v1.8.0
 	github.com/palantir/pkg/objmatcher v1.1.0
 	github.com/palantir/pkg/refreshable v1.6.0
+	github.com/palantir/pkg/rid v1.1.0
 	github.com/palantir/pkg/safejson v1.1.0
 	github.com/palantir/pkg/signals v1.1.0
 	github.com/palantir/pkg/tlsconfig v1.3.0
+	github.com/palantir/pkg/uuid v1.2.0
 	github.com/palantir/witchcraft-go-error v1.41.0
 	github.com/palantir/witchcraft-go-health v1.15.0
 	github.com/palantir/witchcraft-go-logging v1.61.0
@@ -40,7 +42,6 @@ require (
 	github.com/palantir/pkg/safelong v1.2.0 // indirect
 	github.com/palantir/pkg/safeyaml v1.1.0 // indirect
 	github.com/palantir/pkg/transform v1.1.0 // indirect
-	github.com/palantir/pkg/uuid v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.6.0 // indirect

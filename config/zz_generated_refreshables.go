@@ -16,6 +16,7 @@ type RefreshableRuntime interface {
 
 	DiagnosticsConfig() RefreshableDiagnosticsConfig
 	HealthChecks() RefreshableHealthChecksConfig
+	AuditConfig() RefreshableAuditConfigPtr
 	LoggerConfig() RefreshableLoggerConfigPtr
 	ServiceDiscovery() RefreshableServicesConfig
 }
@@ -53,6 +54,12 @@ func (r RefreshingRuntime) DiagnosticsConfig() RefreshableDiagnosticsConfig {
 func (r RefreshingRuntime) HealthChecks() RefreshableHealthChecksConfig {
 	return NewRefreshingHealthChecksConfig(r.MapRuntime(func(i Runtime) interface{} {
 		return i.HealthChecks
+	}))
+}
+
+func (r RefreshingRuntime) AuditConfig() RefreshableAuditConfigPtr {
+	return NewRefreshingAuditConfigPtr(r.MapRuntime(func(i Runtime) interface{} {
+		return i.AuditConfig
 	}))
 }
 
@@ -150,6 +157,154 @@ func (r RefreshingHealthChecksConfig) SubscribeToHealthChecksConfig(consumer fun
 func (r RefreshingHealthChecksConfig) SharedSecret() refreshable.String {
 	return refreshable.NewString(r.MapHealthChecksConfig(func(i HealthChecksConfig) interface{} {
 		return i.SharedSecret
+	}))
+}
+
+type RefreshableAuditConfigPtr interface {
+	refreshable.Refreshable
+	CurrentAuditConfigPtr() *AuditConfig
+	MapAuditConfigPtr(func(*AuditConfig) interface{}) refreshable.Refreshable
+	SubscribeToAuditConfigPtr(func(*AuditConfig)) (unsubscribe func())
+
+	Deployment() refreshable.String
+	Product() refreshable.String
+	ProductVersion() refreshable.String
+	Stack() refreshable.String
+	Service() refreshable.String
+	Environment() refreshable.String
+}
+
+type RefreshingAuditConfigPtr struct {
+	refreshable.Refreshable
+}
+
+func NewRefreshingAuditConfigPtr(in refreshable.Refreshable) RefreshingAuditConfigPtr {
+	return RefreshingAuditConfigPtr{Refreshable: in}
+}
+
+func (r RefreshingAuditConfigPtr) CurrentAuditConfigPtr() *AuditConfig {
+	return r.Current().(*AuditConfig)
+}
+
+func (r RefreshingAuditConfigPtr) MapAuditConfigPtr(mapFn func(*AuditConfig) interface{}) refreshable.Refreshable {
+	return r.Map(func(i interface{}) interface{} {
+		return mapFn(i.(*AuditConfig))
+	})
+}
+
+func (r RefreshingAuditConfigPtr) SubscribeToAuditConfigPtr(consumer func(*AuditConfig)) (unsubscribe func()) {
+	return r.Subscribe(func(i interface{}) {
+		consumer(i.(*AuditConfig))
+	})
+}
+
+func (r RefreshingAuditConfigPtr) Deployment() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.Deployment
+	}))
+}
+
+func (r RefreshingAuditConfigPtr) Product() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.Product
+	}))
+}
+
+func (r RefreshingAuditConfigPtr) ProductVersion() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.ProductVersion
+	}))
+}
+
+func (r RefreshingAuditConfigPtr) Stack() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.Stack
+	}))
+}
+
+func (r RefreshingAuditConfigPtr) Service() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.Service
+	}))
+}
+
+func (r RefreshingAuditConfigPtr) Environment() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.Environment
+	}))
+}
+
+type RefreshableAuditConfig interface {
+	refreshable.Refreshable
+	CurrentAuditConfig() AuditConfig
+	MapAuditConfig(func(AuditConfig) interface{}) refreshable.Refreshable
+	SubscribeToAuditConfig(func(AuditConfig)) (unsubscribe func())
+
+	Deployment() refreshable.String
+	Product() refreshable.String
+	ProductVersion() refreshable.String
+	Stack() refreshable.String
+	Service() refreshable.String
+	Environment() refreshable.String
+}
+
+type RefreshingAuditConfig struct {
+	refreshable.Refreshable
+}
+
+func NewRefreshingAuditConfig(in refreshable.Refreshable) RefreshingAuditConfig {
+	return RefreshingAuditConfig{Refreshable: in}
+}
+
+func (r RefreshingAuditConfig) CurrentAuditConfig() AuditConfig {
+	return r.Current().(AuditConfig)
+}
+
+func (r RefreshingAuditConfig) MapAuditConfig(mapFn func(AuditConfig) interface{}) refreshable.Refreshable {
+	return r.Map(func(i interface{}) interface{} {
+		return mapFn(i.(AuditConfig))
+	})
+}
+
+func (r RefreshingAuditConfig) SubscribeToAuditConfig(consumer func(AuditConfig)) (unsubscribe func()) {
+	return r.Subscribe(func(i interface{}) {
+		consumer(i.(AuditConfig))
+	})
+}
+
+func (r RefreshingAuditConfig) Deployment() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.Deployment
+	}))
+}
+
+func (r RefreshingAuditConfig) Product() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.Product
+	}))
+}
+
+func (r RefreshingAuditConfig) ProductVersion() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.ProductVersion
+	}))
+}
+
+func (r RefreshingAuditConfig) Stack() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.Stack
+	}))
+}
+
+func (r RefreshingAuditConfig) Service() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.Service
+	}))
+}
+
+func (r RefreshingAuditConfig) Environment() refreshable.String {
+	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.Environment
 	}))
 }
 

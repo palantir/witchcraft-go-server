@@ -27,6 +27,7 @@ import (
 	"os/signal"
 	"reflect"
 	"runtime/debug"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -40,6 +41,7 @@ import (
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
@@ -212,10 +214,24 @@ type Server struct {
 	// they should write to Stdout. If nil, os.Stdout is used by default.
 	loggerStdoutWriter io.Writer
 
+	// Parameters that control dual-output of audit logging.
+	// Currently, the default behavior is to not dual-log.
+
+	// if true, initializes loggers such that any entry written to the "audit.2" logger
+	// is also dual-logged to the "audit.3" logger.
+	dualLogAuditV2ToAuditV3 bool
+
+	// if true, initializes loggers such that any entry written to the "audit.3" logger
+	// is also dual-logged to the "audit.2" logger.
+	dualLogAuditV3ToAuditV2 bool
+
 	// loggers
 	svcLogger    svc1log.Logger
 	evtLogger    evt2log.Logger
-	auditLogger  audit2log.Logger
+	audit2Logger audit2log.Logger
+	// stored as an atomic pointer rather than a logger directly because the value may be updated (common parameter
+	// values can be specified in reloadable runtime configuration)
+	audit3Logger atomic.Pointer[audit3log.Logger]
 	metricLogger metric1log.Logger
 	trcLogger    trc1log.Logger
 	diagLogger   diag1log.Logger
@@ -577,6 +593,20 @@ func (s *Server) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandl
 	return s
 }
 
+// ExperimentalWithEnableDualLogAuditV2ToAuditV3 enables dual-writing audit v2 logs to audit v3 logs.
+// This is an experimental feature: the functionality or function itself may be removed in the future.
+func (s *Server) ExperimentalWithEnableDualLogAuditV2ToAuditV3() *Server {
+	s.dualLogAuditV2ToAuditV3 = true
+	return s
+}
+
+// ExperimentalWithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
+// This is an experimental feature: the functionality or function itself may be removed in the future.
+func (s *Server) ExperimentalWithEnableDualLogAuditV3ToAuditV2() *Server {
+	s.dualLogAuditV3ToAuditV2 = true
+	return s
+}
+
 const (
 	defaultMetricEmitFrequency = time.Second * 30
 
@@ -706,6 +736,10 @@ func (s *Server) Start() (rErr error) {
 		s.svcLogger.SetLevel(loggerCfg.Level)
 	}
 
+	// Set audit logger configuration
+	s.updateAuditLoggerConfig(baseRefreshableRuntimeCfg.AuditConfig().CurrentAuditConfigPtr())
+	ctx = audit3log.WithLogger(ctx, *s.audit3Logger.Load())
+
 	if s.routerImplProvider == nil {
 		s.routerImplProvider = func() wrouter.RouterImpl {
 			return whttprouter.New()
@@ -735,12 +769,17 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// handle built-in runtime config changes
-	unsubscribe := baseRefreshableRuntimeCfg.LoggerConfig().SubscribeToLoggerConfigPtr(func(loggerCfg *config.LoggerConfig) {
+	unsubscribeLoggerConfig := baseRefreshableRuntimeCfg.LoggerConfig().SubscribeToLoggerConfigPtr(func(loggerCfg *config.LoggerConfig) {
 		if loggerCfg != nil {
 			s.svcLogger.SetLevel(loggerCfg.Level)
 		}
 	})
-	defer unsubscribe()
+	defer unsubscribeLoggerConfig()
+
+	unsubscribeAuditLogConfig := baseRefreshableRuntimeCfg.AuditConfig().SubscribeToAuditConfigPtr(func(auditCfg *config.AuditConfig) {
+		s.updateAuditLoggerConfig(auditCfg)
+	})
+	defer unsubscribeAuditLogConfig()
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
@@ -844,7 +883,8 @@ func (s *Server) withLoggers(ctx context.Context) context.Context {
 	ctx = evt2log.WithLogger(ctx, s.evtLogger)
 	ctx = metric1log.WithLogger(ctx, s.metricLogger)
 	ctx = trc1log.WithLogger(ctx, s.trcLogger)
-	ctx = audit2log.WithLogger(ctx, s.auditLogger)
+	ctx = audit2log.WithLogger(ctx, s.audit2Logger)
+	ctx = audit3log.WithLogger(ctx, *s.audit3Logger.Load())
 	ctx = diag1log.WithLogger(ctx, s.diagLogger)
 	return ctx
 }

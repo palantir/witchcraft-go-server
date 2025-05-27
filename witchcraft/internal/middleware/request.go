@@ -18,12 +18,15 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/uuid"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-logging/wlog/diaglog/diag1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/extractor"
@@ -55,7 +58,8 @@ var now = time.Now
 func NewRequestTelemetry(
 	svcLogger svc1log.Logger,
 	evtLogger evt2log.Logger,
-	auditLogger audit2log.Logger,
+	audit2Logger audit2log.Logger,
+	audit3Logger *atomic.Pointer[audit3log.Logger],
 	metricLogger metric1log.Logger,
 	diagLogger diag1log.Logger,
 	reqLogger req2log.Logger,
@@ -64,7 +68,7 @@ func NewRequestTelemetry(
 	idsExtractor extractor.IDsFromRequest,
 	metricsRegistry metrics.Registry,
 ) wrouter.RequestHandlerMiddleware {
-	withLoggers := newRequestContextLoggers(svcLogger, evtLogger, auditLogger, metricLogger, diagLogger, reqLogger, trcLogger, metricsRegistry)
+	withLoggers := newRequestContextLoggers(svcLogger, evtLogger, audit2Logger, audit3Logger, metricLogger, diagLogger, reqLogger, trcLogger, metricsRegistry)
 	withIDs := newRequestExtractIDs(idsExtractor)
 	withTracer := newRequestTracer(svcLogger, trcLogger, tracerOptions)
 	withSpan := newRequestTraceSpan()
@@ -97,7 +101,8 @@ func NewRequestTelemetry(
 func newRequestContextLoggers(
 	svcLogger svc1log.Logger,
 	evtLogger evt2log.Logger,
-	auditLogger audit2log.Logger,
+	audit2Logger audit2log.Logger,
+	audit3Logger *atomic.Pointer[audit3log.Logger],
 	metricLogger metric1log.Logger,
 	diagLogger diag1log.Logger,
 	reqLogger req2log.Logger,
@@ -112,8 +117,13 @@ func newRequestContextLoggers(
 		if evtLogger != nil {
 			ctx = evt2log.WithLogger(ctx, evtLogger)
 		}
-		if auditLogger != nil {
-			ctx = audit2log.WithLogger(ctx, auditLogger)
+		if audit2Logger != nil {
+			ctx = audit2log.WithLogger(ctx, audit2Logger)
+		}
+		if audit3Logger != nil {
+			if loadedAudit3Logger := audit3Logger.Load(); loadedAudit3Logger != nil && *loadedAudit3Logger != nil {
+				ctx = audit3log.WithLogger(ctx, *loadedAudit3Logger)
+			}
 		}
 		if metricLogger != nil {
 			ctx = metric1log.WithLogger(ctx, metricLogger)
@@ -140,25 +150,76 @@ func newRequestExtractIDs(idsExtractor extractor.IDsFromRequest) func(req *http.
 	}
 	return func(req *http.Request) *http.Request {
 		ctx := req.Context()
-		// extract all IDs from request
-		ids := idsExtractor.ExtractIDs(req)
-		uid := ids[extractor.UIDKey]
-		sid := ids[extractor.SIDKey]
-		tokenID := ids[extractor.TokenIDKey]
 
-		// set IDs on context for loggers
-		if uid != "" {
+		// extract IDs from request
+		ids := idsExtractor.ExtractIDs(req)
+
+		// Set IDs on context and loggers as appropriate.
+		// Note that treatment between trace and audit 3 loggers is different for historical purposes.
+		//
+		// trc1log.FromContext does not populate any parameters from the context, so this function creates trace logger
+		// parameters for every relevant value and sets the trace logger in the context to one with the parameters
+		// applied.
+		//
+		// audit3log.FromContext extracts parameters defined at the wlog context level and sets them on the returned
+		// logger. As such, this function sets these values on the context, but does not add these values to the logger
+		// itself, as this would be duplicative (since the "FromContext" call will add the same parameters again).
+		// However, there are also request-scoped audit.3 log parameters that are not set on the context (because they
+		// are not wlog-level parameters), and for those values this function creates parameters for the relevant values
+		// and sets the audit.3 logger in the context to one with the parameters applied.
+		var (
+			trc1LogParams   []trc1log.Param
+			audit3LogParams []audit3log.Param
+		)
+
+		if uid := ids[extractor.UIDKey]; uid != "" {
 			ctx = wlog.ContextWithUID(ctx, uid)
-			ctx = trc1log.WithLogger(ctx, trc1log.WithParams(trc1log.FromContext(ctx), trc1log.UID(uid)))
+			trc1LogParams = append(trc1LogParams, trc1log.UID(uid))
+			audit3LogParams = append(audit3LogParams, audit3log.Users([]audit3log.ContextualizedUser{
+				{
+					UID: uid,
+				},
+			}))
 		}
-		if sid != "" {
+		if sid := ids[extractor.SIDKey]; sid != "" {
 			ctx = wlog.ContextWithSID(ctx, sid)
-			ctx = trc1log.WithLogger(ctx, trc1log.WithParams(trc1log.FromContext(ctx), trc1log.SID(sid)))
+			trc1LogParams = append(trc1LogParams, trc1log.SID(sid))
 		}
-		if tokenID != "" {
+		if tokenID := ids[extractor.TokenIDKey]; tokenID != "" {
 			ctx = wlog.ContextWithTokenID(ctx, tokenID)
-			ctx = trc1log.WithLogger(ctx, trc1log.WithParams(trc1log.FromContext(ctx), trc1log.TokenID(tokenID)))
+			trc1LogParams = append(trc1LogParams, trc1log.TokenID(tokenID))
 		}
+		if orgID := ids[extractor.OrgIDKey]; orgID != "" {
+			ctx = wlog.ContextWithOrgID(ctx, orgID)
+			trc1LogParams = append(trc1LogParams, trc1log.OrgID(orgID))
+		}
+		if userAgent := ids[extractor.UserAgentKey]; userAgent != "" {
+			audit3LogParams = append(audit3LogParams, audit3log.UserAgent(userAgent))
+		}
+		audit3SourceIP := ids[extractor.SourceIPKey]
+		if audit3SourceIP != "" {
+			audit3LogParams = append(audit3LogParams, audit3log.SourceOrigin(audit3SourceIP))
+		}
+		var audit3Origins []string
+		if forwardedForHeaderValue := ids[extractor.ForwardIPs]; forwardedForHeaderValue != "" {
+			audit3Origins = audit3log.OriginsFromXForwardedForHeaderValue(forwardedForHeaderValue)
+			if len(audit3Origins) > 0 {
+				audit3LogParams = append(audit3LogParams, audit3log.Origins(audit3Origins))
+			}
+		}
+		if audit3Origin := audit3log.OriginFromForwardedOrSourceOrigin(audit3Origins, audit3SourceIP); audit3Origin != "" {
+			audit3LogParams = append(audit3LogParams, audit3log.Origin(audit3SourceIP))
+		}
+		// set unique event ID on a per-request basis
+		audit3LogParams = append(audit3LogParams, audit3log.EventID(uuid.NewUUID().String()))
+
+		if len(trc1LogParams) > 0 {
+			ctx = trc1log.WithLogger(ctx, trc1log.WithParams(trc1log.FromContext(ctx), trc1LogParams...))
+		}
+		if len(audit3LogParams) > 0 {
+			ctx = audit3log.WithLogger(ctx, audit3log.WithParams(audit3log.FromContext(ctx), audit3LogParams...))
+		}
+
 		return req.WithContext(ctx)
 	}
 }
