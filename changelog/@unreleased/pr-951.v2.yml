@@ -1,0 +1,10 @@
+type: fix
+fix:
+  description: |-
+    Fixes the metrics recorded for audit logs:
+
+    * An `audit.2` log entry will only increment `audit.2` log metric count if dual-logging is disabled, but will also increment `audit.3` metric count if dual-logging is enabled
+    * An `audit.3` log entry will only increment `audit.3` log metric count if dual-logging is disabled, but will also increment `audit.2` metric count if dual-logging is enabled
+    * Number of metric entries for audit 2 or audit 3 log count matches the number of entries recorded for log length
+  links:
+  - https://github.com/palantir/witchcraft-go-server/pull/951
