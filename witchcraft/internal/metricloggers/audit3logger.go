@@ -16,24 +16,37 @@ package metricloggers
 
 import (
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 )
 
 var _ audit3log.Logger = (*audit3Logger)(nil)
 
 type audit3Logger struct {
-	logger   audit3log.Logger
-	recorder metricRecorder
+	logger         audit3log.Logger
+	audit3Recorder metricRecorder
+	audit2Recorder metricRecorder
 }
 
 func NewAudit3Logger(logger audit3log.Logger, registry metrics.Registry) audit3log.Logger {
-	return &audit3Logger{
-		logger:   logger,
-		recorder: newMetricRecorder(registry, audit3log.TypeValue),
+	return NewAudit3LoggerWithDualLogging(logger, registry, false)
+}
+
+func NewAudit3LoggerWithDualLogging(logger audit3log.Logger, registry metrics.Registry, dualLogToV2 bool) audit3log.Logger {
+	audit3logger := &audit3Logger{
+		logger:         logger,
+		audit3Recorder: newMetricRecorder(registry, audit3log.TypeValue),
 	}
+	if dualLogToV2 {
+		audit3logger.audit2Recorder = newMetricRecorder(registry, audit2log.TypeValue)
+	}
+	return audit3logger
 }
 
 func (m *audit3Logger) Audit(name string, result audit3log.AuditResultType, params ...audit3log.Param) {
 	m.logger.Audit(name, result, params...)
-	m.recorder.RecordSLSLog()
+	m.audit3Recorder.RecordSLSLog()
+	if m.audit2Recorder != nil {
+		m.audit2Recorder.RecordSLSLog()
+	}
 }

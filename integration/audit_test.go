@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -275,7 +276,7 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 
 			return nil, nil
 		}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
-			installCfg.MetricsEmitFrequency = 100 * time.Millisecond
+			installCfg.MetricsEmitFrequency = 25 * time.Millisecond
 			server := createTestServer(t, initFn, installCfg, logOutputBuffer)
 			if dualLogAuditV2ToAuditV3 {
 				server = server.ExperimentalWithEnableDualLogAuditV2ToAuditV3()
@@ -307,8 +308,12 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 			require.NoError(t, err)
 		}
 
+		// allow metric emitter to run
+		time.Sleep(50 * time.Millisecond)
+
 		audit2LogEntries := extractLogEntries[logging.AuditLogV2](t, logOutputBuffer.String(), "audit.2")
 		audit3LogEntries := extractLogEntries[logging.AuditLogV3](t, logOutputBuffer.String(), "audit.3")
+		metricLogEntries := extractLogEntries[logging.MetricLogV1](t, logOutputBuffer.String(), "metric.1")
 
 		wantNumAudit2LogEntries := 0
 		wantNumAudit3LogEntries := 0
@@ -327,7 +332,9 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 		}
 
 		assert.Equal(t, wantNumAudit2LogEntries, len(audit2LogEntries))
+		assert.Equal(t, wantNumAudit2LogEntries, getNumEntriesFromMetricLogs(metricLogEntries, "audit.2"))
 		assert.Equal(t, wantNumAudit3LogEntries, len(audit3LogEntries))
+		assert.Equal(t, wantNumAudit3LogEntries, getNumEntriesFromMetricLogs(metricLogEntries, "audit.3"))
 
 		auditLog2Idx := 0
 		auditLog3Idx := 0
@@ -449,6 +456,35 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 	})
 }
 
+func sortMetricByCountValueDescending(a, b logging.MetricLogV1) int {
+	aCountNum, ok := a.Values["count"].(json.Number)
+	if !ok {
+		return 0
+	}
+	bCountNum, ok := b.Values["count"].(json.Number)
+	if !ok {
+		return 0
+	}
+	var (
+		aCountVal, bCountVal int64
+		err                  error
+	)
+	aCountVal, err = aCountNum.Int64()
+	if err != nil {
+		return 0
+	}
+	bCountVal, err = bCountNum.Int64()
+	if err != nil {
+		return 0
+	}
+	if aCountVal < bCountVal {
+		return 1
+	} else if aCountVal > bCountVal {
+		return -1
+	}
+	return 0
+}
+
 func extractLogEntries[LogT any](t *testing.T, loggerOutput, logTypeName string) []LogT {
 	var logEntries []LogT
 	parts := strings.Split(loggerOutput, "\n")
@@ -465,6 +501,40 @@ func extractLogEntries[LogT any](t *testing.T, loggerOutput, logTypeName string)
 		var currLogEntry LogT
 		require.NoError(t, json.Unmarshal([]byte(curr), &currLogEntry))
 		logEntries = append(logEntries, currLogEntry)
+	}
+	return logEntries
+}
+
+func getNumEntriesFromMetricLogs(metricLogEntries []logging.MetricLogV1, tagType string) int {
+	matchingMetricLogEntries := filterMatchingLogEntries(metricLogEntries, func(entry logging.MetricLogV1) bool {
+		return entry.MetricName == "logging.sls" && entry.Tags["type"] == tagType
+	})
+	slices.SortFunc(matchingMetricLogEntries, sortMetricByCountValueDescending)
+	return getMetricLogMaxCount(matchingMetricLogEntries)
+}
+
+func getMetricLogMaxCount(metricLogEntries []logging.MetricLogV1) int {
+	maxVal := int64(0)
+	for _, entry := range metricLogEntries {
+		countNum, ok := entry.Values["count"].(json.Number)
+		if !ok {
+			return 0
+		}
+		countVal, err := countNum.Int64()
+		if err != nil {
+			return 0
+		}
+		maxVal = max(maxVal, countVal)
+	}
+	return int(maxVal)
+}
+
+func filterMatchingLogEntries[LogT any](entries []LogT, matcher func(LogT) bool) []LogT {
+	var logEntries []LogT
+	for _, currLogEntry := range entries {
+		if matcher(currLogEntry) {
+			logEntries = append(logEntries, currLogEntry)
+		}
 	}
 	return logEntries
 }

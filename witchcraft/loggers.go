@@ -84,7 +84,7 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 	} else {
 		audit2Logger = audit2log.New(logWriterFn("audit"))
 	}
-	s.audit2Logger = metricloggers.NewAudit2Logger(audit2Logger, registry)
+	s.audit2Logger = metricloggers.NewAudit2LoggerWithDualLogging(audit2Logger, registry, s.dualLogAuditV2ToAuditV3)
 
 	var audit3Logger audit3log.Logger
 	if s.dualLogAuditV3ToAuditV2 {
@@ -92,7 +92,7 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 	} else {
 		audit3Logger = audit3log.New(logWriterFn("audit.v3"))
 	}
-	audit3Logger = metricloggers.NewAudit3Logger(audit3Logger, registry)
+	audit3Logger = metricloggers.NewAudit3LoggerWithDualLogging(audit3Logger, registry, s.dualLogAuditV3ToAuditV2)
 	s.audit3Logger.Store(&audit3Logger)
 
 	s.diagLogger = metricloggers.NewDiag1Logger(diag1log.New(logWriterFn("diagnostic")), registry)

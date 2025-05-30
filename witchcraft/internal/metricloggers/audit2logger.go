@@ -29,15 +29,24 @@ type audit2Logger struct {
 }
 
 func NewAudit2Logger(logger audit2log.Logger, registry metrics.Registry) audit2log.Logger {
-	return &audit2Logger{
+	return NewAudit2LoggerWithDualLogging(logger, registry, false)
+}
+
+func NewAudit2LoggerWithDualLogging(logger audit2log.Logger, registry metrics.Registry, dualLogToV3 bool) audit2log.Logger {
+	audit2logger := &audit2Logger{
 		logger:         logger,
 		audit2Recorder: newMetricRecorder(registry, audit2log.TypeValue),
-		audit3Recorder: newMetricRecorder(registry, audit3log.TypeValue),
 	}
+	if dualLogToV3 {
+		audit2logger.audit3Recorder = newMetricRecorder(registry, audit3log.TypeValue)
+	}
+	return audit2logger
 }
 
 func (m *audit2Logger) Audit(name string, result audit2log.AuditResultType, params ...audit2log.Param) {
 	m.logger.Audit(name, result, params...)
 	m.audit2Recorder.RecordSLSLog()
-	m.audit3Recorder.RecordSLSLog()
+	if m.audit3Recorder != nil {
+		m.audit3Recorder.RecordSLSLog()
+	}
 }
