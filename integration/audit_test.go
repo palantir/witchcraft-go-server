@@ -279,10 +279,10 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 			installCfg.MetricsEmitFrequency = 25 * time.Millisecond
 			server := createTestServer(t, initFn, installCfg, logOutputBuffer)
 			if dualLogAuditV2ToAuditV3 {
-				server = server.ExperimentalWithEnableDualLogAuditV2ToAuditV3()
+				server = server.WithEnableDualLogAuditV2ToAuditV3()
 			}
 			if dualLogAuditV3ToV2 {
-				server = server.ExperimentalWithEnableDualLogAuditV3ToAuditV2()
+				server = server.WithEnableDualLogAuditV3ToAuditV2()
 			}
 			return server
 		})
