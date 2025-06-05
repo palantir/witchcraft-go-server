@@ -593,16 +593,16 @@ func (s *Server) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandl
 	return s
 }
 
-// ExperimentalWithEnableDualLogAuditV2ToAuditV3 enables dual-writing audit v2 logs to audit v3 logs.
+// WithEnableDualLogAuditV2ToAuditV3 enables dual-writing audit v2 logs to audit v3 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
-func (s *Server) ExperimentalWithEnableDualLogAuditV2ToAuditV3() *Server {
+func (s *Server) WithEnableDualLogAuditV2ToAuditV3() *Server {
 	s.dualLogAuditV2ToAuditV3 = true
 	return s
 }
 
-// ExperimentalWithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
+// WithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
-func (s *Server) ExperimentalWithEnableDualLogAuditV3ToAuditV2() *Server {
+func (s *Server) WithEnableDualLogAuditV3ToAuditV2() *Server {
 	s.dualLogAuditV3ToAuditV2 = true
 	return s
 }
