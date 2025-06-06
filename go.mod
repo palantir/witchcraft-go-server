@@ -19,7 +19,7 @@ require (
 	github.com/palantir/pkg/tlsconfig v1.3.0
 	github.com/palantir/pkg/uuid v1.2.0
 	github.com/palantir/witchcraft-go-error v1.41.0
-	github.com/palantir/witchcraft-go-health v1.15.0
+	github.com/palantir/witchcraft-go-health v1.16.0
 	github.com/palantir/witchcraft-go-logging v1.61.0
 	github.com/palantir/witchcraft-go-params v1.38.0
 	github.com/palantir/witchcraft-go-tracing v1.40.0
