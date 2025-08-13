@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2023 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,38 +18,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package atomic
+package zapcore
 
-// Error is an atomic type-safe wrapper around Value for errors
-type Error struct{ v Value }
+import "sync"
 
-// errorHolder is non-nil holder for error object.
-// atomic.Value panics on saving nil object, so err object needs to be
-// wrapped with valid object first.
-type errorHolder struct{ err error }
-
-// NewError creates new atomic error object
-func NewError(err error) *Error {
-	e := &Error{}
-	if err != nil {
-		e.Store(err)
-	}
-	return e
+type lazyWithCore struct {
+	Core
+	sync.Once
+	fields []Field
 }
 
-// Load atomically loads the wrapped error
-func (e *Error) Load() error {
-	v := e.v.Load()
-	if v == nil {
-		return nil
+// NewLazyWith wraps a Core with a "lazy" Core that will only encode fields if
+// the logger is written to (or is further chained in a lon-lazy manner).
+func NewLazyWith(core Core, fields []Field) Core {
+	return &lazyWithCore{
+		Core:   core,
+		fields: fields,
 	}
-
-	eh := v.(errorHolder)
-	return eh.err
 }
 
-// Store atomically stores error.
-// NOTE: a holder object is allocated on each Store call.
-func (e *Error) Store(err error) {
-	e.v.Store(errorHolder{err: err})
+func (d *lazyWithCore) initOnce() {
+	d.Once.Do(func() {
+		d.Core = d.Core.With(d.fields)
+	})
+}
+
+func (d *lazyWithCore) With(fields []Field) Core {
+	d.initOnce()
+	return d.Core.With(fields)
+}
+
+func (d *lazyWithCore) Check(e Entry, ce *CheckedEntry) *CheckedEntry {
+	d.initOnce()
+	return d.Core.Check(e, ce)
 }

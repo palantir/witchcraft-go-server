@@ -18,36 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package buffer
+package zapcore
 
 import (
-	"go.uber.org/zap/internal/pool"
+	"encoding/json"
+	"io"
 )
 
-// A Pool is a type-safe wrapper around a sync.Pool.
-type Pool struct {
-	p *pool.Pool[*Buffer]
+// ReflectedEncoder serializes log fields that can't be serialized with Zap's
+// JSON encoder. These have the ReflectType field type.
+// Use EncoderConfig.NewReflectedEncoder to set this.
+type ReflectedEncoder interface {
+	// Encode encodes and writes to the underlying data stream.
+	Encode(interface{}) error
 }
 
-// NewPool constructs a new Pool.
-func NewPool() Pool {
-	return Pool{
-		p: pool.New(func() *Buffer {
-			return &Buffer{
-				bs: make([]byte, 0, _size),
-			}
-		}),
-	}
-}
-
-// Get retrieves a Buffer from the pool, creating one if necessary.
-func (p Pool) Get() *Buffer {
-	buf := p.p.Get()
-	buf.Reset()
-	buf.pool = p
-	return buf
-}
-
-func (p Pool) put(buf *Buffer) {
-	p.p.Put(buf)
+func defaultReflectedEncoder(w io.Writer) ReflectedEncoder {
+	enc := json.NewEncoder(w)
+	// For consistency with our custom JSON encoder.
+	enc.SetEscapeHTML(false)
+	return enc
 }

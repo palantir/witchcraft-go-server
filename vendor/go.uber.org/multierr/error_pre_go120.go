@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2017-2023 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,36 +18,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package buffer
+//go:build !go1.20
+// +build !go1.20
 
-import (
-	"go.uber.org/zap/internal/pool"
-)
+package multierr
 
-// A Pool is a type-safe wrapper around a sync.Pool.
-type Pool struct {
-	p *pool.Pool[*Buffer]
-}
+import "errors"
 
-// NewPool constructs a new Pool.
-func NewPool() Pool {
-	return Pool{
-		p: pool.New(func() *Buffer {
-			return &Buffer{
-				bs: make([]byte, 0, _size),
-			}
-		}),
+// Versions of Go before 1.20 did not support the Unwrap() []error method.
+// This provides a similar behavior by implementing the Is(..) and As(..)
+// methods.
+// See the errors.Join proposal for details:
+// https://github.com/golang/go/issues/53435
+
+// As attempts to find the first error in the error list that matches the type
+// of the value that target points to.
+//
+// This function allows errors.As to traverse the values stored on the
+// multierr error.
+func (merr *multiError) As(target interface{}) bool {
+	for _, err := range merr.Errors() {
+		if errors.As(err, target) {
+			return true
+		}
 	}
+	return false
 }
 
-// Get retrieves a Buffer from the pool, creating one if necessary.
-func (p Pool) Get() *Buffer {
-	buf := p.p.Get()
-	buf.Reset()
-	buf.pool = p
-	return buf
-}
-
-func (p Pool) put(buf *Buffer) {
-	p.p.Put(buf)
+// Is attempts to match the provided error against errors in the error list.
+//
+// This function allows errors.Is to traverse the values stored on the
+// multierr error.
+func (merr *multiError) Is(target error) bool {
+	for _, err := range merr.Errors() {
+		if errors.Is(err, target) {
+			return true
+		}
+	}
+	return false
 }
