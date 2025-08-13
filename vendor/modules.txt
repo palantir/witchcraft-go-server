@@ -4,8 +4,8 @@ github.com/davecgh/go-spew/spew
 # github.com/golang/snappy v1.0.0
 ## explicit
 github.com/golang/snappy
-# github.com/gorilla/mux v1.7.3
-## explicit
+# github.com/gorilla/mux v1.8.1
+## explicit; go 1.20
 github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
 ## explicit; go 1.7
