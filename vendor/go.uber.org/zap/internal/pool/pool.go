@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2023 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,32 +18,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package atomic
+// Package pool provides internal pool utilities.
+package pool
 
-// String is an atomic type-safe wrapper around Value for strings.
-type String struct{ v Value }
+import (
+	"sync"
+)
 
-// NewString creates a String.
-func NewString(str string) *String {
-	s := &String{}
-	if str != "" {
-		s.Store(str)
-	}
-	return s
+// A Pool is a generic wrapper around [sync.Pool] to provide strongly-typed
+// object pooling.
+//
+// Note that SA6002 (ref: https://staticcheck.io/docs/checks/#SA6002) will
+// not be detected, so all internal pool use must take care to only store
+// pointer types.
+type Pool[T any] struct {
+	pool sync.Pool
 }
 
-// Load atomically loads the wrapped string.
-func (s *String) Load() string {
-	v := s.v.Load()
-	if v == nil {
-		return ""
+// New returns a new [Pool] for T, and will use fn to construct new Ts when
+// the pool is empty.
+func New[T any](fn func() T) *Pool[T] {
+	return &Pool[T]{
+		pool: sync.Pool{
+			New: func() any {
+				return fn()
+			},
+		},
 	}
-	return v.(string)
 }
 
-// Store atomically stores the passed string.
-// Note: Converting the string to an interface{} to store in the Value
-// requires an allocation.
-func (s *String) Store(str string) {
-	s.v.Store(str)
+// Get gets a T from the pool, or creates a new one if the pool is empty.
+func (p *Pool[T]) Get() T {
+	return p.pool.Get().(T)
+}
+
+// Put returns x into the pool.
+func (p *Pool[T]) Put(x T) {
+	p.pool.Put(x)
 }
