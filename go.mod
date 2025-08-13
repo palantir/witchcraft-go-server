@@ -3,7 +3,7 @@ module github.com/palantir/witchcraft-go-server/v2
 go 1.24.0
 
 require (
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.0.0
 	github.com/palantir/conjure-go-runtime/v2 v2.97.0
