@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/nmiyake/pkg/dirs v1.0.0
+	github.com/nmiyake/pkg/dirs v1.1.0
 	github.com/palantir/conjure-go-runtime/v2 v2.97.0
 	github.com/palantir/go-encrypted-config-value v1.39.0
 	github.com/palantir/go-metrics v1.1.1
