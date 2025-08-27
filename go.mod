@@ -6,8 +6,8 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.1.0
-	github.com/palantir/conjure-go-runtime/v2 v2.97.0
-	github.com/palantir/go-encrypted-config-value v1.39.0
+	github.com/palantir/conjure-go-runtime/v2 v2.98.0
+	github.com/palantir/go-encrypted-config-value v1.40.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.1.0
 	github.com/palantir/pkg/metrics v1.8.0
@@ -20,7 +20,7 @@ require (
 	github.com/palantir/pkg/uuid v1.2.0
 	github.com/palantir/witchcraft-go-error v1.41.0
 	github.com/palantir/witchcraft-go-health v1.16.0
-	github.com/palantir/witchcraft-go-logging v1.61.0
+	github.com/palantir/witchcraft-go-logging v1.62.0
 	github.com/palantir/witchcraft-go-params v1.38.0
 	github.com/palantir/witchcraft-go-tracing v1.40.0
 	github.com/stretchr/testify v1.11.0

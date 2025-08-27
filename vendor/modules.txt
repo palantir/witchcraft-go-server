@@ -20,16 +20,16 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v2 v2.97.0
-## explicit; go 1.24.0
+# github.com/palantir/conjure-go-runtime/v2 v2.98.0
+## explicit; go 1.25.0
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal
 github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient/internal/refreshingclient
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs
 github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors
 github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver
-# github.com/palantir/go-encrypted-config-value v1.39.0
-## explicit; go 1.24.0
+# github.com/palantir/go-encrypted-config-value v1.40.0
+## explicit; go 1.25.0
 github.com/palantir/go-encrypted-config-value/encryptedconfigvalue
 github.com/palantir/go-encrypted-config-value/encryption
 # github.com/palantir/go-metrics v1.1.1
@@ -98,8 +98,8 @@ github.com/palantir/witchcraft-go-health/reporter
 github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/status
-# github.com/palantir/witchcraft-go-logging v1.61.0
-## explicit; go 1.24.0
+# github.com/palantir/witchcraft-go-logging v1.62.0
+## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category
 github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category/v2
 github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/common
