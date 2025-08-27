@@ -18,11 +18,11 @@ require (
 	github.com/palantir/pkg/signals v1.1.0
 	github.com/palantir/pkg/tlsconfig v1.3.0
 	github.com/palantir/pkg/uuid v1.2.0
-	github.com/palantir/witchcraft-go-error v1.41.0
+	github.com/palantir/witchcraft-go-error v1.42.0
 	github.com/palantir/witchcraft-go-health v1.16.0
 	github.com/palantir/witchcraft-go-logging v1.62.0
-	github.com/palantir/witchcraft-go-params v1.38.0
-	github.com/palantir/witchcraft-go-tracing v1.40.0
+	github.com/palantir/witchcraft-go-params v1.39.0
+	github.com/palantir/witchcraft-go-tracing v1.41.0
 	github.com/stretchr/testify v1.11.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0
