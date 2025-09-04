@@ -59,8 +59,8 @@ github.com/palantir/pkg/refreshable
 # github.com/palantir/pkg/refreshable/v2 v2.2.0
 ## explicit; go 1.25.0
 github.com/palantir/pkg/refreshable/v2
-# github.com/palantir/pkg/retry v1.2.0
-## explicit; go 1.19
+# github.com/palantir/pkg/retry v1.3.0
+## explicit; go 1.25.0
 github.com/palantir/pkg/retry
 # github.com/palantir/pkg/rid v1.1.0
 ## explicit; go 1.19
