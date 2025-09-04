@@ -52,8 +52,8 @@ github.com/palantir/pkg/safelong v1.2.0 h1:7P1ZvHrjd0uNoLL4vDhuIfFPN50aakVTF/Jjd
 github.com/palantir/pkg/safelong v1.2.0/go.mod h1:vRTjkl9UhNbkTtz9QxWwFVa2dvGAppcCXB7OufOpn10=
 github.com/palantir/pkg/safeyaml v1.1.0 h1:5Pt3cGNw5QyOPYwfLsPImh+SiNIilSw3Cn4t3m7tZuo=
 github.com/palantir/pkg/safeyaml v1.1.0/go.mod h1:RG0a/ze5V6uppZJvwV2e3RmyjKMxdPpwIyS5OHp3DPU=
-github.com/palantir/pkg/signals v1.1.0 h1:AOHJflBjlzp6SFzqqLPQAHQEzMnrw4KuQSOtCMaYC1w=
-github.com/palantir/pkg/signals v1.1.0/go.mod h1:4gHxwsglYgLOH39qIUhFMdfvSgHwZEVl+ViJYs1/NNY=
+github.com/palantir/pkg/signals v1.2.0 h1:rD/PuK3usdPCHUqm3GtFRJgn/1IAf++MbtKQHd3r9UM=
+github.com/palantir/pkg/signals v1.2.0/go.mod h1:2Q4XVBLYToqVX7kv/SSkl7E7FVJyON7CGZ/BZ372B3s=
 github.com/palantir/pkg/tlsconfig v1.3.0 h1:KV+97lA+uZWG2gNXjZJhw3uZKoTlY9P2prDwoMnMxR8=
 github.com/palantir/pkg/tlsconfig v1.3.0/go.mod h1:haGcWyHUbq+TCgzJ3u1dQd8DpGH3fbi3sL1aEL+ZBG8=
 github.com/palantir/pkg/transform v1.1.0 h1:43tnYETShELXCRro6+uc0GlgB4GZvsQ/YNH5301IxW8=
