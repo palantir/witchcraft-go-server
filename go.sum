@@ -36,8 +36,8 @@ github.com/palantir/pkg/httpserver v1.1.0 h1:AI52vj8W4LtbwCXYzAupmNqrqtWX1F+rRco
 github.com/palantir/pkg/httpserver v1.1.0/go.mod h1:F69HF22BP6pzwdPQqtOSZkjEoxHtTCVwTSSauYCwvQY=
 github.com/palantir/pkg/metrics v1.9.0 h1:YE5oWa/nYTXzXwezrbYODQ5IHduaUgGkEa7typ2bJmM=
 github.com/palantir/pkg/metrics v1.9.0/go.mod h1:WUQCD22kJADqivxya1EQMSPZcqGZaH96OPUE528cBKw=
-github.com/palantir/pkg/objmatcher v1.1.0 h1:bh/Set1mIL3sEJKIBbNr3afPg0PrvhPKY6deyGwGhZs=
-github.com/palantir/pkg/objmatcher v1.1.0/go.mod h1:sUFipHgtqogNOs9uir4Fbu8Nu+n3qTAEL2vfghIiwZ0=
+github.com/palantir/pkg/objmatcher v1.2.0 h1:cR0IX2NXAhR1hRFBFUwA7y/+m4CtpXUCm5tabqdvS6I=
+github.com/palantir/pkg/objmatcher v1.2.0/go.mod h1:ekDpUDezSoBcD47CUWo9xbYTGycIkiM2ODvxHCUR+lQ=
 github.com/palantir/pkg/refreshable v1.6.0 h1:yQHuckZ8o7EFjTbn8z9bxb1YTxZ0nSKv9QkW6At2Dz8=
 github.com/palantir/pkg/refreshable v1.6.0/go.mod h1:5mabB33zEMefdIyLuVtqiaiH9+3SsKqAlFTIWs04DFA=
 github.com/palantir/pkg/refreshable/v2 v2.2.0 h1:3HS7/gGn9EoH3Ik9BK5legAiQorz3TQhfbRVg4O+mew=
