@@ -92,7 +92,7 @@ func TestServer_DiagnosticsSharedSecret(t *testing.T) {
 			port, err := httpserver.AvailablePort()
 			require.NoError(t, err)
 			server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard,
-				func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+				func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 					return createTestServer(t, initFn, installCfg, logOutputBuffer).
 						WithRuntimeConfig(tt.runtimeConfig)
 				})

@@ -20,7 +20,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -62,7 +62,7 @@ func TestServerShutdown(t *testing.T) {
 		logOutputBuffer := &bytes.Buffer{}
 		calledC := make(chan bool, 1)
 		doneC := make(chan bool, 1)
-		initFn := func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+		initFn := func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 			return nil, info.Router.Get("/wait", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				calledC <- true
 				// just wait for 1 second to hold the connection open.
@@ -153,7 +153,7 @@ func TestServerShutdown(t *testing.T) {
 func TestEmptyPathHandler(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	var called bool
-	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		return nil, info.Router.Get("/", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			called = true
 		}))
@@ -201,7 +201,7 @@ func TestManagementRoutes(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.Equal(t, "200 OK", resp.Status)
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.NoError(t, resp.Body.Close())
 			var healthResp health.HealthStatus
@@ -215,7 +215,7 @@ func TestManagementRoutes(t *testing.T) {
 	}
 
 	t.Run("dedicated port", func(t *testing.T) {
-		server, _, managementPort, serverErr, cleanup := createAndRunTestServer(t, nil, ioutil.Discard)
+		server, _, managementPort, serverErr, cleanup := createAndRunTestServer(t, nil, io.Discard)
 		defer func() {
 			_ = server.Close()
 		}()
@@ -233,7 +233,7 @@ func TestManagementRoutes(t *testing.T) {
 	t.Run("same port", func(t *testing.T) {
 		port, err := httpserver.AvailablePort()
 		require.NoError(t, err)
-		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, createTestServer)
+		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, createTestServer)
 
 		defer func() {
 			_ = server.Close()
@@ -271,10 +271,10 @@ func TestClientTLS(t *testing.T) {
 	managementPort, err := httpserver.AvailablePort()
 	require.NoError(t, err)
 
-	server := witchcraft.NewServer().
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
 		WithClientAuth(tls.RequireAndVerifyClientCert).
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-		WithRuntimeConfig(struct{}{}).
+		WithRuntimeConfig(config.Runtime{}).
 		WithInstallConfig(config.Install{
 			ProductName:   productName,
 			UseConsoleLog: true,
@@ -330,7 +330,7 @@ func TestClientTLS(t *testing.T) {
 
 func TestDefaultNotFoundHandler(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
-	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		return nil, info.Router.Get("/foo", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(200)
 		}))
@@ -351,7 +351,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 
 	assert.Equal(t, "404 Not Found", resp.Status)
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	cerr, err := errors.UnmarshalError(body)
 	if assert.NoError(t, err) {

@@ -18,13 +18,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
@@ -81,7 +81,7 @@ func TestAddStatusRoutes(t *testing.T) {
 			require.NoError(t, err, "Case %d", i)
 			assert.Equal(t, tc.status, resp.StatusCode, "Case %d", i)
 
-			bytes, err := ioutil.ReadAll(resp.Body)
+			bytes, err := io.ReadAll(resp.Body)
 			require.NoError(t, err, "Case %d", i)
 			var gotObj testMetadata
 			err = json.Unmarshal(bytes, &gotObj)
@@ -202,7 +202,7 @@ func TestAddHealthRoute(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			r := wrouter.New(whttprouter.New())
 			resource := wresource.New("test", r)
-			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.NewString(refreshable.NewDefaultRefreshable(test.sharedSecret)), nil)
+			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.New(test.sharedSecret), nil)
 			require.NoError(t, err)
 
 			server := httptest.NewServer(r)
@@ -215,7 +215,7 @@ func TestAddHealthRoute(t *testing.T) {
 			resp, err := client.Do(request)
 			require.NoError(t, err)
 			assert.Equal(t, test.expectedStatus, resp.StatusCode)
-			bytes, err := ioutil.ReadAll(resp.Body)
+			bytes, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			var gotObj health.HealthStatus
 			err = json.Unmarshal(bytes, &gotObj)

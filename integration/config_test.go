@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,7 +56,7 @@ cert
 		InstallConfig string
 		RuntimeConfig string
 		// Use InitFn to verify config
-		Verify    func(info witchcraft.InitInfo) error
+		Verify    func(info witchcraft.InitInfo[*messageInstall, *message]) error
 		VerifyLog func(t *testing.T, logOutput []byte)
 	}{
 		{
@@ -65,11 +64,11 @@ cert
 			ECVKeyContent: encryptionKey,
 			InstallConfig: fmt.Sprintf("message: %s\nuse-console-log: true\n", encryptedValue),
 			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", encryptedValue),
-			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*messageInstall).Message; msg != decryptedValue {
+			Verify: func(info witchcraft.InitInfo[*messageInstall, *message]) error {
+				if msg := info.InstallConfig.Message; msg != decryptedValue {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
-				if msg := info.RuntimeConfig.Current().(*message).Message; msg != decryptedValue {
+				if msg := info.RuntimeConfig.Current().Message; msg != decryptedValue {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
 				return nil
@@ -83,13 +82,13 @@ cert
 			ECVKeyContent: encryptionKey,
 			InstallConfig: fmt.Sprintf("message: prefix%ssuffix\nuse-console-log: true\n", encryptedValue),
 			RuntimeConfig: fmt.Sprintf("message: prefix%ssuffix%s\nlogging:\n  level: warn\n", encryptedValue, encryptedMultilineValue),
-			Verify: func(info witchcraft.InitInfo) error {
+			Verify: func(info witchcraft.InitInfo[*messageInstall, *message]) error {
 				expectedInstallValue := fmt.Sprintf("prefix%ssuffix", decryptedValue)
-				if msg := info.InstallConfig.(*messageInstall).Message; msg != expectedInstallValue {
+				if msg := info.InstallConfig.Message; msg != expectedInstallValue {
 					return fmt.Errorf("expected %q got %q", expectedInstallValue, msg)
 				}
 				expectedRuntimeValue := fmt.Sprintf("prefix%ssuffix%s", decryptedValue, decryptedMultilineValue)
-				if msg := info.RuntimeConfig.Current().(*message).Message; msg != expectedRuntimeValue {
+				if msg := info.RuntimeConfig.Current().Message; msg != expectedRuntimeValue {
 					return fmt.Errorf("expected %q got %q", expectedRuntimeValue, msg)
 				}
 				return nil
@@ -103,11 +102,11 @@ cert
 			ECVKeyContent: encryptionKey,
 			InstallConfig: fmt.Sprintf("message: %s\nuse-console-log: true\n", encryptedMultilineValue),
 			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", encryptedMultilineValue),
-			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*messageInstall).Message; msg != decryptedMultilineValue {
+			Verify: func(info witchcraft.InitInfo[*messageInstall, *message]) error {
+				if msg := info.InstallConfig.Message; msg != decryptedMultilineValue {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
-				if msg := info.RuntimeConfig.Current().(*message).Message; msg != decryptedMultilineValue {
+				if msg := info.RuntimeConfig.Current().Message; msg != decryptedMultilineValue {
 					return fmt.Errorf("expected %q got %q", decryptedValue, msg)
 				}
 				return nil
@@ -121,11 +120,11 @@ cert
 			ECVKeyContent: "test_invalid_key_material",
 			InstallConfig: "message: hello install\nuse-console-log: true\n",
 			RuntimeConfig: "message: hello runtime\nlogging:\n  level: warn\n",
-			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*messageInstall).Message; msg != "hello install" {
+			Verify: func(info witchcraft.InitInfo[*messageInstall, *message]) error {
+				if msg := info.InstallConfig.Message; msg != "hello install" {
 					return fmt.Errorf("expected %q got %q", "hello install", msg)
 				}
-				if msg := info.RuntimeConfig.Current().(*message).Message; msg != "hello runtime" {
+				if msg := info.RuntimeConfig.Current().Message; msg != "hello runtime" {
 					return fmt.Errorf("expected %q got %q", "hello runtime", msg)
 				}
 				return nil
@@ -139,11 +138,11 @@ cert
 			ECVKeyContent: "test_invalid_key_material",
 			InstallConfig: "message: hello install\nuse-console-log: true\n",
 			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", encryptedValue),
-			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*messageInstall).Message; msg != "hello install" {
+			Verify: func(info witchcraft.InitInfo[*messageInstall, *message]) error {
+				if msg := info.InstallConfig.Message; msg != "hello install" {
 					return fmt.Errorf("expected %q got %q", "hello install", msg)
 				}
-				if msg := info.RuntimeConfig.Current().(*message).Message; msg != encryptedValue {
+				if msg := info.RuntimeConfig.Current().Message; msg != encryptedValue {
 					return fmt.Errorf("expected %q got %q", encryptedValue, msg)
 				}
 				return nil
@@ -157,11 +156,11 @@ cert
 			ECVKeyContent: encryptionKey,
 			InstallConfig: "message: hello install\nuse-console-log: true\n",
 			RuntimeConfig: fmt.Sprintf("message: %s\nlogging:\n  level: warn\n", "${enc:invalid}"),
-			Verify: func(info witchcraft.InitInfo) error {
-				if msg := info.InstallConfig.(*messageInstall).Message; msg != "hello install" {
+			Verify: func(info witchcraft.InitInfo[*messageInstall, *message]) error {
+				if msg := info.InstallConfig.Message; msg != "hello install" {
 					return fmt.Errorf("expected %q got %q", "hello install", msg)
 				}
-				if msg := info.RuntimeConfig.Current().(*message).Message; msg != "${enc:invalid}" {
+				if msg := info.RuntimeConfig.Current().Message; msg != "${enc:invalid}" {
 					return fmt.Errorf("expected %q got %q", "${enc:invalid}", msg)
 				}
 				return nil
@@ -172,32 +171,26 @@ cert
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			tmpDir, err := ioutil.TempDir("", "TestEncryptedConfig_")
-			require.NoError(t, err)
-			defer func() {
-				_ = os.RemoveAll(tmpDir)
-			}()
+			tmpDir := t.TempDir()
 			ecvKeyFile := filepath.Join(tmpDir, "ecv.key")
-			err = ioutil.WriteFile(ecvKeyFile, []byte(test.ECVKeyContent), 0600)
+			err := os.WriteFile(ecvKeyFile, []byte(test.ECVKeyContent), 0600)
 			require.NoError(t, err)
 			installFile := filepath.Join(tmpDir, "install.yml")
-			err = ioutil.WriteFile(installFile, []byte(test.InstallConfig), 0644)
+			err = os.WriteFile(installFile, []byte(test.InstallConfig), 0644)
 			require.NoError(t, err)
 			runtimeFile := filepath.Join(tmpDir, "runtime.yml")
-			err = ioutil.WriteFile(runtimeFile, []byte(test.RuntimeConfig), 0644)
+			err = os.WriteFile(runtimeFile, []byte(test.RuntimeConfig), 0644)
 			require.NoError(t, err)
 
 			logOutputBuffer := &bytes.Buffer{}
-			server := witchcraft.NewServer().
+			server := witchcraft.NewServer[*messageInstall, *message]().
 				WithECVKeyFromFile(ecvKeyFile).
 				WithInstallConfigFromFile(installFile).
-				WithInstallConfigType(&messageInstall{}).
 				WithRuntimeConfigFromFile(runtimeFile).
-				WithRuntimeConfigType(&message{}).
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithDisableGoRuntimeMetrics().
 				WithSelfSignedCertificate().
-				WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+				WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[*messageInstall, *message]) (cleanup func(), rErr error) {
 					if err := test.Verify(info); err != nil {
 						return nil, err
 					}

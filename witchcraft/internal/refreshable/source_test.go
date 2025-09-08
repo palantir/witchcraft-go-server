@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/stretchr/testify/assert"
@@ -28,15 +28,15 @@ import (
 
 func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	testHealthCheckType := health.CheckType("TEST_HEALTH_CHECK")
-	testRefreshable := refreshable.NewDefaultRefreshable("initial-value")
-	validatingRefreshable, err := refreshable.NewValidatingRefreshable(testRefreshable, func(i interface{}) error {
-		if i.(string) == "validation-failing-value" {
+	testRefreshable := refreshable.New("initial-value")
+	validatingRefreshable, _, err := refreshable.Validate(testRefreshable, func(i string) error {
+		if i == "validation-failing-value" {
 			return werror.Error("fail validation")
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	healthCheckSource := NewValidatingRefreshableHealthCheckSource(testHealthCheckType, *validatingRefreshable)
+	healthCheckSource := NewValidatingRefreshableHealthCheckSource(testHealthCheckType, validatingRefreshable)
 
 	// check initial state is healthy
 	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
@@ -49,8 +49,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	}))
 
 	// change underyling refreshable to value that fails validation
-	err = testRefreshable.Update("validation-failing-value")
-	require.NoError(t, err)
+	testRefreshable.Update("validation-failing-value")
 	errorMsg := "Refreshable validation failed, please look at service logs for more information."
 	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -64,8 +63,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	}))
 
 	// change underyling refreshable to value that passes validation
-	err = testRefreshable.Update("other-value")
-	require.NoError(t, err)
+	testRefreshable.Update("other-value")
 	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {

@@ -70,7 +70,7 @@ type seenMetricsSet struct {
 	seenSet map[string]struct{}
 }
 
-func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
+func (s *Server[I, R]) initMetrics(ctx context.Context, installCfg config.Install) (rRegistry metrics.RootRegistry, rDeferFn func(), rErr error) {
 	metricsRegistry := metrics.DefaultMetricsRegistry
 	metricsEmitFreq := defaultMetricEmitFrequency
 	if freq := installCfg.MetricsEmitFrequency; freq > 0 {
@@ -119,7 +119,7 @@ func (s *Server) initMetrics(ctx context.Context, installCfg config.Install) (rR
 
 // emitMetricsOnce records updated values for runtime, uptime, and cardinality metrics,
 // then logs all metrics stored in the registry using the Server's metricLogger.
-func (s *Server) emitMetricsOnce(metricsRegistry metrics.Registry, collectGoRuntimeMetrics func(), seenMetrics *seenMetricsSet) {
+func (s *Server[I, R]) emitMetricsOnce(metricsRegistry metrics.Registry, collectGoRuntimeMetrics func(), seenMetrics *seenMetricsSet) {
 	if collectGoRuntimeMetrics != nil {
 		collectGoRuntimeMetrics()
 	}
@@ -158,7 +158,7 @@ func (s *Server) emitMetricsOnce(metricsRegistry metrics.Registry, collectGoRunt
 	})
 }
 
-func (s *Server) collectMetricValues(metricName string, metricVal metrics.MetricVal) map[string]any {
+func (s *Server[I, R]) collectMetricValues(metricName string, metricVal metrics.MetricVal) map[string]any {
 	valuesToUse := make(map[string]any)
 	s.visitMetricValues(metricName, metricVal, func(key string) {
 		valuesToUse[key] = metricVal.Value(key)
@@ -169,7 +169,7 @@ func (s *Server) collectMetricValues(metricName string, metricVal metrics.Metric
 // visitMetricValues calls the provided visit function for each key in the provided metric value.
 // If the metric with the provided metricID is in the metrics blacklist, the visit function is not called for any keys.
 // The visit function is not called for keys that are in the metric type value blacklist for the type.
-func (s *Server) visitMetricValues(metricID string, metricVal metrics.MetricVal, visit func(key string)) {
+func (s *Server[I, R]) visitMetricValues(metricID string, metricVal metrics.MetricVal, visit func(key string)) {
 	if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
 		// skip emitting metric if it is blacklisted
 		return
@@ -198,7 +198,7 @@ func isZeroValueMetric(metricType string) bool {
 // zeroValuesForMetricType returns the metric values for the "zero" value of the metric of the given type. The provided
 // metric type must be a valid type that returns true when provided to the "isZeroValueMetric" function: panics
 // otherwise.
-func (s *Server) zeroValuesForMetricType(metricName string, metricType string) map[string]any {
+func (s *Server[I, R]) zeroValuesForMetricType(metricName string, metricType string) map[string]any {
 	var zeroMetric any
 	switch metricType {
 	case "meter":
@@ -217,7 +217,7 @@ func (s *Server) zeroValuesForMetricType(metricName string, metricType string) m
 // metricLogger if an entry for the metric has not yet been logged (which is determined based on whether or not an entry
 // for the metric exists in the provided seenMetrics set). Returns the zero values of the logged metric. If a zero value
 // is logged, an entry for the metric is added to seenMetrics.
-func (s *Server) logZeroValueMetric(
+func (s *Server[I, R]) logZeroValueMetric(
 	metricLogger metric1log.Logger,
 	metricID string,
 	metricType string,
@@ -277,7 +277,7 @@ func markServerUptimeMetric(metricsRegistry metrics.Registry) {
 	).Update(time.Since(initTime).Microseconds())
 }
 
-func (s *Server) markCardinalityMetric(metricsRegistry metrics.Registry) {
+func (s *Server[I, R]) markCardinalityMetric(metricsRegistry metrics.Registry) {
 	var count int64
 	metricsRegistry.Each(func(metricName string, tags metrics.Tags, val metrics.MetricVal) {
 		s.visitMetricValues(metricName, val, func(key string) {

@@ -17,29 +17,31 @@ package refreshable
 import (
 	"context"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/sources"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-type validatingRefreshableHealthCheckSource struct {
+type validatingRefreshableHealthCheckSource[T any] struct {
 	healthstatus.HealthCheckSource
 
 	healthCheckType health.CheckType
-	refreshable     refreshable.ValidatingRefreshable
+	refreshables    []refreshable.Validated[T]
 }
 
-func (v *validatingRefreshableHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (v *validatingRefreshableHealthCheckSource[T]) HealthStatus(ctx context.Context) health.HealthStatus {
 	healthCheckResult := sources.HealthyHealthCheckResult(v.healthCheckType)
 
-	if err := v.refreshable.LastValidateErr(); err != nil {
-		svc1log.FromContext(ctx).Error("Refreshable validation failed", svc1log.Stacktrace(err))
-		healthCheckResult = sources.UnhealthyHealthCheckResult(v.healthCheckType,
-			"Refreshable validation failed, please look at service logs for more information.",
-			map[string]interface{}{},
-		)
+	for _, refreshable := range v.refreshables {
+		if _, err := refreshable.Validation(); err != nil {
+			svc1log.FromContext(ctx).Error("Refreshable validation failed", svc1log.Stacktrace(err))
+			healthCheckResult = sources.UnhealthyHealthCheckResult(v.healthCheckType,
+				"Refreshable validation failed, please look at service logs for more information.",
+				map[string]interface{}{},
+			)
+		}
 	}
 
 	return health.HealthStatus{
@@ -51,9 +53,9 @@ func (v *validatingRefreshableHealthCheckSource) HealthStatus(ctx context.Contex
 
 // NewValidatingRefreshableHealthCheckSource returns a status.HealthCheckSource that returns an Error health check whenever
 // the provided ValidatingRefreshable is failing its validation.
-func NewValidatingRefreshableHealthCheckSource(healthCheckType health.CheckType, refreshable refreshable.ValidatingRefreshable) healthstatus.HealthCheckSource {
-	return &validatingRefreshableHealthCheckSource{
+func NewValidatingRefreshableHealthCheckSource[T any](healthCheckType health.CheckType, refreshables ...refreshable.Validated[T]) healthstatus.HealthCheckSource {
+	return &validatingRefreshableHealthCheckSource[T]{
 		healthCheckType: healthCheckType,
-		refreshable:     refreshable,
+		refreshables:    refreshables,
 	}
 }
