@@ -18,44 +18,65 @@ import (
 	"context"
 
 	"github.com/palantir/pkg/refreshable/v2"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/sources"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
-type validatingRefreshableHealthCheckSource[T any] struct {
+type validatingRefreshableHealthCheckSource struct {
 	healthstatus.HealthCheckSource
 
 	healthCheckType health.CheckType
-	refreshables    []refreshable.Validated[T]
+	validations     []func() error
 }
 
-func (v *validatingRefreshableHealthCheckSource[T]) HealthStatus(ctx context.Context) health.HealthStatus {
-	healthCheckResult := sources.HealthyHealthCheckResult(v.healthCheckType)
-
-	for _, refreshable := range v.refreshables {
-		if _, err := refreshable.Validation(); err != nil {
-			svc1log.FromContext(ctx).Error("Refreshable validation failed", svc1log.Stacktrace(err))
-			healthCheckResult = sources.UnhealthyHealthCheckResult(v.healthCheckType,
-				"Refreshable validation failed, please look at service logs for more information.",
-				map[string]interface{}{},
-			)
+func (v *validatingRefreshableHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+	var errParams []map[string]any
+	for _, validation := range v.validations {
+		if err := validation(); err != nil {
+			svc1log.FromContext(ctx).Error("Encountered config reload error.", svc1log.Stacktrace(err))
+			errParams = append(errParams, map[string]any{
+				"error":  err.Error(),
+				"params": werror.Convert(err).(werror.Werror).SafeParams(),
+			})
 		}
 	}
+	switch len(errParams) {
+	case 0:
+		return health.HealthStatus{
+			Checks: map[health.CheckType]health.HealthCheckResult{
+				v.healthCheckType: sources.HealthyHealthCheckResult(v.healthCheckType),
+			},
+		}
+	case 1:
+		return health.HealthStatus{
+			Checks: map[health.CheckType]health.HealthCheckResult{
+				v.healthCheckType: sources.UnhealthyHealthCheckResult(v.healthCheckType, "Config reload error. See service logs for more information.", errParams[0]),
+			},
+		}
+	default:
+		return health.HealthStatus{
+			Checks: map[health.CheckType]health.HealthCheckResult{
+				v.healthCheckType: sources.UnhealthyHealthCheckResult(v.healthCheckType, "Multiple config reload errors. See service logs for more information.", map[string]any{"errors": errParams}),
+			},
+		}
+	}
+}
 
-	return health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			v.healthCheckType: healthCheckResult,
-		},
+func ValidationErrFunc[T any](v refreshable.Validated[T]) func() error {
+	return func() error {
+		_, err := v.Validation()
+		return err
 	}
 }
 
 // NewValidatingRefreshableHealthCheckSource returns a status.HealthCheckSource that returns an Error health check whenever
 // the provided ValidatingRefreshable is failing its validation.
-func NewValidatingRefreshableHealthCheckSource[T any](healthCheckType health.CheckType, refreshables ...refreshable.Validated[T]) healthstatus.HealthCheckSource {
-	return &validatingRefreshableHealthCheckSource[T]{
+func NewValidatingRefreshableHealthCheckSource(healthCheckType health.CheckType, validations ...func() error) healthstatus.HealthCheckSource {
+	return &validatingRefreshableHealthCheckSource{
 		healthCheckType: healthCheckType,
-		refreshables:    refreshables,
+		validations:     validations,
 	}
 }

@@ -719,19 +719,22 @@ invalid-key: invalid-value
 	require.NoError(t, err)
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
-			health.CheckType("CONFIG_RELOAD"): {
-				Type:    health.CheckType("CONFIG_RELOAD"),
-				State:   health.New_HealthState(health.HealthState_ERROR),
-				Params:  make(map[string]interface{}),
-				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
+			"CONFIG_RELOAD": {
+				Type:  "CONFIG_RELOAD",
+				State: health.New_HealthState(health.HealthState_ERROR),
+				Params: map[string]interface{}{
+					"error":  "yaml: unmarshal errors:\n  line 2: field invalid-key not found in type config.Runtime",
+					"params": map[string]interface{}{},
+				},
+				Message: stringPtr("Config reload error. See service logs for more information."),
 			},
-			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
-				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+			"ENDPOINT_FIVE_HUNDREDS": {
+				Type:   "ENDPOINT_FIVE_HUNDREDS",
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
-			health.CheckType("SERVER_STATUS"): {
-				Type:   health.CheckType("SERVER_STATUS"),
+			"SERVER_STATUS": {
+				Type:   "SERVER_STATUS",
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},

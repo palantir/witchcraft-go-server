@@ -900,7 +900,7 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 	if _, err := runtimeConfigProvider.Validation(); err != nil {
 		return nil, nil, err
 	}
-	validatedRuntimeConfig, _, err := refreshable.MapWithError(runtimeConfigProvider, func(cfgBytes []byte) (R, error) {
+	unmarshalledRuntimeConfig, _, err := refreshable.MapWithError(runtimeConfigProvider, func(cfgBytes []byte) (R, error) {
 		cfgBytes, err := s.decryptConfigBytes(cfgBytes)
 		if err != nil {
 			s.svcLogger.Warn("Failed to decrypt encrypted runtime configuration", svc1log.Stacktrace(err))
@@ -916,14 +916,16 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 		return nil, nil, err
 	}
 
+	// TODO: Add an (optional?) wrapper with refreshable.Validate that runs a github.com/go-playground/validator/v10 Validator and reports errors here.
+
 	validatingRefreshableHealthCheckSource := refreshablehealth.NewValidatingRefreshableHealthCheckSource(
 		runtimeConfigReloadCheckType,
-		validatedRuntimeConfig,
-		// TODO: Figure out multiple types of refreshable
-		// runtimeConfigProvider,
+		// TODO: Figure out better way to handle multiple types of refreshable
+		refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
+		refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
 	)
 
-	return validatedRuntimeConfig, validatingRefreshableHealthCheckSource, nil
+	return unmarshalledRuntimeConfig, validatingRefreshableHealthCheckSource, nil
 }
 
 func (s *Server[I, R]) initStackTraceHandler(ctx context.Context) {
