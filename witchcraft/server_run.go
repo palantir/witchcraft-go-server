@@ -43,6 +43,7 @@ func (s *Server) newServer(
 	return newServerStartShutdownFns(
 		serverConfig,
 		s.useSelfSignedServerCertificate,
+		s.selfSignedCertificateSANs,
 		s.clientAuth,
 		productName,
 		s.svcLogger,
@@ -56,6 +57,7 @@ func (s *Server) newMgmtServer(productName string, serverConfig config.Server, h
 	_, start, shutdown, err := newServerStartShutdownFns(
 		serverConfig,
 		s.useSelfSignedServerCertificate,
+		s.selfSignedCertificateSANs,
 		tls.NoClientCert,
 		productName+"-management",
 		s.svcLogger,
@@ -68,13 +70,14 @@ func (s *Server) newMgmtServer(productName string, serverConfig config.Server, h
 func newServerStartShutdownFns(
 	serverConfig config.Server,
 	useSelfSignedServerCertificate bool,
+	selfSignedCertificateSANs selfSignedCertificateSANs,
 	clientAuthType tls.ClientAuthType,
 	serverName string,
 	svcLogger svc1log.Logger,
 	handler http.Handler,
 	connStateFunc func(net.Conn, http.ConnState),
 ) (rHTTPServer *http.Server, start func() error, shutdown func(context.Context) error, rErr error) {
-	tlsConfig, err := newTLSConfig(serverConfig, useSelfSignedServerCertificate, clientAuthType)
+	tlsConfig, err := newTLSConfig(serverConfig, useSelfSignedServerCertificate, selfSignedCertificateSANs, clientAuthType)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -103,7 +106,7 @@ func newServerStartShutdownFns(
 	}, httpServer.Shutdown, nil
 }
 
-func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate bool, clientAuthType tls.ClientAuthType) (*tls.Config, error) {
+func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate bool, selfSignedCertificateSANs selfSignedCertificateSANs, clientAuthType tls.ClientAuthType) (*tls.Config, error) {
 	if !useSelfSignedServerCertificate && (serverConfig.KeyFile == "" || serverConfig.CertFile == "") {
 		var msg string
 		if serverConfig.KeyFile == "" && serverConfig.CertFile == "" {
@@ -117,7 +120,7 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 	}
 
 	tlsConfig, err := tlsconfig.NewServerConfig(
-		newTLSCertProvider(useSelfSignedServerCertificate, serverConfig.CertFile, serverConfig.KeyFile),
+		newTLSCertProvider(useSelfSignedServerCertificate, selfSignedCertificateSANs, serverConfig.CertFile, serverConfig.KeyFile),
 		tlsconfig.ServerClientCAFiles(serverConfig.ClientCAFiles...),
 		tlsconfig.ServerClientAuthType(clientAuthType),
 		tlsconfig.ServerNextProtos("h2"),
@@ -128,10 +131,10 @@ func newTLSConfig(serverConfig config.Server, useSelfSignedServerCertificate boo
 	return tlsConfig, nil
 }
 
-func newTLSCertProvider(useSelfSignedServerCertificate bool, certFile, keyFile string) tlsconfig.TLSCertProvider {
+func newTLSCertProvider(useSelfSignedServerCertificate bool, selfSignedCertificateSANs selfSignedCertificateSANs, certFile, keyFile string) tlsconfig.TLSCertProvider {
 	if useSelfSignedServerCertificate {
 		return func() (tls.Certificate, error) {
-			return newSelfSignedCertificate()
+			return newSelfSignedCertificate(selfSignedCertificateSANs)
 		}
 	}
 	return tlsconfig.TLSCertFromFiles(certFile, keyFile)
@@ -140,7 +143,7 @@ func newTLSCertProvider(useSelfSignedServerCertificate bool, certFile, keyFile s
 // newSelfSignedCertificate creates a new self-signed certificate that can be used for TLS. The generated certificate is
 // quite minimal: it has a hard-coded serial number, is valid for 1 year and does NOT have a common name or IP SANs
 // set.
-func newSelfSignedCertificate() (tls.Certificate, error) {
+func newSelfSignedCertificate(selfSignedCertificateSANs selfSignedCertificateSANs) (tls.Certificate, error) {
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -157,6 +160,8 @@ func newSelfSignedCertificate() (tls.Certificate, error) {
 			CommonName:   "localhost",
 			Organization: []string{"Palantir"},
 		},
+		DNSNames:    selfSignedCertificateSANs.DNSNames,
+		IPAddresses: selfSignedCertificateSANs.IPAddresses,
 	}
 	certDERBytes, err := x509.CreateCertificate(rand.Reader, template, template, &privKey.PublicKey, privKey)
 	if err != nil {

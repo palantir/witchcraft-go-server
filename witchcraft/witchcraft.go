@@ -84,6 +84,10 @@ type Server struct {
 	// If false, the key material at the paths specified in serverConfig.CertFile and serverConfig.KeyFile is used.
 	useSelfSignedServerCertificate bool
 
+	// selfSignedCertificateSANs specifies an optional set of IP and DNS sans which should be included in the generated
+	// self-signed certificate for TLS. This field is only consumed when useSelfSignedServerCertificate is true.
+	selfSignedCertificateSANs selfSignedCertificateSANs
+
 	// manages storing and retrieving server state (idle, initializing, running)
 	stateManager serverStateManager
 
@@ -244,6 +248,11 @@ type Server struct {
 	shutdownFinished chan struct{}
 }
 
+type selfSignedCertificateSANs struct {
+	IPAddresses []net.IP
+	DNSNames    []string
+}
+
 // InitFunc is a function type used to initialize a server. ctx is a context configured with loggers and is valid for
 // the duration of the server. Refer to the documentation of InitInfo for its fields.
 //
@@ -388,6 +397,15 @@ func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 // using separate external mechanisms.
 func (s *Server) WithSelfSignedCertificate() *Server {
 	s.useSelfSignedServerCertificate = true
+	return s
+}
+
+// WithSelfSignedCertificateSANs configures the server to add the specified IP addresses and / or DNS names as SANs to
+// the generated self-signed certificate for TLS authentication. This setting is a noop unless WithSelfSignedCertificate
+// is also set.
+func (s *Server) WithSelfSignedCertificateSANs(ips []net.IP, dnsNames []string) *Server {
+	s.selfSignedCertificateSANs.IPAddresses = ips
+	s.selfSignedCertificateSANs.DNSNames = dnsNames
 	return s
 }
 
