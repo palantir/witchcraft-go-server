@@ -35,21 +35,25 @@ func NewSvc1Logger(logger svc1log.Logger, registry metrics.Registry) svc1log.Log
 }
 
 func (m *svc1Logger) Debug(msg string, params ...svc1log.Param) {
+	// safelogging:@Allow: delegate
 	m.logger.Debug(msg, params...)
 	m.recorder.RecordLeveledSLSLog(wlog.DebugLevel)
 }
 
 func (m *svc1Logger) Info(msg string, params ...svc1log.Param) {
+	// safelogging:@Allow: delegate
 	m.logger.Info(msg, params...)
 	m.recorder.RecordLeveledSLSLog(wlog.InfoLevel)
 }
 
 func (m *svc1Logger) Warn(msg string, params ...svc1log.Param) {
+	// safelogging:@Allow: delegate
 	m.logger.Warn(msg, params...)
 	m.recorder.RecordLeveledSLSLog(wlog.WarnLevel)
 }
 
 func (m *svc1Logger) Error(msg string, params ...svc1log.Param) {
+	// safelogging:@Allow: delegate
 	m.logger.Error(msg, params...)
 	m.recorder.RecordLeveledSLSLog(wlog.ErrorLevel)
 }

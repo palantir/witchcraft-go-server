@@ -645,6 +645,7 @@ func (s *Server) Start() (rErr error) {
 				// If we have not yet initialized our loggers, use default configuration as best-effort.
 				s.initDefaultLoggers(false, wlog.InfoLevel, metrics.DefaultMetricsRegistry)
 			}
+			// safelogging:@Allow: kept for backwards compatibility, but consider updating
 			s.svcLogger.Error(rErr.Error(), svc1log.Stacktrace(rErr))
 		}
 	}()
