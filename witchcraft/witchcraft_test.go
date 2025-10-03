@@ -604,8 +604,3 @@ func getWrappedLogMessagesOfType(t *testing.T, entityName, entityVersion, typ st
 	}
 	return logLines
 }
-
-func getFileAndLine() (string, int) {
-	_, file, line, _ := runtime.Caller(1)
-	return path.Base(file), line
-}

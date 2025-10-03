@@ -284,9 +284,6 @@ exclamations: 3
 		},
 		Exclamations: 3,
 	}
-	const invalidYML = `
-invalid-key: invalid-value
-`
 	const validCfg2YML = `
 logging:
   level: info
@@ -417,9 +414,6 @@ exclamations: 3
 		},
 		Exclamations: 3,
 	}
-	const invalidYML = `
-invalid-key: invalid-value
-`
 	const validCfg2YML = `
 logging:
   level: info
