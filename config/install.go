@@ -39,4 +39,5 @@ type Server struct {
 	ClientCAFiles  []string `yaml:"client-ca-files,omitempty"`
 	CertFile       string   `yaml:"cert-file,omitempty"`
 	KeyFile        string   `yaml:"key-file,omitempty"`
+	DisableHTTP2   bool     `yaml:"disable-http2,omitempty"`
 }

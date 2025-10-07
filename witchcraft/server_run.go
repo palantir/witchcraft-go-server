@@ -88,6 +88,9 @@ func newServerStartShutdownFns(
 	if connStateFunc != nil {
 		httpServer.ConnState = connStateFunc
 	}
+	if serverConfig.DisableHTTP2 {
+		httpServer.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler))
+	}
 	return httpServer, func() error {
 		svcLogger.Info("Listening to https", svc1log.SafeParam("address", addr), svc1log.SafeParam("server", serverName))
 
