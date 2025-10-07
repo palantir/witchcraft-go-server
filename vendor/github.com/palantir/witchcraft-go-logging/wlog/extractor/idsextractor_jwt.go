@@ -31,9 +31,14 @@ const (
 	OrgIDKey   = "orgId"
 )
 
-// newIDsFromJWTExtractor creates an extractor that sets the UIDKey, SIDKey and TokenIDKey keys to have the values
-// parsed from the JWT used as the bearer token in the "Authorization" header of the request. The JWT's "sub" field is
-// used as the UID, the "sid" field is used as the SID and the "jti" field is used as the tokenID.
+const (
+	authBearerTokenPrefix = "Bearer "
+	wsBearerTokenPrefix   = "Bearer-"
+)
+
+// newIDsFromJWTExtractor creates an extractor that sets the UIDKey, SIDKey, TokenIDKey and OrgIDKey keys to have the values
+// parsed from the JWT used in the request. JWT is extracted from one of "Sec-WebSocket-Protocol" or "Authorization" headers of the request.
+// The JWT's "sub" field is used as the UID, the "sid" field is used as the SID, the "jti" field is used as the tokenID and the "org" field is used as the orgID.
 func newIDsFromJWTExtractor() IDsFromRequest {
 	return &jwtRequestIDsExtractor{}
 }
@@ -41,12 +46,12 @@ func newIDsFromJWTExtractor() IDsFromRequest {
 type jwtRequestIDsExtractor struct{}
 
 func (e *jwtRequestIDsExtractor) ExtractIDs(req *http.Request) map[string]string {
-	const bearerTokenPrefix = "Bearer "
-
 	var uid, sid, tokenID, orgID string
-	authContent := req.Header.Get("Authorization")
-	if strings.HasPrefix(authContent, bearerTokenPrefix) {
-		uid, sid, tokenID, orgID, _ = idsFromJWT(authContent[len(bearerTokenPrefix):])
+	if authContent := req.Header.Get("Sec-WebSocket-Protocol"); strings.HasPrefix(authContent, wsBearerTokenPrefix) {
+		uid, sid, tokenID, orgID, _ = idsFromJWT(authContent[len(wsBearerTokenPrefix):])
+	}
+	if authContent := req.Header.Get("Authorization"); strings.HasPrefix(authContent, authBearerTokenPrefix) {
+		uid, sid, tokenID, orgID, _ = idsFromJWT(authContent[len(authBearerTokenPrefix):])
 	}
 	return map[string]string{
 		UIDKey:     uid,
