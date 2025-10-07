@@ -52,7 +52,6 @@ func ErrorLevelParam() wlog.Param {
 type defaultLogger struct {
 	logger wlog.LeveledLogger
 	level  wlog.LevelChecker
-	params []Param
 }
 
 func (l *defaultLogger) Debug(msg string, params ...Param) {
