@@ -197,6 +197,9 @@ type Server struct {
 	// disableKeepAlives disables keep-alives.
 	disableKeepAlives bool
 
+	// disableHTTP2 disables HTTP/2 support.
+	disableHTTP2 bool
+
 	// configYAMLUnmarshalFn is the function used to unmarshal YAML configuration. By default, this is yaml.Unmarshal.
 	// If WithStrictUnmarshalConfig is called, this is set to yaml.UnmarshalStrict.
 	configYAMLUnmarshalFn func(in []byte, out interface{}) (err error)
@@ -505,6 +508,14 @@ func (s *Server) WithDisableShutdownSignalHandler() *Server {
 // SetKeepAlivesEnabled in http.Server for more information on when a server may want to use this setting.
 func (s *Server) WithDisableKeepAlives() *Server {
 	s.disableKeepAlives = true
+	return s
+}
+
+// WithDisableHTTP2 disables HTTP/2 support on the server by setting TLSNextProto to an empty map on the http.Server.
+// Note that this setting is only applied to the main server. You should only disable HTTP/2 if you are using handlers
+// that require HTTP/1, such as WebSockets.
+func (s *Server) WithDisableHTTP2() *Server {
+	s.disableHTTP2 = true
 	return s
 }
 
@@ -865,6 +876,10 @@ func (s *Server) Start() (rErr error) {
 	s.httpServer = httpServer
 	if s.disableKeepAlives {
 		s.httpServer.SetKeepAlivesEnabled(false)
+	}
+
+	if s.disableHTTP2 {
+		s.httpServer.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler))
 	}
 
 	if !s.stateManager.compareAndSwapState(ServerInitializing, ServerRunning) {
