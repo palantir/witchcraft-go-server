@@ -25,7 +25,7 @@ import (
 // decoder is used, this function will only return a status code for the error if the custom decoder sets a 'statusCode'
 // parameter on the error.
 func StatusCodeFromError(err error) (statusCode int, ok bool) {
-	statusCodeI, ok := werror.ParamFromError(err, "statusCode")
+	statusCodeI, _ := werror.ParamFromError(err, "statusCode")
 	if statusCodeI == nil {
 		return 0, false
 	}
