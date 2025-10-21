@@ -17,8 +17,8 @@ package httpclient
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"slices"
 	"time"
 
@@ -273,7 +273,7 @@ func configToParams(c ClientConfig) ([]ClientParam, error) {
 	if c.APIToken != nil && *c.APIToken != "" {
 		params = append(params, WithAuthToken(*c.APIToken))
 	} else if c.APITokenFile != nil && *c.APITokenFile != "" {
-		token, err := ioutil.ReadFile(*c.APITokenFile)
+		token, err := os.ReadFile(*c.APITokenFile)
 		if err != nil {
 			return nil, werror.Wrap(err, "failed to read api-token-file", werror.SafeParam("file", *c.APITokenFile))
 		}
@@ -431,7 +431,7 @@ func newValidatedClientParamsFromConfig(ctx context.Context, config ClientConfig
 		apiToken = config.APIToken
 	} else if config.APITokenFile != nil {
 		file := *config.APITokenFile
-		token, err := ioutil.ReadFile(file)
+		token, err := os.ReadFile(file)
 		if err != nil {
 			return refreshingclient.ValidatedClientParams{}, werror.WrapWithContextParams(ctx, err, "failed to read api-token-file", werror.SafeParam("file", file))
 		}

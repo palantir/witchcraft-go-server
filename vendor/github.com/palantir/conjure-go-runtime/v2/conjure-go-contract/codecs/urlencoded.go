@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 )
 
@@ -36,7 +35,7 @@ func (codecFormURLEncoded) Accept() string {
 }
 
 func (codecFormURLEncoded) Decode(r io.Reader, v interface{}) error {
-	query, err := ioutil.ReadAll(r)
+	query, err := io.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("failed to read all query bytes: %s", err.Error())
 	}

@@ -15,7 +15,7 @@
 package httpclient
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -92,7 +92,7 @@ func (d restErrorDecoder) DecodeError(resp *http.Response) error {
 	wUnsafeParams := werror.UnsafeParams(unsafeParams)
 
 	// TODO(#98): If a byte buffer pool is configured, use it to avoid an allocation.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return werror.Wrap(err, "server returned an error and failed to read body", wSafeParams, wUnsafeParams)
 	}
