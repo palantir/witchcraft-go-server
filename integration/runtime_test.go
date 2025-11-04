@@ -17,7 +17,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -79,11 +78,11 @@ server:
  port: %d
  context-path: %s`,
 		productName, port, basePath)
-	err = ioutil.WriteFile(installYML, []byte(installCfgYml), 0644)
+	err = os.WriteFile(installYML, []byte(installCfgYml), 0644)
 	require.NoError(t, err)
 
 	const ecvKey = `AES:Nu2OInDbOHhXCNqqt1yyDuPwZwaJrSjV+IAypbZhw6Y=`
-	err = ioutil.WriteFile("var/conf/encrypted-config-value.key", []byte(ecvKey), 0644)
+	err = os.WriteFile("var/conf/encrypted-config-value.key", []byte(ecvKey), 0644)
 	require.NoError(t, err)
 
 	cfg1 := testRuntimeConfig{SecretGreeting: "hello, world!", Exclamations: 3}
@@ -96,7 +95,7 @@ exclamations: 3
 secret-greeting: ${enc:/pSQ0v8R3QR8WOLnxoAWTsnI6kkjGgQMbqFcU9UC+LxStdGbfg1i3R9mlVZjEuXuecVG5AK1Sq109YxUcg==}
 exclamations: 4
 `
-	err = ioutil.WriteFile(runtimeYML, []byte(cfg1YML), 0644)
+	err = os.WriteFile(runtimeYML, []byte(cfg1YML), 0644)
 	require.NoError(t, err)
 
 	var currCfg testRuntimeConfig
@@ -153,7 +152,7 @@ exclamations: 4
 	assert.Equal(t, cfg1, currCfg)
 
 	// Update config and assert that our subscription overwrites the value
-	err = ioutil.WriteFile(runtimeYML, []byte(cfg2YML), 0644)
+	err = os.WriteFile(runtimeYML, []byte(cfg2YML), 0644)
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, cfg2, currCfg)
@@ -188,7 +187,7 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(runtimeYML, runtimeConfigWithLoggingYML, 0644)
+	err = os.WriteFile(runtimeYML, runtimeConfigWithLoggingYML, 0644)
 	require.NoError(t, err)
 
 	runtimeConfigUpdatedChan := make(chan struct{})
@@ -237,7 +236,7 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 		require.NoError(t, server.Close())
 	}()
 
-	err = ioutil.WriteFile(runtimeYML, []byte(""), 0644)
+	err = os.WriteFile(runtimeYML, []byte(""), 0644)
 	require.NoError(t, err)
 
 	select {
@@ -298,7 +297,7 @@ exclamations: 4
 		Exclamations: 4,
 	}
 
-	err = ioutil.WriteFile(runtimeYML, []byte(validCfg1YML), 0644)
+	err = os.WriteFile(runtimeYML, []byte(validCfg1YML), 0644)
 	require.NoError(t, err)
 
 	var currCfg testRuntimeConfig
@@ -366,13 +365,13 @@ exclamations: 4
 		Exclamations:   0,
 	}
 
-	err = ioutil.WriteFile(runtimeYML, []byte("invalid-key: \"invalid-value\""), 0644)
+	err = os.WriteFile(runtimeYML, []byte("invalid-key: \"invalid-value\""), 0644)
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, invalidRuntimeConfig, currCfg)
 
 	// Update config to different config and assert that our subscription overwrites the value
-	err = ioutil.WriteFile(runtimeYML, []byte(validCfg2YML), 0644)
+	err = os.WriteFile(runtimeYML, []byte(validCfg2YML), 0644)
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, validCfg2, currCfg)
@@ -428,7 +427,7 @@ exclamations: 4
 		Exclamations: 4,
 	}
 
-	err = ioutil.WriteFile(runtimeYML, []byte(validCfg1YML), 0644)
+	err = os.WriteFile(runtimeYML, []byte(validCfg1YML), 0644)
 	require.NoError(t, err)
 
 	var currCfg testRuntimeConfig
@@ -490,13 +489,13 @@ exclamations: 4
 	assert.Equal(t, validCfg1, currCfg)
 
 	// Assert that introducing invalid config does not change the stored config
-	err = ioutil.WriteFile(runtimeYML, []byte("invalid-key: \"invalid-value\""), 0644)
+	err = os.WriteFile(runtimeYML, []byte("invalid-key: \"invalid-value\""), 0644)
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, validCfg1, currCfg)
 
 	// Update config to a valid, but different config and assert that our subscription overwrites the value
-	err = ioutil.WriteFile(runtimeYML, []byte(validCfg2YML), 0644)
+	err = os.WriteFile(runtimeYML, []byte(validCfg2YML), 0644)
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, validCfg2, currCfg)
@@ -545,7 +544,7 @@ clients:
       deprecated: deprecated
 `,
 		productName, productVersion, port, basePath)
-	err = ioutil.WriteFile(installYML, []byte(installCfgYml), 0644)
+	err = os.WriteFile(installYML, []byte(installCfgYml), 0644)
 	require.NoError(t, err)
 
 	runtimeCfgYml := fmt.Sprintf(`logging:
@@ -565,7 +564,7 @@ service-discovery:
           test: one
 `,
 		upstreamServer.URL)
-	err = ioutil.WriteFile(runtimeYML, []byte(runtimeCfgYml), 0644)
+	err = os.WriteFile(runtimeYML, []byte(runtimeCfgYml), 0644)
 	require.NoError(t, err)
 
 	var ctx context.Context
@@ -648,7 +647,7 @@ service-discovery:
           test: two
 `,
 		upstreamServer.URL)
-	err = ioutil.WriteFile(runtimeYML, []byte(runtimeCfgYml), 0644)
+	err = os.WriteFile(runtimeYML, []byte(runtimeCfgYml), 0644)
 	require.NoError(t, err)
 	time.Sleep(3 * time.Second)
 

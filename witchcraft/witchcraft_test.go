@@ -19,7 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"path"
@@ -305,7 +305,7 @@ func BenchmarkServer_Loggers(b *testing.B) {
 				}).
 				WithInstallConfig(config.Install{UseConsoleLog: true}).
 				WithRuntimeConfig(config.Runtime{}).
-				WithLoggerStdoutWriter(ioutil.Discard).
+				WithLoggerStdoutWriter(io.Discard).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 				WithDisableGoRuntimeMetrics().
 				WithSelfSignedCertificate().

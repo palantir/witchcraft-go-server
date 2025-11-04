@@ -16,7 +16,6 @@ package refreshable
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -172,7 +171,7 @@ func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
 }
 
 func writeFileHelper(t *testing.T, path, value string) {
-	err := ioutil.WriteFile(path, []byte(value), 0644)
+	err := os.WriteFile(path, []byte(value), 0644)
 	assert.NoError(t, err)
 }
 

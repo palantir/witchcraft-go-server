@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -44,7 +43,7 @@ import (
 func TestAddHealthCheckSources(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(healthCheckWithType{typ: "FOO"}, healthCheckWithType{typ: "BAR"})
 	})
 
@@ -56,7 +55,7 @@ func TestAddHealthCheckSources(t *testing.T) {
 	resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
 	require.NoError(t, err)
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var healthResults health.HealthStatus
@@ -115,7 +114,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 			clients = info.Clients
 			return nil, nil
 		},
-		ioutil.Discard,
+		io.Discard,
 		createTestServer,
 	)
 
@@ -123,7 +122,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 		resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
 		require.NoError(t, err)
 
-		bytes, err := ioutil.ReadAll(resp.Body)
+		bytes, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
 		var healthResults health.HealthStatus
@@ -282,7 +281,7 @@ func TestHealthReporter(t *testing.T) {
 
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(healthReporter)
 	})
 
@@ -340,7 +339,7 @@ func TestHealthReporter(t *testing.T) {
 	resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
 	require.NoError(t, err)
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var healthResults health.HealthStatus
@@ -452,7 +451,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(periodicHealthCheckSource)
 	})
 
@@ -467,7 +466,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 	resp, err := testServerClient().Get(fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint))
 	require.NoError(t, err)
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var healthResults health.HealthStatus
@@ -487,7 +486,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 func TestHealthSharedSecret(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithHealth(emptyHealthCheckSource{}).
 			WithDisableGoRuntimeMetrics().
@@ -511,7 +510,7 @@ func TestHealthSharedSecret(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var healthResults health.HealthStatus
@@ -563,7 +562,7 @@ func TestRuntimeConfigReloadHealthWithStrictUnmarshalFalse(t *testing.T) {
 invalid-key: invalid-value
 `
 	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
 			WithDisableGoRuntimeMetrics()
@@ -580,7 +579,7 @@ invalid-key: invalid-value
 	resp, err := client.Do(request)
 	require.NoError(t, err)
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var healthResults health.HealthStatus
@@ -616,7 +615,7 @@ invalid-key: invalid-value
 	resp, err = client.Do(request)
 	require.NoError(t, err)
 
-	bytes, err = ioutil.ReadAll(resp.Body)
+	bytes, err = io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	err = json.Unmarshal(bytes, &healthResults)
@@ -661,7 +660,7 @@ func TestRuntimeConfigReloadHealthWithStrictUnmarshalTrue(t *testing.T) {
 invalid-key: invalid-value
 `
 	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
 			WithDisableGoRuntimeMetrics().
@@ -679,7 +678,7 @@ invalid-key: invalid-value
 	resp, err := client.Do(request)
 	require.NoError(t, err)
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var healthResults health.HealthStatus
@@ -715,7 +714,7 @@ invalid-key: invalid-value
 	resp, err = client.Do(request)
 	require.NoError(t, err)
 
-	bytes, err = ioutil.ReadAll(resp.Body)
+	bytes, err = io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	err = json.Unmarshal(bytes, &healthResults)

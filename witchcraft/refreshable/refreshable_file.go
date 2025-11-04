@@ -17,7 +17,7 @@ package refreshable
 import (
 	"context"
 	"crypto/sha256"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/palantir/pkg/refreshable"
@@ -49,7 +49,7 @@ func NewFileRefreshable(ctx context.Context, filePath string) (refreshable.Refre
 // is changed. The goroutine will terminate when the provided context is done or when the returned cancel function is
 // called.
 func NewFileRefreshableWithDuration(ctx context.Context, filePath string, duration time.Duration) (refreshable.Refreshable, error) {
-	initialBytes, err := ioutil.ReadFile(filePath)
+	initialBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, werror.WrapWithContextParams(ctx, err, "failed to create file-based Refreshable because file could not be read", werror.SafeParam("filePath", filePath))
 	}
@@ -82,7 +82,7 @@ func (d *fileRefreshable) watchForChanges(ctx context.Context, duration time.Dur
 }
 
 func (d *fileRefreshable) evaluateFileOnDisk(ctx context.Context) {
-	fileBytes, err := ioutil.ReadFile(d.filePath)
+	fileBytes, err := os.ReadFile(d.filePath)
 	if err != nil {
 		svc1log.FromContext(ctx).Warn("Failed to read file bytes to update refreshable", svc1log.Stacktrace(err))
 		return

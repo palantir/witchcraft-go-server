@@ -17,7 +17,7 @@ package integration
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -71,7 +71,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, initFn, ioutil.Discard, createTestServer)
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, initFn, io.Discard, createTestServer)
 	defer func() {
 		require.NoError(t, server.Close())
 	}()
