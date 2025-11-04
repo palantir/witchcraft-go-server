@@ -24,7 +24,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
@@ -84,7 +83,7 @@ func main() {
 }
 
 func mustWriteFile(filename string, data []byte, perm os.FileMode) {
-	if err := ioutil.WriteFile(filename, data, perm); err != nil {
+	if err := os.WriteFile(filename, data, perm); err != nil {
 		panic(err)
 	}
 }

@@ -20,7 +20,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -201,7 +201,7 @@ func TestManagementRoutes(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.Equal(t, "200 OK", resp.Status)
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.NoError(t, resp.Body.Close())
 			var healthResp health.HealthStatus
@@ -215,7 +215,7 @@ func TestManagementRoutes(t *testing.T) {
 	}
 
 	t.Run("dedicated port", func(t *testing.T) {
-		server, _, managementPort, serverErr, cleanup := createAndRunTestServer(t, nil, ioutil.Discard)
+		server, _, managementPort, serverErr, cleanup := createAndRunTestServer(t, nil, io.Discard)
 		defer func() {
 			_ = server.Close()
 		}()
@@ -233,7 +233,7 @@ func TestManagementRoutes(t *testing.T) {
 	t.Run("same port", func(t *testing.T) {
 		port, err := httpserver.AvailablePort()
 		require.NoError(t, err)
-		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, ioutil.Discard, createTestServer)
+		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, createTestServer)
 
 		defer func() {
 			_ = server.Close()
@@ -351,7 +351,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 
 	assert.Equal(t, "404 Not Found", resp.Status)
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	cerr, err := errors.UnmarshalError(body)
 	if assert.NoError(t, err) {

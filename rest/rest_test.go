@@ -15,7 +15,7 @@
 package rest_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,7 +54,7 @@ func TestWriteJSONResponse_Error(t *testing.T) {
 			resp, err := server.Client().Get(server.URL)
 			require.NoError(t, err)
 			require.Equal(t, resp.StatusCode, test.ExpectedCode)
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.Equal(t, test.ExpectedJSON, string(body))
 		})

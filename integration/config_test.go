@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -172,19 +171,19 @@ cert
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			tmpDir, err := ioutil.TempDir("", "TestEncryptedConfig_")
+			tmpDir, err := os.MkdirTemp("", "TestEncryptedConfig_")
 			require.NoError(t, err)
 			defer func() {
 				_ = os.RemoveAll(tmpDir)
 			}()
 			ecvKeyFile := filepath.Join(tmpDir, "ecv.key")
-			err = ioutil.WriteFile(ecvKeyFile, []byte(test.ECVKeyContent), 0600)
+			err = os.WriteFile(ecvKeyFile, []byte(test.ECVKeyContent), 0600)
 			require.NoError(t, err)
 			installFile := filepath.Join(tmpDir, "install.yml")
-			err = ioutil.WriteFile(installFile, []byte(test.InstallConfig), 0644)
+			err = os.WriteFile(installFile, []byte(test.InstallConfig), 0644)
 			require.NoError(t, err)
 			runtimeFile := filepath.Join(tmpDir, "runtime.yml")
-			err = ioutil.WriteFile(runtimeFile, []byte(test.RuntimeConfig), 0644)
+			err = os.WriteFile(runtimeFile, []byte(test.RuntimeConfig), 0644)
 			require.NoError(t, err)
 
 			logOutputBuffer := &bytes.Buffer{}

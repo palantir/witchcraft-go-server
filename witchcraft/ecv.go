@@ -15,7 +15,6 @@
 package witchcraft
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
@@ -44,7 +43,7 @@ func ECVKeyFromStatic(kwt *encryptedconfigvalue.KeyWithType) ECVKeyProvider {
 
 func ECVKeyFromFile(path string) ECVKeyProvider {
 	return ecvKeyProvider(func() (*encryptedconfigvalue.KeyWithType, error) {
-		keyBytes, err := ioutil.ReadFile(path)
+		keyBytes, err := os.ReadFile(path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil, werror.Wrap(err, "encryption key file does not exist", werror.SafeParam("path", path))

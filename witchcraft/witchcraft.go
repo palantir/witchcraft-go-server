@@ -19,7 +19,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
@@ -88,7 +87,7 @@ type Server struct {
 	stateManager serverStateManager
 
 	// specifies the io.Writer to which goroutine dump will be written if a SIGQUIT is received while the server is
-	// running. If nil, os.Stdout is used as the default. If the value is ioutil.Discard, then no plaintext output will
+	// running. If nil, os.Stdout is used as the default. If the value is io.Discard, then no plaintext output will
 	// be emitted. A diagnostic.1 line is logged unless disableSigQuitHandler is true.
 	sigQuitHandlerWriter io.Writer
 
@@ -334,7 +333,7 @@ func (s *Server) WithInstallConfig(installConfigStruct interface{}) *Server {
 // path.
 func (s *Server) WithInstallConfigFromFile(fpath string) *Server {
 	s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
-		return ioutil.ReadFile(fpath)
+		return os.ReadFile(fpath)
 	})
 	return s
 }
@@ -914,7 +913,7 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 	if s.installConfigProvider == nil {
 		// if install config provider is not specified, use a file-based one
 		s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
-			return ioutil.ReadFile(installConfigPath)
+			return os.ReadFile(installConfigPath)
 		})
 	}
 

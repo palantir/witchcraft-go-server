@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -81,7 +81,7 @@ func TestAddStatusRoutes(t *testing.T) {
 			require.NoError(t, err, "Case %d", i)
 			assert.Equal(t, tc.status, resp.StatusCode, "Case %d", i)
 
-			bytes, err := ioutil.ReadAll(resp.Body)
+			bytes, err := io.ReadAll(resp.Body)
 			require.NoError(t, err, "Case %d", i)
 			var gotObj testMetadata
 			err = json.Unmarshal(bytes, &gotObj)
@@ -215,7 +215,7 @@ func TestAddHealthRoute(t *testing.T) {
 			resp, err := client.Do(request)
 			require.NoError(t, err)
 			assert.Equal(t, test.expectedStatus, resp.StatusCode)
-			bytes, err := ioutil.ReadAll(resp.Body)
+			bytes, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			var gotObj health.HealthStatus
 			err = json.Unmarshal(bytes, &gotObj)
