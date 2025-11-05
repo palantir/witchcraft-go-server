@@ -40,8 +40,8 @@ github.com/palantir/pkg/objmatcher v1.2.0 h1:cR0IX2NXAhR1hRFBFUwA7y/+m4CtpXUCm5t
 github.com/palantir/pkg/objmatcher v1.2.0/go.mod h1:ekDpUDezSoBcD47CUWo9xbYTGycIkiM2ODvxHCUR+lQ=
 github.com/palantir/pkg/refreshable v1.6.0 h1:yQHuckZ8o7EFjTbn8z9bxb1YTxZ0nSKv9QkW6At2Dz8=
 github.com/palantir/pkg/refreshable v1.6.0/go.mod h1:5mabB33zEMefdIyLuVtqiaiH9+3SsKqAlFTIWs04DFA=
-github.com/palantir/pkg/refreshable/v2 v2.2.0 h1:3HS7/gGn9EoH3Ik9BK5legAiQorz3TQhfbRVg4O+mew=
-github.com/palantir/pkg/refreshable/v2 v2.2.0/go.mod h1:J9xYa1WXGWqC/N5PxDz8VUtrJZGWlmr+rFx89Oy7X0Y=
+github.com/palantir/pkg/refreshable/v2 v2.3.0 h1:/21R6OB96g0iXKJXoPohAITAAMpdX9sVDybz3NA0ic4=
+github.com/palantir/pkg/refreshable/v2 v2.3.0/go.mod h1:0Og1iRoyMOHpjjk5wBuRhgazUbqLTo8KfdqJe1h9+0g=
 github.com/palantir/pkg/retry v1.3.0 h1:uHrY3sv4q3XefvVLyqKIK1frXE9ZxtCtNtvijAkwW4k=
 github.com/palantir/pkg/retry v1.3.0/go.mod h1:HzOR3eLw/9PiujskMpjaC6m3uU8fy53s6NszjbmpbOQ=
 github.com/palantir/pkg/rid v1.2.0 h1:sEdklNKk4hrDm0JsUyICYakbc+16GrC6pYxMFjfqXkE=
