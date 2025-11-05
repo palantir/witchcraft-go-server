@@ -21,8 +21,8 @@ import (
 	netpprof "net/http/pprof"
 	"runtime/pprof"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
@@ -47,7 +47,7 @@ func (s *Server[I, R]) initRouters(installCfg config.Install) (rRouter wrouter.R
 
 // addRoutes registers /debug/diagnostic/* and /status/*
 func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshable.Refreshable[R]) error {
-	diagnosticRefreshable, _ := refreshable.Map(runtimeCfg, func(cfg R) config.DiagnosticsConfig {
+	diagnosticRefreshable := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) config.DiagnosticsConfig {
 		return cfg.BaseRuntimeConfig().DiagnosticsConfig
 	})
 	secretRefreshable, err := getSecretRefreshable(ctx, diagnosticRefreshable)
@@ -61,7 +61,7 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 	statusResource := wresource.New("status", mgmtRouterWithContextPath)
 
 	// add health endpoints
-	healthSharedSecret, _ := refreshable.Map(runtimeCfg, func(cfg R) string {
+	healthSharedSecret := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) string {
 		return cfg.BaseRuntimeConfig().HealthChecks.SharedSecret
 	})
 	if err := routes.AddHealthRoutes(
@@ -178,7 +178,7 @@ func getSecretRefreshable(ctx context.Context, diagnosticsConfig refreshable.Ref
 		return refreshable.New(""), nil
 	}
 	if secretFromConfig != "" {
-		r, _ := refreshable.Map(diagnosticsConfig, func(cfg config.DiagnosticsConfig) string {
+		r := refreshable.MapContext(ctx, diagnosticsConfig, func(cfg config.DiagnosticsConfig) string {
 			return cfg.DebugSharedSecret
 		})
 		return r, nil
@@ -187,7 +187,7 @@ func getSecretRefreshable(ctx context.Context, diagnosticsConfig refreshable.Ref
 	if _, err := fileRefreshable.Validation(); err != nil {
 		return nil, err
 	}
-	secretStringFromFileRefreshable, _ := refreshable.Map(fileRefreshable, func(b []byte) string {
+	secretStringFromFileRefreshable := refreshable.MapContext(ctx, fileRefreshable, func(b []byte) string {
 		return string(b)
 	})
 	return secretStringFromFileRefreshable, nil

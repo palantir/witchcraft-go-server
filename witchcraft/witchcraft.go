@@ -29,7 +29,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient"
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable/v2"
@@ -249,13 +249,10 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// any middleware (note that any values set using router will override any values previously set on the server).
 	Router ConfigurableRouter[I, R]
 
-	// InstallConfig the install configuration. Its type is determined by the struct provided to the
-	// "WithInstallConfigType" function (the default is config.Install).
+	// InstallConfig is the install configuration.
 	InstallConfig I
 
-	// RuntimeConfig is a refreshable that contains the initial runtime configuration. The type returned by the
-	// refreshable is determined by the struct provided to the "WithRuntimeConfigType" function (the default is
-	// config.Runtime).
+	// RuntimeConfig is a refreshable that contains the initial runtime configuration.
 	RuntimeConfig refreshable.Refreshable[R]
 
 	// Clients exposes the service-discovery configuration as a conjure-go-runtime client builder.
@@ -264,7 +261,7 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 
 	// ShutdownServer gracefully closes the server, waiting for any in-flight requests to finish (or the context to be cancelled).
 	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
-	// requires access to shutdown the server in some error condition.
+	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
 }
 
@@ -488,7 +485,7 @@ func (s *Server[I, R]) WithDisableKeepAlives() *Server[I, R] {
 // WithDisableHTTP2 disables HTTP/2 support on the server by setting TLSNextProto to an empty map on the http.Server.
 // Note that this setting is only applied to the main server. You should only disable HTTP/2 if you are using handlers
 // that require HTTP/1, such as WebSockets.
-func (s *Server) WithDisableHTTP2() *Server {
+func (s *Server[I, R]) WithDisableHTTP2() *Server[I, R] {
 	s.disableHTTP2 = true
 	return s
 }
@@ -932,11 +929,8 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 		return nil, nil, err
 	}
 
-	// TODO: Add an (optional?) wrapper with refreshable.Validate that runs a github.com/go-playground/validator/v10 Validator and reports errors here.
-
 	validatingRefreshableHealthCheckSource := refreshablehealth.NewValidatingRefreshableHealthCheckSource(
 		runtimeConfigReloadCheckType,
-		// TODO: Figure out better way to handle multiple types of refreshable
 		refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
 		refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
 	)

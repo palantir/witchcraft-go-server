@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/tlsconfig"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"

@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	pkgserver "github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-logging/wlog"

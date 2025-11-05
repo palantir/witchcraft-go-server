@@ -19,7 +19,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/v2/config"
@@ -49,7 +49,7 @@ func main() {
 			}
 
 			// register endpoint that uses runtime configuration
-			myNumRefreshable, _ := refreshable.Map(info.RuntimeConfig, func(in AppRuntimeConfig) int {
+			myNumRefreshable := refreshable.MapContext(ctx, info.RuntimeConfig, func(in AppRuntimeConfig) int {
 				return in.MyNum
 			})
 			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {

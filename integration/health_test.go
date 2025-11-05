@@ -173,7 +173,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 
 	clientA, err := clients.NewHTTPClient(ctx, "serviceA")
 	require.NoError(t, err)
-	_, _ = clientA.CurrentHTTPClient().Get(okServer.URL)
+	_, _ = clientA.Current().Get(okServer.URL)
 
 	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -202,8 +202,8 @@ func TestServiceDependencyHealth(t *testing.T) {
 	}, getHealth())
 
 	// Trigger two errors so failure rate is greater than half.
-	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
-	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
+	_, _ = clientA.Current().Get(errServer.URL)
+	_, _ = clientA.Current().Get(errServer.URL)
 
 	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -235,7 +235,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 
 	clientB, err := clients.NewHTTPClient(ctx, "serviceB")
 	require.NoError(t, err)
-	_, _ = clientB.CurrentHTTPClient().Get(stoppedServer.URL)
+	_, _ = clientB.Current().Get(stoppedServer.URL)
 
 	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{

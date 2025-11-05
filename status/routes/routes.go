@@ -17,7 +17,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"

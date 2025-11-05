@@ -17,7 +17,7 @@ package config
 import (
 	"strings"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
 
