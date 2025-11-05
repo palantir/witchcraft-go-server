@@ -13,6 +13,7 @@ require (
 	github.com/palantir/pkg/metrics v1.9.0
 	github.com/palantir/pkg/objmatcher v1.2.0
 	github.com/palantir/pkg/refreshable v1.6.0
+	github.com/palantir/pkg/refreshable/v2 v2.3.0
 	github.com/palantir/pkg/rid v1.2.0
 	github.com/palantir/pkg/signals v1.2.0
 	github.com/palantir/pkg/tlsconfig v1.4.0
@@ -35,7 +36,6 @@ require (
 	github.com/palantir/pkg v1.1.0 // indirect
 	github.com/palantir/pkg/bytesbuffers v1.3.0 // indirect
 	github.com/palantir/pkg/datetime v1.3.0 // indirect
-	github.com/palantir/pkg/refreshable/v2 v2.2.0 // indirect
 	github.com/palantir/pkg/retry v1.3.0 // indirect
 	github.com/palantir/pkg/safejson v1.2.0 // indirect
 	github.com/palantir/pkg/safelong v1.3.0 // indirect

@@ -23,10 +23,11 @@ import (
 	"time"
 
 	"github.com/palantir/pkg/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/reporter"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/ratelimit"
 	"github.com/stretchr/testify/assert"
@@ -44,14 +45,14 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 		require.Equal(t, health.HealthState_REPAIRING, healthComponent.Status(), msg)
 	}
 
-	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.NewInt(refreshable.NewDefaultRefreshable(2)), ratelimit.MatchMutating, healthComponent)
+	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.New(2).Current, ratelimit.MatchMutating, healthComponent)
 
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()
 
 	const totalPostRequests = 4
 	reqChan := make(chan struct{}, totalPostRequests)
-	initFn := func(ctx context.Context, info witchcraft.InitInfo) (cleanup func(), rErr error) {
+	initFn := func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
 		info.Router.RootRouter().AddRouteHandlerMiddleware(limiter)
 		if err := info.Router.Get("/get", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusOK)

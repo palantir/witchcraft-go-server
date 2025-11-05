@@ -21,6 +21,11 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
 
+// BaseRuntimeConfig is an interface implemented by Runtime and structs that embed it.
+type BaseRuntimeConfig interface {
+	BaseRuntimeConfig() Runtime
+}
+
 // Runtime specifies the base runtime configuration fields that should be included in all witchcraft-server-go
 // server runtime configurations.
 type Runtime struct {
@@ -43,6 +48,11 @@ type AuditConfig struct {
 	Service string `yaml:"service,omitempty"`
 
 	Environment string `yaml:"environment,omitempty"`
+}
+
+// BaseRuntimeConfig implements the BaseRuntimeConfig interface.
+func (r Runtime) BaseRuntimeConfig() Runtime {
+	return r
 }
 
 type DiagnosticsConfig struct {

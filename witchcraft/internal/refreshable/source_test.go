@@ -16,62 +16,65 @@ package refreshable
 
 import (
 	"context"
-	"reflect"
+	"os"
 	"testing"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/stretchr/testify/assert"
+	"github.com/palantir/witchcraft-go-logging/wlog"
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
+	ctx := svc1log.WithLogger(context.Background(), svc1log.NewFromCreator(os.Stdout, wlog.DebugLevel, wlog.NewJSONMarshalLoggerProvider().NewLeveledLogger))
 	testHealthCheckType := health.CheckType("TEST_HEALTH_CHECK")
-	testRefreshable := refreshable.NewDefaultRefreshable("initial-value")
-	validatingRefreshable, err := refreshable.NewValidatingRefreshable(testRefreshable, func(i interface{}) error {
-		if i.(string) == "validation-failing-value" {
-			return werror.Error("fail validation")
+	testRefreshable := refreshable.New("initial-value")
+	validatingRefreshable, _, err := refreshable.Validate(testRefreshable, func(i string) error {
+		if i == "validation-failing-value" {
+			return werror.Error("fail validation", werror.SafeParam("key", "value"))
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	healthCheckSource := NewValidatingRefreshableHealthCheckSource(testHealthCheckType, *validatingRefreshable)
+	healthCheckSource := NewValidatingRefreshableHealthCheckSource(testHealthCheckType, ValidationErrFunc(validatingRefreshable))
 
 	// check initial state is healthy
-	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
+	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {
 				Type:  testHealthCheckType,
 				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 		},
-	}))
+	}, healthCheckSource.HealthStatus(ctx))
 
 	// change underyling refreshable to value that fails validation
-	err = testRefreshable.Update("validation-failing-value")
-	require.NoError(t, err)
-	errorMsg := "Refreshable validation failed, please look at service logs for more information."
-	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
+	testRefreshable.Update("validation-failing-value")
+	errorMsg := "Config reload error. See service logs for more information."
+	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {
 				Type:    testHealthCheckType,
 				State:   health.New_HealthState(health.HealthState_ERROR),
 				Message: &errorMsg,
-				Params:  map[string]interface{}{},
+				Params: map[string]interface{}{
+					"error":  "fail validation",
+					"params": map[string]interface{}{"key": "value"},
+				},
 			},
 		},
-	}))
+	}, healthCheckSource.HealthStatus(ctx))
 
 	// change underyling refreshable to value that passes validation
-	err = testRefreshable.Update("other-value")
-	require.NoError(t, err)
-	assert.True(t, reflect.DeepEqual(healthCheckSource.HealthStatus(context.Background()), health.HealthStatus{
+	testRefreshable.Update("other-value")
+	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			testHealthCheckType: {
 				Type:  testHealthCheckType,
 				State: health.New_HealthState(health.HealthState_HEALTHY),
 			},
 		},
-	}))
+	}, healthCheckSource.HealthStatus(ctx))
 }

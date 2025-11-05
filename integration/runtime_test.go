@@ -28,13 +28,12 @@ import (
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/metrics"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
@@ -99,17 +98,12 @@ exclamations: 4
 	require.NoError(t, err)
 
 	var currCfg testRuntimeConfig
-	server := witchcraft.NewServer().
-		WithRuntimeConfigType(testRuntimeConfig{}).
+	server := witchcraft.NewServer[config.Install, testRuntimeConfig]().
 		WithDisableGoRuntimeMetrics().
 		WithRuntimeConfigProvider(getConfiguredFileRefreshable(t)).
 		WithSelfSignedCertificate().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
-			setCfg := func(cfgI interface{}) {
-				cfg, ok := cfgI.(testRuntimeConfig)
-				if !ok {
-					panic(fmt.Errorf("unable to cast runtime config of type %T to testRuntimeConfig", cfgI))
-				}
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, testRuntimeConfig]) (cleanupFn func(), rErr error) {
+			setCfg := func(cfg testRuntimeConfig) {
 				currCfg = cfg
 			}
 			setCfg(info.RuntimeConfig.Current())
@@ -192,7 +186,7 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 
 	runtimeConfigUpdatedChan := make(chan struct{})
 
-	server := witchcraft.NewServer().
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
 		WithInstallConfig(config.Install{
 			ProductName:   productName,
 			UseConsoleLog: true,
@@ -204,8 +198,12 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 		}).
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
-			info.RuntimeConfig.Subscribe(func(cfgI interface{}) {
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanupFn func(), rErr error) {
+			info.RuntimeConfig.Subscribe(func(cfg config.Runtime) {
+				if cfg.LoggerConfig != nil && cfg.LoggerConfig.Level == wlog.DebugLevel {
+					// not yet updated
+					return
+				}
 				runtimeConfigUpdatedChan <- struct{}{}
 			})
 			return nil, nil
@@ -243,7 +241,7 @@ func TestRuntimeReloadWithNilLoggerConfig(t *testing.T) {
 	case <-runtimeConfigUpdatedChan:
 		break
 	case <-time.After(5 * time.Second):
-		assert.Fail(t, "timed out waiting for runtime configuration to be updated")
+		require.Fail(t, "timed out waiting for runtime configuration to be updated")
 	}
 }
 
@@ -302,8 +300,7 @@ exclamations: 4
 
 	var currCfg testRuntimeConfig
 
-	server := witchcraft.NewServer().
-		WithRuntimeConfigType(testRuntimeConfig{}).
+	server := witchcraft.NewServer[config.Install, testRuntimeConfig]().
 		WithInstallConfig(config.Install{
 			ProductName:   productName,
 			UseConsoleLog: true,
@@ -316,12 +313,8 @@ exclamations: 4
 		WithDisableGoRuntimeMetrics().
 		WithRuntimeConfigProvider(getConfiguredFileRefreshable(t)).
 		WithSelfSignedCertificate().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
-			setCfg := func(cfgI interface{}) {
-				cfg, ok := cfgI.(testRuntimeConfig)
-				if !ok {
-					panic(fmt.Errorf("unable to cast runtime config of type %T to testRuntimeConfig", cfgI))
-				}
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, testRuntimeConfig]) (cleanupFn func(), rErr error) {
+			setCfg := func(cfg testRuntimeConfig) {
 				currCfg = cfg
 			}
 			setCfg(info.RuntimeConfig.Current())
@@ -432,8 +425,7 @@ exclamations: 4
 
 	var currCfg testRuntimeConfig
 
-	server := witchcraft.NewServer().
-		WithRuntimeConfigType(testRuntimeConfig{}).
+	server := witchcraft.NewServer[config.Install, testRuntimeConfig]().
 		WithInstallConfig(config.Install{
 			ProductName:   productName,
 			UseConsoleLog: true,
@@ -446,12 +438,8 @@ exclamations: 4
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate().
 		WithRuntimeConfigProvider(getConfiguredFileRefreshable(t)).
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
-			setCfg := func(cfgI interface{}) {
-				cfg, ok := cfgI.(testRuntimeConfig)
-				if !ok {
-					panic(fmt.Errorf("unable to cast runtime config of type %T to testRuntimeConfig", cfgI))
-				}
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, testRuntimeConfig]) (cleanupFn func(), rErr error) {
+			setCfg := func(cfg testRuntimeConfig) {
 				currCfg = cfg
 			}
 			setCfg(info.RuntimeConfig.Current())
@@ -569,13 +557,12 @@ service-discovery:
 
 	var ctx context.Context
 	var client httpclient.Client
-	server := witchcraft.NewServer().
-		WithInstallConfigType(installConfig{}).
+	server := witchcraft.NewServer[installConfig, config.Runtime]().
 		WithDisableGoRuntimeMetrics().
 		WithSelfSignedCertificate().
-		WithInitFunc(func(initCtx context.Context, info witchcraft.InitInfo) (cleanupFn func(), rErr error) {
+		WithInitFunc(func(initCtx context.Context, info witchcraft.InitInfo[installConfig, config.Runtime]) (cleanupFn func(), rErr error) {
 			ctx = initCtx
-			info.Clients.WithDefaultConfig(info.InstallConfig.(installConfig).Clients.Default)
+			info.Clients.WithDefaultConfig(info.InstallConfig.Clients.Default)
 			var err error
 			client, err = info.Clients.NewClient(initCtx, "upstream-server")
 			return nil, err
@@ -669,9 +656,10 @@ service-discovery:
 	}
 }
 
-func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable {
+func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable[[]byte] {
 	ctx := svc1log.WithLogger(context.Background(), svc1log.New(os.Stdout, wlog.DebugLevel))
-	r, err := refreshablefile.NewFileRefreshableWithDuration(ctx, "var/conf/runtime.yml", time.Millisecond*30)
-	assert.NoError(t, err)
+	r := refreshable.NewFileRefreshableWithTicker(ctx, "var/conf/runtime.yml", time.Tick(time.Millisecond*30))
+	_, err := r.Validation()
+	require.NoError(t, err)
 	return r
 }

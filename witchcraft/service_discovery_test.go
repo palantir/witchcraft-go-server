@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/stretchr/testify/require"
 )
@@ -28,25 +28,24 @@ import (
 func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 	const serviceName = "blank"
 	startingConfig := httpclient.ServicesConfig{}
-	defaultRefreshable := refreshable.NewDefaultRefreshable(startingConfig)
-	refreshingConfig := config.NewRefreshingServicesConfig(defaultRefreshable)
-	discovery := NewServiceDiscovery(config.Install{}, refreshingConfig).(*serviceDiscovery)
+	defaultRefreshable := refreshable.New(startingConfig)
+	discovery := NewServiceDiscovery(config.Install{}, defaultRefreshable).(*serviceDiscovery)
 	blankConfig := discovery.serviceConfig(serviceName)
 	require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName}, blankConfig.CurrentClientConfig())
 	t.Run("update default config", func(t *testing.T) {
-		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
+		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Default: httpclient.ClientConfig{
 				APIToken: stringPtr("secret"),
 			},
-		}))
+		})
 		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("secret")}, blankConfig.CurrentClientConfig())
 	})
 	t.Run("update services config", func(t *testing.T) {
-		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
+		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{serviceName: {
 				APIToken: stringPtr("different secret"),
 			}},
-		}))
+		})
 		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("different secret")}, blankConfig.CurrentClientConfig())
 	})
 	t.Run("add extra configs", func(t *testing.T) {
@@ -56,11 +55,11 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 		discovery.WithServiceConfig(serviceName, httpclient.ClientConfig{
 			WriteTimeout: durationPtr(time.Second),
 		})
-		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
+		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{serviceName: {
 				APIToken: stringPtr("new secret"),
 			}},
-		}))
+		})
 		require.Equal(t, httpclient.ClientConfig{
 			ServiceName:  serviceName,
 			APIToken:     stringPtr("new secret"),
@@ -69,9 +68,9 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 		}, blankConfig.CurrentClientConfig())
 	})
 	t.Run("revert to empty config", func(t *testing.T) {
-		require.NoError(t, defaultRefreshable.Update(httpclient.ServicesConfig{
+		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{},
-		}))
+		})
 		require.Equal(t, httpclient.ClientConfig{
 			ServiceName:  serviceName,
 			ReadTimeout:  durationPtr(time.Second),
@@ -84,9 +83,8 @@ func TestServiceDiscovery_ClientOverrides(t *testing.T) {
 	const serviceName = "blank"
 	ctx := context.Background()
 	startingConfig := httpclient.ServicesConfig{}
-	defaultRefreshable := refreshable.NewDefaultRefreshable(startingConfig)
-	refreshingConfig := config.NewRefreshingServicesConfig(defaultRefreshable)
-	discovery := NewServiceDiscovery(config.Install{}, refreshingConfig).(*serviceDiscovery)
+	defaultRefreshable := refreshable.New(startingConfig)
+	discovery := NewServiceDiscovery(config.Install{}, defaultRefreshable).(*serviceDiscovery)
 	t.Run("update default param", func(t *testing.T) {
 		discovery.WithDefaultParams(func(serviceName string) ([]httpclient.ClientParam, error) {
 			return []httpclient.ClientParam{httpclient.WithHTTPTimeout(time.Second)}, nil
