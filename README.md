@@ -525,22 +525,15 @@ func registerMyNumEndpoint(router wrouter.Router, numProvider refreshable.Refres
 ``` 
 
 The refreshable configuration warrants some closer examination. Note that the `registerMyNumEndpoint` takes a
-`numProvider refreshable.Int` as an argument rather than an `int` and returns the result of `CurrentInt()`. 
+`numProvider refreshable.Refreshable[int]` as an argument rather than an `int` and returns the result of `Current()`. 
 Conceptually, the `numProvider` is guaranteed to always return the current value of the number specified in the runtime
 configuration. Using this pattern removes the need for writing code that listens for updates -- the code can simply
-assume that the provider always returns the most recent value. `refreshable.Int` and `refreshable.String` are helper
-types that provide functions that return the current value of the correct type. For types without helper functions, the
-general `refreshable.Refreshable` should be used, and the `interface{}` returned by `Current()` must be explicitly
-converted to the proper target type (this is required because Go does not support generics/templatization).
+assume that the provider always returns the most recent value.
 
 The `numProvider` provided to `registerMyNumEndpoint` is derived by applying a mapping function to the
-`runtimeConfig refreshable.Refreshable` parameter. `runtimeConfig.Map` is provided with a function that, given an
-updated runtime configuration, returns the portion of the configuration that is required. The input to the mapping 
-function must be explicitly cast to the runtime configuration type (in this case, `in.(AppRuntimeConfig)`), and then the
-relevant section can be accessed (or derived) and returned. The result of the `Map` function is a `Refreshable` that
-returns the mapped portion. In this case, because we know the result will always be an `int`, we wrap the returned
-`Refreshable` in a `refreshable.NewInt` call, which provides the convenience function `CurrentInt()` that performs the
-type conversion of the result to an `int`.
+`RuntimeConfig refreshable.Refreshable[T]` parameter. `refreshable.View` is provided with a function that, given an
+updated runtime configuration, returns the portion of the configuration that is required. The result of the `View` function is a `Refreshable` that
+returns the mapped portion.
 
 By default, the runtime configuration is read from `var/conf/runtime.yml`. Create a file at that path relative to the
 Go file and provide it with the YAML content for the configuration:
