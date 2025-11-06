@@ -16,10 +16,7 @@ package witchcraft
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	netpprof "net/http/pprof"
-	"runtime/pprof"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
@@ -130,39 +127,6 @@ func createRouter(routerImpl wrouter.RouterImpl, ctxPath string) wrouter.Router 
 		routerWithContextPath = routerHandler.Subrouter(ctxPath)
 	}
 	return routerWithContextPath
-}
-
-func addPprofRoutes(router wrouter.Router) error {
-	debugger := wresource.New("debug", router.Subrouter("/debug"))
-	if err := debugger.Get("pprofIndex", "/pprof/", http.HandlerFunc(netpprof.Index)); err != nil {
-		return err
-	}
-	if err := debugger.Get("pprofCmdLine", "/pprof/cmdline", http.HandlerFunc(netpprof.Cmdline)); err != nil {
-		return err
-	}
-	if err := debugger.Get("pprofCpuProfile", "/pprof/profile", http.HandlerFunc(netpprof.Profile)); err != nil {
-		return err
-	}
-	if err := debugger.Get("pprofSymbol", "/pprof/symbol", http.HandlerFunc(netpprof.Symbol)); err != nil {
-		return err
-	}
-	if err := debugger.Get("pprofTrace", "/pprof/trace", http.HandlerFunc(netpprof.Trace)); err != nil {
-		return err
-	}
-	return debugger.Get("pprofHeapProfile", "/pprof/heap", http.HandlerFunc(heap))
-}
-
-// heap responds with the pprof-formatted heap profile.
-func heap(w http.ResponseWriter, _ *http.Request) {
-	// Set Content Type assuming WriteHeapProfile will work,
-	// because if it does it starts writing.
-	w.Header().Set("Content-Type", "application/octet-stream")
-	if err := pprof.WriteHeapProfile(w); err != nil {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = fmt.Fprintf(w, "Could not dump heap: %s\n", err)
-		return
-	}
 }
 
 func getSecretRefreshable(ctx context.Context, diagnosticsConfig config.RefreshableDiagnosticsConfig) (refreshable.String, error) {

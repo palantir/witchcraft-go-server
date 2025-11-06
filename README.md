@@ -73,16 +73,6 @@ specifies the encoding and format of the response. The following types are curre
 * `metric.names.v1`: Records all metric names and tag sets in the process's metric registry.
 * `os.system.clock.v1`: Plaintext string representing the current time as measured by the process in the RFC 3339 Nano format.
 
-#### \[Deprecated] Pprof routes
-The following routes are registered on the management server (if enabled) to aid in debugging
-and telemetry collection. These are generally deprecated in favor of the diagnostic routes described above.
-* `/debug/pprof`: Provides an HTML index of the other endpoints at this route.
-* `/debug/pprof/profile`: Returns the pprof-formatted cpu profile. See [pprof.Profile](https://golang.org/pkg/net/http/pprof/#Profile).
-* `/debug/pprof/heap`: Returns the pprof-formatted heap profile as of the last GC. See [pprof.Profile](https://golang.org/pkg/runtime/pprof/#Profile).
-* `/debug/pprof/cmdline`: Returns the process's command line invocation as `text/plain`. See [pprof.Cmdline](https://golang.org/pkg/net/http/pprof/#Cmdline).
-* `/debug/pprof/symbol`: Looks up the program counters listed in the request, responding with a table mapping program counters to function names See [pprof.Symbol](https://golang.org/pkg/net/http/pprof/#Symbol).
-* `/debug/pprof/trace`: Returns the execution trace in binary form. See [pprof.Trace](https://golang.org/pkg/net/http/pprof/#Trace).
-
 ### Context path
 If `context-path` is specified in the install configuration, all of the routes registered on the server will be prefixed
 with the specified `context-path`.
