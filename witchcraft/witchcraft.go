@@ -99,10 +99,15 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// reads the file at "var/conf/install.yml" is used.
 	installConfigProvider ConfigBytesProvider
 
-	// a function that provides the refreshable.Refreshable that provides the bytes for the runtime configuration for
+	// a function that provides the refreshable.Validated that provides the bytes for the runtime configuration for
 	// the server. The ctx provided to the function is valid for the lifetime of the server. If nil, uses a function
 	// that returns a default file-based Refreshable that reads the file at "var/conf/runtime.yml". The value of the
 	// Refreshable is "[]byte", where the byte slice is the contents of the runtime configuration file.
+	//
+	// The returned refreshable.Validated[[]byte] tracks validation state, which includes both the ability to read the
+	// configuration file and to unmarshal it into the expected type R. Validation failures are exposed via
+	// the CONFIG_RELOAD health check source. When validation succeeds after a previous failure, the server
+	// automatically uses the new valid configuration.
 	runtimeConfigProvider func(ctx context.Context) refreshable.Validated[[]byte]
 
 	// specifies the source used to provide the readiness information for the server. If nil, a default value that uses
@@ -252,7 +257,7 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// InstallConfig is the install configuration.
 	InstallConfig I
 
-	// RuntimeConfig is a refreshable that contains the initial runtime configuration.
+	// RuntimeConfig is a refreshable that contains the runtime configuration.
 	RuntimeConfig refreshable.Refreshable[R]
 
 	// Clients exposes the service-discovery configuration as a conjure-go-runtime client builder.

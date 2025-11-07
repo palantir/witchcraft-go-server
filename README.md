@@ -692,15 +692,27 @@ not relevant to the function, there is no need to subscribe to it. The following
 the `runtimeConfig` refreshable: 
 
 ```go
-myNumRefreshable, _ := refreshable.Map(runtimeConfig, func(in AppRuntimeConfig) int {
+myNumRefreshable, unsubscribe := refreshable.Map(info.RuntimeConfig, func(in AppRuntimeConfig) int {
     return in.MyNum
 })
+defer unsubscribe()
 ```
 
 The `Current()` function for `myNumRefreshable` returns the `MyNum` field of `AppRuntimeConfig`, and the derived
 `Refreshable` is only updated when the derived value changes. Accessing a field is the most common usage of `Map`, but
 any arbitrary logic can be performed in the mapping function. Just note that the mapping will be performed whenever the
-parent refreshable is updated and the result will be compared using `reflect.DeepEqual`. 
+parent refreshable is updated and the result will be compared using `reflect.DeepEqual`. Since `Map` subscribes to the
+original refreshable, the returned `unsubscribe` function should be deferred to clean up any resources.
+
+If a field is used infrequently or the mapping function is trivial (e.g. field accessor) then the `refreshable.View` function
+can be used instead of `refreshable.Map`. `View` does not create a subscription or cache the value and instead the mapping function
+is applied to the original refreshable value on every invocation of `Current()` or `Subscribe()`
+
+```go
+myNumRefreshable := refreshable.View(info.RuntimeConfig, func(in AppRuntimeConfig) int {
+    return in.MyNum
+})
+```
 
 ### Updating refreshable configuration: provider-based vs. push-based
 
@@ -729,9 +741,11 @@ The `AssetURLs` field specifies URLs that should be downloaded by the program wh
 can be handled as follows:
 
 ```go
-urlsRefreshable, _ := refreshable.Map(info.RuntimeConfig, func(t AppRuntimeConfig) []string {
+urlsRefreshable, unsubscribeRuntime := refreshable.Map(info.RuntimeConfig, func(t AppRuntimeConfig) []string {
     return t.AssetURLs
 })
+defer unsubscribeRuntime()
+
 unsubscribe := urlsRefreshable.Subscribe(func(s []string) {
     // perform work
 })

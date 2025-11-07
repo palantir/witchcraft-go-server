@@ -45,7 +45,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 		require.Equal(t, health.HealthState_REPAIRING, healthComponent.Status(), msg)
 	}
 
-	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.New(2).Current, ratelimit.MatchMutating, healthComponent)
+	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.New(2), ratelimit.MatchMutating, healthComponent)
 
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()
