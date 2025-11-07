@@ -97,6 +97,7 @@ github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/reporter
 github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
+github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
 # github.com/palantir/witchcraft-go-logging v1.63.0
 ## explicit; go 1.25.0
@@ -166,6 +167,9 @@ golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
+# golang.org/x/sync v0.17.0
+## explicit; go 1.24.0
+golang.org/x/sync/errgroup
 # golang.org/x/text v0.30.0
 ## explicit; go 1.24.0
 golang.org/x/text/secure/bidirule
