@@ -37,7 +37,7 @@ import (
 )
 
 // TestEmitMetrics verifies that metrics are printed periodically by a Witchcraft server and that the emitted values
-// respect the default blacklist. We verify both custom metrics set in the InitFunc (with tags) and server.response
+// respect the default blocklist. We verify both custom metrics set in the InitFunc (with tags) and server.response
 // metrics from the metrics middleware.
 func TestEmitMetrics(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
@@ -125,7 +125,7 @@ func TestEmitMetrics(t *testing.T) {
 			assert.NotNil(t, metricLog.Values["p95"])
 			assert.NotNil(t, metricLog.Values["p99"])
 
-			// keys are part of the default blacklist and should thus be nil
+			// keys are part of the default blocklist and should thus be nil
 			assert.Nil(t, metricLog.Values["1m"])
 			assert.Nil(t, metricLog.Values["5m"])
 			assert.Nil(t, metricLog.Values["15m"])
@@ -142,7 +142,7 @@ func TestEmitMetrics(t *testing.T) {
 			assert.NotNil(t, metricLog.Values["p99"])
 			assert.NotNil(t, metricLog.Values["count"])
 
-			// keys are part of the default blacklist and should thus be nil
+			// keys are part of the default blocklist and should thus be nil
 			assert.Nil(t, metricLog.Values["min"])
 			assert.Nil(t, metricLog.Values["mean"])
 			assert.Nil(t, metricLog.Values["stddev"])
@@ -155,7 +155,7 @@ func TestEmitMetrics(t *testing.T) {
 			assert.NotNil(t, metricLog.Values["p99"])
 			assert.NotNil(t, metricLog.Values["count"])
 
-			// keys are part of the default blacklist and should thus be nil
+			// keys are part of the default blocklist and should thus be nil
 			assert.Nil(t, metricLog.Values["min"])
 			assert.Nil(t, metricLog.Values["mean"])
 			assert.Nil(t, metricLog.Values["stddev"])
@@ -165,7 +165,7 @@ func TestEmitMetrics(t *testing.T) {
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
 			assert.NotNil(t, metricLog.Values["count"])
 
-			// keys are part of the default blacklist and should thus be nil
+			// keys are part of the default blocklist and should thus be nil
 			assert.Nil(t, metricLog.Values["1m"])
 			assert.Nil(t, metricLog.Values["5m"])
 			assert.Nil(t, metricLog.Values["15m"])
@@ -299,7 +299,7 @@ func TestEmitMetricsZeroValue(t *testing.T) {
 			assert.NotNil(t, metricLog.Values["p95"])
 			assert.NotNil(t, metricLog.Values["p99"])
 
-			// keys are part of the default blacklist and should thus be nil
+			// keys are part of the default blocklist and should thus be nil
 			assert.Nil(t, metricLog.Values["1m"])
 			assert.Nil(t, metricLog.Values["5m"])
 			assert.Nil(t, metricLog.Values["15m"])
@@ -409,10 +409,10 @@ func TestMetricWriter(t *testing.T) {
 	}
 }
 
-// TestEmitMetricsEmptyBlacklist verifies that metrics are printed periodically by a Witchcraft server and that, if the
-// blacklist is empty, all values are emitted. We verify both custom metrics set in the InitFunc (with tags) and
+// TestEmitMetricsEmptyBlocklist verifies that metrics are printed periodically by a Witchcraft server and that, if the
+// blocklist is empty, all values are emitted. We verify both custom metrics set in the InitFunc (with tags) and
 // server.response metrics from the metrics middleware.
-func TestEmitMetricsEmptyBlacklist(t *testing.T) {
+func TestEmitMetricsEmptyBlocklist(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
@@ -427,7 +427,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 		}))
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
-		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlacklist(map[string]map[string]struct{}{})
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlocklist(map[string]map[string]struct{}{})
 	})
 	defer func() {
 		require.NoError(t, server.Close())
@@ -494,7 +494,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			seenResponseTimer = true
 			assert.Equal(t, "timer", metricLog.MetricType, "server.response metric had incorrect type")
 
-			// blacklist is set to empty, so all keys should be non-nil
+			// blocklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["count"])
 			assert.NotNil(t, metricLog.Values["1m"])
 			assert.NotNil(t, metricLog.Values["5m"])
@@ -511,7 +511,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
 
-			// blacklist is set to empty, so all keys should be non-nil
+			// blocklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["min"])
 			assert.NotNil(t, metricLog.Values["max"])
 			assert.NotNil(t, metricLog.Values["mean"])
@@ -524,7 +524,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			seenResponseSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
 
-			// blacklist is set to empty, so all keys should be non-nil
+			// blocklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["min"])
 			assert.NotNil(t, metricLog.Values["max"])
 			assert.NotNil(t, metricLog.Values["mean"])
@@ -537,7 +537,7 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 			seenResponseError = true
 			assert.Equal(t, "meter", metricLog.MetricType, "server.response metric had incorrect type")
 
-			// blacklist is set to empty, so all keys should be non-nil
+			// blocklist is set to empty, so all keys should be non-nil
 			assert.NotNil(t, metricLog.Values["count"])
 			assert.NotNil(t, metricLog.Values["1m"])
 			assert.NotNil(t, metricLog.Values["5m"])
@@ -575,9 +575,9 @@ func TestEmitMetricsEmptyBlacklist(t *testing.T) {
 	}
 }
 
-// TestMetricTypeValueBlacklist tests that if a metric type value is blacklisted, all metric of that type does not
-// contain any of the blacklisted keys.
-func TestMetricTypeValueBlacklist(t *testing.T) {
+// TestMetricTypeValueBlocklist tests that if a metric type value is blocklisted, all metric of that type does not
+// contain any of the blocklisted keys.
+func TestMetricTypeValueBlocklist(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
@@ -592,7 +592,7 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		}))
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
-		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlacklist(map[string]map[string]struct{}{
+		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithMetricTypeValuesBlocklist(map[string]map[string]struct{}{
 			"histogram": {"count": {}},
 		})
 	})
@@ -667,12 +667,12 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 		case "server.request.size":
 			seenRequestSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			// there should be no value for "count" because it is blacklisted for the histogram type
+			// there should be no value for "count" because it is blocklisted for the histogram type
 			assert.Nil(t, metricLog.Values["count"])
 		case "server.response.size":
 			seenResponseSize = true
 			assert.Equal(t, "histogram", metricLog.MetricType, "server.response metric had incorrect type")
-			// there should be no value for "count" because it is blacklisted for the histogram type
+			// there should be no value for "count" because it is blocklisted for the histogram type
 			assert.Nil(t, metricLog.Values["count"])
 		case "server.response.error":
 			seenResponseError = true
@@ -711,8 +711,8 @@ func TestMetricTypeValueBlacklist(t *testing.T) {
 	}
 }
 
-// TestMetricsBlacklist verifies that blacklisted metrics are not emitted.
-func TestMetricsBlacklist(t *testing.T) {
+// TestMetricsBlocklist verifies that blocklisted metrics are not emitted.
+func TestMetricsBlocklist(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
@@ -725,7 +725,7 @@ func TestMetricsBlacklist(t *testing.T) {
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		installCfg.MetricsEmitFrequency = 100 * time.Millisecond
 		server := createTestServer(t, initFn, installCfg, logOutputBuffer)
-		server.WithMetricsBlacklist(map[string]struct{}{
+		server.WithMetricsBlocklist(map[string]struct{}{
 			"my-counter":          {},
 			"logging.sls":         {},
 			"logging.sls.length":  {},
