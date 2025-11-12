@@ -31,7 +31,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/config"
 )
 
-func defaultMetricTypeValuesBlacklist() map[string]map[string]struct{} {
+func defaultMetricTypeValuesBlocklist() map[string]map[string]struct{} {
 	return map[string]map[string]struct{}{
 		"histogram": {
 			"min":    {},
@@ -86,8 +86,8 @@ func (s *Server[I, R]) initMetrics(ctx context.Context, installCfg config.Instal
 		}
 	}
 
-	if s.metricTypeValuesBlacklist == nil {
-		s.metricTypeValuesBlacklist = defaultMetricTypeValuesBlacklist()
+	if s.metricTypeValuesBlocklist == nil {
+		s.metricTypeValuesBlocklist = defaultMetricTypeValuesBlocklist()
 	}
 
 	// seenMetrics tracks the metrics that have been seen so far. Uses a lock to protect access because emitFn that
@@ -167,16 +167,16 @@ func (s *Server[I, R]) collectMetricValues(metricName string, metricVal metrics.
 }
 
 // visitMetricValues calls the provided visit function for each key in the provided metric value.
-// If the metric with the provided metricID is in the metrics blacklist, the visit function is not called for any keys.
-// The visit function is not called for keys that are in the metric type value blacklist for the type.
+// If the metric with the provided metricID is in the metrics blocklist, the visit function is not called for any keys.
+// The visit function is not called for keys that are in the metric type value blocklist for the type.
 func (s *Server[I, R]) visitMetricValues(metricID string, metricVal metrics.MetricVal, visit func(key string)) {
-	if _, blackListed := s.metricsBlacklist[metricID]; blackListed {
-		// skip emitting metric if it is blacklisted
+	if _, blocklisted := s.metricsBlocklist[metricID]; blocklisted {
+		// skip emitting metric if it is blocklisted
 		return
 	}
 	for key := range metricVal.Keys() {
-		if s.metricTypeValuesBlacklist != nil {
-			if disallowedKeysForType, ok := s.metricTypeValuesBlacklist[metricVal.Type()]; ok {
+		if s.metricTypeValuesBlocklist != nil {
+			if disallowedKeysForType, ok := s.metricTypeValuesBlocklist[metricVal.Type()]; ok {
 				if _, disallowed := disallowedKeysForType[key]; disallowed {
 					continue
 				}

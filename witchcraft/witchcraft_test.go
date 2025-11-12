@@ -146,7 +146,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 				WithDisableGoRuntimeMetrics().
-				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
+				WithMetricsBlocklist(map[string]struct{}{"server.uptime": {}}).
 				WithSelfSignedCertificate().
 				Start()
 
@@ -246,7 +246,7 @@ func TestServer_WithOriginFromCallLine(t *testing.T) {
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 				WithDisableGoRuntimeMetrics().
-				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}}).
+				WithMetricsBlocklist(map[string]struct{}{"server.uptime": {}}).
 				WithSelfSignedCertificate().
 				Start()
 
@@ -415,7 +415,7 @@ func TestServer_WithWrappedLoggers(t *testing.T) {
 				WithLoggerStdoutWriter(logOutputBuffer).
 				WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 				WithDisableGoRuntimeMetrics().
-				WithMetricsBlacklist(map[string]struct{}{"server.uptime": {}, "logging.sls": {}, "logging.sls.length": {}}).
+				WithMetricsBlocklist(map[string]struct{}{"server.uptime": {}, "logging.sls": {}, "logging.sls.length": {}}).
 				WithSelfSignedCertificate().
 				Start()
 

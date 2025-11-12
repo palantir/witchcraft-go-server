@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"maps"
 	"math"
 	"net"
 	"net/http"
@@ -152,13 +153,13 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// seconds if an interval is not specified in configuration).
 	disableGoRuntimeMetrics bool
 
-	// metricsBlacklist specifies the set of metrics that should not be emitted by the metric logger.
-	metricsBlacklist map[string]struct{}
+	// metricsBlocklist specifies the set of metrics that should not be emitted by the metric logger.
+	metricsBlocklist map[string]struct{}
 
-	// metricTypeValuesBlacklist specifies the values for a metric type that should be omitted from metric output. For
+	// metricTypeValuesBlocklist specifies the values for a metric type that should be omitted from metric output. For
 	// example, if the map is set to {"timer":{"5m":{}}}, then the value for "5m" will be omitted from all timer metric
-	// output. If nil, the default value is the map returned by defaultMetricTypeValuesBlacklist().
-	metricTypeValuesBlacklist map[string]map[string]struct{}
+	// output. If nil, the default value is the map returned by defaultMetricTypeValuesBlocklist().
+	metricTypeValuesBlocklist map[string]map[string]struct{}
 
 	// endpoint500sHealthCheckFunc builds the ENDPOINT_FIVE_HUNDREDS health check source. If nil, the check is disabled.
 	// The health check source is enabled by default.
@@ -513,31 +514,29 @@ func (s *Server[I, R]) WithDisableServiceDependencyHealth() *Server[I, R] {
 	return s
 }
 
-// WithMetricsBlacklist sets the metric blacklist to the provided set of metrics. The provided metrics should be the
-// name of the metric (for example, "server.response.size"). The blacklist only supports blacklisting at the metric
-// level: blacklisting an individual metric value (such as "server.response.size.count") will not have any effect. The
+// WithMetricsBlocklist sets the metric blocklist to the provided set of metrics. The provided metrics should be the
+// name of the metric (for example, "server.response.size"). The blocklist only supports blocklisting at the metric
+// level: blocklisting an individual metric value (such as "server.response.size.count") will not have any effect. The
 // provided input is copied.
-func (s *Server[I, R]) WithMetricsBlacklist(blacklist map[string]struct{}) *Server[I, R] {
-	metricsBlacklist := make(map[string]struct{})
-	for k, v := range blacklist {
-		metricsBlacklist[k] = v
-	}
-	s.metricsBlacklist = metricsBlacklist
+func (s *Server[I, R]) WithMetricsBlocklist(blocklist map[string]struct{}) *Server[I, R] {
+	metricsBlocklist := make(map[string]struct{})
+	maps.Copy(metricsBlocklist, blocklist)
+	s.metricsBlocklist = metricsBlocklist
 	return s
 }
 
-// WithMetricTypeValuesBlacklist sets the value of the metric type value blacklist to be the same as the provided value
+// WithMetricTypeValuesBlocklist sets the value of the metric type value blocklist to be the same as the provided value
 // (the content is copied).
-func (s *Server[I, R]) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]struct{}) *Server[I, R] {
-	newBlacklist := make(map[string]map[string]struct{}, len(blacklist))
-	for k, v := range blacklist {
+func (s *Server[I, R]) WithMetricTypeValuesBlocklist(blocklist map[string]map[string]struct{}) *Server[I, R] {
+	newBlocklist := make(map[string]map[string]struct{}, len(blocklist))
+	for k, v := range blocklist {
 		newVal := make(map[string]struct{}, len(v))
 		for kk := range v {
 			newVal[kk] = struct{}{}
 		}
-		newBlacklist[k] = newVal
+		newBlocklist[k] = newVal
 	}
-	s.metricTypeValuesBlacklist = newBlacklist
+	s.metricTypeValuesBlocklist = newBlocklist
 	return s
 }
 
