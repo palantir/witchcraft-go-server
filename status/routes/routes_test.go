@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/status"
@@ -202,7 +202,7 @@ func TestAddHealthRoute(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			r := wrouter.New(whttprouter.New())
 			resource := wresource.New("test", r)
-			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.NewString(refreshable.NewDefaultRefreshable(test.sharedSecret)), nil)
+			err := AddHealthRoutes(resource, healthCheck{value: test.metadata}, refreshable.New(test.sharedSecret), nil)
 			require.NoError(t, err)
 
 			server := httptest.NewServer(r)
