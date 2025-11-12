@@ -16,9 +16,11 @@ package witchcraft
 
 import (
 	"context"
+	"net/http"
 	"sync"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 )
 
@@ -26,7 +28,7 @@ type ServiceDiscovery interface {
 	// NewClient is an alias for httpclient.NewClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
 	NewClient(ctx context.Context, serviceName string, additionalParams ...httpclient.ClientParam) (httpclient.Client, error)
 	// NewHTTPClient is an alias for httpclient.NewHTTPClientFromRefreshableConfig based on the 'service-discovery' block in runtime configuration.
-	NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error)
+	NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (refreshable.Refreshable[*http.Client], error)
 }
 
 // ConfigurableServiceDiscovery is an extension to the ServiceDiscovery interface which allows for injecting external
@@ -36,7 +38,7 @@ type ServiceDiscovery interface {
 type ConfigurableServiceDiscovery interface {
 	ServiceDiscovery
 	// ServiceConfig builds a RefreshableClientConfig based on the 'service-discovery' block in runtime configuration and any overrides.
-	ServiceConfig(serviceName string) httpclient.RefreshableClientConfig
+	ServiceConfig(serviceName string) refreshable.Refreshable[httpclient.ClientConfig]
 	// WithDefaultConfig adds the provided ClientConfig to a list of extra defaults to be merged together for the final
 	// client configurations returned by NewClient and NewHTTPClient.
 	WithDefaultConfig(defaults httpclient.ClientConfig)
@@ -63,18 +65,18 @@ type ConfigurableServiceDiscovery interface {
 
 type serviceDiscovery struct {
 	sync.RWMutex
-	Services      config.RefreshableServicesConfig
+	Services      refreshable.Refreshable[httpclient.ServicesConfig]
 	Extra         *httpclient.ServicesConfig
 	DefaultParams []func(serviceName string) ([]httpclient.ClientParam, error)
 	ServiceParams map[string][]httpclient.ClientParam
 	UserAgent     string
 }
 
-func NewServiceDiscovery(install config.Install, services config.RefreshableServicesConfig) ConfigurableServiceDiscovery {
+func NewServiceDiscovery(install config.Install, services refreshable.Refreshable[httpclient.ServicesConfig]) ConfigurableServiceDiscovery {
 	return &serviceDiscovery{Services: services, UserAgent: userAgent(install)}
 }
 
-func (s *serviceDiscovery) ServiceConfig(serviceName string) httpclient.RefreshableClientConfig {
+func (s *serviceDiscovery) ServiceConfig(serviceName string) refreshable.Refreshable[httpclient.ClientConfig] {
 	s.RLock()
 	defer s.RUnlock()
 	return s.serviceConfig(serviceName)
@@ -98,7 +100,7 @@ func (s *serviceDiscovery) NewClient(ctx context.Context, serviceName string, ad
 	return httpclient.NewClientFromRefreshableConfig(ctx, s.serviceConfig(serviceName), params...)
 }
 
-func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (httpclient.RefreshableHTTPClient, error) {
+func (s *serviceDiscovery) NewHTTPClient(ctx context.Context, serviceName string, additionalParams ...httpclient.HTTPClientParam) (refreshable.Refreshable[*http.Client], error) {
 	s.RLock()
 	defer s.RUnlock()
 	params := []httpclient.HTTPClientParam{httpclient.WithUserAgent(s.UserAgent)}
@@ -165,28 +167,18 @@ func (s *serviceDiscovery) WithUserAgent(userAgent string) {
 // additional configuration in s.Extra. Precedence order is:
 //
 //	s.Extra.Services -> s.Services.Services -> s.Extra.Default -> s.Services.Default
-func (s *serviceDiscovery) serviceConfig(serviceName string) httpclient.RefreshableClientConfig {
-	return httpclient.NewRefreshingClientConfig(s.Services.MapServicesConfig(func(servicesConfig httpclient.ServicesConfig) interface{} {
+func (s *serviceDiscovery) serviceConfig(serviceName string) refreshable.Refreshable[httpclient.ClientConfig] {
+	return refreshable.View(s.Services, func(servicesConfig httpclient.ServicesConfig) httpclient.ClientConfig {
 		if s.Extra == nil {
 			return servicesConfig.ClientConfig(serviceName)
 		}
-		serviceCfg, serviceCfgOk := servicesConfig.Services[serviceName]
-		serviceCfg.ServiceName = serviceName
-		extraCfg, extraCfgOk := s.Extra.Services[serviceName]
-		extraCfg.ServiceName = serviceName
-		var cfg httpclient.ClientConfig
-		switch {
-		case serviceCfgOk && extraCfgOk:
-			cfg = httpclient.MergeClientConfig(extraCfg, serviceCfg)
-		case serviceCfgOk:
-			cfg = serviceCfg
-		case extraCfgOk:
-			cfg = extraCfg
-		}
-		defaults := httpclient.MergeClientConfig(s.Extra.Default, servicesConfig.Default)
-
-		return httpclient.MergeClientConfig(cfg, defaults)
-	}))
+		merged := httpclient.MergeClientConfig(
+			httpclient.MergeClientConfig(s.Extra.Services[serviceName], servicesConfig.Services[serviceName]),
+			httpclient.MergeClientConfig(s.Extra.Default, servicesConfig.Default),
+		)
+		merged.ServiceName = serviceName
+		return merged
+	})
 }
 
 // filterHTTPParams converts a list of httpclient.ClientParam to httpclient.HTTPClientParam.

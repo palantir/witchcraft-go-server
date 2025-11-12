@@ -30,6 +30,7 @@ import (
 
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/rid"
 	"github.com/palantir/pkg/uuid"
 	v2 "github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category/v2"
@@ -40,7 +41,6 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
-	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -121,10 +121,11 @@ func TestAuditLogRuntimeConfigLiveReloaded(t *testing.T) {
 	err = os.WriteFile(runtimeConfigPath, runtimeCfgYML, 0644)
 	require.NoError(t, err)
 
-	fileRefreshable, err := refreshablefile.NewFileRefreshable(context.Background(), runtimeConfigPath)
+	fileRefreshable := refreshable.NewFileRefreshable(context.Background(), runtimeConfigPath)
+	_, err = fileRefreshable.Validation()
 	require.NoError(t, err)
 
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		// if "inServerInit" is false, emit audit logs as a result of calling the endpoint. Verifies that audit
 		// logging is properly set up on the context used in requests.
 		if err := info.Router.Register("GET", "/testAuditLog", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +136,7 @@ func TestAuditLogRuntimeConfigLiveReloaded(t *testing.T) {
 		}
 
 		return nil, nil
-	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshable)
 	})
 	defer func() {
@@ -247,7 +248,7 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 		categoryValInterface := jsonRoundTrip(t, categoryVal)
 
 		metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
-		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 			emitAuditLogs := func(ctx context.Context) {
 				if logAuditV2 {
 					audit2log.FromContext(ctx).Audit("LogToAudit2", audit2log.AuditResultSuccess)
@@ -275,7 +276,7 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 			}
 
 			return nil, nil
-		}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+		}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 			installCfg.MetricsEmitFrequency = 25 * time.Millisecond
 			server := createTestServer(t, initFn, installCfg, logOutputBuffer)
 			if dualLogAuditV2ToAuditV3 {
