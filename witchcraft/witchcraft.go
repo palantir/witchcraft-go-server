@@ -196,7 +196,6 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	disableHTTP2 bool
 
 	// configYAMLUnmarshalFn is the function used to unmarshal YAML configuration. By default, this is yaml.Unmarshal.
-	// If WithStrictUnmarshalConfig is called, this is set to yaml.UnmarshalStrict.
 	configYAMLUnmarshalFn func(in []byte, out interface{}) (err error)
 
 	// request logger configuration
@@ -493,12 +492,6 @@ func (s *Server[I, R]) WithDisableKeepAlives() *Server[I, R] {
 // that require HTTP/1, such as WebSockets.
 func (s *Server[I, R]) WithDisableHTTP2() *Server[I, R] {
 	s.disableHTTP2 = true
-	return s
-}
-
-// WithStrictUnmarshalConfig configures the server to use the provided strict unmarshal configuration.
-func (s *Server[I, R]) WithStrictUnmarshalConfig() *Server[I, R] {
-	s.configYAMLUnmarshalFn = yaml.UnmarshalStrict
 	return s
 }
 
