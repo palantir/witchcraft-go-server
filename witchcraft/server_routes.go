@@ -21,23 +21,22 @@ import (
 	netpprof "net/http/pprof"
 	"runtime/pprof"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/metrics"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/status/routes"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/wdebug"
-	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 )
 
-func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router, rMgmtRouter wrouter.Router) {
+func (s *Server[I, R]) initRouters(installCfg config.Install) (rRouter wrouter.Router, rMgmtRouter wrouter.Router) {
 	routerWithContextPath := createRouter(s.routerImplProvider(), installCfg.Server.ContextPath)
 	mgmtRouterWithContextPath := routerWithContextPath
 	if mgmtPort := installCfg.Server.ManagementPort; mgmtPort != 0 && mgmtPort != installCfg.Server.Port {
@@ -47,8 +46,11 @@ func (s *Server) initRouters(installCfg config.Install) (rRouter wrouter.Router,
 }
 
 // addRoutes registers /debug/diagnostic/* and /status/*
-func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wrouter.Router, runtimeCfg config.RefreshableRuntime) error {
-	secretRefreshable, err := getSecretRefreshable(ctx, runtimeCfg.DiagnosticsConfig())
+func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath wrouter.Router, runtimeCfg refreshable.Refreshable[R]) error {
+	diagnosticRefreshable := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) config.DiagnosticsConfig {
+		return cfg.BaseRuntimeConfig().DiagnosticsConfig
+	})
+	secretRefreshable, err := getSecretRefreshable(ctx, diagnosticRefreshable)
 	if err != nil {
 		return err
 	}
@@ -59,10 +61,13 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 	statusResource := wresource.New("status", mgmtRouterWithContextPath)
 
 	// add health endpoints
+	healthSharedSecret := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) string {
+		return cfg.BaseRuntimeConfig().HealthChecks.SharedSecret
+	})
 	if err := routes.AddHealthRoutes(
 		statusResource,
 		healthstatus.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...),
-		runtimeCfg.HealthChecks().SharedSecret(),
+		healthSharedSecret,
 		s.healthStatusChangeHandlers,
 	); err != nil {
 		return werror.Wrap(err, "failed to register health routes")
@@ -86,7 +91,7 @@ func (s *Server) addRoutes(ctx context.Context, mgmtRouterWithContextPath wroute
 	return nil
 }
 
-func (s *Server) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, endpoint500s *middleware.EndpointFiveHundredsHealthCheck, tracerOptions []wtracing.TracerOption) {
+func (s *Server[I, R]) addMiddleware(rootRouter wrouter.RootRouter, registry metrics.RootRegistry, endpoint500s *middleware.EndpointFiveHundredsHealthCheck, tracerOptions []wtracing.TracerOption) {
 	rootRouter.AddRequestHandlerMiddleware(
 		// add middleware that injects loggers into request context, extracts UID, SID, and TokenID
 		// into context for loggers, sets a tracer on the context, starts a root span and sets it on the context,
@@ -165,27 +170,25 @@ func heap(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func getSecretRefreshable(ctx context.Context, diagnosticsConfig config.RefreshableDiagnosticsConfig) (refreshable.String, error) {
-	secretFromConfig := diagnosticsConfig.DebugSharedSecret()
-	secretFilePath := diagnosticsConfig.DebugSharedSecretFile()
+func getSecretRefreshable(ctx context.Context, diagnosticsConfig refreshable.Refreshable[config.DiagnosticsConfig]) (refreshable.Refreshable[string], error) {
+	secretFromConfig := diagnosticsConfig.Current().DebugSharedSecret
+	secretFilePath := diagnosticsConfig.Current().DebugSharedSecretFile
 	// if both fields are undefined, then the server doesn't use a secret for the /debug/diagnostics/* route
-	if secretFromConfig.CurrentString() == "" && secretFilePath.CurrentString() == "" {
-		return refreshable.NewString(refreshable.NewDefaultRefreshable("")), nil
+	if secretFromConfig == "" && secretFilePath == "" {
+		return refreshable.New(""), nil
 	}
-
-	if secretFromConfig.CurrentString() != "" {
-		return secretFromConfig, nil
+	if secretFromConfig != "" {
+		r := refreshable.MapContext(ctx, diagnosticsConfig, func(cfg config.DiagnosticsConfig) string {
+			return cfg.DebugSharedSecret
+		})
+		return r, nil
 	}
-	fileRefreshable, err := refreshablefile.NewFileRefreshable(ctx, secretFilePath.CurrentString())
-	if err != nil {
+	fileRefreshable := refreshable.NewFileRefreshable(ctx, secretFilePath)
+	if _, err := fileRefreshable.Validation(); err != nil {
 		return nil, err
 	}
-	secretStringFromFileRefreshable := refreshable.NewString(fileRefreshable.Map(func(i interface{}) interface{} {
-		secretBytes, ok := i.([]byte)
-		if !ok {
-			return ""
-		}
-		return string(secretBytes)
-	}))
+	secretStringFromFileRefreshable := refreshable.MapContext(ctx, fileRefreshable, func(b []byte) string {
+		return string(b)
+	})
 	return secretStringFromFileRefreshable, nil
 }

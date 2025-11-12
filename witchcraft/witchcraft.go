@@ -24,16 +24,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"reflect"
 	"runtime/debug"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-client/httpclient"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient"
 	"github.com/palantir/go-encrypted-config-value/encryptedconfigvalue"
 	"github.com/palantir/pkg/metrics"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
@@ -54,7 +53,6 @@ import (
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/dependencyhealth"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/refreshable"
-	refreshablefile "github.com/palantir/witchcraft-go-server/v2/witchcraft/refreshable"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter/whttprouter"
@@ -67,7 +65,7 @@ import (
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
 )
 
-type Server struct {
+type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// handlers specifies any custom HTTP handlers that should be used by the server. The provided handlers are invoked
 	// in order after the built-in handlers (which provide things such as panic handling). The context in the request
 	// will have the appropriate loggers and logger parameters set.
@@ -101,11 +99,16 @@ type Server struct {
 	// reads the file at "var/conf/install.yml" is used.
 	installConfigProvider ConfigBytesProvider
 
-	// a function that provides the refreshable.Refreshable that provides the bytes for the runtime configuration for
+	// a function that provides the refreshable.Validated that provides the bytes for the runtime configuration for
 	// the server. The ctx provided to the function is valid for the lifetime of the server. If nil, uses a function
 	// that returns a default file-based Refreshable that reads the file at "var/conf/runtime.yml". The value of the
 	// Refreshable is "[]byte", where the byte slice is the contents of the runtime configuration file.
-	runtimeConfigProvider func(ctx context.Context) (refreshable.Refreshable, error)
+	//
+	// The returned refreshable.Validated[[]byte] tracks validation state, which includes both the ability to read the
+	// configuration file and to unmarshal it into the expected type R. Validation failures are exposed via
+	// the CONFIG_RELOAD health check source. When validation succeeds after a previous failure, the server
+	// automatically uses the new valid configuration.
+	runtimeConfigProvider func(ctx context.Context) refreshable.Validated[[]byte]
 
 	// specifies the source used to provide the readiness information for the server. If nil, a default value that uses
 	// the server's status is used.
@@ -138,15 +141,7 @@ type Server struct {
 	// install configuration and the refreshable runtime configuration.
 	//
 	// If this function returns an error, the server is not started and the error is returned.
-	initFn InitFunc
-
-	// installConfigStruct is a concrete struct used to determine the type into which the install configuration bytes
-	// are unmarshaled. If nil, a default value of config.Install{} is used.
-	installConfigStruct interface{}
-
-	// runtimeConfigStruct is a concrete struct used to determine the type into which the runtime configuration bytes
-	// are unmarshaled. If nil, a default value of config.Runtime{} is used.
-	runtimeConfigStruct interface{}
+	initFn InitFunc[I, R]
 
 	// provides the encrypted-config-value key that is used to decrypt encrypted values in configuration. If nil, a
 	// default provider that reads the key from the file at "var/conf/encrypted-config-value.key" is used.
@@ -251,22 +246,19 @@ type Server struct {
 //
 // If the returned cleanup function is non-nil, it is deferred and run on server shutdown. If the returned error is
 // non-nil, the server will not start and will return the error.
-type InitFunc func(ctx context.Context, info InitInfo) (cleanup func(), rErr error)
+type InitFunc[I config.BaseInstallConfig, R config.BaseRuntimeConfig] func(ctx context.Context, info InitInfo[I, R]) (cleanup func(), rErr error)
 
-type InitInfo struct {
+type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// Router is a ConfigurableRouter that implements wrouter.Router for the server. It can be
 	// used to register endpoints on the server and to configure things such as health, readiness and liveness sources and
 	// any middleware (note that any values set using router will override any values previously set on the server).
-	Router ConfigurableRouter
+	Router ConfigurableRouter[I, R]
 
-	// InstallConfig the install configuration. Its type is determined by the struct provided to the
-	// "WithInstallConfigType" function (the default is config.Install).
-	InstallConfig interface{}
+	// InstallConfig is the install configuration.
+	InstallConfig I
 
-	// RuntimeConfig is a refreshable that contains the initial runtime configuration. The type returned by the
-	// refreshable is determined by the struct provided to the "WithRuntimeConfigType" function (the default is
-	// config.Runtime).
-	RuntimeConfig refreshable.Refreshable
+	// RuntimeConfig is a refreshable that contains the runtime configuration.
+	RuntimeConfig refreshable.Refreshable[R]
 
 	// Clients exposes the service-discovery configuration as a conjure-go-runtime client builder.
 	// Returned clients are configured with user-agent based on {install.ProductName}/{install.ProductVersion}.
@@ -274,55 +266,37 @@ type InitInfo struct {
 
 	// ShutdownServer gracefully closes the server, waiting for any in-flight requests to finish (or the context to be cancelled).
 	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
-	// requires access to shutdown the server in some error condition.
+	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
 // readiness, liveness and middleware.
-type ConfigurableRouter interface {
+type ConfigurableRouter[I config.BaseInstallConfig, R config.BaseRuntimeConfig] interface {
 	wrouter.Router
 
-	WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server
-	WithReadiness(readiness healthstatus.Source) *Server
-	WithLiveness(liveness healthstatus.Source) *Server
-	WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server
+	WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server[I, R]
+	WithReadiness(readiness healthstatus.Source) *Server[I, R]
+	WithLiveness(liveness healthstatus.Source) *Server[I, R]
+	WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server[I, R]
 }
 
 const defaultSampleRate = 0.01
 
 // NewServer returns a new uninitialized server.
-func NewServer() *Server {
-	return &Server{}
+func NewServer[I config.BaseInstallConfig, R config.BaseRuntimeConfig]() *Server[I, R] {
+	return &Server[I, R]{}
 }
 
 // WithInitFunc configures the server to use the provided setup function to set up its initial state.
-func (s *Server) WithInitFunc(initFn InitFunc) *Server {
+func (s *Server[I, R]) WithInitFunc(initFn InitFunc[I, R]) *Server[I, R] {
 	s.initFn = initFn
-	return s
-}
-
-// WithInstallConfigType configures the server to use the type of the provided struct as the type for the install
-// configuration. The YAML representation of the install configuration is unmarshaled into a newly created struct that
-// has the same type as the provided struct, so the provided struct should either embed or be compatible with
-// config.Install.
-func (s *Server) WithInstallConfigType(installConfigStruct interface{}) *Server {
-	s.installConfigStruct = installConfigStruct
-	return s
-}
-
-// WithRuntimeConfigType configures the server to use the type of the provided struct as the type for the runtime
-// configuration. The YAML representation of the runtime configuration is unmarshaled into a newly created struct that
-// has the same type as the provided struct, so the provided struct should either embed or be compatible with
-// config.Runtime.
-func (s *Server) WithRuntimeConfigType(runtimeConfigStruct interface{}) *Server {
-	s.runtimeConfigStruct = runtimeConfigStruct
 	return s
 }
 
 // WithInstallConfig configures the server to use the provided install configuration. The provided install configuration
 // must support being marshaled as YAML.
-func (s *Server) WithInstallConfig(installConfigStruct interface{}) *Server {
+func (s *Server[I, R]) WithInstallConfig(installConfigStruct I) *Server[I, R] {
 	s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
 		return yaml.Marshal(installConfigStruct)
 	})
@@ -331,7 +305,7 @@ func (s *Server) WithInstallConfig(installConfigStruct interface{}) *Server {
 
 // WithInstallConfigFromFile configures the server to read the install configuration from the file at the specified
 // path.
-func (s *Server) WithInstallConfigFromFile(fpath string) *Server {
+func (s *Server[I, R]) WithInstallConfigFromFile(fpath string) *Server[I, R] {
 	s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
 		return os.ReadFile(fpath)
 	})
@@ -340,36 +314,39 @@ func (s *Server) WithInstallConfigFromFile(fpath string) *Server {
 
 // WithInstallConfigProvider configures the server to use the install configuration obtained by reading the bytes from
 // the specified ConfigBytesProvider.
-func (s *Server) WithInstallConfigProvider(p ConfigBytesProvider) *Server {
+func (s *Server[I, R]) WithInstallConfigProvider(p ConfigBytesProvider) *Server[I, R] {
 	s.installConfigProvider = p
 	return s
 }
 
 // WithRuntimeConfig configures the server to use the provided runtime configuration. The provided runtime configuration
 // must support being marshaled as YAML.
-func (s *Server) WithRuntimeConfig(in interface{}) *Server {
-	s.runtimeConfigProvider = func(_ context.Context) (refreshable.Refreshable, error) {
-		runtimeCfgYAML, err := yaml.Marshal(in)
-		if err != nil {
-			return nil, err
-		}
-		return refreshable.NewDefaultRefreshable(runtimeCfgYAML), nil
+func (s *Server[I, R]) WithRuntimeConfig(in R) *Server[I, R] {
+	s.runtimeConfigProvider = func(_ context.Context) refreshable.Validated[[]byte] {
+		v, _, _ := refreshable.MapWithError(refreshable.New(in), func(in R) ([]byte, error) {
+			return yaml.Marshal(in)
+		})
+		return v
 	}
 	return s
 }
 
 // WithRuntimeConfigProvider configures the server to use the provided Refreshable as its runtime configuration. The
 // value provided by the refreshable must be the byte slice for the runtime configuration.
-func (s *Server) WithRuntimeConfigProvider(r refreshable.Refreshable) *Server {
-	s.runtimeConfigProvider = func(_ context.Context) (refreshable.Refreshable, error) {
-		return r, nil
+func (s *Server[I, R]) WithRuntimeConfigProvider(r refreshable.Refreshable[[]byte]) *Server[I, R] {
+	s.runtimeConfigProvider = func(context.Context) refreshable.Validated[[]byte] {
+		if v, ok := r.(refreshable.Validated[[]byte]); ok {
+			return v
+		}
+		v, _, _ := refreshable.Validate(r, func([]byte) error { return nil })
+		return v
 	}
 	return s
 }
 
 // WithRuntimeConfigProviderFunc configures the server to use the returned Refreshable as its runtime configuration.
 // The value provided by the refreshable must be a []byte for the yaml runtime configuration.
-func (s *Server) WithRuntimeConfigProviderFunc(f func(ctx context.Context) (refreshable.Refreshable, error)) *Server {
+func (s *Server[I, R]) WithRuntimeConfigProviderFunc(f func(ctx context.Context) refreshable.Validated[[]byte]) *Server[I, R] {
 	s.runtimeConfigProvider = f
 	return s
 }
@@ -377,9 +354,9 @@ func (s *Server) WithRuntimeConfigProviderFunc(f func(ctx context.Context) (refr
 // WithRuntimeConfigFromFile configures the server to use the file at the provided path as its runtime configuration.
 // The server will create a refreshable.Refreshable using the file at the provided path (and will thus live-reload the
 // configuration based on updates to the file).
-func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
-	s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-		return refreshablefile.NewFileRefreshable(ctx, fpath)
+func (s *Server[I, R]) WithRuntimeConfigFromFile(fpath string) *Server[I, R] {
+	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
+		return refreshable.NewFileRefreshable(ctx, fpath)
 	}
 	return s
 }
@@ -388,27 +365,27 @@ func (s *Server) WithRuntimeConfigFromFile(fpath string) *Server {
 // authentication. Because there is no way to verify the certificate used by the server, this option is typically only
 // used in tests or very specialized circumstances where the connection to the server can be verified/authenticated
 // using separate external mechanisms.
-func (s *Server) WithSelfSignedCertificate() *Server {
+func (s *Server[I, R]) WithSelfSignedCertificate() *Server[I, R] {
 	s.useSelfSignedServerCertificate = true
 	return s
 }
 
 // WithECVKeyFromFile configures the server to use the ECV key in the file at the specified path as the ECV key for
 // decrypting ECV values in configuration.
-func (s *Server) WithECVKeyFromFile(fPath string) *Server {
+func (s *Server[I, R]) WithECVKeyFromFile(fPath string) *Server[I, R] {
 	s.ecvKeyProvider = ECVKeyFromFile(fPath)
 	return s
 }
 
 // WithECVKeyProvider configures the server to use the ECV key provided by the specified provider as the ECV key for
 // decrypting ECV values in configuration.
-func (s *Server) WithECVKeyProvider(ecvProvider ECVKeyProvider) *Server {
+func (s *Server[I, R]) WithECVKeyProvider(ecvProvider ECVKeyProvider) *Server[I, R] {
 	s.ecvKeyProvider = ecvProvider
 	return s
 }
 
 // WithClientAuth configures the server to use the specified client authentication type for its TLS connections.
-func (s *Server) WithClientAuth(clientAuth tls.ClientAuthType) *Server {
+func (s *Server[I, R]) WithClientAuth(clientAuth tls.ClientAuthType) *Server[I, R] {
 	s.clientAuth = clientAuth
 	return s
 }
@@ -416,87 +393,87 @@ func (s *Server) WithClientAuth(clientAuth tls.ClientAuthType) *Server {
 // WithHealth configures the server to use the specified health check sources to report the server's health. If multiple
 // healthSource's results have the same key, the result from the latest entry in healthSources will be used. These
 // results are combined with the server's built-in health source, which uses the `SERVER_STATUS` key.
-func (s *Server) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server {
+func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server[I, R] {
 	s.healthCheckSources = healthSources
 	return s
 }
 
 // WithReadiness configures the server to use the specified source to report readiness.
-func (s *Server) WithReadiness(readiness healthstatus.Source) *Server {
+func (s *Server[I, R]) WithReadiness(readiness healthstatus.Source) *Server[I, R] {
 	s.readinessSource = readiness
 	return s
 }
 
 // WithLiveness configures the server to use the specified source to report liveness.
-func (s *Server) WithLiveness(liveness healthstatus.Source) *Server {
+func (s *Server[I, R]) WithLiveness(liveness healthstatus.Source) *Server[I, R] {
 	s.livenessSource = liveness
 	return s
 }
 
 // WithOrigin configures the server to use the specified origin.
-func (s *Server) WithOrigin(origin string) *Server {
+func (s *Server[I, R]) WithOrigin(origin string) *Server[I, R] {
 	s.svcLogOrigin = &origin
 	return s
 }
 
 // WithOriginFromCallLine configures the server to use the svc1log.OriginFromCallLine parameter.
-func (s *Server) WithOriginFromCallLine() *Server {
+func (s *Server[I, R]) WithOriginFromCallLine() *Server[I, R] {
 	s.svcLogOriginFromCallLine = true
 	return s
 }
 
 // WithMiddleware configures the server to use the specified middleware. The provided middleware is added to any other
 // specified middleware.
-func (s *Server) WithMiddleware(middleware wrouter.RequestHandlerMiddleware) *Server {
+func (s *Server[I, R]) WithMiddleware(middleware wrouter.RequestHandlerMiddleware) *Server[I, R] {
 	s.handlers = append(s.handlers, middleware)
 	return s
 }
 
 // WithRouterImplProvider configures the server to use the specified routerImplProvider to provide router
 // implementations.
-func (s *Server) WithRouterImplProvider(routerImplProvider func() wrouter.RouterImpl) *Server {
+func (s *Server[I, R]) WithRouterImplProvider(routerImplProvider func() wrouter.RouterImpl) *Server[I, R] {
 	s.routerImplProvider = routerImplProvider
 	return s
 }
 
 // WithTraceSampler configures the server's application trace log tracer to use the specified traceSampler function to make a
 // determination on whether or not a trace should be sampled (if such a decision needs to be made).
-func (s *Server) WithTraceSampler(traceSampler wtracing.Sampler) *Server {
+func (s *Server[I, R]) WithTraceSampler(traceSampler wtracing.Sampler) *Server[I, R] {
 	s.applicationTraceSampler = traceSampler
 	return s
 }
 
 // WithTraceSamplerRate is a convenience function for creating an application traceSampler based off a sample rate
-func (s *Server) WithTraceSamplerRate(sampleRate float64) *Server {
+func (s *Server[I, R]) WithTraceSamplerRate(sampleRate float64) *Server[I, R] {
 	return s.WithTraceSampler(traceSamplerFromSampleRate(sampleRate))
 }
 
 // WithManagementTraceSampler configures the server's management trace log tracer to use the specified traceSampler function to make a
 // determination on whether or not a trace should be sampled (if such a decision needs to be made).
-func (s *Server) WithManagementTraceSampler(traceSampler wtracing.Sampler) *Server {
+func (s *Server[I, R]) WithManagementTraceSampler(traceSampler wtracing.Sampler) *Server[I, R] {
 	s.managementTraceSampler = traceSampler
 	return s
 }
 
 // WithManagementTraceSamplerRate is a convenience function for creating a management traceSampler based off a sample rate
-func (s *Server) WithManagementTraceSamplerRate(sampleRate float64) *Server {
+func (s *Server[I, R]) WithManagementTraceSamplerRate(sampleRate float64) *Server[I, R] {
 	return s.WithManagementTraceSampler(traceSamplerFromSampleRate(sampleRate))
 }
 
 // WithSigQuitHandlerWriter sets the output for the goroutine dump on SIGQUIT.
-func (s *Server) WithSigQuitHandlerWriter(w io.Writer) *Server {
+func (s *Server[I, R]) WithSigQuitHandlerWriter(w io.Writer) *Server[I, R] {
 	s.sigQuitHandlerWriter = w
 	return s
 }
 
 // WithDisableSigQuitHandler disables the server's enabled-by-default goroutine dump on SIGQUIT.
-func (s *Server) WithDisableSigQuitHandler() *Server {
+func (s *Server[I, R]) WithDisableSigQuitHandler() *Server[I, R] {
 	s.disableSigQuitHandler = true
 	return s
 }
 
 // WithDisableShutdownSignalHandler disables the server's enabled-by-default shutdown on SIGTERM and SIGINT.
-func (s *Server) WithDisableShutdownSignalHandler() *Server {
+func (s *Server[I, R]) WithDisableShutdownSignalHandler() *Server[I, R] {
 	s.disableShutdownSignalHandler = true
 	return s
 }
@@ -505,7 +482,7 @@ func (s *Server) WithDisableShutdownSignalHandler() *Server {
 // used by the server. Note that this setting is only applied to the main server -- if the management server is separate
 // from the main server, this setting is not applied to the management server. Refer to the documentation for
 // SetKeepAlivesEnabled in http.Server for more information on when a server may want to use this setting.
-func (s *Server) WithDisableKeepAlives() *Server {
+func (s *Server[I, R]) WithDisableKeepAlives() *Server[I, R] {
 	s.disableKeepAlives = true
 	return s
 }
@@ -513,25 +490,25 @@ func (s *Server) WithDisableKeepAlives() *Server {
 // WithDisableHTTP2 disables HTTP/2 support on the server by setting TLSNextProto to an empty map on the http.Server.
 // Note that this setting is only applied to the main server. You should only disable HTTP/2 if you are using handlers
 // that require HTTP/1, such as WebSockets.
-func (s *Server) WithDisableHTTP2() *Server {
+func (s *Server[I, R]) WithDisableHTTP2() *Server[I, R] {
 	s.disableHTTP2 = true
 	return s
 }
 
 // WithStrictUnmarshalConfig configures the server to use the provided strict unmarshal configuration.
-func (s *Server) WithStrictUnmarshalConfig() *Server {
+func (s *Server[I, R]) WithStrictUnmarshalConfig() *Server[I, R] {
 	s.configYAMLUnmarshalFn = yaml.UnmarshalStrict
 	return s
 }
 
 // WithDisableGoRuntimeMetrics disables the server's enabled-by-default collection of runtime memory statistics.
-func (s *Server) WithDisableGoRuntimeMetrics() *Server {
+func (s *Server[I, R]) WithDisableGoRuntimeMetrics() *Server[I, R] {
 	s.disableGoRuntimeMetrics = true
 	return s
 }
 
 // WithDisableServiceDependencyHealth disables the server's enabled-by-default SERVICE_DEPENDENCY check.
-func (s *Server) WithDisableServiceDependencyHealth() *Server {
+func (s *Server[I, R]) WithDisableServiceDependencyHealth() *Server[I, R] {
 	s.disableServiceDependencyHealth = true
 	return s
 }
@@ -540,7 +517,7 @@ func (s *Server) WithDisableServiceDependencyHealth() *Server {
 // name of the metric (for example, "server.response.size"). The blacklist only supports blacklisting at the metric
 // level: blacklisting an individual metric value (such as "server.response.size.count") will not have any effect. The
 // provided input is copied.
-func (s *Server) WithMetricsBlacklist(blacklist map[string]struct{}) *Server {
+func (s *Server[I, R]) WithMetricsBlacklist(blacklist map[string]struct{}) *Server[I, R] {
 	metricsBlacklist := make(map[string]struct{})
 	for k, v := range blacklist {
 		metricsBlacklist[k] = v
@@ -551,7 +528,7 @@ func (s *Server) WithMetricsBlacklist(blacklist map[string]struct{}) *Server {
 
 // WithMetricTypeValuesBlacklist sets the value of the metric type value blacklist to be the same as the provided value
 // (the content is copied).
-func (s *Server) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]struct{}) *Server {
+func (s *Server[I, R]) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]struct{}) *Server[I, R] {
 	newBlacklist := make(map[string]map[string]struct{}, len(blacklist))
 	for k, v := range blacklist {
 		newVal := make(map[string]struct{}, len(v))
@@ -565,7 +542,7 @@ func (s *Server) WithMetricTypeValuesBlacklist(blacklist map[string]map[string]s
 }
 
 // WithDisableEndpointFiveHundredsHealthCheck disables the ENDPOINT_FIVE_HUNDREDS healthcheck.
-func (s *Server) WithDisableEndpointFiveHundredsHealthCheck() *Server {
+func (s *Server[I, R]) WithDisableEndpointFiveHundredsHealthCheck() *Server[I, R] {
 	s.endpoint500sHealthCheckFunc = func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck {
 		return nil
 	}
@@ -574,7 +551,7 @@ func (s *Server) WithDisableEndpointFiveHundredsHealthCheck() *Server {
 
 // WithAlwaysHealthyEndpointFiveHundredsHealthCheck configures the server to always report the ENDPOINT_FIVE_HUNDREDS
 // as healthy, even if the parameters include failing or broken endpoints.
-func (s *Server) WithAlwaysHealthyEndpointFiveHundredsHealthCheck() *Server {
+func (s *Server[I, R]) WithAlwaysHealthyEndpointFiveHundredsHealthCheck() *Server[I, R] {
 	s.endpoint500sHealthCheckFunc = func(ctx context.Context) *middleware.EndpointFiveHundredsHealthCheck {
 		return middleware.NewEndpointFiveHundredsHealthCheck(ctx, true)
 	}
@@ -584,35 +561,35 @@ func (s *Server) WithAlwaysHealthyEndpointFiveHundredsHealthCheck() *Server {
 // WithLoggerStdoutWriter configures the writer that loggers will write to IF they are configured to write to STDOUT.
 // This configuration is typically only used in specialized scenarios (for example, to write logger output to an
 // in-memory buffer rather than Stdout for tests).
-func (s *Server) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server {
+func (s *Server[I, R]) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Server[I, R] {
 	s.loggerStdoutWriter = loggerStdoutWriter
 	return s
 }
 
 // WithHealthStatusChangeHandlers configures the health status change handlers that are called whenever the configured HealthCheckSource
 // returns a health status with differing check states.
-func (s *Server) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusChangeHandler) *Server {
+func (s *Server[I, R]) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusChangeHandler) *Server[I, R] {
 	s.healthStatusChangeHandlers = append(s.healthStatusChangeHandlers, handlers...)
 	return s
 }
 
 // WithCustomDiagnosticHandlers configures the application's custom diagnostic handlers.
 // This adds to the default diagnostic handlers provided by the server.
-func (s *Server) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server {
+func (s *Server[I, R]) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server[I, R] {
 	s.customDiagnosticHandlers = append(s.customDiagnosticHandlers, handlers...)
 	return s
 }
 
 // WithEnableDualLogAuditV2ToAuditV3 enables dual-writing audit v2 logs to audit v3 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
-func (s *Server) WithEnableDualLogAuditV2ToAuditV3() *Server {
+func (s *Server[I, R]) WithEnableDualLogAuditV2ToAuditV3() *Server[I, R] {
 	s.dualLogAuditV2ToAuditV3 = true
 	return s
 }
 
 // WithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
-func (s *Server) WithEnableDualLogAuditV3ToAuditV2() *Server {
+func (s *Server[I, R]) WithEnableDualLogAuditV3ToAuditV2() *Server[I, R] {
 	s.dualLogAuditV3ToAuditV2 = true
 	return s
 }
@@ -631,7 +608,7 @@ const (
 // Errors are logged via s.svcLogger before being returned.
 // Panics are recovered; in the case of a recovered panic, Start will log and return
 // a non-nil error containing the recovered object (overwriting any existing error).
-func (s *Server) Start() (rErr error) {
+func (s *Server[I, R]) Start() (rErr error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -699,10 +676,11 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// load install configuration
-	baseInstallCfg, fullInstallCfg, err := s.initInstallConfig()
+	fullInstallCfg, err := s.initInstallConfig()
 	if err != nil {
 		return err
 	}
+	baseInstallCfg := fullInstallCfg.BaseInstallConfig()
 
 	if s.idsExtractor == nil {
 		s.idsExtractor = extractor.NewDefaultIDsExtractor()
@@ -730,7 +708,7 @@ func (s *Server) Start() (rErr error) {
 	ctx = s.withLoggers(ctx)
 
 	// load runtime configuration
-	baseRefreshableRuntimeCfg, refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
+	refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -743,12 +721,18 @@ func (s *Server) Start() (rErr error) {
 	}
 
 	// Set the service log level if configured
-	if loggerCfg := baseRefreshableRuntimeCfg.LoggerConfig().CurrentLoggerConfigPtr(); loggerCfg != nil {
-		s.svcLogger.SetLevel(loggerCfg.Level)
-	}
+	unsubscribe := refreshableRuntimeCfg.Subscribe(func(r R) {
+		if loggerCfg := r.BaseRuntimeConfig().LoggerConfig; loggerCfg != nil && loggerCfg.Level != "" {
+			s.svcLogger.SetLevel(loggerCfg.Level)
+		}
+	})
+	defer unsubscribe()
 
 	// Set audit logger configuration
-	s.updateAuditLoggerConfig(baseRefreshableRuntimeCfg.AuditConfig().CurrentAuditConfigPtr())
+	auditLoggerConfig, unsubscribe := refreshable.Map(refreshableRuntimeCfg, func(r R) *config.AuditConfig { return r.BaseRuntimeConfig().AuditConfig })
+	defer unsubscribe()
+	unsubscribe = auditLoggerConfig.Subscribe(s.updateAuditLoggerConfig)
+	defer unsubscribe()
 	ctx = audit3log.WithLogger(ctx, *s.audit3Logger.Load())
 
 	if s.routerImplProvider == nil {
@@ -779,19 +763,6 @@ func (s *Server) Start() (rErr error) {
 		}
 	}
 
-	// handle built-in runtime config changes
-	unsubscribeLoggerConfig := baseRefreshableRuntimeCfg.LoggerConfig().SubscribeToLoggerConfigPtr(func(loggerCfg *config.LoggerConfig) {
-		if loggerCfg != nil {
-			s.svcLogger.SetLevel(loggerCfg.Level)
-		}
-	})
-	defer unsubscribeLoggerConfig()
-
-	unsubscribeAuditLogConfig := baseRefreshableRuntimeCfg.AuditConfig().SubscribeToAuditConfigPtr(func(auditCfg *config.AuditConfig) {
-		s.updateAuditLoggerConfig(auditCfg)
-	})
-	defer unsubscribeAuditLogConfig()
-
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
 
@@ -806,7 +777,10 @@ func (s *Server) Start() (rErr error) {
 		}
 		ctx = wtracing.ContextWithTracer(ctx, tracer)
 
-		discovery := NewServiceDiscovery(baseInstallCfg, baseRefreshableRuntimeCfg.ServiceDiscovery())
+		refreshableServicesConfig, _ := refreshable.Map(refreshableRuntimeCfg, func(t R) httpclient.ServicesConfig {
+			return t.BaseRuntimeConfig().ServiceDiscovery
+		})
+		discovery := NewServiceDiscovery(baseInstallCfg, refreshableServicesConfig)
 		if s.serviceDependencyHealthCheck != nil {
 			discovery.WithDefaultParams(func(serviceName string) ([]httpclient.ClientParam, error) {
 				return []httpclient.ClientParam{
@@ -818,8 +792,8 @@ func (s *Server) Start() (rErr error) {
 		svc1log.FromContext(ctx).Debug("Running server initialization function.")
 		cleanupFn, err := s.initFn(
 			ctx,
-			InitInfo{
-				Router: &configurableRouterImpl{
+			InitInfo[I, R]{
+				Router: &configurableRouterImpl[I, R]{
 					Router: newMultiRouterImpl(router, mgmtRouter),
 					Server: s,
 				},
@@ -842,7 +816,7 @@ func (s *Server) Start() (rErr error) {
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied.
-	if err := s.addRoutes(ctx, mgmtRouter, baseRefreshableRuntimeCfg); err != nil {
+	if err := s.addRoutes(ctx, mgmtRouter, refreshableRuntimeCfg); err != nil {
 		return err
 	}
 
@@ -887,13 +861,13 @@ func (s *Server) Start() (rErr error) {
 	return svrStart()
 }
 
-func (s *Server) connStateCallback(ctx context.Context) func(conn net.Conn, state http.ConnState) {
+func (s *Server[I, R]) connStateCallback(ctx context.Context) func(conn net.Conn, state http.ConnState) {
 	return func(conn net.Conn, state http.ConnState) {
 		metrics.FromContext(ctx).Counter("server.conn_state_change", metrics.MustNewTag("state", state.String())).Inc(1)
 	}
 }
 
-func (s *Server) withLoggers(ctx context.Context) context.Context {
+func (s *Server[I, R]) withLoggers(ctx context.Context) context.Context {
 	ctx = svc1log.WithLogger(ctx, s.svcLogger)
 	ctx = evt2log.WithLogger(ctx, s.evtLogger)
 	ctx = metric1log.WithLogger(ctx, s.metricLogger)
@@ -904,12 +878,12 @@ func (s *Server) withLoggers(ctx context.Context) context.Context {
 	return ctx
 }
 
-type configurableRouterImpl struct {
+type configurableRouterImpl[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	wrouter.Router
-	*Server
+	*Server[I, R]
 }
 
-func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
+func (s *Server[I, R]) initInstallConfig() (zero I, _ error) {
 	if s.installConfigProvider == nil {
 		// if install config provider is not specified, use a file-based one
 		s.installConfigProvider = cfgBytesProviderFn(func() ([]byte, error) {
@@ -919,95 +893,57 @@ func (s *Server) initInstallConfig() (config.Install, interface{}, error) {
 
 	cfgBytes, err := s.installConfigProvider.LoadBytes()
 	if err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to load install configuration bytes")
+		return zero, werror.Wrap(err, "Failed to load install configuration bytes")
 	}
 	cfgBytes, err = s.decryptConfigBytes(cfgBytes)
 	if err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to decrypt install configuration bytes")
+		return zero, werror.Wrap(err, "Failed to decrypt install configuration bytes")
 	}
-
-	var baseInstallCfg config.Install
-	if err := yaml.Unmarshal(cfgBytes, &baseInstallCfg); err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install base configuration YAML")
+	var installConfigStruct I
+	if err := s.configYAMLUnmarshalFn(cfgBytes, &installConfigStruct); err != nil {
+		return zero, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
 	}
-
-	installConfigStruct := s.installConfigStruct
-	if installConfigStruct == nil {
-		installConfigStruct = config.Install{}
-	}
-	specificInstallCfg := reflect.New(reflect.TypeOf(installConfigStruct)).Interface()
-
-	if err := s.configYAMLUnmarshalFn(cfgBytes, *&specificInstallCfg); err != nil {
-		return config.Install{}, nil, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
-	}
-	return baseInstallCfg, reflect.Indirect(reflect.ValueOf(specificInstallCfg)).Interface(), nil
+	return installConfigStruct, nil
 }
 
-func (s *Server) initRuntimeConfig(ctx context.Context) (rBaseCfg config.RefreshableRuntime, rCfg refreshable.Refreshable, hcSrc healthstatus.HealthCheckSource, rErr error) {
+func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.Refreshable[R], hcSrc healthstatus.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
-		s.runtimeConfigProvider = func(ctx context.Context) (refreshable.Refreshable, error) {
-			return refreshablefile.NewFileRefreshable(ctx, runtimeConfigPath)
+		s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
+			return refreshable.NewFileRefreshable(ctx, runtimeConfigPath)
 		}
 	}
 
-	runtimeConfigProvider, err := s.runtimeConfigProvider(ctx)
-	if err != nil {
-		return nil, nil, nil, err
+	runtimeConfigProvider := s.runtimeConfigProvider(ctx)
+	if _, err := runtimeConfigProvider.Validation(); err != nil {
+		return nil, nil, err
 	}
-
-	runtimeConfigProvider = runtimeConfigProvider.Map(func(cfgBytesVal interface{}) interface{} {
-		cfgBytes, err := s.decryptConfigBytes(cfgBytesVal.([]byte))
+	unmarshalledRuntimeConfig, _, err := refreshable.MapWithError(runtimeConfigProvider, func(cfgBytes []byte) (R, error) {
+		cfgBytes, err := s.decryptConfigBytes(cfgBytes)
 		if err != nil {
 			s.svcLogger.Warn("Failed to decrypt encrypted runtime configuration", svc1log.Stacktrace(err))
 		}
-		return cfgBytes
+		var runtimeCfg R
+		if err := s.configYAMLUnmarshalFn(cfgBytes, &runtimeCfg); err != nil {
+			var zero R
+			return zero, err
+		}
+		return runtimeCfg, nil
 	})
-
-	validatedRuntimeConfig, err := refreshable.NewValidatingRefreshable(
-		runtimeConfigProvider,
-		func(cfgBytesVal interface{}) error {
-			runtimeConfigStruct := s.runtimeConfigStruct
-			if runtimeConfigStruct == nil {
-				runtimeConfigStruct = config.Runtime{}
-			}
-			runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-			return s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), *&runtimeCfg)
-		})
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	validatingRefreshableHealthCheckSource := refreshablehealth.NewValidatingRefreshableHealthCheckSource(
 		runtimeConfigReloadCheckType,
-		*validatedRuntimeConfig)
+		refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
+		refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
+	)
 
-	baseRuntimeConfig := config.NewRefreshingRuntime(validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
-		var runtimeCfg config.Runtime
-		if err := s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), &runtimeCfg); err != nil {
-			s.svcLogger.Error("Failed to unmarshal runtime configuration", svc1log.Stacktrace(err))
-		}
-		return runtimeCfg
-	}))
-
-	runtimeConfig := validatedRuntimeConfig.Map(func(cfgBytesVal interface{}) interface{} {
-		runtimeConfigStruct := s.runtimeConfigStruct
-		if runtimeConfigStruct == nil {
-			runtimeConfigStruct = config.Runtime{}
-		}
-		runtimeCfg := reflect.New(reflect.TypeOf(runtimeConfigStruct)).Interface()
-		if err := s.configYAMLUnmarshalFn(cfgBytesVal.([]byte), *&runtimeCfg); err != nil {
-			// this should not happen unless there is a bug in Witchcraft because configuration has already been
-			// processed by unmarshalYAMLFn without issue at this stage
-			panic("Failed to unmarshal runtime configuration")
-		}
-		return reflect.Indirect(reflect.ValueOf(runtimeCfg)).Interface()
-	})
-
-	return baseRuntimeConfig, runtimeConfig, validatingRefreshableHealthCheckSource, nil
+	return unmarshalledRuntimeConfig, validatingRefreshableHealthCheckSource, nil
 }
 
-func (s *Server) initStackTraceHandler(ctx context.Context) {
+func (s *Server[I, R]) initStackTraceHandler(ctx context.Context) {
 	if s.disableSigQuitHandler {
 		return
 	}
@@ -1032,7 +968,7 @@ func (s *Server) initStackTraceHandler(ctx context.Context) {
 	signals.RegisterStackTraceHandlerOnSignals(ctx, stackTraceHandler, errHandler, syscall.SIGQUIT)
 }
 
-func (s *Server) initShutdownSignalHandler(ctx context.Context) {
+func (s *Server[I, R]) initShutdownSignalHandler(ctx context.Context) {
 	if s.disableShutdownSignalHandler {
 		return
 	}
@@ -1051,16 +987,16 @@ func (s *Server) initShutdownSignalHandler(ctx context.Context) {
 
 // Running returns true if the server is in the "running" state (as opposed to "idle" or "initializing"), false
 // otherwise.
-func (s *Server) Running() bool {
+func (s *Server[I, R]) Running() bool {
 	return s.stateManager.Running()
 }
 
 // State returns the state of the current server (idle, initializing or running).
-func (s *Server) State() ServerState {
+func (s *Server[I, R]) State() ServerState {
 	return s.stateManager.State()
 }
 
-func (s *Server) Shutdown(ctx context.Context) error {
+func (s *Server[I, R]) Shutdown(ctx context.Context) error {
 	s.svcLogger.Info("Shutting down server")
 	return stopServer(s, func(svr *http.Server) error {
 		if err := svr.Shutdown(ctx); err != nil && (ctx.Err() == nil || !errors.Is(err, ctx.Err())) {
@@ -1072,7 +1008,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	})
 }
 
-func (s *Server) Close() error {
+func (s *Server[I, R]) Close() error {
 	s.svcLogger.Info("Closing server")
 	return stopServer(s, func(svr *http.Server) error {
 		return svr.Close()
@@ -1086,7 +1022,7 @@ func (s *Server) Close() error {
 //
 // NOTE: as described in the function comment, if the provided bytes contain any encrypted configuration values, the
 // bytes are assumed to be YAML and are treated as such.
-func (s *Server) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
+func (s *Server[I, R]) decryptConfigBytes(cfgBytes []byte) ([]byte, error) {
 	if !encryptedconfigvalue.ContainsEncryptedConfigValueStringVars(cfgBytes) {
 		// Nothing to do
 		return cfgBytes, nil
@@ -1150,7 +1086,7 @@ func decryptNodeValues(n *yamlv3.Node, kwt *encryptedconfigvalue.KeyWithType) er
 	return nil
 }
 
-func stopServer(s *Server, stopper func(s *http.Server) error) error {
+func stopServer[I config.BaseInstallConfig, R config.BaseRuntimeConfig](s *Server[I, R], stopper func(s *http.Server) error) error {
 	// use compare and swap so that the server can only be stopped once
 	curState := s.stateManager.State()
 	for {
@@ -1178,11 +1114,11 @@ func stopServer(s *Server, stopper func(s *http.Server) error) error {
 	return stopper(s.httpServer)
 }
 
-func (s *Server) getApplicationTracingOptions(install config.Install) []wtracing.TracerOption {
+func (s *Server[I, R]) getApplicationTracingOptions(install config.Install) []wtracing.TracerOption {
 	return getTracingOptions(s.applicationTraceSampler, install, traceSamplerFromSampleRate(defaultSampleRate), install.Server.Port, install.TraceSampleRate)
 }
 
-func (s *Server) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
+func (s *Server[I, R]) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
 	return getTracingOptions(s.managementTraceSampler, install, neverSample, install.Server.ManagementPort, install.ManagementTraceSampleRate)
 }
 

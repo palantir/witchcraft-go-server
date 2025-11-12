@@ -220,7 +220,7 @@ Example server initialization
 
 ### Basic production server
 The following is an example program that launches a `witchcraft-server` that registers a `GET /myNum` endpoint that
-returns a randomly generated number encoded as JSON: 
+returns a randomly generated number encoded as JSON:
 
 ```go
 package main
@@ -230,15 +230,15 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
+	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
 )
 
 func main() {
-	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+	if err := witchcraft.NewServer[config.Install, config.Runtime]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 			if err := registerMyNumEndpoint(info.Router); err != nil {
 				return nil, err
 			}
@@ -262,7 +262,7 @@ the server, and the `Start()` function starts the server using the specified con
 
 The `WithInitFunc(InitFunc)` function is used to register routes on the server. The initialization function provided to 
 `WithInitFunc` is of the type `witchcraft.InitFunc`, which has the following definition:
-`type InitFunc func(ctx context.Context, info InitInfo) (cleanup func(), rErr error)`.
+`type InitFunc[I config.BaseInstallConfig, R config.BaseRuntimeConfig] func(ctx context.Context, info InitInfo[I, R]) (cleanup func(), rErr error)`.
 
 The `ctx` provided to the function is valid for the duration of the server and has loggers configured on it. The `info`
 struct contains fields that can be used to initialize various state and configuration for the server -- refer to the
@@ -284,8 +284,8 @@ defaults:
 
 ```go
 func main() {
-	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+	if err := witchcraft.NewServer[config.Install, config.Runtime]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 			if err := registerMyNumEndpoint(info.Router); err != nil {
 				return nil, err
 			}
@@ -354,8 +354,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -368,9 +367,9 @@ type AppInstallConfig struct {
 }
 
 func main() {
-	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
-			if err := registerMyNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
+	if err := witchcraft.NewServer[AppInstallConfig, config.Runtime]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[AppInstallConfig, config.Runtime]) (func(), error) {
+			if err := registerMyNumEndpoint(info.Router, info.InstallConfig.MyNum); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -379,7 +378,6 @@ func main() {
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 		WithRuntimeConfig(config.Runtime{}).
-		WithInstallConfigType(AppInstallConfig{}).
 		WithInstallConfig(AppInstallConfig{
 			Install: config.Install{
 				ProductName: "example-app",
@@ -402,10 +400,7 @@ func registerMyNumEndpoint(router wrouter.Router, num int) error {
 }
 ```
 
-This example defines the `AppInstallConfig` struct, which embeds `config.Install` and also defines a `MyNum` field. The 
-`WithInstallConfigType(AppInstallConfig{})` function call is added to specify `AppInstallConfig{}` as the install struct 
-and the initialization function logic is modified to convert the provided `installConfig interface{}` into an 
-`AppInstallConfig` and uses the `MyNum` value as the value that is returned by the endpoint. The `WithInstallConfig` 
+This example defines the `AppInstallConfig` struct, which embeds `config.Install` and also defines a `MyNum` field. The `WithInstallConfig` 
 function is also updated to use configuration that specifies a value for `MyNum`.
 
 Running the updated program using `go run main.go` and issuing `curl -k https://localhost:8100/myNum` returns `13`.
@@ -420,8 +415,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -434,9 +428,9 @@ type AppInstallConfig struct {
 }
 
 func main() {
-	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
-			if err := registerMyNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
+	if err := witchcraft.NewServer[AppInstallConfig, config.Runtime]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[AppInstallConfig, config.Runtime]) (func(), error) {
+			if err := registerMyNumEndpoint(info.Router, info.InstallConfig.MyNum); err != nil {
 				return nil, err
 			}
 			return nil, nil
@@ -444,7 +438,6 @@ func main() {
 		).
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-		WithInstallConfigType(AppInstallConfig{}).
 		Start(); err != nil {
 		panic(err)
 	}
@@ -485,8 +478,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -499,17 +492,16 @@ type AppRuntimeConfig struct {
 }
 
 func main() {
-	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
-			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
-				return in.(AppRuntimeConfig).MyNum
-			}))
+	if err := witchcraft.NewServer[config.Install, AppRuntimeConfig]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, AppRuntimeConfig]) (func(), error) {
+			myNumRefreshable := refreshable.View(info.RuntimeConfig, func(t AppRuntimeConfig) int {
+				return t.MyNum
+			})
 			if err := registerMyNumEndpoint(info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
 			return nil, nil
-		},
-		).
+		}).
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 		WithInstallConfig(config.Install{
@@ -519,36 +511,29 @@ func main() {
 			},
 			UseConsoleLog: true,
 		}).
-		WithRuntimeConfigType(AppRuntimeConfig{}).
 		Start(); err != nil {
 		panic(err)
 	}
 }
 
-func registerMyNumEndpoint(router wrouter.Router, numProvider refreshable.Int) error {
+func registerMyNumEndpoint(router wrouter.Router, numProvider refreshable.Refreshable[int]) error {
 	return router.Get("/myNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		httpserver.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
+		httpserver.WriteJSONResponse(rw, numProvider.Current(), http.StatusOK)
 	}))
 }
+
 ``` 
 
 The refreshable configuration warrants some closer examination. Note that the `registerMyNumEndpoint` takes a
-`numProvider refreshable.Int` as an argument rather than an `int` and returns the result of `CurrentInt()`. 
+`numProvider refreshable.Refreshable[int]` as an argument rather than an `int` and returns the result of `Current()`. 
 Conceptually, the `numProvider` is guaranteed to always return the current value of the number specified in the runtime
 configuration. Using this pattern removes the need for writing code that listens for updates -- the code can simply
-assume that the provider always returns the most recent value. `refreshable.Int` and `refreshable.String` are helper
-types that provide functions that return the current value of the correct type. For types without helper functions, the
-general `refreshable.Refreshable` should be used, and the `interface{}` returned by `Current()` must be explicitly
-converted to the proper target type (this is required because Go does not support generics/templatization).
+assume that the provider always returns the most recent value.
 
 The `numProvider` provided to `registerMyNumEndpoint` is derived by applying a mapping function to the
-`runtimeConfig refreshable.Refreshable` parameter. `runtimeConfig.Map` is provided with a function that, given an
-updated runtime configuration, returns the portion of the configuration that is required. The input to the mapping 
-function must be explicitly cast to the runtime configuration type (in this case, `in.(AppRuntimeConfig)`), and then the
-relevant section can be accessed (or derived) and returned. The result of the `Map` function is a `Refreshable` that
-returns the mapped portion. In this case, because we know the result will always be an `int`, we wrap the returned
-`Refreshable` in a `refreshable.NewInt` call, which provides the convenience function `CurrentInt()` that performs the
-type conversion of the result to an `int`.
+`RuntimeConfig refreshable.Refreshable[T]` parameter. `refreshable.View` is provided with a function that, given an
+updated runtime configuration, returns the portion of the configuration that is required. The result of the `View` function is a `Refreshable` that
+returns the mapped portion.
 
 By default, the runtime configuration is read from `var/conf/runtime.yml`. Create a file at that path relative to the
 Go file and provide it with the YAML content for the configuration:
@@ -571,8 +556,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-server/v2/config"
 	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v2/wrouter"
@@ -591,23 +576,21 @@ type AppRuntimeConfig struct {
 }
 
 func main() {
-	if err := witchcraft.NewServer().
-		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
-			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.(AppInstallConfig).MyNum); err != nil {
+	if err := witchcraft.NewServer[AppInstallConfig, AppRuntimeConfig]().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[AppInstallConfig, AppRuntimeConfig]) (func(), error) {
+			if err := registerInstallNumEndpoint(info.Router, info.InstallConfig.MyNum); err != nil {
 				return nil, err
 			}
 
-			myNumRefreshable := refreshable.NewInt(info.RuntimeConfig.Map(func(in interface{}) interface{} {
-				return in.(AppRuntimeConfig).MyNum
-			}))
+			myNumRefreshable := refreshable.View(info.RuntimeConfig, func(t AppRuntimeConfig) int {
+				return t.MyNum
+			})
 			if err := registerRuntimeNumEndpoint(info.Router, myNumRefreshable); err != nil {
 				return nil, err
 			}
 			return nil, nil
 		},
 		).
-		WithInstallConfigType(AppInstallConfig{}).
-		WithRuntimeConfigType(AppRuntimeConfig{}).
 		WithSelfSignedCertificate().
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
 		Start(); err != nil {
@@ -621,9 +604,9 @@ func registerInstallNumEndpoint(router wrouter.Router, num int) error {
 	}))
 }
 
-func registerRuntimeNumEndpoint(router wrouter.Router, numProvider refreshable.Int) error {
+func registerRuntimeNumEndpoint(router wrouter.Router, numProvider refreshable.Refreshable[int]) error {
 	return router.Get("/runtimeNum", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		httpserver.WriteJSONResponse(rw, numProvider.CurrentInt(), http.StatusOK)
+		httpserver.WriteJSONResponse(rw, numProvider.Current(), http.StatusOK)
 	}))
 }
 ```
@@ -658,46 +641,39 @@ called and the proper security and key material would exist in their expected lo
 
 Refreshable configuration
 -------------------------
-The runtime configuration for `witchcraft-server` uses the `refreshable.Refreshable` interface. Conceptually, a
+
+The runtime configuration for `witchcraft-server` uses the `refreshable.Refreshable[T]` interface. Conceptually, a
 `Refreshable` is a container that holds a value of a specific type that may be updated/refreshed. The following is the
 interface definition for `Refreshable`:
 
 ```go
-type Refreshable interface {
+type Refreshable[T any] interface {
 	// Current returns the most recent value of this Refreshable.
-	Current() interface{}
+	// If the value has not been initialized, returns T's zero value.
+	Current() T
 
-	// Subscribe subscribes to changes of this Refreshable. The provided function is called with the value of Current()
-	// whenever the value changes.
-	Subscribe(consumer func(interface{})) (unsubscribe func())
-
-	// Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
-	Map(func(interface{}) interface{}) Refreshable
+	// Subscribe calls the consumer function when Value updates until stop is closed.
+	// The consumer must be relatively fast: Updatable.Set blocks until all subscribers have returned.
+	// Expensive or error-prone responses to refreshed values should be asynchronous.
+	// Updates considered no-ops by reflect.DeepEqual may be skipped.
+	// When called, consumer is executed with the Current value.
+	Subscribe(consumer func(T)) UnsubscribeFunc
 }
 ```
 
-The `runtimeConfig refreshable.Refreshable` parameter provided to the initialization function specified using 
-`WithInitFunc` stores the latest unmarshaled runtime configuration as its current value, and the type of the value is
-specified using the `WithRuntimeConfigType` function (if this function is not called, `config.Runtime` is used as the
-default type).
-
-For example, for the call: 
+The `RuntimeConfig refreshable.Refreshable[R]` parameter provided to the initialization function specified using 
+`WithInitFunc` stores the latest unmarshaled runtime configuration as its current value.
 
 ```go
-witchcraft.NewServer().
-    WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+witchcraft.NewServer[config.Install, AppRuntimeConfig]().
+    WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, AppRuntimeConfig]) (func(), error) {
+		// Retrieve the latest unmarshalled runtime config
+        appRuntimeConfig := info.RuntimeConfig.Current()
         return nil, nil
     }).
-    WithRuntimeConfigType(AppRuntimeConfig{})
 ```
 
-The `WithRuntimeConfigType(AppRuntimeConfig{})` function specifies that the type of the runtime configuration is 
-`AppRuntimeConfig`, so the value returned by `runtimeConfig.Current()` in `WithInitFunc` will have the type 
-`AppRuntimeConfig`. Because Go does not have a notion of generics, the author must make this association manually and 
-perform the conversion of the current value into the desired type when using it (for example, 
-`runtimeConfig.Current().(AppRuntimeConfig)`).
-
-The `Refreshable` interface supports using the `Map` function to derive a new refreshable based on the value of the
+The `refreshable` module supports using a `Map` function to derive a new refreshable based on the value of the
 current refreshable. This allows downstream functions that are only interested in a subset of the refreshable to observe
 just the relevant portion.
 
@@ -716,51 +692,30 @@ not relevant to the function, there is no need to subscribe to it. The following
 the `runtimeConfig` refreshable: 
 
 ```go
-myNumRefreshable := runtimeConfig.Map(func(in interface{}) interface{} {
-    return in.(AppRuntimeConfig).MyNum
+myNumRefreshable, unsubscribe := refreshable.Map(info.RuntimeConfig, func(in AppRuntimeConfig) int {
+    return in.MyNum
+})
+defer unsubscribe()
+```
+
+The `Current()` function for `myNumRefreshable` returns the `MyNum` field of `AppRuntimeConfig`, and the derived
+`Refreshable` is only updated when the derived value changes. Accessing a field is the most common usage of `Map`, but
+any arbitrary logic can be performed in the mapping function. Just note that the mapping will be performed whenever the
+parent refreshable is updated and the result will be compared using `reflect.DeepEqual`. Since `Map` subscribes to the
+original refreshable, the returned `unsubscribe` function should be deferred to clean up any resources.
+
+If a field is used infrequently or the mapping function is trivial (e.g. field accessor) then the `refreshable.View` function
+can be used instead of `refreshable.Map`. `View` does not create a subscription or cache the value and instead the mapping function
+is applied to the original refreshable value on every invocation of `Current()` or `Subscribe()`
+
+```go
+myNumRefreshable := refreshable.View(info.RuntimeConfig, func(in AppRuntimeConfig) int {
+    return in.MyNum
 })
 ```
 
-The `Current()` function for `myNumRefreshable` returns the `MyNum` field of `in.(AppRuntimeConfig)`, and the derived
-`Refreshable` is only updated when the derived value changes. Accessing a field is the most common usage of `Map`, but
-any arbitrary logic can be performed in the mapping function. Just note that the mapping will be performed whenever the
-parent refreshable is updated and the result will be compared using `reflect.DeepEqual`. 
-
-The general `Refreshable` interface returns an `interface{}` and its result must always be converted to the actual
-underlying type. However, if a `Refreshable` is known to return an `int`, `string` or `bool`, convenience wrapper types
-are provided to return typed values. For example, `refreshable.NewInt(in Refreshable)` returns a `refreshable.Int`,
-which is defined as:
-
-```go
-type Int interface {
-	Refreshable
-	CurrentInt() int
-}
-```
-
-The `CurrentInt()` function returns the current value converted to an `int`, which makes it easier to use in code and
-alleviates the need for clients to manually remember the type stored in the `Refreshable`.
-
-If a `Refreshable` with a particular value/type is used widely throughout a code base, it may make sense to define a 
-similar interface so that clients do not have to manually track the type information. For example, a typed `Refreshable`
-for `AppRuntimeConfig` can be defined as follows:
-
-```go
-type RefreshableAppRuntimeConfig interface {
-	Refreshable
-	CurrentAppRuntimeConfig() AppRuntimeConfig
-}
-
-type refreshableAppRuntimeConfig struct {
-	Refreshable
-}
-
-func (r refreshableAppRuntimeConfig) CurrentAppRuntimeConfig() AppRuntimeConfig {
-	return rt.Current().(AppRuntimeConfig)
-} 
-```
-
 ### Updating refreshable configuration: provider-based vs. push-based
+
 The "provider" model of configuration updates takes the philosophy that executing code simply needs the most up-to-date
 value of a `Refreshable` when it executes. This model makes the most sense when the value is read whenever an endpoint
 is executed or when a long-running or periodically executed background task executes. In these scenarios, the latest 
@@ -786,11 +741,13 @@ The `AssetURLs` field specifies URLs that should be downloaded by the program wh
 can be handled as follows:
 
 ```go
-unsubscribe := runtimeConfig.Map(func(in interface{}) interface{} {
-    return in.(AppRuntimeConfig).AssetURLs
-}).Subscribe(func(in interface{}) {
-	assetURLs := in.([]string)
-	// perform work
+urlsRefreshable, unsubscribeRuntime := refreshable.Map(info.RuntimeConfig, func(t AppRuntimeConfig) []string {
+    return t.AssetURLs
+})
+defer unsubscribeRuntime()
+
+unsubscribe := urlsRefreshable.Subscribe(func(s []string) {
+    // perform work
 })
 // unsubscribe should be deferred or stored and run at shutdown 
 ```
