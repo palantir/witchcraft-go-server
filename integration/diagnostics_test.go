@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/palantir/pkg/httpserver"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
 	"github.com/stretchr/testify/require"
 )
 

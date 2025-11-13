@@ -23,7 +23,7 @@ import (
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/reporter"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 type MatchFunc func(req *http.Request, vals wrouter.RequestVals) bool

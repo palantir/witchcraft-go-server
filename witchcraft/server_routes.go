@@ -27,12 +27,12 @@ import (
 	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/status/routes"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/middleware"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/wdebug"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/status/routes"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/middleware"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/wdebug"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wresource"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 )
 
