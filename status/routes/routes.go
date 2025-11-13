@@ -20,9 +20,9 @@ import (
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
-	"github.com/palantir/witchcraft-go-server/v2/status"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/status"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wresource"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 func AddLivenessRoutes(resource wresource.Resource, source healthstatus.Source) error {

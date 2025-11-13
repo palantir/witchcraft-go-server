@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/stretchr/testify/assert"
 )
 

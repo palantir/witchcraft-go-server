@@ -31,7 +31,7 @@ import (
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/config"
+	"github.com/palantir/witchcraft-go-server/v3/config"
 )
 
 func (s *Server[I, R]) newServer(

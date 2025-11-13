@@ -1,4 +1,4 @@
-module github.com/palantir/witchcraft-go-server/v2
+module github.com/palantir/witchcraft-go-server/v3
 
 go 1.25.0
 

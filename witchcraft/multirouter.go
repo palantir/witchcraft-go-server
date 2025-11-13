@@ -17,7 +17,7 @@ package witchcraft
 import (
 	"net/http"
 
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 // newMultiRouterImpl returns a new multiRouterImpl that uses the provided routers unless the root routers that back the

@@ -21,7 +21,7 @@ import (
 
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient"
 	"github.com/palantir/pkg/refreshable/v2"
-	"github.com/palantir/witchcraft-go-server/v2/config"
+	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/stretchr/testify/require"
 )
 
