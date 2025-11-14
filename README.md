@@ -756,6 +756,19 @@ The `Map` function returns a new `Refreshable` that updates only when the `Asset
 `Subscribe` function subscribes a listener that performs work as soon as the value is updated. This ensures that the 
 logic is run as soon as the value is refreshed every time the value is updated.
 
+Backport Changes to Previous Major Versions
+-------------------------------------------
+
+When a new major version is released, changes may need to be backported to previous major versions. The following outlines the backport process using `release/.*` branches.
+
+1. **Create a release branch**: Create an empty release branch from the commit containing the major version tag you wish to target. Use the format `release/v{major}.{minor}.{patch}` (e.g., `release/v2.102.0`).
+
+2. **Create a feature branch**: Create a new branch from the release branch that will contain your changes.
+
+3. **Make changes and open a PR**: Commit your changes on the feature branch and open a pull request targeting the release branch (not `develop`).
+
+4. **Merge and release**: Apply the `autorelease` label to the PR and merge it, or merge the changes into the release branch and cut the new release through the Autorelease UI.
+
 License
 -------
 This project is made available under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0).
