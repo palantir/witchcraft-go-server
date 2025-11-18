@@ -28,13 +28,13 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/tlsconfig"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/status"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/status"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +62,7 @@ func TestServerShutdown(t *testing.T) {
 		logOutputBuffer := &bytes.Buffer{}
 		calledC := make(chan bool, 1)
 		doneC := make(chan bool, 1)
-		initFn := func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+		initFn := func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 			return nil, info.Router.Get("/wait", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				calledC <- true
 				// just wait for 1 second to hold the connection open.
@@ -153,7 +153,7 @@ func TestServerShutdown(t *testing.T) {
 func TestEmptyPathHandler(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
 	var called bool
-	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		return nil, info.Router.Get("/", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			called = true
 		}))
@@ -271,10 +271,10 @@ func TestClientTLS(t *testing.T) {
 	managementPort, err := httpserver.AvailablePort()
 	require.NoError(t, err)
 
-	server := witchcraft.NewServer().
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
 		WithClientAuth(tls.RequireAndVerifyClientCert).
 		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
-		WithRuntimeConfig(struct{}{}).
+		WithRuntimeConfig(config.Runtime{}).
 		WithInstallConfig(config.Install{
 			ProductName:   productName,
 			UseConsoleLog: true,
@@ -330,7 +330,7 @@ func TestClientTLS(t *testing.T) {
 
 func TestDefaultNotFoundHandler(t *testing.T) {
 	logOutputBuffer := &bytes.Buffer{}
-	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo) (deferFn func(), rErr error) {
+	server, port, _, serverErr, cleanup := createAndRunTestServer(t, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		return nil, info.Router.Get("/foo", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(200)
 		}))

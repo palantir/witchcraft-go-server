@@ -32,8 +32,8 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/internal/metricloggers"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/metricloggers"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -46,7 +46,7 @@ const (
 // If useConsoleLog is true, then all loggers log to stdout.
 // The provided logLevel is used when initializing the service logs only.
 // If the tcpWriter is provided, then it will be added as an additional output writer for all log types.
-func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
+func (s *Server[I, R]) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, registry metrics.Registry) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
@@ -110,7 +110,7 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 // The provided logLevel is used when initializing the service logs only.
 // productName is used as the entityName in wrapped.1 format logs
 // productVersion is used as the entityVersion in wrapped.1 format logs
-func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry) {
+func (s *Server[I, R]) initWrappedLoggers(useConsoleLog bool, productName, productVersion string, logLevel wlog.LogLevel, registry metrics.Registry) {
 	var originParam svc1log.Param
 	switch {
 	case s.svcLogOrigin != nil && *s.svcLogOrigin != "":
@@ -170,7 +170,7 @@ func resolveHostName() (string, error) {
 	return hostname, nil
 }
 
-func (s *Server) updateAuditLoggerConfig(auditConfig *config.AuditConfig) {
+func (s *Server[I, R]) updateAuditLoggerConfig(auditConfig *config.AuditConfig) {
 	audit3Logger := *s.audit3Logger.Load()
 	if audit3Logger == nil {
 		return

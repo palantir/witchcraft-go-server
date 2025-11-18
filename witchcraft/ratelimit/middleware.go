@@ -19,11 +19,11 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/reporter"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 type MatchFunc func(req *http.Request, vals wrouter.RequestVals) bool
@@ -49,7 +49,7 @@ var MatchMutating MatchFunc = func(req *http.Request, vals wrouter.RequestVals) 
 // TODO: We should set the Retry-After header based on how many requests we're rejecting.
 //
 //	Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
-func NewInFlightRequestLimitMiddleware(limit refreshable.Int, matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
+func NewInFlightRequestLimitMiddleware(limit refreshable.Refreshable[int], matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
 	l := &limiter{
 		Limit:   limit,
 		Matches: matches,
@@ -62,7 +62,7 @@ func NewInFlightRequestLimitMiddleware(limit refreshable.Int, matches MatchFunc,
 }
 
 type limiter struct {
-	Limit   refreshable.Int
+	Limit   refreshable.Refreshable[int]
 	Matches MatchFunc
 	Health  reporter.HealthComponent
 
@@ -116,7 +116,7 @@ func (l *limiter) decrement(ctx context.Context) {
 
 // limit returns the current value of l.limit, or zero if the limit is negative.
 func (l *limiter) limit() int64 {
-	current := l.Limit.CurrentInt()
+	current := l.Limit.Current()
 	if current < 0 {
 		current = 0
 	}

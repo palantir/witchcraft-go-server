@@ -28,13 +28,13 @@ import (
 	"time"
 
 	"github.com/palantir/pkg/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/reporter"
 	"github.com/palantir/witchcraft-go-health/sources/periodic"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/status"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/status"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +43,7 @@ import (
 func TestAddHealthCheckSources(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(healthCheckWithType{typ: "FOO"}, healthCheckWithType{typ: "BAR"})
 	})
 
@@ -110,7 +110,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 	require.NoError(t, err)
 	var clients witchcraft.ConfigurableServiceDiscovery
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
-		func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
+		func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 			clients = info.Clients
 			return nil, nil
 		},
@@ -173,7 +173,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 
 	clientA, err := clients.NewHTTPClient(ctx, "serviceA")
 	require.NoError(t, err)
-	_, _ = clientA.CurrentHTTPClient().Get(okServer.URL)
+	_, _ = clientA.Current().Get(okServer.URL)
 
 	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -202,8 +202,8 @@ func TestServiceDependencyHealth(t *testing.T) {
 	}, getHealth())
 
 	// Trigger two errors so failure rate is greater than half.
-	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
-	_, _ = clientA.CurrentHTTPClient().Get(errServer.URL)
+	_, _ = clientA.Current().Get(errServer.URL)
+	_, _ = clientA.Current().Get(errServer.URL)
 
 	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -235,7 +235,7 @@ func TestServiceDependencyHealth(t *testing.T) {
 
 	clientB, err := clients.NewHTTPClient(ctx, "serviceB")
 	require.NoError(t, err)
-	_, _ = clientB.CurrentHTTPClient().Get(stoppedServer.URL)
+	_, _ = clientB.Current().Get(stoppedServer.URL)
 
 	require.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
@@ -281,7 +281,7 @@ func TestHealthReporter(t *testing.T) {
 
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(healthReporter)
 	})
 
@@ -451,7 +451,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).WithHealth(periodicHealthCheckSource)
 	})
 
@@ -486,7 +486,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 func TestHealthSharedSecret(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithHealth(emptyHealthCheckSource{}).
 			WithDisableGoRuntimeMetrics().
@@ -561,8 +561,8 @@ func TestRuntimeConfigReloadHealthWithStrictUnmarshalFalse(t *testing.T) {
 	invalidCfgYML := `
 invalid-key: invalid-value
 `
-	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	runtimeConfigRefreshable := refreshable.New([]byte(validCfgYML))
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
 			WithDisableGoRuntimeMetrics()
@@ -606,8 +606,7 @@ invalid-key: invalid-value
 	}, healthResults)
 
 	// write invalid runtime config and observe health check go unhealthy
-	err = runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
-	require.NoError(t, err)
+	runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
 	time.Sleep(500 * time.Millisecond)
 
 	request, err = http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
@@ -659,8 +658,8 @@ func TestRuntimeConfigReloadHealthWithStrictUnmarshalTrue(t *testing.T) {
 	invalidCfgYML := `
 invalid-key: invalid-value
 `
-	runtimeConfigRefreshable := refreshable.NewDefaultRefreshable([]byte(validCfgYML))
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+	runtimeConfigRefreshable := refreshable.New([]byte(validCfgYML))
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 		return createTestServer(t, initFn, installCfg, logOutputBuffer).
 			WithRuntimeConfigProvider(runtimeConfigRefreshable).
 			WithDisableGoRuntimeMetrics().
@@ -705,8 +704,7 @@ invalid-key: invalid-value
 	}, healthResults)
 
 	// write invalid runtime config and observe health check go unhealthy
-	err = runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
-	require.NoError(t, err)
+	runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
 	time.Sleep(500 * time.Millisecond)
 
 	request, err = http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
@@ -721,19 +719,22 @@ invalid-key: invalid-value
 	require.NoError(t, err)
 	assert.Equal(t, health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
-			health.CheckType("CONFIG_RELOAD"): {
-				Type:    health.CheckType("CONFIG_RELOAD"),
-				State:   health.New_HealthState(health.HealthState_ERROR),
-				Params:  make(map[string]interface{}),
-				Message: stringPtr("Refreshable validation failed, please look at service logs for more information."),
+			"CONFIG_RELOAD": {
+				Type:  "CONFIG_RELOAD",
+				State: health.New_HealthState(health.HealthState_ERROR),
+				Params: map[string]interface{}{
+					"error":  "yaml: unmarshal errors:\n  line 2: field invalid-key not found in type config.Runtime",
+					"params": map[string]interface{}{},
+				},
+				Message: stringPtr("Config reload error. See service logs for more information."),
 			},
-			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
-				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
+			"ENDPOINT_FIVE_HUNDREDS": {
+				Type:   "ENDPOINT_FIVE_HUNDREDS",
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
-			health.CheckType("SERVER_STATUS"): {
-				Type:   health.CheckType("SERVER_STATUS"),
+			"SERVER_STATUS": {
+				Type:   "SERVER_STATUS",
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
@@ -749,7 +750,7 @@ invalid-key: invalid-value
 
 type emptyHealthCheckSource struct{}
 
-func (emptyHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (emptyHealthCheckSource) HealthStatus(context.Context) health.HealthStatus {
 	return health.HealthStatus{}
 }
 
@@ -757,7 +758,7 @@ type healthCheckWithType struct {
 	typ health.CheckType
 }
 
-func (cwt healthCheckWithType) HealthStatus(_ context.Context) health.HealthStatus {
+func (cwt healthCheckWithType) HealthStatus(context.Context) health.HealthStatus {
 	return health.HealthStatus{
 		Checks: map[health.CheckType]health.HealthCheckResult{
 			cwt.typ: {

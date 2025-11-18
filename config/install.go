@@ -40,3 +40,12 @@ type Server struct {
 	CertFile       string   `yaml:"cert-file,omitempty"`
 	KeyFile        string   `yaml:"key-file,omitempty"`
 }
+
+func (i Install) BaseInstallConfig() Install {
+	return i
+}
+
+// BaseInstallConfig is an interface implemented by Install and structs that embed it.
+type BaseInstallConfig interface {
+	BaseInstallConfig() Install
+}

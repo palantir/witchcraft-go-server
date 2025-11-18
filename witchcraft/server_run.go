@@ -31,10 +31,10 @@ import (
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
-	"github.com/palantir/witchcraft-go-server/v2/config"
+	"github.com/palantir/witchcraft-go-server/v3/config"
 )
 
-func (s *Server) newServer(
+func (s *Server[I, R]) newServer(
 	productName string,
 	serverConfig config.Server,
 	handler http.Handler,
@@ -51,7 +51,7 @@ func (s *Server) newServer(
 	)
 }
 
-func (s *Server) newMgmtServer(productName string, serverConfig config.Server, handler http.Handler) (rStart func() error, rShutdown func(context.Context) error, rErr error) {
+func (s *Server[I, R]) newMgmtServer(productName string, serverConfig config.Server, handler http.Handler) (rStart func() error, rShutdown func(context.Context) error, rErr error) {
 	serverConfig.Port = serverConfig.ManagementPort
 	_, start, shutdown, err := newServerStartShutdownFns(
 		serverConfig,

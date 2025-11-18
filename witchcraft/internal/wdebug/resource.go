@@ -19,13 +19,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
+	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wresource"
-	"github.com/palantir/witchcraft-go-server/v2/wrouter"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wdebug"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wresource"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 const (
@@ -34,11 +34,11 @@ const (
 )
 
 type debugResource struct {
-	SharedSecret             refreshable.String
+	SharedSecret             refreshable.Refreshable[string]
 	customDiagnosticHandlers map[wdebug.DiagnosticType]wdebug.DiagnosticHandler
 }
 
-func RegisterRoute(ctx context.Context, router wrouter.Router, sharedSecret refreshable.String, customDiagnosticHandlers ...wdebug.DiagnosticHandler) error {
+func RegisterRoute(ctx context.Context, router wrouter.Router, sharedSecret refreshable.Refreshable[string], customDiagnosticHandlers ...wdebug.DiagnosticHandler) error {
 	customHandlersByType := make(map[wdebug.DiagnosticType]wdebug.DiagnosticHandler, len(customDiagnosticHandlers))
 	for _, handler := range customDiagnosticHandlers {
 		if err := handler.Type().Validate(); err != nil {
@@ -58,7 +58,7 @@ func RegisterRoute(ctx context.Context, router wrouter.Router, sharedSecret refr
 
 func (r *debugResource) ServeHTTP(rw http.ResponseWriter, req *http.Request) error {
 	ctx := req.Context()
-	if sharedSecret := r.SharedSecret.CurrentString(); sharedSecret != "" {
+	if sharedSecret := r.SharedSecret.Current(); sharedSecret != "" {
 		token, err := httpserver.ParseBearerTokenHeader(req)
 		if err != nil {
 			return errors.WrapWithUnauthorized(err)

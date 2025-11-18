@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/palantir/pkg/httpserver"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
 	"github.com/stretchr/testify/require"
 )
 
@@ -92,7 +92,7 @@ func TestServer_DiagnosticsSharedSecret(t *testing.T) {
 			port, err := httpserver.AvailablePort()
 			require.NoError(t, err)
 			server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard,
-				func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+				func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
 					return createTestServer(t, initFn, installCfg, logOutputBuffer).
 						WithRuntimeConfig(tt.runtimeConfig)
 				})

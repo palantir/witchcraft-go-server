@@ -1,4 +1,4 @@
-module github.com/palantir/witchcraft-go-server/v2
+module github.com/palantir/witchcraft-go-server/v3
 
 go 1.25.0
 
@@ -6,15 +6,14 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.1.0
-	github.com/palantir/conjure-go-runtime/v2 v2.99.0
+	github.com/palantir/conjure-go-runtime/v3 v3.0.0
 	github.com/palantir/go-encrypted-config-value v1.40.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.2.0
 	github.com/palantir/pkg/metrics v1.9.0
 	github.com/palantir/pkg/objmatcher v1.2.0
-	github.com/palantir/pkg/refreshable v1.6.0
+	github.com/palantir/pkg/refreshable/v2 v2.3.0
 	github.com/palantir/pkg/rid v1.2.0
-	github.com/palantir/pkg/safejson v1.2.0
 	github.com/palantir/pkg/signals v1.2.0
 	github.com/palantir/pkg/tlsconfig v1.4.0
 	github.com/palantir/pkg/uuid v1.3.0
@@ -36,8 +35,8 @@ require (
 	github.com/palantir/pkg v1.1.0 // indirect
 	github.com/palantir/pkg/bytesbuffers v1.3.0 // indirect
 	github.com/palantir/pkg/datetime v1.3.0 // indirect
-	github.com/palantir/pkg/refreshable/v2 v2.3.0 // indirect
 	github.com/palantir/pkg/retry v1.3.0 // indirect
+	github.com/palantir/pkg/safejson v1.2.0 // indirect
 	github.com/palantir/pkg/safelong v1.3.0 // indirect
 	github.com/palantir/pkg/safeyaml v1.2.0 // indirect
 	github.com/palantir/pkg/transform v1.2.0 // indirect

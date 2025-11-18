@@ -21,12 +21,12 @@ import (
 	"runtime/trace"
 	"time"
 
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/codecs"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/codecs"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
 	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
 	wparams "github.com/palantir/witchcraft-go-params"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft/wdebug"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wdebug"
 )
 
 // DiagnosticHandler is deprecated in favor of the exported wdebug.DiagnosticHandler.

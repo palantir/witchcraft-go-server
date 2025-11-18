@@ -27,13 +27,13 @@ import (
 	"time"
 
 	"github.com/nmiyake/pkg/dirs"
-	"github.com/palantir/conjure-go-runtime/v2/conjure-go-server/httpserver"
+	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	pkgserver "github.com/palantir/pkg/httpserver"
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	_ "github.com/palantir/witchcraft-go-logging/wlog-zap"
-	"github.com/palantir/witchcraft-go-server/v2/config"
-	"github.com/palantir/witchcraft-go-server/v2/witchcraft"
+	"github.com/palantir/witchcraft-go-server/v3/config"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -51,7 +51,7 @@ const (
 // createAndRunTestServer returns a running witchcraft.Server that is initialized with simple default configuration in a
 // temporary directory. Returns the server, the path to the temporary directory, a channel that returns the error
 // returned by the server when it stops and a cleanup function that will remove the temporary directory.
-func createAndRunTestServer(t *testing.T, initFn witchcraft.InitFunc, logOutputBuffer io.Writer) (server *witchcraft.Server, port int, managementPort int, serverErr <-chan error, cleanup func()) {
+func createAndRunTestServer(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], logOutputBuffer io.Writer) (server *witchcraft.Server[config.Install, config.Runtime], port int, managementPort int, serverErr <-chan error, cleanup func()) {
 	var err error
 	port, err = pkgserver.AvailablePort()
 	require.NoError(t, err)
@@ -62,9 +62,9 @@ func createAndRunTestServer(t *testing.T, initFn witchcraft.InitFunc, logOutputB
 	return server, port, managementPort, serverErr, cleanup
 }
 
-type serverCreatorFn func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server
+type serverCreatorFn func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime]
 
-func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn witchcraft.InitFunc, logOutputBuffer io.Writer, createServer serverCreatorFn) (server *witchcraft.Server, serverErr <-chan error, cleanup func()) {
+func createAndRunCustomTestServer(t *testing.T, port, managementPort int, initFn witchcraft.InitFunc[config.Install, config.Runtime], logOutputBuffer io.Writer, createServer serverCreatorFn) (server *witchcraft.Server[config.Install, config.Runtime], serverErr <-chan error, cleanup func()) {
 	installCfg := config.Install{
 		ProductName:    productName,
 		ProductVersion: productVersion,
@@ -146,18 +146,17 @@ func getRuntimeConfigYAMLBytes(t *testing.T) []byte {
 // createTestServer creates a test *witchcraft.Server that has been constructed but not started. The server has the
 // context path "/example" and has a handler for an "/ok" method that returns the JSON "ok" on GET calls. Returns the
 // server and the port that the server will use when started. Uses a default in-memory hard-coded runtime configuration.
-func createTestServer(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) (server *witchcraft.Server) {
-	return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, refreshable.NewDefaultRefreshable(getRuntimeConfigYAMLBytes(t)))
+func createTestServer(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) (server *witchcraft.Server[config.Install, config.Runtime]) {
+	return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, refreshable.New(getRuntimeConfigYAMLBytes(t)))
 }
 
 // createTestServer creates a test *witchcraft.Server that has been constructed but not started. The server has the
 // context path "/example" and has a handler for an "/ok" method that returns the JSON "ok" on GET calls. Returns the
 // server and the port that the server will use when started. Uses the provided refreshable as the runtime configuration
 // provider.
-func createTestServerWithRuntimeConfigProvider(initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer, runtimeConfigProvider refreshable.Refreshable) (server *witchcraft.Server) {
-	server = witchcraft.
-		NewServer().
-		WithInitFunc(func(ctx context.Context, initInfo witchcraft.InitInfo) (func(), error) {
+func createTestServerWithRuntimeConfigProvider(initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer, runtimeConfigProvider refreshable.Refreshable[[]byte]) (server *witchcraft.Server[config.Install, config.Runtime]) {
+	server = witchcraft.NewServer[config.Install, config.Runtime]().
+		WithInitFunc(func(ctx context.Context, initInfo witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
 			// register handler that returns "ok"
 			err := initInfo.Router.Get("/ok", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				httpserver.WriteJSONResponse(rw, "ok", http.StatusOK)
