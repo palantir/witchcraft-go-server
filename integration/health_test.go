@@ -549,9 +549,9 @@ func TestHealthSharedSecret(t *testing.T) {
 	}
 }
 
-// TestRuntimeConfigReloadHealth verifies that runtime configuration that is invalid when strict unmarshal mode is true
-// does not produces an error health check if strict unmarshal mode is not specified (since default value is false).
-func TestRuntimeConfigReloadHealthWithStrictUnmarshalFalse(t *testing.T) {
+// TestRuntimeConfigReloadHealth verifies that runtime configuration with extra keys/values does not produce an error
+// health check. If strict unmarshaling were enabled, an error health check would be produced.
+func TestRuntimeConfigReloadHealth(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
 
@@ -633,108 +633,6 @@ invalid-key: invalid-value
 			},
 			health.CheckType("SERVER_STATUS"): {
 				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
-			},
-		},
-	}, healthResults)
-
-	select {
-	case err := <-serverErr:
-		require.NoError(t, err)
-	default:
-	}
-}
-
-// TestRuntimeConfigReloadHealth verifies that runtime configuration that is invalid when strict unmarshal mode is true
-// produces an error health check.
-func TestRuntimeConfigReloadHealthWithStrictUnmarshalTrue(t *testing.T) {
-	port, err := httpserver.AvailablePort()
-	require.NoError(t, err)
-
-	validCfgYML := `logging:
-  level: info
-`
-	invalidCfgYML := `
-invalid-key: invalid-value
-`
-	runtimeConfigRefreshable := refreshable.New([]byte(validCfgYML))
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
-		return createTestServer(t, initFn, installCfg, logOutputBuffer).
-			WithRuntimeConfigProvider(runtimeConfigRefreshable).
-			WithDisableGoRuntimeMetrics().
-			WithStrictUnmarshalConfig()
-	})
-
-	defer func() {
-		require.NoError(t, server.Close())
-	}()
-	defer cleanup()
-
-	client := testServerClient()
-	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
-	require.NoError(t, err)
-	resp, err := client.Do(request)
-	require.NoError(t, err)
-
-	bytes, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-
-	var healthResults health.HealthStatus
-	err = json.Unmarshal(bytes, &healthResults)
-	require.NoError(t, err)
-	assert.Equal(t, health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			health.CheckType("CONFIG_RELOAD"): {
-				Type:   health.CheckType("CONFIG_RELOAD"),
-				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
-			},
-			health.CheckType("ENDPOINT_FIVE_HUNDREDS"): {
-				Type:   health.CheckType("ENDPOINT_FIVE_HUNDREDS"),
-				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
-			},
-			health.CheckType("SERVER_STATUS"): {
-				Type:   health.CheckType("SERVER_STATUS"),
-				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
-			},
-		},
-	}, healthResults)
-
-	// write invalid runtime config and observe health check go unhealthy
-	runtimeConfigRefreshable.Update([]byte(invalidCfgYML))
-	time.Sleep(500 * time.Millisecond)
-
-	request, err = http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/%s", port, basePath, status.HealthEndpoint), nil)
-	require.NoError(t, err)
-	resp, err = client.Do(request)
-	require.NoError(t, err)
-
-	bytes, err = io.ReadAll(resp.Body)
-	require.NoError(t, err)
-
-	err = json.Unmarshal(bytes, &healthResults)
-	require.NoError(t, err)
-	assert.Equal(t, health.HealthStatus{
-		Checks: map[health.CheckType]health.HealthCheckResult{
-			"CONFIG_RELOAD": {
-				Type:  "CONFIG_RELOAD",
-				State: health.New_HealthState(health.HealthState_ERROR),
-				Params: map[string]interface{}{
-					"error":  "yaml: unmarshal errors:\n  line 2: field invalid-key not found in type config.Runtime",
-					"params": map[string]interface{}{},
-				},
-				Message: stringPtr("Config reload error. See service logs for more information."),
-			},
-			"ENDPOINT_FIVE_HUNDREDS": {
-				Type:   "ENDPOINT_FIVE_HUNDREDS",
-				State:  health.New_HealthState(health.HealthState_HEALTHY),
-				Params: make(map[string]interface{}),
-			},
-			"SERVER_STATUS": {
-				Type:   "SERVER_STATUS",
 				State:  health.New_HealthState(health.HealthState_HEALTHY),
 				Params: make(map[string]interface{}),
 			},
