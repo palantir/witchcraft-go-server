@@ -14,9 +14,9 @@ type FoundryResource struct {
 	   (en_us:Id|fra_fr:Id|no_nb:Id) The primary identifier for the given AuditResource. This identifier should
 	   be specific to the object of focus.
 	*/
-	Id *string `conjure-docs:"(en_us:Id|fra_fr:Id|no_nb:Id) The primary identifier for the given AuditResource. This identifier should\nbe specific to the object of focus." json:"id,omitempty" safelogging:"@Unsafe"`
+	Id *string `json:"id,omitempty" safelogging:"@Unsafe"`
 	// (en_us:Id|fra_fr:Id|no_nb:Id) Branch on which the resource exists, if any.
-	Branch *string `conjure-docs:"(en_us:Id|fra_fr:Id|no_nb:Id) Branch on which the resource exists, if any." json:"branch,omitempty" safelogging:"@Unsafe"`
+	Branch *string `json:"branch,omitempty" safelogging:"@Unsafe"`
 }
 
 func (o FoundryResource) MarshalYAML() (interface{}, error) {
@@ -41,28 +41,28 @@ type GothamResource struct {
 	   (en_us:Id|fra_fr:Id|no_nb:Id) The primary identifier for the given AuditResource. This identifier should
 	   be specific to the object of focus.
 	*/
-	Id *string `conjure-docs:"(en_us:Id|fra_fr:Id|no_nb:Id) The primary identifier for the given AuditResource. This identifier should\nbe specific to the object of focus." json:"id,omitempty" safelogging:"@Unsafe"`
+	Id *string `json:"id,omitempty" safelogging:"@Unsafe"`
 	// (en_us:Title|fra_fr:Titre|no_nb:Tittel) A user-understandable title for the given resource.
-	Title *string `conjure-docs:"(en_us:Title|fra_fr:Titre|no_nb:Tittel) A user-understandable title for the given resource." json:"title,omitempty" safelogging:"@Unsafe"`
+	Title *string `json:"title,omitempty" safelogging:"@Unsafe"`
 	// (en_us:Description|fra_fr:Description|no_nb:Beskrivelse) A description or a system-generated message where appropriate.  This may be user generated or not.
-	Description *string `conjure-docs:"(en_us:Description|fra_fr:Description|no_nb:Beskrivelse) A description or a system-generated message where appropriate.  This may be user generated or not." json:"description,omitempty" safelogging:"@Unsafe"`
+	Description *string `json:"description,omitempty" safelogging:"@Unsafe"`
 	/*
 	   (en_us:Sub Type|fra_fr:Type Secondaire|no_nb:Undertype) The subType of the resource.  Commonly used to provide additional context on a specific type of object
 	   (i.e., com.palantir.object.person).
 	*/
-	SubType *string `conjure-docs:"(en_us:Sub Type|fra_fr:Type Secondaire|no_nb:Undertype) The subType of the resource.  Commonly used to provide additional context on a specific type of object\n(i.e., com.palantir.object.person)." json:"subType,omitempty" safelogging:"@Unsafe"`
+	SubType *string `json:"subType,omitempty" safelogging:"@Unsafe"`
 	// (en_us:Sub Resources|fra_fr:Ressources Secondaires|no_nb:Underresurser) If relevant, a resource may have additional nested resource sets.
-	SubResources [][]GothamResource `conjure-docs:"(en_us:Sub Resources|fra_fr:Ressources Secondaires|no_nb:Underresurser) If relevant, a resource may have additional nested resource sets." json:"subResources"`
+	SubResources [][]GothamResource `json:"subResources"`
 	// (en_us:Value|fra_fr:Valeur|no_nb:Verdi) The value is the most basic place to put a string in a given resource set.
-	Value *string `conjure-docs:"(en_us:Value|fra_fr:Valeur|no_nb:Verdi) The value is the most basic place to put a string in a given resource set." json:"value,omitempty" safelogging:"@Unsafe"`
+	Value *string `json:"value,omitempty" safelogging:"@Unsafe"`
 	// (en_us:Count|fra_fr:Nombre|no_nb:Antall) In cases where a count is appropriate, store it here.
-	Count *safelong.SafeLong `conjure-docs:"(en_us:Count|fra_fr:Nombre|no_nb:Antall) In cases where a count is appropriate, store it here." json:"count,omitempty" safelogging:"@Unsafe"`
+	Count *safelong.SafeLong `json:"count,omitempty" safelogging:"@Unsafe"`
 	/*
 	   (en_us:Additional Ids|fra_fr:Ids Additionnels|no_nb:Andre Id-er) In the event that multiple ids are required to give context
 	   on a resource set, you may add them here.  For example, a realmId might
 	   supplement a standard Object id to make an object locatable.
 	*/
-	AdditionalIds    []string          `conjure-docs:"(en_us:Additional Ids|fra_fr:Ids Additionnels|no_nb:Andre Id-er) In the event that multiple ids are required to give context\non a resource set, you may add them here.  For example, a realmId might\nsupplement a standard Object id to make an object locatable." json:"additionalIds" safelogging:"@Unsafe"`
+	AdditionalIds    []string          `json:"additionalIds" safelogging:"@Unsafe"`
 	AdditionalParams map[string]string `json:"additionalParams"`
 }
 
@@ -74,7 +74,7 @@ func (o GothamResource) MarshalJSON() ([]byte, error) {
 		o.AdditionalIds = make([]string, 0)
 	}
 	if o.AdditionalParams == nil {
-		o.AdditionalParams = make(map[string]string, 0)
+		o.AdditionalParams = make(map[string]string)
 	}
 	type _tmpGothamResource GothamResource
 	return safejson.Marshal(_tmpGothamResource(o))
@@ -93,7 +93,7 @@ func (o *GothamResource) UnmarshalJSON(data []byte) error {
 		rawGothamResource.AdditionalIds = make([]string, 0)
 	}
 	if rawGothamResource.AdditionalParams == nil {
-		rawGothamResource.AdditionalParams = make(map[string]string, 0)
+		rawGothamResource.AdditionalParams = make(map[string]string)
 	}
 	*o = GothamResource(rawGothamResource)
 	return nil

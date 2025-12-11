@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/palantir/pkg/safelong"
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft-logging-api/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/internal/gopath"
 )
 

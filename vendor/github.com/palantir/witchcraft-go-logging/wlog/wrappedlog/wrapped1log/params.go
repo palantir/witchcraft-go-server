@@ -15,7 +15,7 @@
 package wrapped1log
 
 import (
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft-logging-api/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log"

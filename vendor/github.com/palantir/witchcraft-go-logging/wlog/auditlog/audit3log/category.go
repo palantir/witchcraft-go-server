@@ -18,7 +18,7 @@ import (
 	"context"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	v2 "github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category/v2"
+	v2 "github.com/palantir/witchcraft-go-logging/conjure/audit-api/foundry/audit/api/category/v2"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	categoriespkg "github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log/internal/categories"

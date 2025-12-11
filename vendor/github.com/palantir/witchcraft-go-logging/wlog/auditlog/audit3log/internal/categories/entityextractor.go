@@ -16,7 +16,7 @@ package categories
 
 import (
 	"github.com/palantir/pkg/rid"
-	commonv2 "github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/common/v2"
+	commonv2 "github.com/palantir/witchcraft-go-logging/conjure/audit-api/foundry/audit/api/common/v2"
 )
 
 func EntitiesFromResources(resource ...commonv2.Resource) ([]rid.ResourceIdentifier, error) {

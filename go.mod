@@ -19,7 +19,7 @@ require (
 	github.com/palantir/pkg/uuid v1.3.0
 	github.com/palantir/witchcraft-go-error v1.42.0
 	github.com/palantir/witchcraft-go-health v1.16.0
-	github.com/palantir/witchcraft-go-logging v1.63.0
+	github.com/palantir/witchcraft-go-logging v1.64.0
 	github.com/palantir/witchcraft-go-params v1.39.0
 	github.com/palantir/witchcraft-go-tracing v1.41.0
 	github.com/stretchr/testify v1.11.1
