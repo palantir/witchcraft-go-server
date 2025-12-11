@@ -15,8 +15,8 @@
 package audit3log
 
 import (
-	v2 "github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category/v2"
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	v2 "github.com/palantir/witchcraft-go-logging/conjure/audit-api/foundry/audit/api/category/v2"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft-logging-api/witchcraft/api/logging"
 	categoriespkg "github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit3log/internal/categories"
 )
 

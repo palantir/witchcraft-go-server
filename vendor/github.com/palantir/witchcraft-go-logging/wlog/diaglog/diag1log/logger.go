@@ -17,7 +17,7 @@ package diag1log
 import (
 	"io"
 
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft-logging-api/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 )
 

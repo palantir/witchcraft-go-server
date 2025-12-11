@@ -19,8 +19,8 @@ import (
 	"reflect"
 
 	werror "github.com/palantir/witchcraft-go-error"
-	commonv2 "github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/common/v2"
-	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
+	commonv2 "github.com/palantir/witchcraft-go-logging/conjure/audit-api/foundry/audit/api/common/v2"
+	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft-logging-api/witchcraft/api/logging"
 )
 
 // Converts the provided data to a slice of v2.Resource. Based on the Java "promote" method.

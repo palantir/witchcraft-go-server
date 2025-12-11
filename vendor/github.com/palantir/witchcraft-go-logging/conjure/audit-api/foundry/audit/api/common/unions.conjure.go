@@ -97,7 +97,7 @@ func (u *Resource) AcceptFuncs(gothamFunc func(GothamResource) error, foundryFun
 	switch u.typ {
 	default:
 		if u.typ == "" {
-			return fmt.Errorf("invalid value in union type")
+			return fmt.Errorf("invalid value in Resource type")
 		}
 		return unknownFunc(u.typ)
 	case "gotham":
@@ -113,11 +113,11 @@ func (u *Resource) AcceptFuncs(gothamFunc func(GothamResource) error, foundryFun
 	}
 }
 
-func (u *Resource) GothamNoopSuccess(GothamResource) error {
+func (u *Resource) GothamNoopSuccess(_ GothamResource) error {
 	return nil
 }
 
-func (u *Resource) FoundryNoopSuccess(FoundryResource) error {
+func (u *Resource) FoundryNoopSuccess(_ FoundryResource) error {
 	return nil
 }
 
