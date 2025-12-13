@@ -15,7 +15,7 @@ require (
 	github.com/palantir/pkg/refreshable/v2 v2.3.0
 	github.com/palantir/pkg/rid v1.2.0
 	github.com/palantir/pkg/signals v1.2.0
-	github.com/palantir/pkg/tlsconfig v1.4.0
+	github.com/palantir/pkg/tlsconfig v1.5.0
 	github.com/palantir/pkg/uuid v1.3.0
 	github.com/palantir/witchcraft-go-error v1.42.0
 	github.com/palantir/witchcraft-go-health v1.17.0
