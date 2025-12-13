@@ -52,8 +52,8 @@ github.com/palantir/pkg/safeyaml v1.2.0 h1:5IbhlQstu0JC4STfWvLiWex47sFtBHzxjEYbc
 github.com/palantir/pkg/safeyaml v1.2.0/go.mod h1:lcCo9iTDCRwrWJS79kF/zY3H8BGbrD+Sdb6TADK4nHI=
 github.com/palantir/pkg/signals v1.2.0 h1:rD/PuK3usdPCHUqm3GtFRJgn/1IAf++MbtKQHd3r9UM=
 github.com/palantir/pkg/signals v1.2.0/go.mod h1:2Q4XVBLYToqVX7kv/SSkl7E7FVJyON7CGZ/BZ372B3s=
-github.com/palantir/pkg/tlsconfig v1.4.0 h1:r2L6Cydn341wXhIsKg6mhdkKnb56ZpdW5TdfSwqeswY=
-github.com/palantir/pkg/tlsconfig v1.4.0/go.mod h1:Q6894Kq+nhfy9JlX9jDwWzR8P5PPoaR1DsPqSL5aHeQ=
+github.com/palantir/pkg/tlsconfig v1.5.0 h1:7iKq61z3WV65DLCV0I+JBHXy3uhIg95/EVZCYjoxTCc=
+github.com/palantir/pkg/tlsconfig v1.5.0/go.mod h1:rTgz0hUOGBW5wLbEKniupfkoh1UNYqgpKopLVzIRaNE=
 github.com/palantir/pkg/transform v1.2.0 h1:ngTydiV5SUG9mfGxkYk1tH3Xi3vsohjqYqW8SxhqjJ0=
 github.com/palantir/pkg/transform v1.2.0/go.mod h1:p5lGLs0ah/iyB31ODlWIMp0SZibQV6HxSyJaM1L26dw=
 github.com/palantir/pkg/uuid v1.3.0 h1:ubiwfGpl1vTdrVmzXhRc1PVHD8/y60fT1QPwmziCETM=
