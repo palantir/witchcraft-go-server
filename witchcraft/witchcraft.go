@@ -269,6 +269,8 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
 	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
+
+	TaskManager TaskManager
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -763,6 +765,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
 
+	taskManager := NewTaskManager()
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
@@ -798,6 +801,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 				RuntimeConfig:  refreshableRuntimeCfg,
 				Clients:        discovery,
 				ShutdownServer: s.Shutdown,
+				TaskManager:    taskManager,
 			},
 		)
 		if err != nil {
