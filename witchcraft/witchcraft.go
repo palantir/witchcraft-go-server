@@ -57,6 +57,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-tasks/jobs"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"gopkg.in/yaml.v2"
@@ -563,6 +564,10 @@ func (s *Server[I, R]) WithLoggerStdoutWriter(loggerStdoutWriter io.Writer) *Ser
 func (s *Server[I, R]) WithHealthStatusChangeHandlers(handlers ...status.HealthStatusChangeHandler) *Server[I, R] {
 	s.healthStatusChangeHandlers = append(s.healthStatusChangeHandlers, handlers...)
 	return s
+}
+
+func W() jobs.Job {
+
 }
 
 // WithCustomDiagnosticHandlers configures the application's custom diagnostic handlers.
