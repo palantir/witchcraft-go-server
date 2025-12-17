@@ -12,6 +12,7 @@ type TaskManagerAdder interface {
 }
 
 type TaskManagerGetter interface {
+	GetJobs() []jobs.Job
 }
 
 type defaultTaskManager struct {
@@ -26,4 +27,8 @@ func (d *defaultTaskManager) AddJobs(job ...jobs.Job) {
 	for _, job := range job {
 		d.jobs = append(d.jobs, job)
 	}
+}
+
+func (d *defaultTaskManager) GetJobs() []jobs.Job {
+	return d.jobs
 }

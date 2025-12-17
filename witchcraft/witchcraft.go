@@ -36,6 +36,7 @@ import (
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/sources/window"
 	healthstatus "github.com/palantir/witchcraft-go-health/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -568,10 +569,6 @@ func (s *Server[I, R]) WithHealthStatusChangeHandlers(handlers ...status.HealthS
 	return s
 }
 
-func W() jobs.Job {
-
-}
-
 // WithCustomDiagnosticHandlers configures the application's custom diagnostic handlers.
 // This adds to the default diagnostic handlers provided by the server.
 func (s *Server[I, R]) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server[I, R] {
@@ -810,6 +807,15 @@ func (s *Server[I, R]) Start() (rErr error) {
 		if cleanupFn != nil {
 			defer cleanupFn()
 		}
+	}
+
+	potentialJobs := taskManager.GetJobs()
+
+	if len(potentialJobs) > 0 {
+		source := window.MustNewKeyedErrorHealthCheckSource("WITCHCRAFT_JOB_RUNNER", window.HealthyIfNotAllErrors)
+		s.healthCheckSources = append(s.healthCheckSources, source)
+		jobRunner := jobs.NewDefaultJobRunner(source)
+		jobRunner.StartJobs(ctx, potentialJobs)
 	}
 
 	// add all internally defined health check sources to the user supplied ones after running the initFn.
