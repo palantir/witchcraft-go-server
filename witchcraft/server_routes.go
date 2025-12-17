@@ -26,7 +26,7 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
-	healthstatus "github.com/palantir/witchcraft-go-health/status"
+	healthstatus "github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/status/routes"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/middleware"

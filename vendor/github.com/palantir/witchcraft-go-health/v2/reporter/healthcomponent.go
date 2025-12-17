@@ -15,19 +15,20 @@
 package reporter
 
 import (
+	"context"
 	"sync"
 
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 )
 
 var _ HealthComponent = &healthComponent{}
 
 // HealthComponent is an extensible component that represents one part of the whole health picture for a service.
 type HealthComponent interface {
-	Healthy()
-	Warning(message string)
-	Error(err error)
-	SetHealth(healthState health.HealthState_Value, message *string, params map[string]interface{})
+	Healthy(ctx context.Context)
+	Warning(ctx context.Context, message string)
+	Error(ctx context.Context, err error)
+	SetHealth(ctx context.Context, healthState health.HealthState_Value, message *string, params map[string]interface{})
 	Status() health.HealthState_Value
 	GetHealthCheck() health.HealthCheckResult
 }
@@ -41,20 +42,20 @@ type healthComponent struct {
 	params  map[string]interface{}
 }
 
-func (r *healthComponent) Healthy() {
-	r.SetHealth(health.HealthState_HEALTHY, nil, nil)
+func (r *healthComponent) Healthy(ctx context.Context) {
+	r.SetHealth(ctx, health.HealthState_HEALTHY, nil, nil)
 }
 
-func (r *healthComponent) Warning(warningMsg string) {
-	r.SetHealth(health.HealthState_WARNING, &warningMsg, nil)
+func (r *healthComponent) Warning(ctx context.Context, warningMsg string) {
+	r.SetHealth(ctx, health.HealthState_WARNING, &warningMsg, nil)
 }
 
-func (r *healthComponent) Error(err error) {
+func (r *healthComponent) Error(ctx context.Context, err error) {
 	errorString := err.Error()
-	r.SetHealth(health.HealthState_ERROR, &errorString, nil)
+	r.SetHealth(ctx, health.HealthState_ERROR, &errorString, nil)
 }
 
-func (r *healthComponent) SetHealth(healthState health.HealthState_Value, message *string, params map[string]interface{}) {
+func (r *healthComponent) SetHealth(ctx context.Context, healthState health.HealthState_Value, message *string, params map[string]interface{}) {
 	r.Lock()
 	defer r.Unlock()
 

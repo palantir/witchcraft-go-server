@@ -38,9 +38,24 @@ func WithInitialPoll() Option {
 
 // WithStartupGracePeriod configures the health check source to transform all ERROR results into REPAIRING results
 // for the first startupGracePeriod time window.
-// The default value of the startup grace period is the window grace period.
+// defaults to 1 minute
 func WithStartupGracePeriod(startupGracePeriod time.Duration) Option {
 	return optionFn(func(source *healthCheckSource) {
 		source.startupGracePeriod = startupGracePeriod
+	})
+}
+
+// WithRetryInterval configures how often the health check pools
+// defaults to 1 minute
+func WithRetryInterval(retryInterval time.Duration) Option {
+	return optionFn(func(source *healthCheckSource) {
+		source.retryInterval = retryInterval
+	})
+}
+
+// WithGracePeriod configures how long the health gracePeriod lasts
+func WithGracePeriod(gracePeriod time.Duration) Option {
+	return optionFn(func(source *healthCheckSource) {
+		source.gracePeriod = gracePeriod
 	})
 }
