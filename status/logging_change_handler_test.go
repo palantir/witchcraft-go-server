@@ -20,8 +20,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-health/sources"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/sources"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/stretchr/testify/assert"

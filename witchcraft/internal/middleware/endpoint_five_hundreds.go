@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 

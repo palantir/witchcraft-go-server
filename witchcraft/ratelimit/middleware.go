@@ -20,8 +20,8 @@ import (
 	"sync/atomic"
 
 	"github.com/palantir/pkg/refreshable/v2"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-health/reporter"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/reporter"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
@@ -49,14 +49,14 @@ var MatchMutating MatchFunc = func(req *http.Request, vals wrouter.RequestVals) 
 // TODO: We should set the Retry-After header based on how many requests we're rejecting.
 //
 //	Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
-func NewInFlightRequestLimitMiddleware(limit refreshable.Refreshable[int], matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
+func NewInFlightRequestLimitMiddleware(ctx context.Context, limit refreshable.Refreshable[int], matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
 	l := &limiter{
 		Limit:   limit,
 		Matches: matches,
 		Health:  healthcheck,
 	}
 	if healthcheck != nil {
-		healthcheck.Healthy()
+		healthcheck.Healthy(ctx)
 	}
 	return l.ServeHTTP
 }
@@ -96,7 +96,7 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 	}
 	if l.Health != nil && l.Health.Status() != health.HealthState_REPAIRING {
 		msg := inFlightThrottledMessage
-		l.Health.SetHealth(health.HealthState_REPAIRING, &msg, nil)
+		l.Health.SetHealth(ctx, health.HealthState_REPAIRING, &msg, nil)
 	}
 	svc1log.FromContext(ctx).Warn(inFlightThrottledMessage,
 		svc1log.SafeParam("current", current),
@@ -110,7 +110,7 @@ func (l *limiter) increment(ctx context.Context) (throttled bool) {
 func (l *limiter) decrement(ctx context.Context) {
 	current := atomic.AddInt64(&l.current, -1)
 	if current < l.limit() && l.Health != nil && l.Health.Status() != health.HealthState_HEALTHY {
-		l.Health.Healthy()
+		l.Health.Healthy(ctx)
 	}
 }
 

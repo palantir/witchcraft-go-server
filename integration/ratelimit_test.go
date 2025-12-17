@@ -25,8 +25,8 @@ import (
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-health/reporter"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/reporter"
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/ratelimit"
@@ -45,7 +45,7 @@ func TestNewInflightLimitMiddleware(t *testing.T) {
 		require.Equal(t, health.HealthState_REPAIRING, healthComponent.Status(), msg)
 	}
 
-	limiter := ratelimit.NewInFlightRequestLimitMiddleware(refreshable.New(2), ratelimit.MatchMutating, healthComponent)
+	limiter := ratelimit.NewInFlightRequestLimitMiddleware(context.Background(), refreshable.New(2), ratelimit.MatchMutating, healthComponent)
 
 	wait, closeWait := context.WithCancel(context.Background())
 	defer closeWait()

@@ -25,8 +25,8 @@ import (
 	"testing"
 
 	"github.com/palantir/pkg/refreshable/v2"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	healthstatus "github.com/palantir/witchcraft-go-health/status"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	healthstatus "github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-server/v3/status"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"

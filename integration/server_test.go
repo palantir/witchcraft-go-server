@@ -31,7 +31,7 @@ import (
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/tlsconfig"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/status"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
