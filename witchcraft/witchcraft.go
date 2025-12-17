@@ -271,7 +271,7 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
 
-	TaskManager TaskManager
+	TaskManager TaskManagerAdder
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -810,7 +810,6 @@ func (s *Server[I, R]) Start() (rErr error) {
 	}
 
 	potentialJobs := taskManager.GetJobs()
-
 	if len(potentialJobs) > 0 {
 		source := window.MustNewKeyedErrorHealthCheckSource("WITCHCRAFT_JOB_RUNNER", window.HealthyIfNotAllErrors)
 		s.healthCheckSources = append(s.healthCheckSources, source)
