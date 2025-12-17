@@ -21,8 +21,8 @@ import (
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/errors"
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-server/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-health/status"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/status"
 )
 
 // HealthHandler is responsible for checking the health-check-shared-secret if it is provided and

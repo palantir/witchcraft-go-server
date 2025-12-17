@@ -36,7 +36,7 @@ import (
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
-	healthstatus "github.com/palantir/witchcraft-go-health/status"
+	healthstatus "github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"

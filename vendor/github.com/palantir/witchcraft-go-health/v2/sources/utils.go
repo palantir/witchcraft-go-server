@@ -16,7 +16,7 @@ package sources
 
 import (
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 )
 
 // UnhealthyHealthCheckResult returns an unhealthy health check result with type checkType and message message.

@@ -29,9 +29,9 @@ import (
 
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/refreshable/v2"
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-health/reporter"
-	"github.com/palantir/witchcraft-go-health/sources/periodic"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/reporter"
+	"github.com/palantir/witchcraft-go-health/v2/sources/periodic"
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/status"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
@@ -306,7 +306,7 @@ func TestHealthReporter(t *testing.T) {
 			if component.Status() != health.HealthState_REPAIRING {
 				panic(fmt.Errorf("expected reporter to be in REPAIRING before being marked healthy, got %s", component.Status()))
 			}
-			component.Healthy()
+			component.Healthy(context.Background())
 			if component.Status() != health.HealthState_HEALTHY {
 				panic(fmt.Errorf("expected reporter to be in HEALTHY after being marked healthy, got %s", component.Status()))
 			}
@@ -322,7 +322,7 @@ func TestHealthReporter(t *testing.T) {
 			if component.Status() != health.HealthState_REPAIRING {
 				panic(fmt.Errorf("expected reporter to be in REPAIRING before being marked healthy, got %s", component.Status()))
 			}
-			component.Error(errors.New(errString))
+			component.Error(context.Background(), errors.New(errString))
 			if component.Status() != health.HealthState_ERROR {
 				panic(fmt.Errorf("expected reporter to be in ERROR after being marked with error, got %s", component.Status()))
 			}
@@ -447,7 +447,7 @@ func TestPeriodicHealthSource(t *testing.T) {
 			Params:  make(map[string]interface{}),
 		},
 	}}
-	periodicHealthCheckSource := periodic.FromHealthCheckSource(context.Background(), time.Second*60, time.Millisecond*1, inputSource)
+	periodicHealthCheckSource := periodic.FromHealthCheckSource(context.Background(), inputSource, periodic.WithGracePeriod(time.Second*60), periodic.WithRetryInterval(time.Millisecond*1), periodic.WithInitialPoll())
 
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)

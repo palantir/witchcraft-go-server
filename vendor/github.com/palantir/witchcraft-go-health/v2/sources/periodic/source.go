@@ -20,9 +20,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health"
-	"github.com/palantir/witchcraft-go-health/sources"
-	"github.com/palantir/witchcraft-go-health/status"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
+	"github.com/palantir/witchcraft-go-health/v2/sources"
+	"github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 )
 
@@ -57,22 +57,22 @@ type healthCheckSource struct {
 // is cancelled if ctx is cancelled. If gracePeriod elapses without poll returning nil, the returned health check
 // source will give a health status of error. checkType is the key to be used in the health result returned by the
 // health check source.
-func NewHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, checkType health.CheckType, poll func() error, options ...Option) status.HealthCheckSource {
-	return FromHealthCheckSource(ctx, gracePeriod, retryInterval, newDefaultHealthCheckSource(checkType, poll), options...)
+func NewHealthCheckSource(ctx context.Context, checkType health.CheckType, poll func() error, options ...Option) status.HealthCheckSource {
+	return FromHealthCheckSource(ctx, newDefaultHealthCheckSource(checkType, poll), options...)
 }
 
 // FromHealthCheckSource creates a health check source that calls the the provided Source.Checks functions every
 // retryInterval in a goroutine. The goroutine is cancelled if ctx is cancelled. For each check, if gracePeriod elapses
 // without CheckFunc returning HEALTHY, the returned health check source's HealthStatus will return a HealthCheckResult
 // of error.
-func FromHealthCheckSource(ctx context.Context, gracePeriod time.Duration, retryInterval time.Duration, source Source, options ...Option) status.HealthCheckSource {
+func FromHealthCheckSource(ctx context.Context, source Source, options ...Option) status.HealthCheckSource {
 	checker := &healthCheckSource{
 		source:             source,
-		gracePeriod:        gracePeriod,
-		retryInterval:      retryInterval,
+		gracePeriod:        time.Minute,
+		retryInterval:      time.Minute,
 		checkStates:        map[health.CheckType]*checkState{},
 		startupTime:        time.Now(),
-		startupGracePeriod: gracePeriod,
+		startupGracePeriod: time.Minute,
 	}
 	for _, option := range options {
 		option.apply(checker)
