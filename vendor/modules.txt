@@ -96,6 +96,12 @@ github.com/palantir/witchcraft-go-health/sources
 github.com/palantir/witchcraft-go-health/sources/periodic
 github.com/palantir/witchcraft-go-health/sources/window
 github.com/palantir/witchcraft-go-health/status
+# github.com/palantir/witchcraft-go-health/v2 v2.0.0
+## explicit; go 1.25.0
+github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health
+github.com/palantir/witchcraft-go-health/v2/sources
+github.com/palantir/witchcraft-go-health/v2/sources/window
+github.com/palantir/witchcraft-go-health/v2/status
 # github.com/palantir/witchcraft-go-logging v1.64.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-logging/conjure/audit-api/foundry/audit/api/category
@@ -129,7 +135,7 @@ github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
 # github.com/palantir/witchcraft-go-params v1.39.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-params
-# github.com/palantir/witchcraft-go-tasks v0.1.1-0.20251216155635-9649dc1a5d57
+# github.com/palantir/witchcraft-go-tasks v0.4.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-tasks/function
 github.com/palantir/witchcraft-go-tasks/jobs

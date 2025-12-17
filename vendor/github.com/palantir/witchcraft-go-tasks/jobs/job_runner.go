@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/palantir/witchcraft-go-health/sources/window"
+	"github.com/palantir/witchcraft-go-health/v2/sources/window"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 	"github.com/palantir/witchcraft-go-logging/wlog/wapp"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -87,8 +87,7 @@ func (d defaultJobRunner) runJobNoError(ctx context.Context, job Job) {
 	defer fnSpan.Finish()
 	svc1log.FromContext(ctx).Debug("Starting single iteration of the job")
 	err := wapp.RunWithRecoveryLoggingWithError(ctx, job.Run)
-	// TODO Fix CTX with Health Package update
-	d.keyedErrorHealthCheckSource.Submit(job.Name(), err)
+	d.keyedErrorHealthCheckSource.Submit(ctx, job.Name(), err)
 	if err != nil {
 		job.LogError(ctx, err)
 	}
