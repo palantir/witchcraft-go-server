@@ -49,14 +49,14 @@ var MatchMutating MatchFunc = func(req *http.Request, vals wrouter.RequestVals) 
 // TODO: We should set the Retry-After header based on how many requests we're rejecting.
 //
 //	Maybe enqueue requests in a channel for a few seconds in case other requests return quickly?
-func NewInFlightRequestLimitMiddleware(limit refreshable.Refreshable[int], matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
+func NewInFlightRequestLimitMiddleware(ctx context.Context, limit refreshable.Refreshable[int], matches MatchFunc, healthcheck reporter.HealthComponent) wrouter.RouteHandlerMiddleware {
 	l := &limiter{
 		Limit:   limit,
 		Matches: matches,
 		Health:  healthcheck,
 	}
 	if healthcheck != nil {
-		healthcheck.Healthy(context.Background())
+		healthcheck.Healthy(ctx)
 	}
 	return l.ServeHTTP
 }
