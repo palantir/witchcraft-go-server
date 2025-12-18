@@ -26,7 +26,6 @@ import (
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/refreshable/v2"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 	healthstatus "github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/status/routes"
@@ -65,14 +64,9 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 	healthSharedSecret := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) string {
 		return cfg.BaseRuntimeConfig().HealthChecks.SharedSecret
 	})
-	// Use refreshable health source to allow health checks to be added dynamically after startup.
-	// The stateManager is always included as a static source.
 	if err := routes.AddHealthRoutes(
 		statusResource,
-		healthstatus.NewCombinedHealthCheckSource(
-			newRefreshableHealthCheckSource(s.healthCheckSources),
-			&s.stateManager,
-		),
+		healthstatus.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...),
 		healthSharedSecret,
 		s.healthStatusChangeHandlers,
 	); err != nil {
@@ -186,7 +180,7 @@ func newRefreshableHealthCheckSource(sources refreshable.Refreshable[[]healthsta
 	return &refreshableHealthCheckSource{sources: sources}
 }
 
-func (r *refreshableHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+func (r *refreshableHealthCheckSource) HealthStatus(ctx context.Context) healthstatus.HealthStatus {
 	return healthstatus.NewCombinedHealthCheckSource(r.sources.Current()...).HealthStatus(ctx)
 }
 
