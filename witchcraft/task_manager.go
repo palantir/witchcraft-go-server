@@ -1,6 +1,9 @@
 package witchcraft
 
-import "github.com/palantir/witchcraft-go-tasks/jobs"
+import (
+	"github.com/palantir/witchcraft-go-tasks/function"
+	"github.com/palantir/witchcraft-go-tasks/jobs"
+)
 
 type TaskManager interface {
 	TaskManagerAdder
@@ -9,6 +12,7 @@ type TaskManager interface {
 
 type TaskManagerAdder interface {
 	AddJobs(job ...jobs.Job)
+	AddForeverRunnable(namedRunnable ...function.NamedRunnable)
 }
 
 type TaskManagerGetter interface {
@@ -16,7 +20,14 @@ type TaskManagerGetter interface {
 }
 
 type defaultTaskManager struct {
-	jobs []jobs.Job
+	jobs             []jobs.Job
+	foreverRunnables []function.NamedRunnable
+}
+
+func (d *defaultTaskManager) AddForeverRunnable(namedRunnables ...function.NamedRunnable) {
+	for _, namedRunnable := range namedRunnables {
+		d.foreverRunnables = append(d.foreverRunnables, namedRunnable)
+	}
 }
 
 func NewTaskManager() TaskManager {

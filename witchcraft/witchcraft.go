@@ -146,6 +146,8 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// If this function returns an error, the server is not started and the error is returned.
 	initFn InitFunc[I, R]
 
+	leaderElection InitFunc[I, R]
+
 	// provides the encrypted-config-value key that is used to decrypt encrypted values in configuration. If nil, a
 	// default provider that reads the key from the file at "var/conf/encrypted-config-value.key" is used.
 	ecvKeyProvider ECVKeyProvider
@@ -295,6 +297,11 @@ func NewServer[I config.BaseInstallConfig, R config.BaseRuntimeConfig]() *Server
 // WithInitFunc configures the server to use the provided setup function to set up its initial state.
 func (s *Server[I, R]) WithInitFunc(initFn InitFunc[I, R]) *Server[I, R] {
 	s.initFn = initFn
+	return s
+}
+
+func (s *Server[I, R]) WithLeaderElection(leaderElection InitFunc[I, R]) *Server[I, R] {
+	s.leaderElection = leaderElection
 	return s
 }
 
