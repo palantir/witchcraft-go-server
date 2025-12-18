@@ -11,8 +11,17 @@ Integrate leader election into witchcraft-go-server v3 so services like policyma
 | When does initFn run? | After leadership acquired | Simple mental model - one init, runs when ready to work |
 | Leadership loss behavior | Server shutdown | K8s restarts pod, clean slate |
 | K8s dependency | None - interface only | Consumers provide implementation |
-| Non-leader routes | None (only base mgmt) | initFn doesn't run, so no app routes |
+| Separate management port | **Required** | Management server always up, app server only on leadership |
 | TaskManager integration | Separate | Keep features independent |
+
+## Prerequisites
+
+**Leader election requires a separate management port.** When `WithLeaderElection()` is used, the server validates that `ManagementPort != Port` in the install config. This simplifies the architecture:
+
+- **Management server** (health/liveness/readiness, pprof, diagnostics) starts immediately
+- **Application server** only starts after leadership is acquired
+- No dynamic route registration needed on a running server
+- Clean separation between always-available management endpoints and leader-only application endpoints
 
 ---
 
@@ -107,7 +116,7 @@ server := witchcraft.NewServer[MyInstall, MyRuntime]().
 
 ## Step 3: Make Health Check Sources a Refreshable
 
-**Problem:** Currently `healthCheckSources` is a `[]healthstatus.HealthCheckSource` slice set once at startup. For leader election, we need to add health checks after `initFn` runs (when leadership is acquired).
+**Problem:** Currently `healthCheckSources` is a `[]healthstatus.HealthCheckSource` slice set once at startup. With leader election, the management server starts before leadership is acquired, but health checks are registered in `initFn` which runs after leadership.
 
 **Solution:** Change `healthCheckSources` to be a refreshable that can be appended to at any time.
 
@@ -178,27 +187,36 @@ s.healthCheckSources.Update(append(current, newSources...))
 
 **Location:** Lines 772-834 in `Start()` method
 
-**Current flow:**
+**Current flow (single server):**
 ```
 Setup → initFn() → addRoutes() → Start HTTP server
 ```
 
-**New flow with leader election:**
+**New flow with leader election (two servers):**
 ```
-Setup → addRoutes() → Start HTTP server → [LeaderElector.Run in goroutine]
-                                                        ↓
-                              OnStartedLeading → initFn() → update dynamicHealthSources
-                                                        ↓
-                              OnStoppedLeading → cleanup() → Shutdown()
+Setup → Start management server → LeaderElector.Run() in goroutine
+                                            ↓
+                      OnStartedLeading → initFn() → Start application server
+                                            ↓
+                      OnStoppedLeading → cleanup() → Shutdown both servers
 ```
 
-**Key changes:**
+**Key insight:** With separate ports required, we can start management and application servers independently:
 
-1. All routes (including /status/health) registered before server starts
-2. Health endpoint returns empty/minimal health until initFn adds sources via refreshable
-3. When leadership acquired, initFn runs and updates `dynamicHealthSources`
-4. Health endpoint now includes user-registered health checks
-5. On leadership loss, cleanup runs and server shuts down
+1. **Management server starts immediately** - serves `/status/health`, `/status/liveness`, `/status/readiness`, `/debug/*`
+2. **Application server only starts after leadership acquired** - serves all application routes from `initFn`
+3. **No dynamic route registration needed** - app routes registered before app server starts
+
+**Validation in Start():**
+
+```go
+if s.leaderElectorProvider != nil {
+    // Validate separate management port is configured
+    if installCfg.Server.ManagementPort == 0 || installCfg.Server.ManagementPort == installCfg.Server.Port {
+        return werror.Error("leader election requires a separate management port: ManagementPort must be set and different from Port")
+    }
+}
+```
 
 **Implementation sketch:**
 
@@ -207,59 +225,109 @@ if s.leaderElectorProvider != nil {
     // Create the LeaderElector using install/runtime config
     leaderElector := s.leaderElectorProvider(fullInstallCfg, refreshableRuntimeCfg)
 
-    // Start leader election - initFn will be called when we become leader
+    // Start management server first (always available)
+    mgmtServer := s.createMgmtServer(mgmtRouter)
+    go mgmtServer.ListenAndServe()
+
+    // Start leader election - initFn and app server start when we become leader
+    var cleanupFn func()
+    var appServer *http.Server
+
     go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
         err := leaderElector.Run(ctx, LeaderCallbacks{
             OnStartedLeading: func(leaderCtx context.Context) {
-                // Now we're leader - run initialization
-                cleanupFn, err := s.runInitialization(leaderCtx, router, mgmtRouter, ...)
+                // Now we're leader - run initialization and start app server
+                var err error
+                cleanupFn, err = s.initFn(leaderCtx, info)
                 if err != nil {
                     s.Shutdown(ctx)
                     return
                 }
-                // Store cleanup for OnStoppedLeading
+
+                // Start application server
+                appServer = s.createAppServer(router)
+                go appServer.ListenAndServe()
             },
             OnStoppedLeading: func() {
                 // Lost leadership - cleanup and shutdown
+                if appServer != nil {
+                    appServer.Shutdown(ctx)
+                }
                 if cleanupFn != nil {
                     cleanupFn()
                 }
-                s.Shutdown(ctx)
+                mgmtServer.Shutdown(ctx)
             },
         })
     })
+
+    // Block until shutdown
+    <-ctx.Done()
 } else {
-    // Existing path - no leader election
-    cleanupFn, err := s.initFn(ctx, info)
-    // ...existing code...
+    // Existing path - no leader election, single server or dual servers
+    // ...existing code unchanged...
 }
 ```
 
 ---
 
-## Step 5: Extract initFn Logic to Helper Method
+## Step 5: Create Helper to Start Application Server on Leadership
 
-To avoid code duplication, extract the initFn execution into a helper:
+When leadership is acquired, we need to:
+1. Create the application router
+2. Run `initFn` (which registers routes and health checks)
+3. Start the application HTTP server
 
 ```go
-func (s *Server[I, R]) runLeaderInitialization(
+func (s *Server[I, R]) startApplicationServerOnLeadership(
     ctx context.Context,
-    router, mgmtRouter wrouter.Router,
     fullInstallCfg I,
     refreshableRuntimeCfg refreshable.Refreshable[R],
     discovery ConfigurableServiceDiscovery,
-    internalHealthCheckSources []healthstatus.HealthCheckSource,
-) (cleanup func(), err error) {
-    // Tracer setup (lines 774-779)
-    // initFn call (lines 797-810)
-    // Append internal + user health sources to the refreshable
-    current := s.healthCheckSources.Current()
-    s.healthCheckSources.Update(append(current, internalHealthCheckSources...))
-    return cleanupFn, nil
+) (appServer *http.Server, cleanup func(), err error) {
+    // Create application router
+    appRouter := createRouter(s.routerImplProvider(), fullInstallCfg.BaseInstallConfig().Server.ContextPath)
+
+    // Add middleware to application router
+    s.addMiddleware(appRouter, ...)
+
+    // Setup tracer
+    // ...
+
+    // Build InitInfo with the application router
+    info := InitInfo[I, R]{
+        Router:       appRouter,
+        InstallCfg:   fullInstallCfg,
+        RuntimeCfg:   refreshableRuntimeCfg,
+        ShutdownFn:   s.Shutdown,
+        Discovery:    discovery,
+        // ... other fields
+    }
+
+    // Run initFn - this registers application routes and health checks
+    cleanup, err = s.initFn(ctx, info)
+    if err != nil {
+        return nil, nil, err
+    }
+
+    // Create and start the application HTTP server
+    appServer = &http.Server{
+        Addr:    fmt.Sprintf(":%d", fullInstallCfg.BaseInstallConfig().Server.Port),
+        Handler: appRouter,
+        // ... TLS config etc
+    }
+
+    go func() {
+        if err := appServer.ListenAndServe(); err != http.ErrServerClosed {
+            // log error
+        }
+    }()
+
+    return appServer, cleanup, nil
 }
 ```
 
-Note: User health checks registered via `WithHealth()` or `info.Router.WithHealth()` in initFn will also append to `s.healthCheckSources`.
+Note: Health checks registered via `WithHealth()` in `initFn` will append to `s.healthCheckSources` (the refreshable), making them immediately visible on the management server's `/status/health` endpoint.
 
 ---
 
@@ -280,9 +348,9 @@ Test cases:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `witchcraft/leader_election.go` | Create | LeaderElector interface, LeaderCallbacks type |
-| `witchcraft/witchcraft.go` | Modify | Add fields, WithLeaderElection method, modify Start() |
-| `witchcraft/server_routes.go` | Modify | Use refreshable for dynamic health sources |
+| `witchcraft/leader_election.go` | Create | LeaderElector interface, LeaderCallbacks type, LeaderElectorProvider type |
+| `witchcraft/witchcraft.go` | Modify | Add `leaderElectorProvider` field, `WithLeaderElection()` method, modify `Start()` to handle two-server architecture |
+| `witchcraft/server_routes.go` | Modify | Add `refreshableHealthCheckSource` type, modify `addRoutes()` to use refreshable health sources |
 | `witchcraft/leader_election_test.go` | Create | Tests for leader election behavior |
 
 ---
@@ -291,13 +359,40 @@ Test cases:
 
 | Scenario | Without Leader Election | With Leader Election |
 |----------|------------------------|---------------------|
+| Prerequisite | None | Separate management port required |
 | initFn runs | Immediately on Start() | After OnStartedLeading |
-| App routes exist | Always | Only when leader |
-| Liveness/Readiness | Always available | Always available |
-| Health endpoint | Always available | Always available (but minimal until leader) |
+| Management server | Starts immediately | Starts immediately |
+| Application server | Starts immediately | Starts only when leader |
 | Health checks | All registered at startup | SERVER_STATUS only until initFn adds more |
-| Leadership loss | N/A | Cleanup → Shutdown |
-| Non-leader state | N/A | HTTP server running, all mgmt routes work, no app routes |
+| Leadership loss | N/A | Cleanup → App server shutdown → Mgmt server shutdown |
+| Non-leader state | N/A | Only management server running, no app server |
+
+---
+
+## How Application Routes Work with Leader Election
+
+**Without leader election:**
+```
+Start() → initFn() → addRoutes() → Start HTTP server(s) → All routes available
+```
+
+**With leader election (two servers, separate ports):**
+```
+Start() → addRoutes() (mgmt) → Start management server → LeaderElector.Run()
+                                                               ↓
+                                      (waiting for lease - management server only)
+                                                               ↓
+                                      OnStartedLeading → initFn() → Start application server
+                                                               ↓
+                                      (both servers running, all routes available)
+```
+
+**Key simplification:** With separate ports required, there's no need for dynamic route registration. The application server is created and started fresh when leadership is acquired. Routes are registered in `initFn` before the app server starts.
+
+**Non-leader behavior:**
+- Management server running on management port: `/status/health`, `/status/liveness`, `/status/readiness`, `/debug/*`
+- Application port has no server listening (connection refused)
+- When leadership is acquired, application server starts and serves traffic
 
 ---
 
@@ -313,12 +408,13 @@ Test cases:
                                       ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  1. Load install config                                                       │
-│  2. Initialize metrics registry                                               │
-│  3. Initialize loggers (svc1log, evt2log, etc.)                              │
-│  4. Load runtime config (refreshable)                                         │
-│  5. Create routers (main + management)                                        │
-│  6. Add middleware (telemetry, user middleware, 404 handler)                  │
-│  7. Setup signal handlers (SIGQUIT, SIGTERM, SIGINT)                         │
+│  2. Validate ManagementPort != Port (required for leader election)           │
+│  3. Initialize metrics registry                                               │
+│  4. Initialize loggers (svc1log, evt2log, etc.)                              │
+│  5. Load runtime config (refreshable)                                         │
+│  6. Create management router                                                  │
+│  7. Add middleware to management router                                       │
+│  8. Setup signal handlers (SIGQUIT, SIGTERM, SIGINT)                         │
 └──────────────────────────────────────────────────────────────────────────────┘
                                       │
                     ┌─────────────────┴─────────────────┐
@@ -330,12 +426,11 @@ Test cases:
                     │                                   │
                     ▼                                   ▼
         ┌───────────────────────┐           ┌───────────────────────┐
-        │  Run initFn()         │           │  addRoutes()          │
-        │  addRoutes()          │           │  (all routes, health  │
-        │  Start HTTP server    │           │   uses refreshable)   │
-        │  READY TO SERVE       │           │  Start HTTP server    │
-        └───────────────────────┘           └───────────────────────┘
-                                                        │
+        │  Run initFn()         │           │  addRoutes() (mgmt)   │
+        │  addRoutes()          │           │  Start MGMT SERVER    │
+        │  Start HTTP server(s) │           │  (port: ManagementPort)│
+        │  READY TO SERVE       │           └───────────────────────┘
+        └───────────────────────┘                       │
                                                         ▼
                                             ┌───────────────────────┐
                                             │  LeaderElector.Run()  │
@@ -345,8 +440,14 @@ Test cases:
                                                         ▼
                                             ┌───────────────────────┐
                                             │  Waiting for lease... │
-                                            │  /health returns only │
-                                            │  SERVER_STATUS        │
+                                            │                       │
+                                            │  Mgmt server running: │
+                                            │  - /status/health ✓   │
+                                            │  - /status/liveness ✓ │
+                                            │  - /status/readiness ✓│
+                                            │                       │
+                                            │  App port: NO SERVER  │
+                                            │  (connection refused) │
                                             └───────────────────────┘
                                                         │
                                                         │ Lease acquired!
@@ -358,11 +459,14 @@ Test cases:
                                                         │
                                                         ▼
                                             ┌───────────────────────┐
-                                            │  1. Setup tracer      │
+                                            │  1. Create app router │
                                             │  2. Run initFn()      │
-                                            │  3. Update refreshable│
-                                            │     with health checks│
-                                            │  FULLY READY          │
+                                            │     (registers routes,│
+                                            │      health checks)   │
+                                            │  3. Start APP SERVER  │
+                                            │     (port: Port)      │
+                                            │                       │
+                                            │  BOTH SERVERS RUNNING │
                                             └───────────────────────┘
 ```
 
@@ -370,7 +474,10 @@ Test cases:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                         Instance is LEADER, serving traffic                   │
+│                    Instance is LEADER, both servers running                   │
+│                                                                              │
+│  Management Server (ManagementPort): /status/*, /debug/*                     │
+│  Application Server (Port): Application routes from initFn                   │
 └──────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       │ Lease renewal fails / another pod wins
@@ -383,16 +490,17 @@ Test cases:
                                       ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  1. Cancel leader context (signals initFn goroutines to stop)                │
-│  2. Call cleanup function (returned by initFn)                               │
-│  3. Call server.Shutdown(ctx)                                                │
+│  2. Shutdown APPLICATION SERVER (graceful)                                   │
+│  3. Call cleanup function (returned by initFn)                               │
+│  4. Shutdown MANAGEMENT SERVER (graceful)                                    │
 └──────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                          Graceful Shutdown                                    │
-│  - Stop accepting new connections                                            │
+│  - Stop accepting new connections on both servers                            │
 │  - Wait for in-flight requests to complete                                   │
-│  - Close HTTP server                                                         │
+│  - Close both HTTP servers                                                   │
 └──────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
@@ -407,18 +515,12 @@ Test cases:
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                              Server.Start()                                   │
-│                         (same setup as above)                                │
+│                    (same setup as "Becomes Leader" above)                    │
 └──────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                            addRoutes()                                        │
-│              (all routes including health with refreshable)                  │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                          Start HTTP server                                    │
+│                addRoutes() (mgmt) → Start MANAGEMENT SERVER                  │
 └──────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
@@ -426,11 +528,16 @@ Test cases:
 │                         LeaderElector.Run()                                   │
 │                      Waiting for lease forever...                            │
 │                                                                              │
-│  State while waiting:                                                        │
+│  Management Server (ManagementPort):                                         │
 │  - /status/liveness: 200 OK                                                  │
 │  - /status/readiness: 200 OK                                                 │
 │  - /status/health: 200 OK (SERVER_STATUS: HEALTHY only)                      │
-│  - No app routes registered (initFn not called)                              │
+│  - /debug/*: Available                                                       │
+│                                                                              │
+│  Application Port:                                                           │
+│  - NO SERVER LISTENING                                                       │
+│  - Connection refused (not 404!)                                             │
+│  - initFn never called, no routes registered                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 

@@ -119,8 +119,9 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// the server's status is used.
 	livenessSource healthstatus.Source
 
-	// specifies the sources that are used to determine the health of this service
-	healthCheckSources []healthstatus.HealthCheckSource
+	// specifies the sources that are used to determine the health of this service.
+	// This is a refreshable to allow health checks to be added dynamically after server startup.
+	healthCheckSources refreshable.Updatable[[]healthstatus.HealthCheckSource]
 
 	// specifies the handlers to invoke upon health status changes. The LoggingHealthStatusChangeHandler is added by default.
 	healthStatusChangeHandlers []status.HealthStatusChangeHandler
@@ -393,9 +394,19 @@ func (s *Server[I, R]) WithClientAuth(clientAuth tls.ClientAuthType) *Server[I, 
 // WithHealth configures the server to use the specified health check sources to report the server's health. If multiple
 // healthSource's results have the same key, the result from the latest entry in healthSources will be used. These
 // results are combined with the server's built-in health source, which uses the `SERVER_STATUS` key.
+//
+// This method can be called multiple times to add additional health sources. It can also be called after server
+// startup (e.g., from within InitFunc) to dynamically add health sources.
 func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server[I, R] {
-	s.healthCheckSources = healthSources
+	s.initHealthCheckSourcesIfNil()
+	s.healthCheckSources.Update(append(s.healthCheckSources.Current(), healthSources...))
 	return s
+}
+
+func (s *Server[I, R]) initHealthCheckSourcesIfNil() {
+	if s.healthCheckSources == nil {
+		s.healthCheckSources = refreshable.New([]healthstatus.HealthCheckSource{})
+	}
 }
 
 // WithReadiness configures the server to use the specified source to report readiness.
@@ -804,7 +815,8 @@ func (s *Server[I, R]) Start() (rErr error) {
 	}
 
 	// add all internally defined health check sources to the user supplied ones after running the initFn.
-	s.healthCheckSources = append(s.healthCheckSources, internalHealthCheckSources...)
+	s.initHealthCheckSourcesIfNil()
+	s.healthCheckSources.Update(append(s.healthCheckSources.Current(), internalHealthCheckSources...))
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied.
