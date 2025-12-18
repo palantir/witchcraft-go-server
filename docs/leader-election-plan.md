@@ -105,53 +105,71 @@ server := witchcraft.NewServer[MyInstall, MyRuntime]().
 
 ---
 
-## Step 3: Make Health Check Sources Dynamic
+## Step 3: Make Health Check Sources a Refreshable
 
-**Problem:** Currently health check sources are set once at startup. For leader election, we need to add health checks after `initFn` runs (when leadership is acquired).
+**Problem:** Currently `healthCheckSources` is a `[]healthstatus.HealthCheckSource` slice set once at startup. For leader election, we need to add health checks after `initFn` runs (when leadership is acquired).
 
-**Solution:** Use a refreshable to hold health check sources, allowing them to be added dynamically after routes are registered.
+**Solution:** Change `healthCheckSources` to be a refreshable that can be appended to at any time.
 
 **Changes to `witchcraft/witchcraft.go`:**
 
 ```go
-// Add new field to Server struct
-type Server[I, R] struct {
-    // ...existing fields...
+// Change existing field in Server struct from:
+healthCheckSources []healthstatus.HealthCheckSource
 
-    // dynamicHealthSources holds health check sources that can be added after startup.
-    // Used with leader election where initFn (which registers health checks) runs
-    // after the server starts.
-    dynamicHealthSources refreshable.Refreshable[[]healthstatus.HealthCheckSource]
-}
+// To:
+healthCheckSources *refreshable.DefaultRefreshable[[]healthstatus.HealthCheckSource]
+```
+
+**Initialize in Start():**
+
+```go
+// Early in Start(), initialize the refreshable
+s.healthCheckSources = refreshable.NewDefaultRefreshable([]healthstatus.HealthCheckSource{})
 ```
 
 **Changes to `witchcraft/server_routes.go`:**
 
-Modify `addRoutes()` to use a combined health source that includes both:
-1. Internal sources (CONFIG_RELOAD, SERVICE_DEPENDENCY, ENDPOINT_FIVE_HUNDREDS)
-2. Dynamic sources from the refreshable (populated when initFn runs)
+Modify `addRoutes()` to wrap the refreshable in a health source that re-evaluates on each call:
 
 ```go
 // In addRoutes(), change health source creation:
-combinedSource := healthstatus.NewCombinedHealthCheckSource(
-    &s.stateManager,
-    // Wrap dynamic sources in a source that re-evaluates on each call
-    newDynamicHealthCheckSource(s.dynamicHealthSources),
-)
+if err := routes.AddHealthRoutes(
+    statusResource,
+    healthstatus.NewCombinedHealthCheckSource(
+        &s.stateManager,
+        newRefreshableHealthCheckSource(s.healthCheckSources),
+    ),
+    healthSharedSecret,
+    s.healthStatusChangeHandlers,
+); err != nil {
+    return werror.Wrap(err, "failed to register health routes")
+}
 ```
 
 **New helper in `witchcraft/server_routes.go`:**
 
 ```go
-// dynamicHealthCheckSource wraps a refreshable of health sources
-type dynamicHealthCheckSource struct {
+// refreshableHealthCheckSource wraps a refreshable slice of health sources
+type refreshableHealthCheckSource struct {
     sources refreshable.Refreshable[[]healthstatus.HealthCheckSource]
 }
 
-func (d *dynamicHealthCheckSource) HealthStatus(ctx context.Context) healthstatus.HealthStatus {
-    combined := healthstatus.NewCombinedHealthCheckSource(d.sources.Current()...)
-    return combined.HealthStatus(ctx)
+func newRefreshableHealthCheckSource(sources refreshable.Refreshable[[]healthstatus.HealthCheckSource]) *refreshableHealthCheckSource {
+    return &refreshableHealthCheckSource{sources: sources}
 }
+
+func (r *refreshableHealthCheckSource) HealthStatus(ctx context.Context) healthstatus.HealthStatus {
+    return healthstatus.NewCombinedHealthCheckSource(r.sources.Current()...).HealthStatus(ctx)
+}
+```
+
+**Adding health checks (in initFn or via WithHealth):**
+
+```go
+// Append new sources to the refreshable
+current := s.healthCheckSources.Current()
+s.healthCheckSources.Update(append(current, newSources...))
 ```
 
 ---
@@ -234,11 +252,14 @@ func (s *Server[I, R]) runLeaderInitialization(
 ) (cleanup func(), err error) {
     // Tracer setup (lines 774-779)
     // initFn call (lines 797-810)
-    // Update dynamicHealthSources refreshable with user + internal sources
-    s.dynamicHealthSources.Update(append(s.healthCheckSources, internalHealthCheckSources...))
+    // Append internal + user health sources to the refreshable
+    current := s.healthCheckSources.Current()
+    s.healthCheckSources.Update(append(current, internalHealthCheckSources...))
     return cleanupFn, nil
 }
 ```
+
+Note: User health checks registered via `WithHealth()` or `info.Router.WithHealth()` in initFn will also append to `s.healthCheckSources`.
 
 ---
 
