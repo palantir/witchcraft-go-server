@@ -149,6 +149,10 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// on leadership acquisition. When leadership is lost, the server shuts down gracefully.
 	leaderElectorProvider LeaderElectorProvider[I, R]
 
+	// cancelLeaderElection cancels the leader election context when the server is shut down.
+	// This is set when leader election is started and cleared when it completes.
+	cancelLeaderElection context.CancelFunc
+
 	// provides the encrypted-config-value key that is used to decrypt encrypted values in configuration. If nil, a
 	// default provider that reads the key from the file at "var/conf/encrypted-config-value.key" is used.
 	ecvKeyProvider ECVKeyProvider
@@ -842,7 +846,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 		}
 
 		// Create the leader elector using the provider
-		leaderElector, err := s.leaderElectorProvider(fullInstallCfg, refreshableRuntimeCfg)
+		leaderElector, err := s.leaderElectorProvider(ctx, fullInstallCfg, refreshableRuntimeCfg)
 		if err != nil {
 			return werror.Wrap(err, "failed to create leader elector")
 		}
@@ -892,9 +896,16 @@ func (s *Server[I, R]) Start() (rErr error) {
 			serverErrCh <- svrStart()
 		}()
 
+		// Create a cancellable context for leader election that gets cancelled on server shutdown
+		leaderCtx, cancelLeader := context.WithCancel(ctx)
+		s.cancelLeaderElection = cancelLeader
+		defer func() {
+			s.cancelLeaderElection = nil
+		}()
+
 		// Run leader election - blocks until context is cancelled
 		var cleanupFn func()
-		leaderErr := leaderElector.Run(ctx, LeaderCallbacks{
+		leaderErr := leaderElector.Run(leaderCtx, LeaderCallbacks{
 			OnStartedLeading: func(leaderCtx context.Context) {
 				svc1log.FromContext(ctx).Info("Acquired leadership, running initialization.")
 				var err error
@@ -1113,6 +1124,10 @@ func (s *Server[I, R]) State() ServerState {
 
 func (s *Server[I, R]) Shutdown(ctx context.Context) error {
 	s.svcLogger.Info("Shutting down server")
+	// Cancel leader election context if it's running
+	if s.cancelLeaderElection != nil {
+		s.cancelLeaderElection()
+	}
 	return stopServer(s, func(svr *http.Server) error {
 		if err := svr.Shutdown(ctx); err != nil && (ctx.Err() == nil || !errors.Is(err, ctx.Err())) {
 			// error is non-nil and not a context error: indicates that there was an error shutting down

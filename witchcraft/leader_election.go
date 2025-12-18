@@ -36,7 +36,7 @@ type LeaderElector interface {
 // server's install and runtime configuration. This allows leader election implementations
 // to read configuration values like election name, namespace, and identity from the
 // server's configuration.
-type LeaderElectorProvider[I any, R any] func(install I, runtime refreshable.Refreshable[R]) (LeaderElector, error)
+type LeaderElectorProvider[I any, R any] func(ctx context.Context, install I, runtime refreshable.Refreshable[R]) (LeaderElector, error)
 
 // LeaderCallbacks defines the callbacks for leadership state changes.
 type LeaderCallbacks struct {
