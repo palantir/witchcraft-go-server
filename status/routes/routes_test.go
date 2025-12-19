@@ -43,7 +43,7 @@ func TestAddStatusRoutes(t *testing.T) {
 
 	for i, tc := range []struct {
 		endpoint  string
-		routeFunc func(resource wresource.Resource, source healthstatus.Source) error
+		routeFunc func(resource wresource.Resource, source refreshable.Refreshable[healthstatus.Source]) error
 		status    int
 		metadata  testMetadata
 	}{
@@ -69,9 +69,9 @@ func TestAddStatusRoutes(t *testing.T) {
 		func() {
 			r := wrouter.New(whttprouter.New(), nil)
 			resource := wresource.New("test", r)
-			err := tc.routeFunc(resource, statusFunc(func() (int, interface{}) {
+			err := tc.routeFunc(resource, refreshable.New[healthstatus.Source](statusFunc(func() (int, interface{}) {
 				return tc.status, tc.metadata
-			}))
+			})))
 			require.NoError(t, err, "Case %d", i)
 
 			server := httptest.NewServer(r)

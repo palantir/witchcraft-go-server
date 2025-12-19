@@ -113,11 +113,11 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 
 	// specifies the source used to provide the readiness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	readinessSource healthstatus.Source
+	readinessSource refreshable.Updatable[healthstatus.Source]
 
 	// specifies the source used to provide the liveness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	livenessSource healthstatus.Source
+	livenessSource refreshable.Updatable[healthstatus.Source]
 
 	// specifies the sources that are used to determine the health of this service.
 	// This is a refreshable to allow health checks to be added dynamically after server startup.
@@ -416,26 +416,30 @@ func (s *Server[I, R]) WithClientAuth(clientAuth tls.ClientAuthType) *Server[I, 
 // This method can be called multiple times to add additional health sources. It can also be called after server
 // startup (e.g., from within InitFunc) to dynamically add health sources.
 func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server[I, R] {
-	s.initHealthCheckSourcesIfNil()
+	if s.healthCheckSources == nil {
+		s.healthCheckSources = refreshable.New([]healthstatus.HealthCheckSource{})
+	}
 	s.healthCheckSources.Update(append(s.healthCheckSources.Current(), healthSources...))
 	return s
 }
 
-func (s *Server[I, R]) initHealthCheckSourcesIfNil() {
-	if s.healthCheckSources == nil {
-		s.healthCheckSources = refreshable.New([]healthstatus.HealthCheckSource{})
-	}
-}
-
 // WithReadiness configures the server to use the specified source to report readiness.
 func (s *Server[I, R]) WithReadiness(readiness healthstatus.Source) *Server[I, R] {
-	s.readinessSource = readiness
+	if s.readinessSource == nil {
+		s.readinessSource = refreshable.New(readiness)
+	} else {
+		s.readinessSource.Update(readiness)
+	}
 	return s
 }
 
 // WithLiveness configures the server to use the specified source to report liveness.
 func (s *Server[I, R]) WithLiveness(liveness healthstatus.Source) *Server[I, R] {
-	s.livenessSource = liveness
+	if s.livenessSource == nil {
+		s.livenessSource = refreshable.New(liveness)
+	} else {
+		s.livenessSource.Update(liveness)
+	}
 	return s
 }
 
@@ -854,7 +858,6 @@ func (s *Server[I, R]) Start() (rErr error) {
 		// With leader election: register routes first, then start servers, then run leader election.
 		// initFn is deferred until leadership is acquired. Health sources use a refreshable so
 		// health checks added by initFn will be picked up dynamically.
-		s.initHealthCheckSourcesIfNil()
 		if err := s.addRoutes(ctx, mgmtRouter, refreshableRuntimeCfg); err != nil {
 			return err
 		}
