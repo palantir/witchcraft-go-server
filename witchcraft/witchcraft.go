@@ -113,11 +113,11 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 
 	// specifies the source used to provide the readiness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	readinessSource healthstatus.Source
+	readinessSource refreshable.Updatable[healthstatus.Source]
 
 	// specifies the source used to provide the liveness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	livenessSource healthstatus.Source
+	livenessSource refreshable.Updatable[healthstatus.Source]
 
 	// specifies the sources that are used to determine the health of this service.
 	// This is a refreshable to allow health checks to be added dynamically after server startup.
@@ -404,6 +404,9 @@ func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSourc
 
 // WithReadiness configures the server to use the specified source to report readiness.
 func (s *Server[I, R]) WithReadiness(readiness healthstatus.Source) *Server[I, R] {
+	if s.readinessSource == nil {
+
+	}
 	s.readinessSource = readiness
 	return s
 }
