@@ -854,6 +854,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 		// With leader election: register routes first, then start servers, then run leader election.
 		// initFn is deferred until leadership is acquired. Health sources use a refreshable so
 		// health checks added by initFn will be picked up dynamically.
+		s.initHealthCheckSourcesIfNil()
 		if err := s.addRoutes(ctx, mgmtRouter, refreshableRuntimeCfg); err != nil {
 			return err
 		}
