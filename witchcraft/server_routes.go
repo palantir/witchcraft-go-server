@@ -64,9 +64,11 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 	healthSharedSecret := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) string {
 		return cfg.BaseRuntimeConfig().HealthChecks.SharedSecret
 	})
+	// And attach the stateManager endpoint
+	s.WithHealth(&s.stateManager)
 	if err := routes.AddHealthRoutes(
 		statusResource,
-		healthstatus.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...),
+		healthstatus.NewCombinedHealthCheckSourceWithRefresh(s.healthCheckSources),
 		healthSharedSecret,
 		s.healthStatusChangeHandlers,
 	); err != nil {
