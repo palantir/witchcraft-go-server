@@ -43,14 +43,19 @@ import (
 func TestAddHealthCheckSources(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
-	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, nil, io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
-		return createTestServer(t, initFn, installCfg, logOutputBuffer).
-			WithHealth(healthCheckWithType{typ: "BAZ"}).
-			WithHealth(
-				healthCheckWithType{typ: "FOO"},
-				healthCheckWithType{typ: "BAR"},
-			)
-	})
+	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
+		func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+			info.Router.WithHealth(healthCheckWithType{typ: "INIT_CHECK"})
+			return nil, nil
+		},
+		io.Discard, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
+			return createTestServer(t, initFn, installCfg, logOutputBuffer).
+				WithHealth(healthCheckWithType{typ: "BAZ"}).
+				WithHealth(
+					healthCheckWithType{typ: "FOO"},
+					healthCheckWithType{typ: "BAR"},
+				)
+		})
 
 	defer func() {
 		require.NoError(t, server.Close())
@@ -82,6 +87,12 @@ func TestAddHealthCheckSources(t *testing.T) {
 			},
 			health.CheckType("BAZ"): {
 				Type:    health.CheckType("BAZ"),
+				State:   health.New_HealthState(health.HealthState_HEALTHY),
+				Message: nil,
+				Params:  make(map[string]interface{}),
+			},
+			health.CheckType("INIT_CHECK"): {
+				Type:    health.CheckType("INIT_CHECK"),
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
 				Message: nil,
 				Params:  make(map[string]interface{}),

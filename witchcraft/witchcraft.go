@@ -405,15 +405,20 @@ func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSourc
 // WithReadiness configures the server to use the specified source to report readiness.
 func (s *Server[I, R]) WithReadiness(readiness healthstatus.Source) *Server[I, R] {
 	if s.readinessSource == nil {
-
+		s.readinessSource = refreshable.New(readiness)
+	} else {
+		s.readinessSource.Update(readiness)
 	}
-	s.readinessSource = readiness
 	return s
 }
 
 // WithLiveness configures the server to use the specified source to report liveness.
 func (s *Server[I, R]) WithLiveness(liveness healthstatus.Source) *Server[I, R] {
-	s.livenessSource = liveness
+	if s.livenessSource == nil {
+		s.livenessSource = refreshable.New(liveness)
+	} else {
+		s.livenessSource.Update(liveness)
+	}
 	return s
 }
 
