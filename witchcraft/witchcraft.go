@@ -113,14 +113,15 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 
 	// specifies the source used to provide the readiness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	readinessSource healthstatus.Source
+	readinessSource refreshable.Updatable[healthstatus.Source]
 
 	// specifies the source used to provide the liveness information for the server. If nil, a default value that uses
 	// the server's status is used.
-	livenessSource healthstatus.Source
+	livenessSource refreshable.Updatable[healthstatus.Source]
 
-	// specifies the sources that are used to determine the health of this service
-	healthCheckSources []healthstatus.HealthCheckSource
+	// specifies the sources that are used to determine the health of this service.
+	// This is a refreshable to allow health checks to be added dynamically after server startup.
+	healthCheckSources refreshable.Updatable[[]healthstatus.HealthCheckSource]
 
 	// specifies the handlers to invoke upon health status changes. The LoggingHealthStatusChangeHandler is added by default.
 	healthStatusChangeHandlers []status.HealthStatusChangeHandler
@@ -394,19 +395,30 @@ func (s *Server[I, R]) WithClientAuth(clientAuth tls.ClientAuthType) *Server[I, 
 // healthSource's results have the same key, the result from the latest entry in healthSources will be used. These
 // results are combined with the server's built-in health source, which uses the `SERVER_STATUS` key.
 func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server[I, R] {
-	s.healthCheckSources = healthSources
+	if s.healthCheckSources == nil {
+		s.healthCheckSources = refreshable.New([]healthstatus.HealthCheckSource{})
+	}
+	s.healthCheckSources.Update(append(s.healthCheckSources.Current(), healthSources...))
 	return s
 }
 
 // WithReadiness configures the server to use the specified source to report readiness.
 func (s *Server[I, R]) WithReadiness(readiness healthstatus.Source) *Server[I, R] {
-	s.readinessSource = readiness
+	if s.readinessSource == nil {
+		s.readinessSource = refreshable.New(readiness)
+	} else {
+		s.readinessSource.Update(readiness)
+	}
 	return s
 }
 
 // WithLiveness configures the server to use the specified source to report liveness.
 func (s *Server[I, R]) WithLiveness(liveness healthstatus.Source) *Server[I, R] {
-	s.livenessSource = liveness
+	if s.livenessSource == nil {
+		s.livenessSource = refreshable.New(liveness)
+	} else {
+		s.livenessSource.Update(liveness)
+	}
 	return s
 }
 
@@ -804,7 +816,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 	}
 
 	// add all internally defined health check sources to the user supplied ones after running the initFn.
-	s.healthCheckSources = append(s.healthCheckSources, internalHealthCheckSources...)
+	s.WithHealth(internalHealthCheckSources...)
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied.
