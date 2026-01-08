@@ -16,6 +16,7 @@ package refreshingclient
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"time"
@@ -42,9 +43,9 @@ type TransportParams struct {
 	TLS TLSParams
 }
 
-func NewRefreshableTransport(ctx context.Context, p refreshable.Refreshable[TransportParams], tlsProvider TLSProvider, dialer ContextDialer) http.RoundTripper {
-	mapped, _ := refreshable.Map(p, func(p TransportParams) *http.Transport {
-		return newTransport(ctx, p, tlsProvider, dialer)
+func NewRefreshableTransport(ctx context.Context, p refreshable.Refreshable[TransportParams], refreshableConfig refreshable.Validated[*tls.Config], dialer ContextDialer) http.RoundTripper {
+	mapped, _ := refreshable.Merge(p, refreshableConfig, func(p TransportParams, t *tls.Config) *http.Transport {
+		return newTransport(ctx, p, t, dialer)
 	})
 	return &RefreshableTransport{Refreshable: mapped}
 }
@@ -59,7 +60,7 @@ func (r *RefreshableTransport) RoundTrip(req *http.Request) (*http.Response, err
 	return r.Current().RoundTrip(req)
 }
 
-func newTransport(ctx context.Context, p TransportParams, tlsProvider TLSProvider, dialer ContextDialer) *http.Transport {
+func newTransport(ctx context.Context, p TransportParams, tlsConfig *tls.Config, dialer ContextDialer) *http.Transport {
 	svc1log.FromContext(ctx).Debug("Reconstructing HTTP Transport")
 
 	var transportProxy func(*http.Request) (*url.URL, error)
@@ -69,7 +70,6 @@ func newTransport(ctx context.Context, p TransportParams, tlsProvider TLSProvide
 		transportProxy = http.ProxyFromEnvironment
 	}
 
-	tlsConfig := tlsProvider.GetTLSConfig(ctx)
 	transport := &http.Transport{
 		Proxy:                 transportProxy,
 		DialContext:           dialer.DialContext,
