@@ -15,25 +15,9 @@
 package witchcraft
 
 import (
-	"context"
-
-	"github.com/palantir/witchcraft-go-tasks/jobs"
+	"testing"
 )
 
-type TaskManager interface {
-	JobManager
-}
-
-type defaultTaskManager struct {
-	jobManager JobManager
-}
-
-func NewTaskManager(jobManager JobManager) TaskManager {
-	return &defaultTaskManager{
-		jobManager: jobManager,
-	}
-}
-
-func (d *defaultTaskManager) AddJobs(ctx context.Context, jobsArg ...jobs.Job) {
-	d.jobManager.AddJobs(ctx, jobsArg...)
+func TestJobManager(t *testing.T) {
+	panic("")
 }

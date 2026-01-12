@@ -787,7 +787,9 @@ func (s *Server[I, R]) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
-	taskManager := NewTaskManager(NewJobManager(s.getJobRunnerHealthCheck()))
+	taskManager := NewTaskManager(NewJobManager(s.getJobRunnerHealthCheck(), func(healthSource healthstatus.HealthCheckSource) {
+		s.WithHealth(healthSource)
+	}))
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
