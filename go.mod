@@ -6,19 +6,19 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.1.0
-	github.com/palantir/conjure-go-runtime/v3 v3.0.0
+	github.com/palantir/conjure-go-runtime/v3 v3.1.0
 	github.com/palantir/go-encrypted-config-value v1.40.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.2.0
 	github.com/palantir/pkg/metrics v1.9.0
 	github.com/palantir/pkg/objmatcher v1.2.0
-	github.com/palantir/pkg/refreshable/v2 v2.3.0
+	github.com/palantir/pkg/refreshable/v2 v2.4.0
 	github.com/palantir/pkg/rid v1.2.0
 	github.com/palantir/pkg/signals v1.2.0
 	github.com/palantir/pkg/tlsconfig v1.5.0
 	github.com/palantir/pkg/uuid v1.3.0
 	github.com/palantir/witchcraft-go-error v1.42.0
-	github.com/palantir/witchcraft-go-health/v2 v2.0.0
+	github.com/palantir/witchcraft-go-health/v2 v2.1.0
 	github.com/palantir/witchcraft-go-logging v1.64.0
 	github.com/palantir/witchcraft-go-params v1.39.0
 	github.com/palantir/witchcraft-go-tasks v0.4.0
@@ -46,6 +46,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
 	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )

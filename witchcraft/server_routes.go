@@ -64,9 +64,11 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 	healthSharedSecret := refreshable.MapContext(ctx, runtimeCfg, func(cfg R) string {
 		return cfg.BaseRuntimeConfig().HealthChecks.SharedSecret
 	})
+	// And attach the stateManager endpoint
+	s.WithHealth(&s.stateManager)
 	if err := routes.AddHealthRoutes(
 		statusResource,
-		healthstatus.NewCombinedHealthCheckSource(append(s.healthCheckSources, &s.stateManager)...),
+		healthstatus.NewCombinedHealthCheckSourceWithRefresh(s.healthCheckSources),
 		healthSharedSecret,
 		s.healthStatusChangeHandlers,
 	); err != nil {
@@ -75,7 +77,7 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 
 	// add liveness endpoints
 	if s.livenessSource == nil {
-		s.livenessSource = &s.stateManager
+		s.livenessSource = refreshable.New[healthstatus.Source](&s.stateManager)
 	}
 	if err := routes.AddLivenessRoutes(statusResource, s.livenessSource); err != nil {
 		return werror.Wrap(err, "failed to register liveness routes")
@@ -83,7 +85,7 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 
 	// add readiness endpoints
 	if s.readinessSource == nil {
-		s.readinessSource = &s.stateManager
+		s.readinessSource = refreshable.New[healthstatus.Source](&s.stateManager)
 	}
 	if err := routes.AddReadinessRoutes(statusResource, s.readinessSource); err != nil {
 		return werror.Wrap(err, "failed to register readiness routes")

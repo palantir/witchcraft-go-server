@@ -21,7 +21,6 @@ import (
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/tlsconfig"
 	werror "github.com/palantir/witchcraft-go-error"
-	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
 // TLSParams contains the parameters needed to build a *tls.Config.
@@ -33,25 +32,6 @@ type TLSParams struct {
 	InsecureSkipVerify bool
 }
 
-type TLSProvider interface {
-	GetTLSConfig(ctx context.Context) *tls.Config
-}
-
-// StaticTLSConfigProvider is a TLSProvider that always returns the same *tls.Config.
-type StaticTLSConfigProvider tls.Config
-
-func NewStaticTLSConfigProvider(tlsConfig *tls.Config) *StaticTLSConfigProvider {
-	return (*StaticTLSConfigProvider)(tlsConfig)
-}
-
-func (p *StaticTLSConfigProvider) GetTLSConfig(context.Context) *tls.Config {
-	return (*tls.Config)(p)
-}
-
-type RefreshableTLSConfig struct {
-	r refreshable.Validated[*tls.Config]
-}
-
 // NewRefreshableTLSConfig evaluates the provided TLSParams and returns a RefreshableTLSConfig that will update the
 // underlying *tls.Config when the TLSParams change.
 // IF the initial TLSParams are invalid, NewRefreshableTLSConfig will return an error.
@@ -59,24 +39,14 @@ type RefreshableTLSConfig struct {
 //
 // N.B. This subscription only fires when the paths are updated, not when the contents of the files are updated.
 // We could consider adding a file refreshable to watch the key and cert files.
-func NewRefreshableTLSConfig(ctx context.Context, params refreshable.Refreshable[TLSParams]) (TLSProvider, error) {
+func NewRefreshableTLSConfig(ctx context.Context, params refreshable.Refreshable[TLSParams]) (refreshable.Validated[*tls.Config], error) {
 	r, _, err := refreshable.MapWithError(params, func(p TLSParams) (*tls.Config, error) {
 		return NewTLSConfig(ctx, p)
 	})
 	if err != nil {
 		return nil, werror.WrapWithContextParams(ctx, err, "failed to build RefreshableTLSConfig")
 	}
-	return RefreshableTLSConfig{r: r}, nil
-}
-
-// GetTLSConfig returns the most recent valid *tls.Config.
-// If the last refreshable update resulted in an error, that error is logged and
-// the previous value is returned.
-func (r RefreshableTLSConfig) GetTLSConfig(ctx context.Context) *tls.Config {
-	if _, err := r.r.Validation(); err != nil {
-		svc1log.FromContext(ctx).Warn("Invalid TLS config. Using previous value.", svc1log.Stacktrace(err))
-	}
-	return r.r.Current()
+	return r, nil
 }
 
 // NewTLSConfig returns a *tls.Config built from the provided TLSParams.

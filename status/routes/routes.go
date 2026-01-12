@@ -25,11 +25,11 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
-func AddLivenessRoutes(resource wresource.Resource, source healthstatus.Source) error {
+func AddLivenessRoutes(resource wresource.Resource, source refreshable.Refreshable[healthstatus.Source]) error {
 	return resource.Get("liveness", status.LivenessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
-func AddReadinessRoutes(resource wresource.Resource, source healthstatus.Source) error {
+func AddReadinessRoutes(resource wresource.Resource, source refreshable.Refreshable[healthstatus.Source]) error {
 	return resource.Get("readiness", status.ReadinessEndpoint, handler(source), wrouter.DisableTelemetry())
 }
 
@@ -40,9 +40,9 @@ func AddHealthRoutes(resource wresource.Resource, source healthstatus.HealthChec
 // handler returns an HTTP handler that writes a response based on the provided source. The status code of the response
 // is determined based on the status reported by the source and the status metadata returned by the source is written as
 // JSON in the response body.
-func handler(source healthstatus.Source) http.Handler {
+func handler(source refreshable.Refreshable[healthstatus.Source]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		respCode, metadata := source.Status()
+		respCode, metadata := source.Current().Status()
 
 		// if metadata is nil, create an empty json object instead of returning 'null' which http-remoting rejects.
 		if metadata == nil {

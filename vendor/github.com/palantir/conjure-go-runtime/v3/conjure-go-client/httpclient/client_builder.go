@@ -97,22 +97,30 @@ func (b *httpClientBuilder) Build(ctx context.Context, params ...HTTPClientParam
 		}
 	}
 
-	var tlsProvider refreshingclient.TLSProvider
+	var refreshableConfig refreshable.Validated[*tls.Config]
 	if b.TLSConfig != nil {
-		tlsProvider = refreshingclient.NewStaticTLSConfigProvider(b.TLSConfig)
+		refreshableOfStaticTLSConfig := refreshable.New(b.TLSConfig)
+		validatedStaticTLSConfig, _, err := refreshable.Validate(refreshableOfStaticTLSConfig, func(cfg *tls.Config) error {
+			// No validation needed given validation is done when setting config
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		refreshableConfig = validatedStaticTLSConfig
 	} else {
 		tlsParams := refreshable.View(b.TransportParams, func(t refreshingclient.TransportParams) refreshingclient.TLSParams {
 			return t.TLS
 		})
-		refreshableProvider, err := refreshingclient.NewRefreshableTLSConfig(ctx, tlsParams)
+		refreshableTLSConfig, err := refreshingclient.NewRefreshableTLSConfig(ctx, tlsParams)
 		if err != nil {
 			return nil, err
 		}
-		tlsProvider = refreshableProvider
+		refreshableConfig = refreshableTLSConfig
 	}
 
 	dialer := refreshingclient.NewRefreshableDialer(ctx, b.DialerParams)
-	transport := refreshingclient.NewRefreshableTransport(ctx, b.TransportParams, tlsProvider, dialer)
+	transport := refreshingclient.NewRefreshableTransport(ctx, b.TransportParams, refreshableConfig, dialer)
 	transport = wrapTransport(transport, newMetricsMiddleware(b.ServiceName, b.MetricsTagProviders, b.DisableMetrics))
 	transport = wrapTransport(transport, newTraceMiddleware(b.ServiceName, b.DisableRequestSpan, b.DisableTraceHeaders))
 	if !b.DisableRecovery {

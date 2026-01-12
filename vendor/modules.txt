@@ -20,7 +20,7 @@ github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/propagation
 github.com/openzipkin/zipkin-go/reporter
-# github.com/palantir/conjure-go-runtime/v3 v3.0.0
+# github.com/palantir/conjure-go-runtime/v3 v3.1.0
 ## explicit; go 1.25.0
 github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient
 github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient/internal
@@ -53,7 +53,7 @@ github.com/palantir/pkg/metrics
 # github.com/palantir/pkg/objmatcher v1.2.0
 ## explicit; go 1.25.0
 github.com/palantir/pkg/objmatcher
-# github.com/palantir/pkg/refreshable/v2 v2.3.0
+# github.com/palantir/pkg/refreshable/v2 v2.4.0
 ## explicit; go 1.25.0
 github.com/palantir/pkg/refreshable/v2
 # github.com/palantir/pkg/retry v1.3.0
@@ -88,7 +88,7 @@ github.com/palantir/pkg/uuid/internal/uuid
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
-# github.com/palantir/witchcraft-go-health/v2 v2.0.0
+# github.com/palantir/witchcraft-go-health/v2 v2.1.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/v2/reporter
@@ -172,7 +172,7 @@ golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/text v0.32.0
+# golang.org/x/text v0.33.0
 ## explicit; go 1.24.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
