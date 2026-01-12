@@ -226,7 +226,8 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// is also dual-logged to the "audit.2" logger.
 	dualLogAuditV3ToAuditV2 bool
 
-	// Job runner TBD
+	// jobRunnerHealthCheck is the health check source used by the JobManager to report job execution health.
+	// If nil, a default health check with type "WITCHCRAFT_JOB_RUNNER" is created.
 	jobRunnerHealthCheck window.KeyedErrorHealthCheckSource
 
 	// loggers
@@ -604,6 +605,9 @@ func (s *Server[I, R]) WithEnableDualLogAuditV2ToAuditV3() *Server[I, R] {
 	return s
 }
 
+// WithJobRunnerHealthCheck configures a custom health check source for monitoring job execution status.
+// If not set, a default health check with type "WITCHCRAFT_JOB_RUNNER" using HealthyIfNotAllErrors mode is used.
+// The health check source is used by the JobManager to report the health of jobs added via TaskManager.AddJobs.
 func (s *Server[I, R]) WithJobRunnerHealthCheck(jobRunnerHealthCheck window.KeyedErrorHealthCheckSource) *Server[I, R] {
 	s.jobRunnerHealthCheck = jobRunnerHealthCheck
 	return s

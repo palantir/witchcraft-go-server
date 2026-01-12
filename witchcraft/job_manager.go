@@ -23,7 +23,19 @@ import (
 	"github.com/palantir/witchcraft-go-tasks/jobs"
 )
 
+// JobManager manages the lifecycle of background jobs within a witchcraft server.
 type JobManager interface {
+	// AddJobs registers and starts the provided jobs. Each job runs in its own goroutine
+	// and executes periodically based on its configured interval. Jobs that have
+	// WithStartImmediately set will run once immediately upon being added.
+	//
+	// The first call to AddJobs with at least one job will register a health check source
+	// with the server. Subsequent calls will not register additional health sources.
+	// Job execution results (success or error) are reported to this health check.
+	// If no job is every registered, the health check will never be added
+	//
+	// The provided context is passed to each job and can be used for cancellation.
+	// When the context is cancelled, all jobs will stop after their current execution completes.
 	AddJobs(ctx context.Context, job ...jobs.Job)
 }
 
