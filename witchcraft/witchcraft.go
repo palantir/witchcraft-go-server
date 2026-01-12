@@ -277,6 +277,8 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
 
+	// TaskManager provides access to register background jobs that run periodically.
+	// Jobs added via TaskManager.AddJobs will be monitored by the server's health check system.
 	TaskManager TaskManager
 }
 
