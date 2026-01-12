@@ -48,8 +48,7 @@ func (d *defaultJobManager) AddJobs(ctx context.Context, job ...jobs.Job) {
 	if len(job) == 0 {
 		return
 	}
-	if !d.hasHealthBeenAdded.Load() {
-		d.hasHealthBeenAdded.Store(true)
+	if d.hasHealthBeenAdded.CompareAndSwap(false, true) {
 		d.registerHealth(d.keyedErrorHealthCheckSource)
 	}
 	d.jobRunner.StartJobs(ctx, job)
