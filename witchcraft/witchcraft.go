@@ -58,7 +58,6 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttprouter"
-	"github.com/palantir/witchcraft-go-tasks/jobs"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
 	"gopkg.in/yaml.v2"
@@ -227,6 +226,9 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// is also dual-logged to the "audit.2" logger.
 	dualLogAuditV3ToAuditV2 bool
 
+	// Job runner TBD
+	jobRunnerHealthCheck window.KeyedErrorHealthCheckSource
+
 	// loggers
 	svcLogger    svc1log.Logger
 	evtLogger    evt2log.Logger
@@ -274,7 +276,7 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
 
-	TaskManager TaskManagerAdder
+	TaskManager TaskManager
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -602,6 +604,11 @@ func (s *Server[I, R]) WithEnableDualLogAuditV2ToAuditV3() *Server[I, R] {
 	return s
 }
 
+func (s *Server[I, R]) WithJobRunnerHealthCheck(jobRunnerHealthCheck window.KeyedErrorHealthCheckSource) *Server[I, R] {
+	s.jobRunnerHealthCheck = jobRunnerHealthCheck
+	return s
+}
+
 // WithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
 func (s *Server[I, R]) WithEnableDualLogAuditV3ToAuditV2() *Server[I, R] {
@@ -780,8 +787,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
-
-	taskManager := NewTaskManager()
+	taskManager := NewTaskManager(NewJobManager(s.getJobRunnerHealthCheck()))
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
@@ -826,14 +832,6 @@ func (s *Server[I, R]) Start() (rErr error) {
 		if cleanupFn != nil {
 			defer cleanupFn()
 		}
-	}
-
-	potentialJobs := taskManager.GetJobs()
-	if len(potentialJobs) > 0 {
-		source := window.MustNewKeyedErrorHealthCheckSource("WITCHCRAFT_JOB_RUNNER", window.HealthyIfNotAllErrors)
-		s.healthCheckSources = append(s.healthCheckSources, source)
-		jobRunner := jobs.NewDefaultJobRunner(source)
-		jobRunner.StartJobs(ctx, potentialJobs)
 	}
 
 	// add all internally defined health check sources to the user supplied ones after running the initFn.
@@ -1145,6 +1143,13 @@ func (s *Server[I, R]) getApplicationTracingOptions(install config.Install) []wt
 
 func (s *Server[I, R]) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
 	return getTracingOptions(s.managementTraceSampler, install, neverSample, install.Server.ManagementPort, install.ManagementTraceSampleRate)
+}
+
+func (s *Server[I, R]) getJobRunnerHealthCheck() window.KeyedErrorHealthCheckSource {
+	if s.jobRunnerHealthCheck == nil {
+		return window.MustNewKeyedErrorHealthCheckSource("WITCHCRAFT_JOB_RUNNER", window.HealthyIfNotAllErrors)
+	}
+	return s.jobRunnerHealthCheck
 }
 
 func getTracingOptions(configuredSampler wtracing.Sampler, install config.Install, fallbackSampler wtracing.Sampler, port int, sampleRate *float64) []wtracing.TracerOption {
