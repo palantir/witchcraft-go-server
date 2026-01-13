@@ -94,6 +94,7 @@ github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health
 github.com/palantir/witchcraft-go-health/v2/reporter
 github.com/palantir/witchcraft-go-health/v2/sources
 github.com/palantir/witchcraft-go-health/v2/sources/periodic
+github.com/palantir/witchcraft-go-health/v2/sources/window
 github.com/palantir/witchcraft-go-health/v2/status
 # github.com/palantir/witchcraft-go-logging v1.64.0
 ## explicit; go 1.25.0
@@ -128,6 +129,10 @@ github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
 # github.com/palantir/witchcraft-go-params v1.39.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-params
+# github.com/palantir/witchcraft-go-tasks v0.4.0
+## explicit; go 1.25.0
+github.com/palantir/witchcraft-go-tasks/function
+github.com/palantir/witchcraft-go-tasks/jobs
 # github.com/palantir/witchcraft-go-tracing v1.41.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-tracing/wtracing

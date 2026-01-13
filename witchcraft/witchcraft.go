@@ -36,6 +36,7 @@ import (
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/v2/sources/window"
 	healthstatus "github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog"
@@ -223,6 +224,10 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// is also dual-logged to the "audit.2" logger.
 	dualLogAuditV3ToAuditV2 bool
 
+	// jobRunnerHealthCheck is the health check source used by the JobManager to report job execution health.
+	// If nil, a default health check with type "WITCHCRAFT_JOB_RUNNER" is created.
+	jobRunnerHealthCheck window.KeyedErrorHealthCheckSource
+
 	// loggers
 	svcLogger    svc1log.Logger
 	evtLogger    evt2log.Logger
@@ -269,6 +274,10 @@ type InitInfo[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// When the InitFunc is executed, the server is not yet started. This will most often be useful if launching a goroutine which
 	// requires access to shut down the server in some error condition.
 	ShutdownServer func(context.Context) error
+
+	// TaskManager provides access to register background jobs that run periodically.
+	// Jobs added via TaskManager.AddJobs will be monitored by the server's health check system.
+	TaskManager TaskManager
 }
 
 // ConfigurableRouter is a wrouter.Router that provides additional support for configuring things such as health,
@@ -591,6 +600,14 @@ func (s *Server[I, R]) WithEnableDualLogAuditV2ToAuditV3() *Server[I, R] {
 	return s
 }
 
+// WithJobRunnerHealthCheck configures a custom health check source for monitoring job execution status.
+// If not set, a default health check with type "WITCHCRAFT_JOB_RUNNER" using HealthyIfNotAllErrors mode is used.
+// The health check source is used by the JobManager to report the health of jobs added via TaskManager.AddJobs.
+func (s *Server[I, R]) WithJobRunnerHealthCheck(jobRunnerHealthCheck window.KeyedErrorHealthCheckSource) *Server[I, R] {
+	s.jobRunnerHealthCheck = jobRunnerHealthCheck
+	return s
+}
+
 // WithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
 func (s *Server[I, R]) WithEnableDualLogAuditV3ToAuditV2() *Server[I, R] {
@@ -769,7 +786,9 @@ func (s *Server[I, R]) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
-
+	taskManager := NewTaskManager(NewJobManager(s.getJobRunnerHealthCheck(), func(healthSource healthstatus.HealthCheckSource) {
+		s.WithHealth(healthSource)
+	}))
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
@@ -805,6 +824,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 				RuntimeConfig:  refreshableRuntimeCfg,
 				Clients:        discovery,
 				ShutdownServer: s.Shutdown,
+				TaskManager:    taskManager,
 			},
 		)
 		if err != nil {
@@ -1124,6 +1144,13 @@ func (s *Server[I, R]) getApplicationTracingOptions(install config.Install) []wt
 
 func (s *Server[I, R]) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
 	return getTracingOptions(s.managementTraceSampler, install, neverSample, install.Server.ManagementPort, install.ManagementTraceSampleRate)
+}
+
+func (s *Server[I, R]) getJobRunnerHealthCheck() window.KeyedErrorHealthCheckSource {
+	if s.jobRunnerHealthCheck == nil {
+		return window.MustNewKeyedErrorHealthCheckSource("WITCHCRAFT_JOB_RUNNER", window.HealthyIfNotAllErrors)
+	}
+	return s.jobRunnerHealthCheck
 }
 
 func getTracingOptions(configuredSampler wtracing.Sampler, install config.Install, fallbackSampler wtracing.Sampler, port int, sampleRate *float64) []wtracing.TracerOption {
