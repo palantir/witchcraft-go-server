@@ -35,7 +35,7 @@ type JobManager interface {
 	// If no job is every registered, the health check will never be added
 	//
 	// The provided context is passed to each job and can be used for cancellation.
-	// When the context is cancelled, all jobs will stop after their current execution completes.
+	// When the context is cancelled, all jobs that were started with that context will stop
 	AddJobs(ctx context.Context, job ...jobs.Job)
 }
 
@@ -56,12 +56,12 @@ func NewJobManager(
 	}
 }
 
-func (d *defaultJobManager) AddJobs(ctx context.Context, job ...jobs.Job) {
-	if len(job) == 0 {
+func (d *defaultJobManager) AddJobs(ctx context.Context, jobs ...jobs.Job) {
+	if len(jobs) == 0 {
 		return
 	}
 	if d.hasHealthBeenAdded.CompareAndSwap(false, true) {
 		d.registerHealth(d.keyedErrorHealthCheckSource)
 	}
-	d.jobRunner.StartJobs(ctx, job)
+	d.jobRunner.StartJobs(ctx, jobs)
 }
