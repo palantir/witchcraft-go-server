@@ -32,7 +32,7 @@ type JobManager interface {
 	// The first call to AddJobs with at least one job will register a health check source
 	// with the server. Subsequent calls will not register additional health sources.
 	// Job execution results (success or error) are reported to this health check.
-	// If no job is every registered, the health check will never be added
+	// If no job is ever registered, the health check will never be added
 	//
 	// The provided context is passed to each job and can be used for cancellation.
 	// When the context is cancelled, all jobs will stop after their current execution completes.
