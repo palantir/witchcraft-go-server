@@ -60,6 +60,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	yamlv3 "gopkg.in/yaml.v3"
 
@@ -786,9 +787,7 @@ func (s *Server[I, R]) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
-	taskManager := NewTaskManager(NewJobManager(s.getJobRunnerHealthCheck(), func(healthSource healthstatus.HealthCheckSource) {
-		s.WithHealth(healthSource)
-	}))
+	taskManager := s.getTaskManager(ctx)
 	if s.initFn != nil {
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
@@ -1144,6 +1143,22 @@ func (s *Server[I, R]) getApplicationTracingOptions(install config.Install) []wt
 
 func (s *Server[I, R]) getManagementTracingOptions(install config.Install) []wtracing.TracerOption {
 	return getTracingOptions(s.managementTraceSampler, install, neverSample, install.Server.ManagementPort, install.ManagementTraceSampleRate)
+}
+
+func (s *Server[I, R]) getTaskManager(ctx context.Context) TaskManager {
+	jobManager := NewJobManager(s.getJobRunnerHealthCheck(), func(healthSource healthstatus.HealthCheckSource) {
+		s.WithHealth(healthSource)
+	})
+	runnableManager := NewRunnableManager(s.shutdownOrPanic)
+	return NewTaskManager(jobManager, runnableManager)
+}
+
+func (s *Server[I, R]) shutdownOrPanic(ctx context.Context) {
+	err := s.Shutdown(ctx)
+	if err != nil {
+		svc1log.FromContext(ctx).Error("Failed to shutdown gracefully, panicking", svc1log.Stacktrace(err))
+		panic(err)
+	}
 }
 
 func (s *Server[I, R]) getJobRunnerHealthCheck() window.KeyedErrorHealthCheckSource {
