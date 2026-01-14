@@ -75,6 +75,7 @@ type httpClientBuilder struct {
 	DialerParams    refreshable.Refreshable[refreshingclient.DialerParams]
 	TLSConfig       *tls.Config // If unset, config in TransportParams will be used.
 	TransportParams refreshable.Refreshable[refreshingclient.TransportParams]
+	TLSCABytes      refreshable.Refreshable[[][]byte] // Optional refreshable CA bytes to combine with TLSParams.
 	Middlewares     []Middleware
 
 	DisableMetrics      refreshable.Refreshable[bool]
@@ -96,29 +97,12 @@ func (b *httpClientBuilder) Build(ctx context.Context, params ...HTTPClientParam
 			return nil, err
 		}
 	}
-
-	var refreshableConfig refreshable.Validated[*tls.Config]
-	if b.TLSConfig != nil {
-		refreshableOfStaticTLSConfig := refreshable.New(b.TLSConfig)
-		validatedStaticTLSConfig, _, err := refreshable.Validate(refreshableOfStaticTLSConfig, func(cfg *tls.Config) error {
-			// No validation needed given validation is done when setting config
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-		refreshableConfig = validatedStaticTLSConfig
-	} else {
-		tlsParams := refreshable.View(b.TransportParams, func(t refreshingclient.TransportParams) refreshingclient.TLSParams {
-			return t.TLS
-		})
-		refreshableTLSConfig, err := refreshingclient.NewRefreshableTLSConfig(ctx, tlsParams)
-		if err != nil {
-			return nil, err
-		}
-		refreshableConfig = refreshableTLSConfig
+	refreshableConfig, err := b.getRefreshableTLSConfig(ctx)
+	if err != nil {
+		return nil, err
 	}
 
+	// Create dialer and transport
 	dialer := refreshingclient.NewRefreshableDialer(ctx, b.DialerParams)
 	transport := refreshingclient.NewRefreshableTransport(ctx, b.TransportParams, refreshableConfig, dialer)
 	transport = wrapTransport(transport, newMetricsMiddleware(b.ServiceName, b.MetricsTagProviders, b.DisableMetrics))
@@ -129,6 +113,52 @@ func (b *httpClientBuilder) Build(ctx context.Context, params ...HTTPClientParam
 	transport = wrapTransport(transport, b.Middlewares...)
 
 	return refreshingclient.NewRefreshableHTTPClient(transport, b.Timeout), nil
+}
+
+func (b *httpClientBuilder) getRefreshableTLSConfig(ctx context.Context) (refreshable.Validated[*tls.Config], error) {
+	if b.TLSConfig != nil {
+		refreshableOfStaticTLSConfig := refreshable.New(b.TLSConfig)
+		validatedStaticTLSConfig, _, err := refreshable.Validate(refreshableOfStaticTLSConfig, func(cfg *tls.Config) error {
+			// No validation needed given validation is done when setting config
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		return validatedStaticTLSConfig, nil
+	}
+	fileSlices, _ := refreshable.Map(b.TransportParams, func(t refreshingclient.TransportParams) map[string]struct{} {
+		toReturn := map[string]struct{}{}
+		for _, file := range t.TLSConfigurationParams.CAFiles {
+			toReturn[file] = struct{}{}
+		}
+		return toReturn
+	})
+	multiFileRefreshable := refreshable.NewMultiFileRefreshable(ctx, fileSlices)
+	if _, err := multiFileRefreshable.Validation(); err != nil {
+		return nil, werror.WrapWithContextParams(ctx, err, "failed to read CA files")
+	}
+	tlsParams, _ := refreshable.Merge(b.TransportParams, multiFileRefreshable, func(t1 refreshingclient.TransportParams, t2 map[string][]byte) refreshingclient.TLSParams {
+		var caBytes [][]byte
+		for _, caSlice := range t2 {
+			caBytes = append(caBytes, caSlice)
+		}
+		return refreshingclient.TLSParams{
+			CABytes:            caBytes,
+			CertFile:           t1.TLSConfigurationParams.CertFile,
+			KeyFile:            t1.TLSConfigurationParams.KeyFile,
+			InsecureSkipVerify: t1.TLSConfigurationParams.InsecureSkipVerify,
+		}
+	})
+	if b.TLSCABytes != nil {
+		tlsParams, _ = refreshable.Merge(tlsParams, b.TLSCABytes, func(tlsParams refreshingclient.TLSParams, caByteSlices [][]byte) refreshingclient.TLSParams {
+			for _, caByteSlice := range caByteSlices {
+				tlsParams.CABytes = append(tlsParams.CABytes, caByteSlice)
+			}
+			return tlsParams
+		})
+	}
+	return refreshingclient.NewRefreshableTLSConfig(ctx, tlsParams)
 }
 
 // NewClient returns a configured client ready for use.
