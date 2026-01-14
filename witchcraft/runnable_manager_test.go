@@ -35,7 +35,7 @@ func TestNewRunnableManager(t *testing.T) {
 	assert.NotNil(t, manager)
 }
 
-func TestRunnableManager_AddNamedRunnable_StartsRunnable(t *testing.T) {
+func TestRunnableManager_AddForeverRunnable_StartsRunnable(t *testing.T) {
 	var shutdownCalled atomic.Bool
 	serverShutdown := func(ctx context.Context) {
 		shutdownCalled.Store(true)
@@ -47,7 +47,7 @@ func TestRunnableManager_AddNamedRunnable_StartsRunnable(t *testing.T) {
 		runnableRan.Store(true)
 		return nil
 	})
-	manager.AddNamedRunnable(ctx, testRunnable)
+	manager.AddForeverRunnable(ctx, testRunnable)
 	require.Eventually(t, func() bool {
 		return runnableRan.Load()
 	}, time.Second, 10*time.Millisecond, "runnable should have run")
@@ -56,7 +56,7 @@ func TestRunnableManager_AddNamedRunnable_StartsRunnable(t *testing.T) {
 	}, time.Second, 10*time.Millisecond, "serverShutdown should be called when runnable completes")
 }
 
-func TestRunnableManager_AddNamedRunnable_MultipleRunnables(t *testing.T) {
+func TestRunnableManager_AddForeverRunnable_MultipleRunnables(t *testing.T) {
 	var shutdownCount atomic.Int32
 	serverShutdown := func(ctx context.Context) {
 		shutdownCount.Add(1)
@@ -72,7 +72,7 @@ func TestRunnableManager_AddNamedRunnable_MultipleRunnables(t *testing.T) {
 		runnable2Ran.Store(true)
 		return nil
 	})
-	manager.AddNamedRunnable(ctx, testRunnable1, testRunnable2)
+	manager.AddForeverRunnable(ctx, testRunnable1, testRunnable2)
 	require.Eventually(t, func() bool {
 		return runnable1Ran.Load() && runnable2Ran.Load()
 	}, time.Second, 10*time.Millisecond, "both runnables should have run")
@@ -81,7 +81,7 @@ func TestRunnableManager_AddNamedRunnable_MultipleRunnables(t *testing.T) {
 	}, time.Second, 10*time.Millisecond, "serverShutdown should be called for each runnable")
 }
 
-func TestRunnableManager_AddNamedRunnable_RunnableReturnsError_CallsShutdown(t *testing.T) {
+func TestRunnableManager_AddForeverRunnable_RunnableReturnsError_CallsShutdown(t *testing.T) {
 	var shutdownCalled atomic.Bool
 	serverShutdown := func(ctx context.Context) {
 		shutdownCalled.Store(true)
@@ -91,19 +91,19 @@ func TestRunnableManager_AddNamedRunnable_RunnableReturnsError_CallsShutdown(t *
 	testRunnable := runnable.New("error-runnable", func(ctx context.Context) error {
 		return werror.Error("runnable error")
 	})
-	manager.AddNamedRunnable(ctx, testRunnable)
+	manager.AddForeverRunnable(ctx, testRunnable)
 	require.Eventually(t, func() bool {
 		return shutdownCalled.Load()
 	}, time.Second, 10*time.Millisecond, "serverShutdown should be called when runnable returns error")
 }
 
-func TestRunnableManager_AddNamedRunnable_EmptyRunnables(t *testing.T) {
+func TestRunnableManager_AddForeverRunnable_EmptyRunnables(t *testing.T) {
 	var shutdownCalled atomic.Bool
 	serverShutdown := func(ctx context.Context) {
 		shutdownCalled.Store(true)
 	}
 	manager := NewRunnableManager(serverShutdown)
 	ctx := context.Background()
-	manager.AddNamedRunnable(ctx)
+	manager.AddForeverRunnable(ctx)
 	assert.False(t, shutdownCalled.Load(), "serverShutdown should not be called when no runnables are added")
 }

@@ -17,23 +17,30 @@ package witchcraft
 import (
 	"context"
 
+	"github.com/palantir/witchcraft-go-tasks/function"
 	"github.com/palantir/witchcraft-go-tasks/jobs"
 )
 
 type TaskManager interface {
 	JobManager
+	RunnableManager
 }
 
 type defaultTaskManager struct {
-	jobManager JobManager
+	jobManager      JobManager
+	runnableManager RunnableManager
 }
 
-func NewTaskManager(jobManager JobManager) TaskManager {
+func NewTaskManager(jobManager JobManager, runnableManager RunnableManager) TaskManager {
 	return &defaultTaskManager{
-		jobManager: jobManager,
+		runnableManager: runnableManager,
 	}
 }
 
 func (d *defaultTaskManager) AddJobs(ctx context.Context, jobsArg ...jobs.Job) {
 	d.jobManager.AddJobs(ctx, jobsArg...)
+}
+
+func (d *defaultTaskManager) AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
+	d.runnableManager.AddForeverRunnable(ctx, namedRunnables...)
 }

@@ -22,8 +22,18 @@ import (
 	"github.com/palantir/witchcraft-go-tasks/runnable"
 )
 
+// RunnableManager manages the lifecycle of long-running background tasks within a witchcraft server.
+// It provides mechanisms to register and supervise runnables that are expected to run for the
+// lifetime of the server. If any registered runnable terminates (either with an error or unexpectedly),
+// the manager will initiate a server shutdown.
 type RunnableManager interface {
-	AddNamedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
+	// AddForeverRunnable registers one or more NamedRunnables that are expected to run indefinitely
+	// for the lifetime of the server. Each runnable is started in its own goroutine and wrapped with
+	// service logging and fatal error handling. If any runnable returns (with or without an error),
+	// the server will be shut down, as this indicates an unexpected termination of a critical
+	// background task. The provided context should be the server's context, which will be used
+	// for cancellation propagation and logging.
+	AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 }
 
 type defaultRunnableManager struct {
@@ -36,7 +46,7 @@ func NewRunnableManager(serverShutdown func(ctx context.Context)) RunnableManage
 	}
 }
 
-func (d *defaultRunnableManager) AddNamedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
+func (d *defaultRunnableManager) AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
 	for _, runnable := range namedRunnables {
 		d.startRunnable(ctx, runnable)
 	}
