@@ -60,7 +60,6 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttprouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/palantir/witchcraft-go-tracing/wzipkin"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	yamlv3 "gopkg.in/yaml.v3"
 
