@@ -26,15 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewRunnableManager(t *testing.T) {
-	var shutdownCalled atomic.Bool
-	serverShutdown := func(ctx context.Context) {
-		shutdownCalled.Store(true)
-	}
-	manager := NewRunnableManager(serverShutdown)
-	assert.NotNil(t, manager)
-}
-
 func TestRunnableManager_AddForeverRunnable_StartsRunnable(t *testing.T) {
 	var shutdownCalled atomic.Bool
 	serverShutdown := func(ctx context.Context) {
