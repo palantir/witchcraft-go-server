@@ -33,6 +33,7 @@ type defaultTaskManager struct {
 
 func NewTaskManager(jobManager JobManager, runnableManager RunnableManager) TaskManager {
 	return &defaultTaskManager{
+		jobManager:      jobManager,
 		runnableManager: runnableManager,
 	}
 }
