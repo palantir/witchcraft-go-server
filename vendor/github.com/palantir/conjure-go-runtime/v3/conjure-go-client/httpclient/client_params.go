@@ -122,6 +122,16 @@ func WithMiddleware(h Middleware) ClientOrHTTPClientParam {
 	})
 }
 
+// WithTLSCABytes sets the root CA certificates for the HTTP client's TLS config using a refreshable
+// source of PEM-encoded bytes. The TLS configuration will be rebuilt whenever the refreshable updates.
+// This is useful when the CA certificates are available in memory rather than on disk and may change over time.
+func WithTLSCABytes(caBytes refreshable.Refreshable[[][]byte]) ClientOrHTTPClientParam {
+	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
+		b.TLSCABytes = caBytes
+		return nil
+	})
+}
+
 // WithInnerMiddleware is like WithMiddleware, but adds the handler to the
 // beginning of the middleware chain. This function will see the request last
 // (after all already-configured middleware) and see the response first.
@@ -391,7 +401,32 @@ func WithTLSInsecureSkipVerify() ClientOrHTTPClientParam {
 			b.TLSConfig.InsecureSkipVerify = true
 		}
 		b.TransportParams = refreshable.View(b.TransportParams, func(p refreshingclient.TransportParams) refreshingclient.TransportParams {
-			p.TLS.InsecureSkipVerify = true
+			p.TLSConfigurationParams.InsecureSkipVerify = true
+			return p
+		})
+		return nil
+	})
+}
+
+// WithKeyAndCertFile sets the client TLS certificate and key file paths.
+// The files are read when the client is created and on each request to support certificate rotation.
+func WithKeyAndCertFile(keyFile string, certFile string) ClientOrHTTPClientParam {
+	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
+		b.TransportParams = refreshable.View(b.TransportParams, func(p refreshingclient.TransportParams) refreshingclient.TransportParams {
+			p.TLSConfigurationParams.KeyFile = keyFile
+			p.TLSConfigurationParams.CertFile = certFile
+			return p
+		})
+		return nil
+	})
+}
+
+// WithCAFiles sets the CA certificate file paths for the client's TLS configuration.
+// The files are read when the client is created and periodically refreshed to support certificate rotation.
+func WithCAFiles(CAFiles []string) ClientOrHTTPClientParam {
+	return clientOrHTTPClientParamFunc(func(b *httpClientBuilder) error {
+		b.TransportParams = refreshable.View(b.TransportParams, func(p refreshingclient.TransportParams) refreshingclient.TransportParams {
+			p.TLSConfigurationParams.CAFiles = CAFiles
 			return p
 		})
 		return nil

@@ -40,7 +40,14 @@ type TransportParams struct {
 	HTTP2ReadIdleTimeout  time.Duration
 	HTTP2PingTimeout      time.Duration
 
-	TLS TLSParams
+	TLSConfigurationParams TLSConfigurationParams
+}
+
+type TLSConfigurationParams struct {
+	CAFiles            []string
+	CertFile           string
+	KeyFile            string
+	InsecureSkipVerify bool
 }
 
 func NewRefreshableTransport(ctx context.Context, p refreshable.Refreshable[TransportParams], refreshableConfig refreshable.Validated[*tls.Config], dialer ContextDialer) http.RoundTripper {
