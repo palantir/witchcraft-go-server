@@ -34,6 +34,8 @@ type RunnableManager interface {
 	// background task. The provided context should be the server's context, which will be used
 	// for cancellation propagation and logging.
 	AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
+
+	AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 }
 
 type defaultRunnableManager struct {
@@ -48,11 +50,20 @@ func NewRunnableManager(serverShutdown func(ctx context.Context)) RunnableManage
 
 func (d *defaultRunnableManager) AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
 	for _, runnable := range namedRunnables {
-		d.startRunnable(ctx, runnable)
+		d.startRunnable(ctx, runnable, true)
 	}
 }
 
-func (d *defaultRunnableManager) startRunnable(ctx context.Context, runnableArg function.NamedRunnable) {
+func (d *defaultRunnableManager) AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
+	for _, runnable := range namedRunnables {
+		d.startRunnable(ctx, runnable, false)
+	}
+}
+
+func (d *defaultRunnableManager) startRunnable(
+	ctx context.Context,
+	runnableArg function.NamedRunnable,
+	errorOnNilRunnableError bool) {
 	finalRunnable := runnable.WithWrappers(
 		runnable.WithServiceLogging(),
 		runnable.WithFatalLogging(),
@@ -64,9 +75,10 @@ func (d *defaultRunnableManager) startRunnable(ctx context.Context, runnableArg 
 			d.serverShutdown(ctx)
 			return
 		}
-		svc1log.FromContext(ctx).Error("Terminal runnable unexpectedly terminated, shutting down server")
-		d.serverShutdown(ctx)
+		if errorOnNilRunnableError {
+			svc1log.FromContext(ctx).Error("Terminal runnable unexpectedly terminated, shutting down server")
+			d.serverShutdown(ctx)
+		}
 		return
 	}()
-
 }

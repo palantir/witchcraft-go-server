@@ -45,3 +45,7 @@ func (d *defaultTaskManager) AddJobs(ctx context.Context, jobsArg ...jobs.Job) {
 func (d *defaultTaskManager) AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
 	d.runnableManager.AddForeverRunnable(ctx, namedRunnables...)
 }
+
+func (d *defaultTaskManager) AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
+	d.runnableManager.AddMustSucceedRunnable(ctx, namedRunnables...)
+}
