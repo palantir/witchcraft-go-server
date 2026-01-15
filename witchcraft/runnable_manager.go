@@ -34,6 +34,15 @@ type RunnableManager interface {
 	// background task. The provided context should be the server's context, which will be used
 	// for cancellation propagation and logging.
 	AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
+
+	// AddMustSucceedRunnable registers one or more NamedRunnables that must complete successfully
+	// but are not expected to run indefinitely. Each runnable is started in its own goroutine and
+	// wrapped with service logging and fatal error handling. If any runnable returns an error,
+	// the server will be shut down. However, unlike AddForeverRunnable, if a runnable completes
+	// successfully (returns nil), no shutdown is triggered. This is useful for one-time initialization
+	// tasks or background jobs that are expected to complete. The provided context should be the
+	// server's context, which will be used for cancellation propagation and logging.
+	AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 }
 
 type defaultRunnableManager struct {
@@ -48,11 +57,20 @@ func NewRunnableManager(serverShutdown func(ctx context.Context)) RunnableManage
 
 func (d *defaultRunnableManager) AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
 	for _, runnable := range namedRunnables {
-		d.startRunnable(ctx, runnable)
+		d.startRunnable(ctx, runnable, true)
 	}
 }
 
-func (d *defaultRunnableManager) startRunnable(ctx context.Context, runnableArg function.NamedRunnable) {
+func (d *defaultRunnableManager) AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable) {
+	for _, runnable := range namedRunnables {
+		d.startRunnable(ctx, runnable, false)
+	}
+}
+
+func (d *defaultRunnableManager) startRunnable(
+	ctx context.Context,
+	runnableArg function.NamedRunnable,
+	errorOnNilRunnableError bool) {
 	finalRunnable := runnable.WithWrappers(
 		runnable.WithServiceLogging(),
 		runnable.WithFatalLogging(),
@@ -64,9 +82,10 @@ func (d *defaultRunnableManager) startRunnable(ctx context.Context, runnableArg 
 			d.serverShutdown(ctx)
 			return
 		}
-		svc1log.FromContext(ctx).Error("Terminal runnable unexpectedly terminated, shutting down server")
-		d.serverShutdown(ctx)
+		if errorOnNilRunnableError {
+			svc1log.FromContext(ctx).Error("Terminal runnable unexpectedly terminated, shutting down server")
+			d.serverShutdown(ctx)
+		}
 		return
 	}()
-
 }

@@ -98,3 +98,38 @@ func TestRunnableManager_AddForeverRunnable_EmptyRunnables(t *testing.T) {
 	manager.AddForeverRunnable(ctx)
 	assert.False(t, shutdownCalled.Load(), "serverShutdown should not be called when no runnables are added")
 }
+
+func TestRunnableManager_AddMustSucceedRunnable_RunnableSucceeds_NoShutdown(t *testing.T) {
+	var shutdownCalled atomic.Bool
+	serverShutdown := func(ctx context.Context) {
+		shutdownCalled.Store(true)
+	}
+	manager := NewRunnableManager(serverShutdown)
+	ctx := context.Background()
+	var runnableRan atomic.Bool
+	testRunnable := runnable.New("test-runnable", func(ctx context.Context) error {
+		runnableRan.Store(true)
+		return nil
+	})
+	manager.AddMustSucceedRunnable(ctx, testRunnable)
+	require.Eventually(t, func() bool {
+		return runnableRan.Load()
+	}, time.Second, 10*time.Millisecond, "runnable should have run")
+	assert.False(t, shutdownCalled.Load(), "serverShutdown should not be called when runnable succeeds")
+}
+
+func TestRunnableManager_AddMustSucceedRunnable_RunnableReturnsError_CallsShutdown(t *testing.T) {
+	var shutdownCalled atomic.Bool
+	serverShutdown := func(ctx context.Context) {
+		shutdownCalled.Store(true)
+	}
+	manager := NewRunnableManager(serverShutdown)
+	ctx := context.Background()
+	testRunnable := runnable.New("error-runnable", func(ctx context.Context) error {
+		return werror.Error("runnable error")
+	})
+	manager.AddMustSucceedRunnable(ctx, testRunnable)
+	require.Eventually(t, func() bool {
+		return shutdownCalled.Load()
+	}, time.Second, 10*time.Millisecond, "serverShutdown should be called when runnable returns error")
+}
