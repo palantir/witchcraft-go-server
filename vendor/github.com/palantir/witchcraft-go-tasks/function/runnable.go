@@ -34,6 +34,26 @@ type NamedRunnable interface {
 	Name() string
 }
 
+type defaultNamedRunnable struct {
+	name     string
+	runnable Runnable
+}
+
+func NewNamedRunnable(name string, runnable Runnable) NamedRunnable {
+	return &defaultNamedRunnable{
+		name:     name,
+		runnable: runnable,
+	}
+}
+
+func (d *defaultNamedRunnable) Run(ctx context.Context) error {
+	return d.runnable.Run(ctx)
+}
+
+func (d *defaultNamedRunnable) Name() string {
+	return d.name
+}
+
 // RunnableFunc is a named type for a function that implements the Runnable interface.
 type RunnableFunc func(ctx context.Context) error
 
