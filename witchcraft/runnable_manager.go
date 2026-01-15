@@ -35,6 +35,13 @@ type RunnableManager interface {
 	// for cancellation propagation and logging.
 	AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 
+	// AddMustSucceedRunnable registers one or more NamedRunnables that must complete successfully
+	// but are not expected to run indefinitely. Each runnable is started in its own goroutine and
+	// wrapped with service logging and fatal error handling. If any runnable returns an error,
+	// the server will be shut down. However, unlike AddForeverRunnable, if a runnable completes
+	// successfully (returns nil), no shutdown is triggered. This is useful for one-time initialization
+	// tasks or background jobs that are expected to complete. The provided context should be the
+	// server's context, which will be used for cancellation propagation and logging.
 	AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 }
 
