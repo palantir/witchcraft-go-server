@@ -608,6 +608,13 @@ func (s *Server[I, R]) WithJobRunnerHealthCheck(jobRunnerHealthCheck window.Keye
 	return s
 }
 
+// WithIDsExtractor configures the server to use the specified extractor for extracting identifiers (such as UID, SID, TokenID)
+// from requests for request logging and middleware. If not set, uses extractor.NewDefaultIDsExtractor().
+func (s *Server[I, R]) WithIDsExtractor(idsExtractor extractor.IDsFromRequest) *Server[I, R] {
+	s.idsExtractor = idsExtractor
+	return s
+}
+
 // WithEnableDualLogAuditV3ToAuditV2 enables dual-writing audit v3 logs to audit v2 logs.
 // This is an experimental feature: the functionality or function itself may be removed in the future.
 func (s *Server[I, R]) WithEnableDualLogAuditV3ToAuditV2() *Server[I, R] {
