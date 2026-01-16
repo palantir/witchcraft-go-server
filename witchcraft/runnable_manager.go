@@ -29,19 +29,21 @@ import (
 type RunnableManager interface {
 	// AddForeverRunnable registers one or more NamedRunnables that are expected to run indefinitely
 	// for the lifetime of the server. Each runnable is started in its own goroutine and wrapped with
-	// service logging and fatal error handling. If any runnable returns (with or without an error),
-	// the server will be shut down, as this indicates an unexpected termination of a critical
-	// background task. The provided context should be the server's context, which will be used
-	// for cancellation propagation and logging.
+	// service logging and fatal error handling. If any runnable returns with an error, the server
+	// will be shut down. If a runnable returns nil without an error, the server will be shut down
+	// unless the context was canceled, as a nil return without context cancellation indicates an
+	// unexpected termination of a critical background task. The provided context should be the
+	// server's context, which will be used for cancellation propagation and logging.
 	AddForeverRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 
 	// AddMustSucceedRunnable registers one or more NamedRunnables that must complete successfully
 	// but are not expected to run indefinitely. Each runnable is started in its own goroutine and
 	// wrapped with service logging and fatal error handling. If any runnable returns an error,
 	// the server will be shut down. However, unlike AddForeverRunnable, if a runnable completes
-	// successfully (returns nil), no shutdown is triggered. This is useful for one-time initialization
-	// tasks or background jobs that are expected to complete. The provided context should be the
-	// server's context, which will be used for cancellation propagation and logging.
+	// successfully (returns nil), no shutdown is triggered regardless of context state. This is
+	// useful for one-time initialization tasks or background jobs that are expected to complete.
+	// The provided context should be the server's context, which will be used for cancellation
+	// propagation and logging.
 	AddMustSucceedRunnable(ctx context.Context, namedRunnables ...function.NamedRunnable)
 }
 
@@ -83,9 +85,12 @@ func (d *defaultRunnableManager) startRunnable(
 			return
 		}
 		if errorOnNilRunnableError {
+			if ctx.Err() != nil {
+				svc1log.FromContext(ctx).Info("Terminal runnable terminated due to context cancellation")
+				return
+			}
 			svc1log.FromContext(ctx).Error("Terminal runnable unexpectedly terminated, shutting down server")
 			d.serverShutdown(ctx)
 		}
-		return
 	}()
 }

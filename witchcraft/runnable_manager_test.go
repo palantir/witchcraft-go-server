@@ -150,25 +150,23 @@ func TestRunnableManager_AddMustSucceedRunnable_RunnablePanics_CallsShutdown(t *
 	}, time.Second, 10*time.Millisecond, "serverShutdown should be called when runnable panics")
 }
 
-func TestRunnableManager_AddForeverRunnable_ContextCanceled_CallsShutdown(t *testing.T) {
+func TestRunnableManager_AddForeverRunnable_ContextCanceled_NoShutdown(t *testing.T) {
 	var shutdownCalled atomic.Bool
 	serverShutdown := func(ctx context.Context) {
 		shutdownCalled.Store(true)
 	}
 	manager := NewRunnableManager(serverShutdown)
 	ctx, cancel := context.WithCancel(context.Background())
-	var runnableRan atomic.Bool
+	var runnableFinished atomic.Bool
 	testRunnable := runnable.New("context-runnable", func(ctx context.Context) error {
-		runnableRan.Store(true)
 		<-ctx.Done()
-		return ctx.Err()
+		runnableFinished.Store(true)
+		return nil
 	})
 	manager.AddForeverRunnable(ctx, testRunnable)
-	require.Eventually(t, func() bool {
-		return runnableRan.Load()
-	}, time.Second, 10*time.Millisecond, "runnable should have started")
 	cancel()
 	require.Eventually(t, func() bool {
-		return shutdownCalled.Load()
-	}, time.Second, 10*time.Millisecond, "serverShutdown should be called when context is canceled")
+		return runnableFinished.Load()
+	}, time.Second, 10*time.Millisecond, "runnable should have finished")
+	assert.False(t, shutdownCalled.Load(), "serverShutdown should not be called when context is canceled")
 }
