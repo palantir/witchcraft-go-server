@@ -17,20 +17,24 @@ package witchcraft_test
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"path"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
 
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
 	"github.com/palantir/witchcraft-go-logging/wlog/auditlog/audit2log"
 	"github.com/palantir/witchcraft-go-logging/wlog/evtlog/evt2log"
@@ -39,6 +43,9 @@ import (
 	"github.com/palantir/witchcraft-go-logging/wlog/trclog/trc1log"
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft"
+	"github.com/palantir/witchcraft-go-tasks/function"
+	"github.com/palantir/witchcraft-go-tasks/jobs"
+	"github.com/palantir/witchcraft-go-tasks/runnable"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -603,4 +610,179 @@ func getWrappedLogMessagesOfType(t *testing.T, entityName, entityVersion, typ st
 		}
 	}
 	return logLines
+}
+
+func TestServer_JobManagerHealth(t *testing.T) {
+	// Find an available port
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	var jobRan atomic.Bool
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
+		WithSelfSignedCertificate().
+		WithDisableGoRuntimeMetrics().
+		WithInstallConfig(config.Install{
+			Server: config.Server{
+				Address: "127.0.0.1",
+				Port:    port,
+			},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfig(config.Runtime{}).
+		WithLoggerStdoutWriter(io.Discard).
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+			job := jobs.NewDefaultJob("test-job", function.NewRunnableFromFunc(func(ctx context.Context) error {
+				jobRan.Store(true)
+				return nil
+			}), jobs.WithStartImmediately(true))
+			info.TaskManager.AddJobs(ctx, job)
+			return nil, nil
+		})
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+
+	// Wait for server to be ready
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Verify job ran
+	require.Eventually(t, func() bool {
+		return jobRan.Load()
+	}, time.Second, 10*time.Millisecond, "job should have run")
+
+	// Verify health endpoint includes the job runner health check
+	resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	var healthStatus health.HealthStatus
+	require.NoError(t, json.Unmarshal(body, &healthStatus))
+	jobRunnerCheck, ok := healthStatus.Checks[health.CheckType("WITCHCRAFT_JOB_RUNNER")]
+	require.True(t, ok, "expected WITCHCRAFT_JOB_RUNNER health check to be present, got: %v", healthStatus.Checks)
+	assert.Equal(t, health.New_HealthState(health.HealthState_HEALTHY), jobRunnerCheck.State)
+
+	// Shutdown
+	require.NoError(t, server.Close())
+	select {
+	case err := <-serverErrChan:
+		assert.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Error("server did not shut down in time")
+	}
+}
+
+func TestServer_ForeverRunnableExitCausesShutdown(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	runbackRan := atomic.Bool{}
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
+		WithSelfSignedCertificate().
+		WithDisableGoRuntimeMetrics().
+		WithInstallConfig(config.Install{
+			Server: config.Server{
+				Address: "127.0.0.1",
+				Port:    port,
+			},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfig(config.Runtime{}).
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+			info.TaskManager.AddForeverRunnable(ctx, runnable.New("exiting-runnable", func(ctx context.Context) error {
+				runbackRan.Store(true)
+				return nil
+			}))
+			return nil, nil
+		})
+	defer func() { _ = server.Close() }()
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+	assert.Eventually(t, func() bool {
+		return runbackRan.Load()
+	}, time.Second, 10*time.Millisecond, "server did not not run runnable")
+	select {
+	case <-serverErrChan:
+	case <-time.After(5 * time.Second):
+		t.Fatal("server did not shut down after runnable exited")
+	}
+}
+
+func TestServer_ForeverRunnableRunsUntilShutdown(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	var runnableStarted atomic.Bool
+	var runnableContextCancelled atomic.Bool
+	server := witchcraft.NewServer[config.Install, config.Runtime]().
+		WithSelfSignedCertificate().
+		WithDisableGoRuntimeMetrics().
+		WithInstallConfig(config.Install{
+			Server: config.Server{
+				Address: "127.0.0.1",
+				Port:    port,
+			},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfig(config.Runtime{}).
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+			info.TaskManager.AddForeverRunnable(ctx, runnable.New("long-running", func(ctx context.Context) error {
+				runnableStarted.Store(true)
+				<-ctx.Done()
+				runnableContextCancelled.Store(true)
+				return ctx.Err()
+			}))
+			return nil, nil
+		})
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+	require.True(t, runnableStarted.Load(), "runnable should have started")
+
+	require.NoError(t, server.Close())
+	select {
+	case err := <-serverErrChan:
+		assert.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Error("server did not shut down in time")
+	}
+	require.Eventually(t, func() bool {
+		return runnableContextCancelled.Load()
+	}, time.Second, 10*time.Millisecond, "runnable context should have been cancelled")
 }
