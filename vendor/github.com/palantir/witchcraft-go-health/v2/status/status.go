@@ -17,6 +17,7 @@ package status
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
@@ -31,6 +32,13 @@ var (
 		health.HealthState_WARNING:   521,
 		health.HealthState_ERROR:     522,
 		health.HealthState_TERMINAL:  523,
+	}
+
+	// readyHealthStates defines the health states that indicate a service is ready
+	readyHealthStates = []health.HealthState_Value{
+		health.HealthState_HEALTHY,
+		health.HealthState_DEFERRING,
+		health.HealthState_WARNING,
 	}
 )
 
@@ -99,4 +107,32 @@ func HealthStatusCode(metadata health.HealthStatus) int {
 		}
 	}
 	return worst
+}
+
+// HealthBasedReadinessSource creates a Source that determines readiness based on the provided
+// health check sources. The readiness status is OK if all health check sources report a healthy
+// state (HEALTHY, DEFERRING, or WARNING). Otherwise, it returns the status code corresponding to
+// the first non-OK health state encountered.
+func HealthBasedReadinessSource(healthCheckSources refreshable.Refreshable[[]HealthCheckSource]) Source {
+	return &healthBasedReadinessSource{
+		healthSource: NewCombinedHealthCheckSourceWithRefresh(healthCheckSources),
+	}
+}
+
+type healthBasedReadinessSource struct {
+	healthSource HealthCheckSource
+}
+
+func (h *healthBasedReadinessSource) Status() (int, interface{}) {
+	ctx := context.Background()
+	healthStatus := h.healthSource.HealthStatus(ctx)
+	for _, check := range healthStatus.Checks {
+		state := check.State.Value()
+		if !slices.Contains(readyHealthStates, state) {
+			return HealthStateStatusCode(state), check
+		}
+	}
+
+	// All checks passed
+	return http.StatusOK, nil
 }
