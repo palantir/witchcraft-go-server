@@ -129,7 +129,7 @@ github.com/palantir/witchcraft-go-logging/wlog/wrappedlog/wrapped1log
 # github.com/palantir/witchcraft-go-params v1.39.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-params
-# github.com/palantir/witchcraft-go-tasks v0.7.0
+# github.com/palantir/witchcraft-go-tasks v0.8.0
 ## explicit; go 1.25.0
 github.com/palantir/witchcraft-go-tasks/function
 github.com/palantir/witchcraft-go-tasks/jobs
