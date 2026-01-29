@@ -36,6 +36,7 @@ import (
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/signals"
 	werror "github.com/palantir/witchcraft-go-error"
+	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-health/v2/sources/window"
 	healthstatus "github.com/palantir/witchcraft-go-health/v2/status"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
@@ -228,6 +229,14 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// If nil, a default health check with type "WITCHCRAFT_JOB_RUNNER" is created.
 	jobRunnerHealthCheck window.KeyedErrorHealthCheckSource
 
+	// installConfigValidation configures validation behavior for install configuration.
+	// If nil, install config will not be validated.
+	installConfigValidation *config.InstallConfigValidationOptions
+
+	// runtimeConfigValidation configures validation behavior for runtime configuration.
+	// If nil, runtime config will not be validated.
+	runtimeConfigValidation *config.RuntimeConfigValidationOptions
+
 	// loggers
 	svcLogger    svc1log.Logger
 	evtLogger    evt2log.Logger
@@ -329,6 +338,17 @@ func (s *Server[I, R]) WithInstallConfigProvider(p ConfigBytesProvider) *Server[
 	return s
 }
 
+// WithInstallConfigValidation configures validation behavior for install configuration.
+// If the config struct implements [config.Validator], the Validate method will be called
+// after unmarshaling. Note that logging, health checks, and metrics are not available
+// during install config validation since they depend on the install config being loaded first.
+//
+// See [config.InstallConfigValidationOptions] for available options.
+func (s *Server[I, R]) WithInstallConfigValidation(opts config.InstallConfigValidationOptions) *Server[I, R] {
+	s.installConfigValidation = &opts
+	return s
+}
+
 // WithRuntimeConfig configures the server to use the provided runtime configuration. The provided runtime configuration
 // must support being marshaled as YAML.
 func (s *Server[I, R]) WithRuntimeConfig(in R) *Server[I, R] {
@@ -368,6 +388,15 @@ func (s *Server[I, R]) WithRuntimeConfigFromFile(fpath string) *Server[I, R] {
 	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
 		return refreshable.NewFileRefreshable(ctx, fpath)
 	}
+	return s
+}
+
+// WithRuntimeConfigValidation configures validation behavior for runtime configuration.
+// If the config struct implements [config.Validator], the Validate method will be called after unmarshaling.
+//
+// See [config.RuntimeConfigValidationOptions] for available options.
+func (s *Server[I, R]) WithRuntimeConfigValidation(opts config.RuntimeConfigValidationOptions) *Server[I, R] {
+	s.runtimeConfigValidation = &opts
 	return s
 }
 
@@ -629,7 +658,8 @@ const (
 	installConfigPath = "var/conf/install.yml"
 	runtimeConfigPath = "var/conf/runtime.yml"
 
-	runtimeConfigReloadCheckType = "CONFIG_RELOAD"
+	runtimeConfigReloadCheckType     = "CONFIG_RELOAD"
+	runtimeConfigValidationCheckType = "CONFIG_VALIDATION"
 )
 
 // Start begins serving HTTPS traffic and blocks until s.Close() or s.Shutdown() return.
@@ -736,11 +766,11 @@ func (s *Server[I, R]) Start() (rErr error) {
 	ctx = s.withLoggers(ctx)
 
 	// load runtime configuration
-	refreshableRuntimeCfg, configReloadHealthCheckSource, err := s.initRuntimeConfig(ctx)
+	refreshableRuntimeCfg, configHealthCheckSources, err := s.initRuntimeConfig(ctx)
 	if err != nil {
 		return err
 	}
-	internalHealthCheckSources := []healthstatus.HealthCheckSource{configReloadHealthCheckSource}
+	internalHealthCheckSources := configHealthCheckSources
 
 	// set up SERVICE_DEPENDENCY check
 	if !s.disableServiceDependencyHealth {
@@ -928,14 +958,30 @@ func (s *Server[I, R]) initInstallConfig() (zero I, _ error) {
 	if err != nil {
 		return zero, werror.Wrap(err, "Failed to decrypt install configuration bytes")
 	}
+
+	unmarshalFn := s.configYAMLUnmarshalFn
+	if s.installConfigValidation != nil && s.installConfigValidation.StrictUnmarshaling {
+		unmarshalFn = yaml.UnmarshalStrict
+	}
+
 	var installConfigStruct I
-	if err := s.configYAMLUnmarshalFn(cfgBytes, &installConfigStruct); err != nil {
+	if err := unmarshalFn(cfgBytes, &installConfigStruct); err != nil {
 		return zero, werror.Wrap(err, "Failed to unmarshal install specific configuration YAML")
 	}
+
+	// Validate config if it implements Validator and validation is enabled
+	if s.installConfigValidation != nil {
+		if validator, ok := any(installConfigStruct).(config.Validator); ok {
+			if err := validator.Validate(context.Background()); err != nil {
+				return zero, werror.Wrap(err, "Install configuration validation failed")
+			}
+		}
+	}
+
 	return installConfigStruct, nil
 }
 
-func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.Refreshable[R], hcSrc healthstatus.HealthCheckSource, rErr error) {
+func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.Refreshable[R], hcSrcs []healthstatus.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
@@ -947,29 +993,127 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 	if _, err := runtimeConfigProvider.Validation(); err != nil {
 		return nil, nil, err
 	}
+
+	// Track validation errors for health check and whether we're at startup
+	var lastValidationErr atomic.Pointer[error]
+	var isStartup atomic.Bool
+	isStartup.Store(true)
+
 	unmarshalledRuntimeConfig, _, err := refreshable.MapWithError(runtimeConfigProvider, func(cfgBytes []byte) (R, error) {
+		startup := isStartup.Swap(false)
+
 		cfgBytes, err := s.decryptConfigBytes(cfgBytes)
 		if err != nil {
 			s.svcLogger.Warn("Failed to decrypt encrypted runtime configuration", svc1log.Stacktrace(err))
 		}
-		var runtimeCfg R
-		if err := s.configYAMLUnmarshalFn(cfgBytes, &runtimeCfg); err != nil {
-			var zero R
-			return zero, err
+
+		unmarshalFn := s.configYAMLUnmarshalFn
+		if s.runtimeConfigValidation != nil && s.runtimeConfigValidation.StrictUnmarshaling {
+			unmarshalFn = yaml.UnmarshalStrict
 		}
+
+		var runtimeCfg R
+		if err := unmarshalFn(cfgBytes, &runtimeCfg); err != nil {
+			var zero R
+			return zero, werror.Wrap(err, "Failed to unmarshal runtime configuration YAML")
+		}
+
+		// Validate config if it implements Validator and validation is enabled
+		if s.runtimeConfigValidation != nil {
+			if validator, ok := any(runtimeCfg).(config.Validator); ok {
+				if err := validator.Validate(ctx); err != nil {
+					validationErr := werror.Wrap(err, "Runtime configuration validation failed")
+					lastValidationErr.Store(&validationErr)
+					return s.handleRuntimeValidationError(ctx, runtimeCfg, validationErr, startup)
+				}
+			}
+		}
+
+		// Clear any previous validation error on success
+		lastValidationErr.Store(nil)
 		return runtimeCfg, nil
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	validatingRefreshableHealthCheckSource := refreshablehealth.NewValidatingRefreshableHealthCheckSource(
-		runtimeConfigReloadCheckType,
-		refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
-		refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
-	)
+	healthCheckSources := []healthstatus.HealthCheckSource{
+		refreshablehealth.NewValidatingRefreshableHealthCheckSource(
+			runtimeConfigReloadCheckType,
+			refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
+			refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
+		),
+	}
 
-	return unmarshalledRuntimeConfig, validatingRefreshableHealthCheckSource, nil
+	// Add CONFIG_VALIDATION health check
+	if s.runtimeConfigValidation != nil && s.runtimeConfigValidation.HealthCheckOnFailure != nil {
+		healthCheckSources = append(healthCheckSources, &configValidationHealthCheckSource{
+			lastErr:     &lastValidationErr,
+			healthState: s.runtimeConfigValidation.HealthCheckOnFailure.HealthState,
+		})
+	}
+
+	return unmarshalledRuntimeConfig, healthCheckSources, nil
+}
+
+// handleRuntimeValidationError applies configured failure actions for validation errors and returns
+// the appropriate result. This should only be called for [config.Validator] errors, not unmarshal errors.
+func (s *Server[I, R]) handleRuntimeValidationError(ctx context.Context, cfg R, err error, isStartup bool) (R, error) {
+	var zero R
+	if s.runtimeConfigValidation == nil {
+		return zero, err
+	}
+	if s.runtimeConfigValidation.LogOnFailure {
+		s.svcLogger.Warn("Runtime configuration validation error", svc1log.Stacktrace(err))
+	}
+	if s.runtimeConfigValidation.MetricOnFailure {
+		metrics.FromContext(ctx).Counter(config.ValidationFailureMetric, metrics.MustNewTag("config-type", "runtime")).Inc(1)
+	}
+	if isStartup && s.runtimeConfigValidation.FailStartupOnError {
+		return zero, err
+	}
+	if !isStartup && s.runtimeConfigValidation.RejectInvalidReload {
+		return zero, err
+	}
+	return cfg, nil
+}
+
+// configValidationHealthCheckSource provides health check status based on validation errors.
+type configValidationHealthCheckSource struct {
+	lastErr     *atomic.Pointer[error]
+	healthState health.HealthState_Value
+}
+
+func (c *configValidationHealthCheckSource) HealthStatus(ctx context.Context) health.HealthStatus {
+	checkType := health.CheckType(runtimeConfigValidationCheckType)
+	if errPtr := c.lastErr.Load(); errPtr != nil {
+		message := "Runtime configuration validation failed"
+		var params map[string]any
+		if wErr, ok := werror.Convert(*errPtr).(werror.Werror); ok {
+			message = wErr.Message()
+			params = map[string]any{
+				"error": wErr.SafeParams(),
+			}
+		}
+		return health.HealthStatus{
+			Checks: map[health.CheckType]health.HealthCheckResult{
+				checkType: {
+					Type:    checkType,
+					State:   health.New_HealthState(c.healthState),
+					Message: &message,
+					Params:  params,
+				},
+			},
+		}
+	}
+	return health.HealthStatus{
+		Checks: map[health.CheckType]health.HealthCheckResult{
+			checkType: {
+				Type:  checkType,
+				State: health.New_HealthState(health.HealthState_HEALTHY),
+			},
+		},
+	}
 }
 
 func (s *Server[I, R]) initStackTraceHandler(ctx context.Context) {
