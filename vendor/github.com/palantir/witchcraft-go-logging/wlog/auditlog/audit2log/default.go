@@ -15,12 +15,10 @@
 package audit2log
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/palantir/witchcraft-go-logging/wlog"
 	wloginternal "github.com/palantir/witchcraft-go-logging/wlog/internal"
 )
 
@@ -31,23 +29,15 @@ func SetDefaultLoggerCreator(creator func() Logger) {
 var defaultLoggerCreator = func() Logger {
 	return &warnLogger{
 		w: os.Stderr,
-		// store the DefaultLoggerProvider at creation-time so that the output of this logger will be consistent
-		// throughout its lifetime (if the default logger provider is changed after a specific warnLogger is created,
-		// that should not change the creator used for that warnLogger).
-		creator: wlog.DefaultLoggerProvider().NewLogger,
 	}
 }
 
-// warnLogger is a logger that writes a warning to the provided io.Writer whenever its logging function is invoked. When
-// the logging function is invoked, a new logger is created using the wlog.LoggerCreator and a warning and the output of
-// the created logger are written to the io.Writer.
+// warnLogger is a logger that writes a warning to the provided io.Writer whenever its logging function is invoked.
 type warnLogger struct {
-	w       io.Writer
-	creator wlog.LoggerCreator
+	w io.Writer
 }
 
 func (l *warnLogger) Audit(name string, result AuditResultType, params ...Param) {
-	buf := &bytes.Buffer{}
-	NewFromCreator(buf, l.creator).Audit(name, result, params...)
-	_, _ = fmt.Fprintln(l.w, wloginternal.WarnLoggerOutput("audit2log", buf.String(), 2))
+	// Ignore the audit log output to prevent leaking sensitive data
+	_, _ = fmt.Fprintln(l.w, wloginternal.WarnLoggerOutput("audit2log", "", 2))
 }
