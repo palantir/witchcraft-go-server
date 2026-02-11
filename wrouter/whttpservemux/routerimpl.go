@@ -21,26 +21,12 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
-// New returns a wrouter.RouterImpl backed by a new http.ServeMux configured using the provided parameters.
-func New(params ...Param) wrouter.RouterImpl {
+// New returns a wrouter.RouterImpl backed by a new http.ServeMux.
+func New() wrouter.RouterImpl {
 	r := &router{
 		mux: http.NewServeMux(),
 	}
-	for _, p := range params {
-		p.apply(r)
-	}
 	return r
-}
-
-// Param is a parameter that configures the behavior of a router.
-type Param interface {
-	apply(*router)
-}
-
-type paramFunc func(*router)
-
-func (f paramFunc) apply(r *router) {
-	f(r)
 }
 
 type router struct {

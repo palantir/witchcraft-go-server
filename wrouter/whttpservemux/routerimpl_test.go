@@ -43,7 +43,7 @@ func TestRegisterNotFoundHandler(t *testing.T) {
 
 	resp, err := http.Get(server.URL + "/missing")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.True(t, notFoundCalled)
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -68,7 +68,7 @@ func TestPathParams(t *testing.T) {
 
 	resp, err := http.Get(server.URL + "/datasets/my-dataset-id")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, map[string]string{"rid": "my-dataset-id"}, gotParams)
@@ -90,7 +90,7 @@ func TestTrailingPathParam(t *testing.T) {
 
 	resp, err := http.Get(server.URL + "/file/var/data/my-file.txt")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	// Trailing path param value must not have a leading slash.
@@ -113,7 +113,7 @@ func TestRootPathExactMatch(t *testing.T) {
 	// Root path should match.
 	resp, err := http.Get(server.URL + "/")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	assert.True(t, rootCalled)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -121,7 +121,7 @@ func TestRootPathExactMatch(t *testing.T) {
 	rootCalled = false
 	resp, err = http.Get(server.URL + "/other")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	assert.False(t, rootCalled)
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
