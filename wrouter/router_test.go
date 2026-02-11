@@ -28,6 +28,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/wgorillamux"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttpservemux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,6 +40,7 @@ func TestRouterImpls(t *testing.T) {
 	}{
 		{"wgorillamux", wgorillamux.New()},
 		{"whttprouter", whttprouter.New()},
+		{"whttpservemux", whttpservemux.New()},
 	} {
 		// create router
 		r := wrouter.New(tc.impl, nil)
@@ -114,6 +116,7 @@ func TestRouterImplSmoke(t *testing.T) {
 	}{
 		{"wgorillamux", wgorillamux.New()},
 		{"whttprouter", whttprouter.New()},
+		{"whttpservemux", whttpservemux.New()},
 	} {
 		func() {
 			// create router
@@ -272,6 +275,7 @@ func TestRouterImplRouteHandling(t *testing.T) {
 		}{
 			{"wgorillamux", wgorillamux.New()},
 			{"whttprouter", whttprouter.New()},
+			{"whttpservemux", whttpservemux.New()},
 		} {
 			func() {
 				// create router
