@@ -43,25 +43,21 @@ func (f paramFunc) apply(r *router) {
 	f(r)
 }
 
-// NotFoundHandler configures the handler used for requests that do not match any registered route.
-func NotFoundHandler(h http.Handler) Param {
-	return paramFunc(func(r *router) {
-		r.notFoundHandler = h
-	})
-}
-
 type router struct {
 	mux             *http.ServeMux
 	notFoundHandler http.Handler
 }
 
 func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// [http.ServeMux.Handler] returns an empty pattern when no registered handler
+	// applies to the request (both 404 not found and 405 method not allowed cases).
+	// We must call r.mux.ServeHTTP (not the returned handler h directly) because
+	// [http.ServeMux.Handler] does not populate named path wildcards on the request;
+	// only [http.ServeMux.ServeHTTP] sets req.PathValue, which PathParams relies on.
 	_, pattern := r.mux.Handler(req)
-	if pattern == "" {
-		if r.notFoundHandler != nil {
-			r.notFoundHandler.ServeHTTP(w, req)
-			return
-		}
+	if pattern == "" && r.notFoundHandler != nil {
+		r.notFoundHandler.ServeHTTP(w, req)
+		return
 	}
 	r.mux.ServeHTTP(w, req)
 }

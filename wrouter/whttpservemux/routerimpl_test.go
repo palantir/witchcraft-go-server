@@ -25,37 +25,103 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNew(t *testing.T) {
-	handlerCalled := false
+func TestRegisterNotFoundHandler(t *testing.T) {
+	notFoundCalled := false
 	router := whttpservemux.New()
 	router.Register(http.MethodGet, []wrouter.PathSegment{
-		{
-			Type:  wrouter.LiteralSegment,
-			Value: "hello",
-		},
-	}, http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
-		handlerCalled = true
+		{Type: wrouter.LiteralSegment, Value: "exists"},
+	}, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	router.RegisterNotFoundHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		notFoundCalled = true
+		w.WriteHeader(http.StatusNotFound)
 	}))
 
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	_, err := http.Get(server.URL + "/hello")
+	resp, err := http.Get(server.URL + "/missing")
 	require.NoError(t, err)
+	defer resp.Body.Close()
 
-	assert.True(t, handlerCalled)
+	assert.True(t, notFoundCalled)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
-func TestNotFoundHandler(t *testing.T) {
-	handlerCalled := false
-	router := whttpservemux.New(whttpservemux.NotFoundHandler(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
-		handlerCalled = true
-	})))
+// Ensures that PathParams returns the correct value from req.PathValue.
+// This would fail if the handler from [http.ServeMux.Handler] was used
+// instead of [http.ServeMux.ServeHTTP].
+func TestPathParams(t *testing.T) {
+	var gotParams map[string]string
+	router := whttpservemux.New()
+	router.Register(http.MethodGet, []wrouter.PathSegment{
+		{Type: wrouter.LiteralSegment, Value: "datasets"},
+		{Type: wrouter.PathParamSegment, Value: "rid"},
+	}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotParams = router.PathParams(r, []string{"rid"})
+		w.WriteHeader(http.StatusOK)
+	}))
+
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	_, err := http.Get(server.URL + "/hello")
+	resp, err := http.Get(server.URL + "/datasets/my-dataset-id")
 	require.NoError(t, err)
+	defer resp.Body.Close()
 
-	assert.True(t, handlerCalled)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, map[string]string{"rid": "my-dataset-id"}, gotParams)
+}
+
+func TestTrailingPathParam(t *testing.T) {
+	var gotParams map[string]string
+	router := whttpservemux.New()
+	router.Register(http.MethodGet, []wrouter.PathSegment{
+		{Type: wrouter.LiteralSegment, Value: "file"},
+		{Type: wrouter.TrailingPathParamSegment, Value: "path"},
+	}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotParams = router.PathParams(r, []string{"path"})
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/file/var/data/my-file.txt")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	// Trailing path param value must not have a leading slash.
+	assert.Equal(t, map[string]string{"path": "var/data/my-file.txt"}, gotParams)
+}
+
+func TestRootPathExactMatch(t *testing.T) {
+	rootCalled := false
+	router := whttpservemux.New()
+	router.Register(http.MethodGet, []wrouter.PathSegment{
+		{Type: wrouter.LiteralSegment, Value: ""},
+	}, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		rootCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	// Root path should match.
+	resp, err := http.Get(server.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.True(t, rootCalled)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Non-root path must not match the root route.
+	rootCalled = false
+	resp, err = http.Get(server.URL + "/other")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.False(t, rootCalled)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
