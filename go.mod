@@ -12,7 +12,7 @@ require (
 	github.com/palantir/pkg/httpserver v1.2.0
 	github.com/palantir/pkg/metrics v1.9.0
 	github.com/palantir/pkg/objmatcher v1.2.0
-	github.com/palantir/pkg/refreshable/v2 v2.5.0
+	github.com/palantir/pkg/refreshable/v2 v2.6.0
 	github.com/palantir/pkg/rid v1.2.0
 	github.com/palantir/pkg/signals v1.2.0
 	github.com/palantir/pkg/tlsconfig v1.5.0
