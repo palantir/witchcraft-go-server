@@ -114,20 +114,21 @@ func (h *metricsMiddleware) RoundTrip(req *http.Request, next http.RoundTripper)
 		return next.RoundTrip(req)
 	}
 	serviceNameTag := metrics.NewTagWithFallbackValue(MetricTagServiceName, h.ServiceName.Current(), "unknown")
+	registry := metrics.FromContext(req.Context())
 
-	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, serviceNameTag).Inc(1)
+	registry.Counter(MetricRequestInFlight, serviceNameTag).Inc(1)
 	start := time.Now()
-	tlsMetricsContext := h.tlsTraceContext(req.Context(), serviceNameTag)
+	tlsMetricsContext := h.tlsTraceContext(req.Context(), registry, serviceNameTag)
 	resp, err := next.RoundTrip(req.WithContext(tlsMetricsContext))
 	duration := time.Since(start)
-	metrics.FromContext(req.Context()).Counter(MetricRequestInFlight, serviceNameTag).Dec(1)
+	registry.Counter(MetricRequestInFlight, serviceNameTag).Dec(1)
 
 	tags := []metrics.Tag{serviceNameTag}
 	for _, tagProvider := range h.Tags {
 		tags = append(tags, tagProvider.Tags(req, resp, err)...)
 	}
 
-	metrics.FromContext(req.Context()).Timer(metricClientResponse, tags...).Update(duration / time.Microsecond)
+	registry.Timer(metricClientResponse, tags...).Update(duration / time.Microsecond)
 	return resp, err
 }
 
@@ -168,17 +169,17 @@ func tagRequestMethodName(req *http.Request, _ *http.Response, _ error) metrics.
 	return metrics.Tags{metrics.MustNewTag(metricRPCMethodName, "RPCMethodNameInvalid")}
 }
 
-func (h *metricsMiddleware) tlsTraceContext(ctx context.Context, serviceNameTag metrics.Tag) context.Context {
+func (h *metricsMiddleware) tlsTraceContext(ctx context.Context, registry metrics.Registry, serviceNameTag metrics.Tag) context.Context {
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
 			if info.Reused {
-				metrics.FromContext(ctx).Counter(MetricConnCreate, serviceNameTag, MetricTagConnectionReused).Inc(1)
+				registry.Counter(MetricConnCreate, serviceNameTag, MetricTagConnectionReused).Inc(1)
 			} else {
-				metrics.FromContext(ctx).Counter(MetricConnCreate, serviceNameTag, MetricTagConnectionNew).Inc(1)
+				registry.Counter(MetricConnCreate, serviceNameTag, MetricTagConnectionNew).Inc(1)
 			}
 		},
 		TLSHandshakeStart: func() {
-			metrics.FromContext(ctx).Meter(MetricTLSHandshakeAttempt, serviceNameTag).Mark(1)
+			registry.Meter(MetricTLSHandshakeAttempt, serviceNameTag).Mark(1)
 		},
 		TLSHandshakeDone: func(state tls.ConnectionState, err error) {
 			tags := []metrics.Tag{serviceNameTag}
@@ -193,9 +194,9 @@ func (h *metricsMiddleware) tlsTraceContext(ctx context.Context, serviceNameTag 
 				tags = append(tags, metrics.MustNewTag(TLSVersionTagKey, tlsVersion))
 			}
 			if err != nil {
-				metrics.FromContext(ctx).Meter(MetricTLSHandshakeFailure, tags...).Mark(1)
+				registry.Meter(MetricTLSHandshakeFailure, tags...).Mark(1)
 			} else {
-				metrics.FromContext(ctx).Meter(MetricTLSHandshake, tags...).Mark(1)
+				registry.Meter(MetricTLSHandshake, tags...).Mark(1)
 			}
 		},
 	})
