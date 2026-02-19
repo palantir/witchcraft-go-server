@@ -34,8 +34,8 @@ github.com/palantir/pkg/datetime v1.3.0 h1:w+Lk6NNxFLwN51wJsVvIZ8neoYcR3ITYtXRhw
 github.com/palantir/pkg/datetime v1.3.0/go.mod h1:ntQD52iX/eKa2qnALtKT8p1LQTbgxGu0CK5O4PVCgOQ=
 github.com/palantir/pkg/httpserver v1.2.0 h1:VdmcM4oaDE2HB16yrWWs4dFO6nUQwj+H4+OPxGh1jtw=
 github.com/palantir/pkg/httpserver v1.2.0/go.mod h1:YNtnkfxBDA5jgZj3DmRFb7ntXO24doNmmOwXzNo7bDY=
-github.com/palantir/pkg/metrics v1.10.0 h1:kZMi/VQiKKC5V0ymRUqWDpXEfGq8ouQs5esVqRprCSA=
-github.com/palantir/pkg/metrics v1.10.0/go.mod h1:etZRED9/ZNlDPR4SAm6tZhyQI0HmAN1ecHf+wR1HaDY=
+github.com/palantir/pkg/metrics v1.10.1 h1:NG/TSZIOtdCKS5pXSWhG6Wk2fzZhxa3MuINpQhogrio=
+github.com/palantir/pkg/metrics v1.10.1/go.mod h1:etZRED9/ZNlDPR4SAm6tZhyQI0HmAN1ecHf+wR1HaDY=
 github.com/palantir/pkg/objmatcher v1.2.0 h1:cR0IX2NXAhR1hRFBFUwA7y/+m4CtpXUCm5tabqdvS6I=
 github.com/palantir/pkg/objmatcher v1.2.0/go.mod h1:ekDpUDezSoBcD47CUWo9xbYTGycIkiM2ODvxHCUR+lQ=
 github.com/palantir/pkg/refreshable/v2 v2.6.0 h1:LbIpxnrUZ4NVs6HfveNFYcVfst6SFAWARYIbw3qtsHo=
