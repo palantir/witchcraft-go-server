@@ -28,6 +28,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/wgorillamux"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter/whttpservemux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,6 +40,7 @@ func TestRouterImpls(t *testing.T) {
 	}{
 		{"wgorillamux", wgorillamux.New()},
 		{"whttprouter", whttprouter.New()},
+		{"whttpservemux", whttpservemux.New()},
 	} {
 		// create router
 		r := wrouter.New(tc.impl, nil)
@@ -114,6 +116,7 @@ func TestRouterImplSmoke(t *testing.T) {
 	}{
 		{"wgorillamux", wgorillamux.New()},
 		{"whttprouter", whttprouter.New()},
+		{"whttpservemux", whttpservemux.New()},
 	} {
 		func() {
 			// create router
@@ -272,6 +275,7 @@ func TestRouterImplRouteHandling(t *testing.T) {
 		}{
 			{"wgorillamux", wgorillamux.New()},
 			{"whttprouter", whttprouter.New()},
+			{"whttpservemux", whttpservemux.New()},
 		} {
 			func() {
 				// create router
@@ -333,49 +337,60 @@ func mustMatchHandler(t *testing.T, method, path string, pathVars map[string]str
 
 // Tests that RouteHandlerMiddleware are called in the right order on the right routes.
 func TestRouterMiddlewareRegistration(t *testing.T) {
-	type ctxKey struct{}
-	newMarkingMiddleware := func(marking string) wrouter.RouteHandlerMiddleware {
-		return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
-			curr := req.Context().Value(ctxKey{})
-			if curr == nil {
-				req = req.WithContext(context.WithValue(req.Context(), ctxKey{}, []string{marking}))
-			} else {
-				req = req.WithContext(context.WithValue(req.Context(), ctxKey{}, append(curr.([]string), marking)))
+	for _, tc := range []struct {
+		name string
+		impl wrouter.RouterImpl
+	}{
+		{"wgorillamux", wgorillamux.New()},
+		{"whttprouter", whttprouter.New()},
+		{"whttpservemux", whttpservemux.New()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			type ctxKey struct{}
+			newMarkingMiddleware := func(marking string) wrouter.RouteHandlerMiddleware {
+				return func(rw http.ResponseWriter, req *http.Request, reqVals wrouter.RequestVals, next wrouter.RouteRequestHandler) {
+					curr := req.Context().Value(ctxKey{})
+					if curr == nil {
+						req = req.WithContext(context.WithValue(req.Context(), ctxKey{}, []string{marking}))
+					} else {
+						req = req.WithContext(context.WithValue(req.Context(), ctxKey{}, append(curr.([]string), marking)))
+					}
+					next(rw, req, reqVals)
+				}
 			}
-			next(rw, req, reqVals)
-		}
+			echoMarkingHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				_, _ = rw.Write([]byte(fmt.Sprint(req.Context().Value(ctxKey{}))))
+			})
+
+			// create router
+			r := wrouter.New(tc.impl, wrouter.RootRouterParamAddRouteHandlerMiddleware(newMarkingMiddleware("global")))
+			require.NoError(t, r.Get("/one", echoMarkingHandler))
+			require.NoError(t, r.Get("/two", echoMarkingHandler, wrouter.RouteMiddleware(newMarkingMiddleware("routeHandler"))))
+			// verify middleware configured after routes is still applied
+			r.AddRouteHandlerMiddleware(newMarkingMiddleware("globalHandler"))
+
+			// start server
+			server := httptest.NewServer(r)
+			defer server.Close()
+
+			t.Run("endpoint one", func(t *testing.T) {
+				resp, err := http.DefaultClient.Get(server.URL + "/one")
+				require.NoError(t, err)
+				defer func() { _ = resp.Body.Close() }()
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				require.Equal(t, "[global globalHandler]", string(body))
+			})
+			t.Run("endpoint two", func(t *testing.T) {
+				resp, err := http.DefaultClient.Get(server.URL + "/two")
+				require.NoError(t, err)
+				defer func() { _ = resp.Body.Close() }()
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				require.Equal(t, "[global globalHandler routeHandler]", string(body))
+			})
+		})
 	}
-	echoMarkingHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		_, _ = rw.Write([]byte(fmt.Sprint(req.Context().Value(ctxKey{}))))
-	})
-
-	// create router
-	r := wrouter.New(whttprouter.New(), wrouter.RootRouterParamAddRouteHandlerMiddleware(newMarkingMiddleware("global")))
-	require.NoError(t, r.Get("/one", echoMarkingHandler))
-	require.NoError(t, r.Get("/two", echoMarkingHandler, wrouter.RouteMiddleware(newMarkingMiddleware("routeHandler"))))
-	// verify middleware configured after routes is still applied
-	r.AddRouteHandlerMiddleware(newMarkingMiddleware("globalHandler"))
-
-	// start server
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	t.Run("endpoint one", func(t *testing.T) {
-		resp, err := http.DefaultClient.Get(server.URL + "/one")
-		require.NoError(t, err)
-		defer func() { _ = resp.Body.Close() }()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Equal(t, "[global globalHandler]", string(body))
-	})
-	t.Run("endpoint two", func(t *testing.T) {
-		resp, err := http.DefaultClient.Get(server.URL + "/two")
-		require.NoError(t, err)
-		defer func() { _ = resp.Body.Close() }()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Equal(t, "[global globalHandler routeHandler]", string(body))
-	})
 }
