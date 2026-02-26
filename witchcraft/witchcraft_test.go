@@ -33,6 +33,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/palantir/pkg/metrics"
 	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
 	"github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging"
@@ -785,4 +786,576 @@ func TestServer_ForeverRunnableRunsUntilShutdown(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return runnableContextCancelled.Load()
 	}, time.Second, 10*time.Millisecond, "runnable context should have been cancelled")
+}
+
+// validatingInstallConfig implements config.Validator
+type validatingInstallConfig struct {
+	config.Install `yaml:",inline"`
+	DatabaseURL    string `yaml:"database-url"`
+}
+
+func (c *validatingInstallConfig) Validate(ctx context.Context) error {
+	if c.DatabaseURL == "" {
+		return werror.ErrorWithContextParams(ctx, "database-url is required")
+	}
+	return nil
+}
+
+// validatingRuntimeConfig implements config.Validator
+type validatingRuntimeConfig struct {
+	config.Runtime `yaml:",inline"`
+	MaxConnections int `yaml:"max-connections"`
+}
+
+func (c *validatingRuntimeConfig) Validate(ctx context.Context) error {
+	if c.MaxConnections < 1 || c.MaxConnections > 100 {
+		return werror.ErrorWithContextParams(ctx, "max-connections must be between 1 and 100",
+			werror.SafeParam("value", c.MaxConnections))
+	}
+	return nil
+}
+
+func TestServer_InstallConfigValidation(t *testing.T) {
+	t.Run("valid config succeeds", func(t *testing.T) {
+		err := witchcraft.NewServer[*validatingInstallConfig, config.Runtime]().
+			WithInstallConfig(&validatingInstallConfig{
+				DatabaseURL: "test-DB-URL",
+			}).
+			WithRuntimeConfig(config.Runtime{}).
+			WithInstallConfigValidation(config.InstallConfigValidationOptions{}).
+			WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+			WithDisableGoRuntimeMetrics().
+			WithSelfSignedCertificate().
+			WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[*validatingInstallConfig, config.Runtime]) (func(), error) {
+				assert.Equal(t, "test-DB-URL", info.InstallConfig.DatabaseURL)
+				return nil, werror.Error("expected error to stop server")
+			}).
+			Start()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "expected error to stop server")
+	})
+
+	t.Run("invalid config errors", func(t *testing.T) {
+		err := witchcraft.NewServer[*validatingInstallConfig, config.Runtime]().
+			WithInstallConfig(&validatingInstallConfig{
+				DatabaseURL: "", // empty is invalid
+			}).
+			WithRuntimeConfig(config.Runtime{}).
+			WithInstallConfigValidation(config.InstallConfigValidationOptions{}).
+			WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+			WithDisableGoRuntimeMetrics().
+			WithSelfSignedCertificate().
+			Start()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Install configuration validation failed")
+	})
+}
+
+func TestServer_InstallConfigValidation_NoValidationWithoutOptions(t *testing.T) {
+	// WithInstallConfigValidation is not configured, so validation should not be run despite invalid config
+	err := witchcraft.NewServer[*validatingInstallConfig, config.Runtime]().
+		WithInstallConfig(&validatingInstallConfig{
+			DatabaseURL: "", // empty is invalid
+		}).
+		WithRuntimeConfig(config.Runtime{}).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[*validatingInstallConfig, config.Runtime]) (func(), error) {
+			return nil, werror.Error("expected error to stop server")
+		}).
+		Start()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected error to stop server")
+}
+
+func TestServer_InstallConfigValidation_StrictUnmarshaling(t *testing.T) {
+	// Create a temp file with unknown field
+	tmpDir := t.TempDir()
+	installPath := tmpDir + "/install.yml"
+	err := os.WriteFile(installPath, []byte(`
+database-url: "test-DB-URL"
+unknown-field: "should cause error"
+`), 0644)
+	require.NoError(t, err)
+
+	err = witchcraft.NewServer[*validatingInstallConfig, config.Runtime]().
+		WithInstallConfigFromFile(installPath).
+		WithRuntimeConfig(config.Runtime{}).
+		WithInstallConfigValidation(config.InstallConfigValidationOptions{
+			StrictUnmarshaling: true,
+		}).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate().
+		Start()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to unmarshal install specific configuration YAML")
+}
+
+func TestServer_RuntimeConfigValidation_ErrorOnFailure(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	// Valid runtime config should succeed
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfig(&validatingRuntimeConfig{
+			MaxConnections: 50, // Valid
+		}).
+		WithRuntimeConfigValidation(config.RuntimeConfigValidationOptions{
+			FailStartupOnError:  true,
+			RejectInvalidReload: true,
+		}).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate()
+
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+
+	// Wait for server to be ready
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Shutdown
+	require.NoError(t, server.Close())
+}
+
+func TestServer_RuntimeConfigValidation_WithHealthCheck(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	tmpDir := t.TempDir()
+	runtimePath := tmpDir + "/runtime.yml"
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 50
+`), 0644)
+	require.NoError(t, err)
+
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfigFromFile(runtimePath).
+		WithRuntimeConfigValidation(config.RuntimeConfigValidationOptions{
+			LogOnFailure: true,
+			HealthCheckOnFailure: &config.HealthCheckOnFailure{
+				HealthState: health.HealthState_WARNING,
+			},
+		}).
+		WithLoggerStdoutWriter(io.Discard).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate()
+
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+
+	// Wait for server to be ready
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Verify the CONFIG_VALIDATION check is healthy
+	resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	var healthStatus health.HealthStatus
+	require.NoError(t, json.Unmarshal(body, &healthStatus))
+	configValidationCheck, ok := healthStatus.Checks[health.CheckType("CONFIG_VALIDATION")]
+	require.True(t, ok, "expected CONFIG_VALIDATION health check to be present, got: %v", healthStatus.Checks)
+	assert.Equal(t, health.New_HealthState(health.HealthState_HEALTHY), configValidationCheck.State)
+
+	// Now update config to be invalid
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 500
+`), 0644)
+	require.NoError(t, err)
+
+	// Wait for config reload and check health again
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return false
+		}
+		var status health.HealthStatus
+		if err := json.Unmarshal(body, &status); err != nil {
+			return false
+		}
+		check, ok := status.Checks[health.CheckType("CONFIG_VALIDATION")]
+		if !ok {
+			return false
+		}
+		return check.State.Value() == health.HealthState_WARNING
+	}, 10*time.Second, 500*time.Millisecond, "CONFIG_VALIDATION health check should be WARNING after invalid config")
+
+	// Shutdown
+	require.NoError(t, server.Close())
+}
+
+func TestServer_RuntimeConfigValidation_HealthCheckRecovery(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	tmpDir := t.TempDir()
+	runtimePath := tmpDir + "/runtime.yml"
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 50
+`), 0644)
+	require.NoError(t, err)
+
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfigFromFile(runtimePath).
+		WithRuntimeConfigValidation(config.RuntimeConfigValidationOptions{
+			HealthCheckOnFailure: &config.HealthCheckOnFailure{
+				HealthState: health.HealthState_ERROR,
+			},
+		}).
+		WithLoggerStdoutWriter(io.Discard).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate()
+
+	defer func() { _ = server.Close() }()
+
+	go func() {
+		_ = server.Start()
+	}()
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+
+	// Wait for server to be ready with HEALTHY config
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Verify initially healthy
+	resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+	require.NoError(t, err)
+	body, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	require.NoError(t, err)
+	var healthStatus health.HealthStatus
+	require.NoError(t, json.Unmarshal(body, &healthStatus))
+	configCheck := healthStatus.Checks[health.CheckType("CONFIG_VALIDATION")]
+	assert.Equal(t, health.HealthState_HEALTHY, configCheck.State.Value())
+
+	// Update to invalid config
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 500
+`), 0644)
+	require.NoError(t, err)
+
+	// Wait for health check to show ERROR
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return false
+		}
+		var status health.HealthStatus
+		if err := json.Unmarshal(body, &status); err != nil {
+			return false
+		}
+		check := status.Checks[health.CheckType("CONFIG_VALIDATION")]
+		return check.State.Value() == health.HealthState_ERROR
+	}, 10*time.Second, 500*time.Millisecond, "CONFIG_VALIDATION should be ERROR after invalid config")
+
+	// Update back to valid config
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 75
+`), 0644)
+	require.NoError(t, err)
+
+	// Wait for health check to recover to HEALTHY
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return false
+		}
+		var status health.HealthStatus
+		if err := json.Unmarshal(body, &status); err != nil {
+			return false
+		}
+		check := status.Checks[health.CheckType("CONFIG_VALIDATION")]
+		return check.State.Value() == health.HealthState_HEALTHY
+	}, 10*time.Second, 500*time.Millisecond, "CONFIG_VALIDATION should recover to HEALTHY after valid config")
+
+	require.NoError(t, server.Close())
+}
+
+func TestServer_RuntimeConfigValidation_StrictUnmarshaling(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	tmpDir := t.TempDir()
+	runtimePath := tmpDir + "/runtime.yml"
+	// Create config with unknown field
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 50
+unknown-field: "should cause error"
+`), 0644)
+	require.NoError(t, err)
+
+	// server should fail to start
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfigFromFile(runtimePath).
+		WithRuntimeConfigValidation(config.RuntimeConfigValidationOptions{
+			StrictUnmarshaling:  true,
+			FailStartupOnError:  true,
+			RejectInvalidReload: true,
+		}).
+		WithLoggerStdoutWriter(io.Discard).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate()
+
+	err = server.Start()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to unmarshal runtime configuration YAML")
+}
+
+func TestServer_RuntimeConfigValidation_LogOnFailure(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	tmpDir := t.TempDir()
+	runtimePath := tmpDir + "/runtime.yml"
+	// Create invalid config
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 500
+`), 0644)
+	require.NoError(t, err)
+
+	logOutputBuffer := &bytes.Buffer{}
+
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfigFromFile(runtimePath).
+		WithRuntimeConfigValidation(config.RuntimeConfigValidationOptions{
+			LogOnFailure:        true,
+			FailStartupOnError:  false, // Allow server to start despite validation failure
+			RejectInvalidReload: false,
+		}).
+		WithLoggerStdoutWriter(logOutputBuffer).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate()
+
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+
+	// Wait for server to be ready
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Verify validation error was logged
+	assert.Contains(t, logOutputBuffer.String(), "Runtime configuration validation error")
+
+	// Shutdown
+	require.NoError(t, server.Close())
+}
+
+func TestServer_RuntimeConfigValidation_NoValidationWithoutOptions(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	// WithRuntimeConfigValidation is not set so Validate() should not be run
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfig(&validatingRuntimeConfig{
+			MaxConnections: 500, // Invalid value
+		}).
+		WithLoggerStdoutWriter(io.Discard).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate()
+
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+
+	// Wait for server to be ready - should succeed because validation is not enabled
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Shutdown
+	require.NoError(t, server.Close())
+}
+
+func TestServer_RuntimeConfigValidation_MetricOnFailure(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	tmpDir := t.TempDir()
+	runtimePath := tmpDir + "/runtime.yml"
+	// Create invalid config
+	err = os.WriteFile(runtimePath, []byte(`
+max-connections: 500
+`), 0644)
+	require.NoError(t, err)
+
+	var metricRegistry metrics.Registry
+
+	server := witchcraft.NewServer[config.Install, *validatingRuntimeConfig]().
+		WithInstallConfig(config.Install{
+			Server:        config.Server{Address: "127.0.0.1", Port: port},
+			UseConsoleLog: true,
+		}).
+		WithRuntimeConfigFromFile(runtimePath).
+		WithRuntimeConfigValidation(config.RuntimeConfigValidationOptions{
+			MetricOnFailure:     true,
+			FailStartupOnError:  false, // Allow server to start despite validation failure
+			RejectInvalidReload: false,
+		}).
+		WithLoggerStdoutWriter(io.Discard).
+		WithECVKeyProvider(witchcraft.ECVKeyNoOp()).
+		WithDisableGoRuntimeMetrics().
+		WithSelfSignedCertificate().
+		WithInitFunc(func(ctx context.Context, info witchcraft.InitInfo[config.Install, *validatingRuntimeConfig]) (cleanup func(), rErr error) {
+			metricRegistry = metrics.FromContext(ctx)
+			return nil, nil
+		})
+
+	defer func() { _ = server.Close() }()
+
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- server.Start()
+	}()
+
+	// Wait for server to be ready
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d/status/health", port))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 100*time.Millisecond, "server did not become ready")
+
+	// Validate metric is incremented
+	var configValidationMetricCount int64
+	metricRegistry.Each(func(name string, tags metrics.Tags, value metrics.MetricVal) {
+		if name == config.ValidationFailureMetric {
+			configValidationMetricCount = value.Value("count").(int64)
+		}
+	})
+	assert.Equal(t, int64(1), configValidationMetricCount)
+
+	// Shutdown
+	require.NoError(t, server.Close())
 }
