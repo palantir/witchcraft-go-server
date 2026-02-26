@@ -218,6 +218,174 @@ func TestAuditLogRuntimeConfigLiveReloaded(t *testing.T) {
 	}
 }
 
+// TestAudit_LogProduceAuditV2LogsConfig verifies that the ProduceAuditV2Logs runtime config field controls audit.2
+// log output suppression, including via dual-logging from audit.3, and supports live reload.
+func TestAuditLog_ProduceAuditV2LogsConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		produceAuditV2    *bool
+		logAuditV3        bool
+		enableDualV3ToV2  bool
+		wantAudit2Entries int
+	}{
+		{
+			name:              "nil ProduceAuditV2Logs emits audit.2 logs",
+			produceAuditV2:    nil,
+			wantAudit2Entries: 1,
+		},
+		{
+			name:              "true ProduceAuditV2Logs emits audit.2 logs",
+			produceAuditV2:    toPtr(true),
+			wantAudit2Entries: 1,
+		},
+		{
+			name:              "false ProduceAuditV2Logs suppresses audit.2 logs",
+			produceAuditV2:    toPtr(false),
+			wantAudit2Entries: 0,
+		},
+		{
+			name:              "false ProduceAuditV2Logs suppresses dual-logged audit.3-to-audit.2 entries",
+			produceAuditV2:    toPtr(false),
+			logAuditV3:        true,
+			enableDualV3ToV2:  true,
+			wantAudit2Entries: 0,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logOutputBuffer bytes.Buffer
+			port, err := httpserver.AvailablePort()
+			require.NoError(t, err)
+
+			runtimeCfg := config.Runtime{
+				LoggerConfig: &config.LoggerConfig{Level: wlog.InfoLevel},
+				AuditConfig: &config.AuditConfig{
+					Deployment:         "test-deployment",
+					Product:            productName,
+					ProductVersion:     productVersion,
+					ProduceAuditV2Logs: tc.produceAuditV2,
+				},
+			}
+			runtimeCfgYML, err := yaml.Marshal(runtimeCfg)
+			require.NoError(t, err)
+
+			server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
+				func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+					return nil, info.Router.Register("GET", "/testAuditLog", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						if tc.logAuditV3 {
+							audit3log.FromContext(r.Context()).Audit("LogToAudit3", audit3log.AuditResultSuccess)
+						} else {
+							audit2log.FromContext(r.Context()).Audit("LogToAudit2", audit2log.AuditResultSuccess)
+						}
+						w.WriteHeader(http.StatusOK)
+					}))
+				},
+				&logOutputBuffer,
+				func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
+					srv := createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, refreshable.New(runtimeCfgYML))
+					if tc.enableDualV3ToV2 {
+						srv = srv.WithEnableDualLogAuditV3ToAuditV2()
+					}
+					return srv
+				},
+			)
+			defer func() { require.NoError(t, server.Close()) }()
+			defer cleanup()
+
+			client := testServerClient()
+			request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/testAuditLog", port, basePath), nil)
+			require.NoError(t, err)
+			_, err = client.Do(request)
+			require.NoError(t, err)
+
+			audit2LogEntries := extractLogEntries[logging.AuditLogV2](t, logOutputBuffer.String(), "audit.2")
+			assert.Equal(t, tc.wantAudit2Entries, len(audit2LogEntries), "unexpected number of audit.2 log entries")
+
+			select {
+			case err := <-serverErr:
+				require.NoError(t, err)
+			default:
+			}
+		})
+	}
+
+	t.Run("live reload toggles audit.2 emission", func(t *testing.T) {
+		var logOutputBuffer bytes.Buffer
+		port, err := httpserver.AvailablePort()
+		require.NoError(t, err)
+
+		tmpDir := t.TempDir()
+		runtimeCfg := config.Runtime{
+			LoggerConfig: &config.LoggerConfig{Level: wlog.InfoLevel},
+			AuditConfig: &config.AuditConfig{
+				Deployment:         "test-deployment",
+				Product:            productName,
+				ProductVersion:     productVersion,
+				ProduceAuditV2Logs: nil, // audit.2 logs should be emitted by default
+			},
+		}
+		runtimeCfgYML, err := yaml.Marshal(runtimeCfg)
+		require.NoError(t, err)
+
+		runtimeConfigPath := filepath.Join(tmpDir, "runtime.yml")
+		err = os.WriteFile(runtimeConfigPath, runtimeCfgYML, 0644)
+		require.NoError(t, err)
+
+		fileRefreshable := refreshable.NewFileRefreshable(context.Background(), runtimeConfigPath)
+		_, err = fileRefreshable.Validation()
+		require.NoError(t, err)
+
+		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
+			func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+				return nil, info.Router.Register("GET", "/testAuditLog", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					audit2log.FromContext(r.Context()).Audit("LogToAudit2", audit2log.AuditResultSuccess)
+					w.WriteHeader(http.StatusOK)
+				}))
+			},
+			&logOutputBuffer,
+			func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
+				return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshable)
+			},
+		)
+		defer func() { require.NoError(t, server.Close()) }()
+		defer cleanup()
+
+		client := testServerClient()
+
+		// First request: audit.2 enabled
+		request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/testAuditLog", port, basePath), nil)
+		require.NoError(t, err)
+		_, err = client.Do(request)
+		require.NoError(t, err)
+
+		audit2LogEntries := extractLogEntries[logging.AuditLogV2](t, logOutputBuffer.String(), "audit.2")
+		assert.Equal(t, 1, len(audit2LogEntries), "audit.2 should be emitted when ProduceAuditV2Logs is nil")
+
+		// Update runtime config to disable audit.2 logs
+		produceAuditV2False := false
+		runtimeCfg.AuditConfig.ProduceAuditV2Logs = &produceAuditV2False
+		runtimeCfgYML, err = yaml.Marshal(runtimeCfg)
+		require.NoError(t, err)
+		err = os.WriteFile(runtimeConfigPath, runtimeCfgYML, 0644)
+		require.NoError(t, err)
+
+		// Wait for runtime config to reload
+		time.Sleep(1000 * time.Millisecond)
+
+		// Second request: audit.2 should now be suppressed
+		_, err = client.Do(request)
+		require.NoError(t, err)
+
+		audit2LogEntriesAfter := extractLogEntries[logging.AuditLogV2](t, logOutputBuffer.String(), "audit.2")
+		assert.Equal(t, 1, len(audit2LogEntriesAfter), "audit.2 should be suppressed after ProduceAuditV2Logs set to false")
+
+		select {
+		case err := <-serverErr:
+			require.NoError(t, err)
+		default:
+		}
+	})
+}
+
 // Helper function that starts a server, logs audit entries, and verifies the log output based on the provided
 // parameters.
 func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAuditV3, dualLogAuditV3ToV2, inServerInit bool) {
