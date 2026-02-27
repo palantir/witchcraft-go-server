@@ -49,10 +49,10 @@ type AuditConfig struct {
 
 	Environment string `yaml:"environment,omitempty"`
 
-	// ProduceAuditV2Logs controls whether audit.2 logs are emitted.
+	// ProduceAudit2Logs controls whether audit.2 logs are emitted.
 	// If false, all audit.2 log output is suppressed, including dual-logging from audit.3.
 	// If not set or set to true, audit.2 logs are emitted.
-	ProduceAuditV2Logs *bool `yaml:"produce-audit2-logs,omitempty"`
+	ProduceAudit2Logs *bool `yaml:"produce-audit2-logs,omitempty"`
 }
 
 // BaseRuntimeConfig implements the BaseRuntimeConfig interface.

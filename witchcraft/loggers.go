@@ -182,7 +182,7 @@ func resolveHostName() (string, error) {
 func (s *Server[I, R]) updateAuditLoggerConfig(auditConfig *config.AuditConfig) {
 	// Update audit.2 log emission independent of the audit3 logger state
 	if s.toggleableAudit2Writer != nil {
-		enabled := auditConfig == nil || auditConfig.ProduceAuditV2Logs == nil || *auditConfig.ProduceAuditV2Logs
+		enabled := auditConfig == nil || auditConfig.ProduceAudit2Logs == nil || *auditConfig.ProduceAudit2Logs
 		s.toggleableAudit2Writer.SetEnabled(enabled)
 	}
 

@@ -218,34 +218,34 @@ func TestAuditLogRuntimeConfigLiveReloaded(t *testing.T) {
 	}
 }
 
-// TestAudit_LogProduceAuditV2LogsConfig verifies that the ProduceAuditV2Logs runtime config field controls audit.2
+// TestAuditLog_ProduceAudit2LogsConfig verifies that the ProduceAudit2Logs runtime config field controls audit.2
 // log output suppression, including via dual-logging from audit.3, and supports live reload.
-func TestAuditLog_ProduceAuditV2LogsConfig(t *testing.T) {
+func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 	for _, tc := range []struct {
 		name              string
-		produceAuditV2    *bool
+		produceAudit2     *bool
 		logAuditV3        bool
 		enableDualV3ToV2  bool
 		wantAudit2Entries int
 	}{
 		{
-			name:              "nil ProduceAuditV2Logs emits audit.2 logs",
-			produceAuditV2:    nil,
+			name:              "nil ProduceAudit2Logs emits audit.2 logs",
+			produceAudit2:     nil,
 			wantAudit2Entries: 1,
 		},
 		{
-			name:              "true ProduceAuditV2Logs emits audit.2 logs",
-			produceAuditV2:    toPtr(true),
+			name:              "true ProduceAudit2Logs emits audit.2 logs",
+			produceAudit2:     toPtr(true),
 			wantAudit2Entries: 1,
 		},
 		{
-			name:              "false ProduceAuditV2Logs suppresses audit.2 logs",
-			produceAuditV2:    toPtr(false),
+			name:              "false ProduceAudit2Logs suppresses audit.2 logs",
+			produceAudit2:     toPtr(false),
 			wantAudit2Entries: 0,
 		},
 		{
-			name:              "false ProduceAuditV2Logs suppresses dual-logged audit.3-to-audit.2 entries",
-			produceAuditV2:    toPtr(false),
+			name:              "false ProduceAudit2Logs suppresses dual-logged audit.3-to-audit.2 entries",
+			produceAudit2:     toPtr(false),
 			logAuditV3:        true,
 			enableDualV3ToV2:  true,
 			wantAudit2Entries: 0,
@@ -259,10 +259,10 @@ func TestAuditLog_ProduceAuditV2LogsConfig(t *testing.T) {
 			runtimeCfg := config.Runtime{
 				LoggerConfig: &config.LoggerConfig{Level: wlog.InfoLevel},
 				AuditConfig: &config.AuditConfig{
-					Deployment:         "test-deployment",
-					Product:            productName,
-					ProductVersion:     productVersion,
-					ProduceAuditV2Logs: tc.produceAuditV2,
+					Deployment:        "test-deployment",
+					Product:           productName,
+					ProductVersion:    productVersion,
+					ProduceAudit2Logs: tc.produceAudit2,
 				},
 			}
 			runtimeCfgYML, err := yaml.Marshal(runtimeCfg)
@@ -317,10 +317,10 @@ func TestAuditLog_ProduceAuditV2LogsConfig(t *testing.T) {
 		runtimeCfg := config.Runtime{
 			LoggerConfig: &config.LoggerConfig{Level: wlog.InfoLevel},
 			AuditConfig: &config.AuditConfig{
-				Deployment:         "test-deployment",
-				Product:            productName,
-				ProductVersion:     productVersion,
-				ProduceAuditV2Logs: nil, // audit.2 logs should be emitted by default
+				Deployment:        "test-deployment",
+				Product:           productName,
+				ProductVersion:    productVersion,
+				ProduceAudit2Logs: nil, // audit.2 logs should be emitted by default
 			},
 		}
 		runtimeCfgYML, err := yaml.Marshal(runtimeCfg)
@@ -358,11 +358,11 @@ func TestAuditLog_ProduceAuditV2LogsConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		audit2LogEntries := extractLogEntries[logging.AuditLogV2](t, logOutputBuffer.String(), "audit.2")
-		assert.Equal(t, 1, len(audit2LogEntries), "audit.2 should be emitted when ProduceAuditV2Logs is nil")
+		assert.Equal(t, 1, len(audit2LogEntries), "audit.2 should be emitted when ProduceAudit2Logs is nil")
 
 		// Update runtime config to disable audit.2 logs
-		produceAuditV2False := false
-		runtimeCfg.AuditConfig.ProduceAuditV2Logs = &produceAuditV2False
+		produceAudit2False := false
+		runtimeCfg.AuditConfig.ProduceAudit2Logs = &produceAudit2False
 		runtimeCfgYML, err = yaml.Marshal(runtimeCfg)
 		require.NoError(t, err)
 		err = os.WriteFile(runtimeConfigPath, runtimeCfgYML, 0644)
@@ -376,7 +376,7 @@ func TestAuditLog_ProduceAuditV2LogsConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		audit2LogEntriesAfter := extractLogEntries[logging.AuditLogV2](t, logOutputBuffer.String(), "audit.2")
-		assert.Equal(t, 1, len(audit2LogEntriesAfter), "audit.2 should be suppressed after ProduceAuditV2Logs set to false")
+		assert.Equal(t, 1, len(audit2LogEntriesAfter), "audit.2 should be suppressed after ProduceAudit2Logs set to false")
 
 		select {
 		case err := <-serverErr:
