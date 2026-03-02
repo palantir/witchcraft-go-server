@@ -12,128 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter instead.
 package wrouter
 
 import (
-	"github.com/palantir/pkg/metrics"
+	routerwrouter "github.com/palantir/witchcraft-go-router/wrouter"
 )
 
-type routeParamBuilder struct {
-	middleware       []RouteHandlerMiddleware
-	paramPerms       RouteParamPerms
-	metricTags       metrics.Tags
-	disableTelemetry bool
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteParam instead.
+type RouteParam = routerwrouter.RouteParam
 
-func (b *routeParamBuilder) toRequestParamPerms() RouteParamPerms {
-	if b.paramPerms != nil {
-		return b.paramPerms
-	}
-	return &requestParamPermsImpl{
-		pathParamPerms:   newParamPerms(nil, nil),
-		queryParamPerms:  newParamPerms(nil, nil),
-		headerParamPerms: newParamPerms(nil, nil),
-	}
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteParamPermsParam instead.
+var RouteParamPermsParam = routerwrouter.RouteParamPermsParam
 
-func (b *routeParamBuilder) toMetricTags() metrics.Tags {
-	var tags metrics.Tags
-	if b.metricTags != nil {
-		tags = append(tags, b.metricTags...)
-	}
-	return tags
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.SafePathParams instead.
+var SafePathParams = routerwrouter.SafePathParams
 
-type RouteParam interface {
-	apply(*routeParamBuilder) error
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ForbiddenPathParams instead.
+var ForbiddenPathParams = routerwrouter.ForbiddenPathParams
 
-type routeParamFunc func(*routeParamBuilder) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.SafeQueryParams instead.
+var SafeQueryParams = routerwrouter.SafeQueryParams
 
-func (f routeParamFunc) apply(b *routeParamBuilder) error {
-	return f(b)
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ForbiddenQueryParams instead.
+var ForbiddenQueryParams = routerwrouter.ForbiddenQueryParams
 
-func RouteParamPermsParam(perms RouteParamPerms) RouteParam {
-	return routeParamFunc(func(b *routeParamBuilder) error {
-		var pathParamPerms []ParamPerms
-		var queryParamPerms []ParamPerms
-		var headerParamPerms []ParamPerms
-		if b.paramPerms != nil {
-			pathParamPerms = append(pathParamPerms, b.paramPerms.PathParamPerms())
-			queryParamPerms = append(queryParamPerms, b.paramPerms.QueryParamPerms())
-			headerParamPerms = append(headerParamPerms, b.paramPerms.HeaderParamPerms())
-		}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.SafeHeaderParams instead.
+var SafeHeaderParams = routerwrouter.SafeHeaderParams
 
-		pathParamPerms = append(pathParamPerms, perms.PathParamPerms())
-		queryParamPerms = append(queryParamPerms, perms.QueryParamPerms())
-		headerParamPerms = append(headerParamPerms, perms.HeaderParamPerms())
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ForbiddenHeaderParams instead.
+var ForbiddenHeaderParams = routerwrouter.ForbiddenHeaderParams
 
-		b.paramPerms = &requestParamPermsImpl{
-			pathParamPerms:   NewCombinedParamPerms(pathParamPerms...),
-			queryParamPerms:  NewCombinedParamPerms(queryParamPerms...),
-			headerParamPerms: NewCombinedParamPerms(headerParamPerms...),
-		}
-		return nil
-	})
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.MetricTags instead.
+var MetricTags = routerwrouter.MetricTags
 
-func SafePathParams(safeParams ...string) RouteParam {
-	return RouteParamPermsParam(&requestParamPermsImpl{
-		pathParamPerms: newSafeParamPerms(safeParams...),
-	})
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.DisableTelemetry instead.
+var DisableTelemetry = routerwrouter.DisableTelemetry
 
-func ForbiddenPathParams(forbiddenParams ...string) RouteParam {
-	return RouteParamPermsParam(&requestParamPermsImpl{
-		pathParamPerms: newForbiddenParamPerms(forbiddenParams...),
-	})
-}
-
-func SafeQueryParams(safeParams ...string) RouteParam {
-	return RouteParamPermsParam(&requestParamPermsImpl{
-		queryParamPerms: newSafeParamPerms(safeParams...),
-	})
-}
-
-func ForbiddenQueryParams(forbiddenParams ...string) RouteParam {
-	return RouteParamPermsParam(&requestParamPermsImpl{
-		queryParamPerms: newForbiddenParamPerms(forbiddenParams...),
-	})
-}
-
-func SafeHeaderParams(safeParams ...string) RouteParam {
-	return RouteParamPermsParam(&requestParamPermsImpl{
-		headerParamPerms: newSafeParamPerms(safeParams...),
-	})
-}
-
-func ForbiddenHeaderParams(forbiddenParams ...string) RouteParam {
-	return RouteParamPermsParam(&requestParamPermsImpl{
-		headerParamPerms: newForbiddenParamPerms(forbiddenParams...),
-	})
-}
-
-func MetricTags(tags metrics.Tags) RouteParam {
-	return routeParamFunc(func(b *routeParamBuilder) error {
-		b.metricTags = tags
-		return nil
-	})
-}
-
-func DisableTelemetry() RouteParam {
-	return routeParamFunc(func(b *routeParamBuilder) error {
-		b.disableTelemetry = true
-		return nil
-	})
-}
-
-// RouteMiddleware configures the provided middleware to run on requests matching this specific route.
-func RouteMiddleware(middleware RouteHandlerMiddleware) RouteParam {
-	return routeParamFunc(func(b *routeParamBuilder) error {
-		if middleware != nil {
-			b.middleware = append(b.middleware, middleware)
-		}
-		return nil
-	})
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteMiddleware instead.
+var RouteMiddleware = routerwrouter.RouteMiddleware

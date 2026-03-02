@@ -12,129 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter instead.
 package wrouter
 
 import (
-	"strings"
+	routerwrouter "github.com/palantir/witchcraft-go-router/wrouter"
 )
 
-type RouteParamPerms interface {
-	PathParamPerms() ParamPerms
-	QueryParamPerms() ParamPerms
-	HeaderParamPerms() ParamPerms
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteParamPerms instead.
+type RouteParamPerms = routerwrouter.RouteParamPerms
 
-type requestParamPermsImpl struct {
-	pathParamPerms   ParamPerms
-	queryParamPerms  ParamPerms
-	headerParamPerms ParamPerms
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ParamPerms instead.
+type ParamPerms = routerwrouter.ParamPerms
 
-func (r *requestParamPermsImpl) PathParamPerms() ParamPerms {
-	if r == nil || r.pathParamPerms == nil {
-		return newParamPerms(nil, nil)
-	}
-	return r.pathParamPerms
-}
-
-func (r *requestParamPermsImpl) QueryParamPerms() ParamPerms {
-	if r == nil || r.queryParamPerms == nil {
-		return newParamPerms(nil, nil)
-	}
-	return r.queryParamPerms
-}
-
-func (r *requestParamPermsImpl) HeaderParamPerms() ParamPerms {
-	if r == nil || r.headerParamPerms == nil {
-		return newParamPerms(nil, nil)
-	}
-	return r.headerParamPerms
-}
-
-type ParamPerms interface {
-	// Safe returns true if the parameter with the provided name is safe to log. Case-insensitive.
-	Safe(paramName string) bool
-	// Forbidden returns true if the provided parameter is forbidden from being logged (that is, it should not be logged
-	// at all, even as an unsafe parameter). Case-insensitive.
-	Forbidden(paramName string) bool
-}
-
-type mapParamPerms struct {
-	safe      map[string]struct{}
-	forbidden map[string]struct{}
-}
-
-func newSafeParamPerms(params ...string) ParamPerms {
-	return newParamPerms(params, nil)
-}
-
-func newForbiddenParamPerms(params ...string) ParamPerms {
-	return newParamPerms(nil, params)
-}
-
-func newParamPerms(safeParams []string, forbiddenParams []string) ParamPerms {
-	m := &mapParamPerms{
-		safe:      make(map[string]struct{}),
-		forbidden: make(map[string]struct{}),
-	}
-	for _, p := range forbiddenParams {
-		m.forbidden[strings.ToLower(p)] = struct{}{}
-	}
-	for _, p := range safeParams {
-		k := strings.ToLower(p)
-		if _, ok := m.forbidden[k]; ok {
-			continue
-		}
-		m.safe[k] = struct{}{}
-	}
-	return m
-}
-
-func (m *mapParamPerms) Safe(paramName string) bool {
-	if m.Forbidden(paramName) {
-		return false
-	}
-	_, ok := m.safe[strings.ToLower(paramName)]
-	return ok
-}
-
-func (m *mapParamPerms) Forbidden(paramName string) bool {
-	_, ok := m.forbidden[strings.ToLower(paramName)]
-	return ok
-}
-
-func NewCombinedParamPerms(paramPerms ...ParamPerms) ParamPerms {
-	if paramPerms == nil {
-		return combinedParamPerms{}
-	}
-	return combinedParamPerms(paramPerms)
-}
-
-type combinedParamPerms []ParamPerms
-
-func (c combinedParamPerms) Safe(paramName string) bool {
-	if c.Forbidden(paramName) {
-		return false
-	}
-	for _, currPerms := range c {
-		if currPerms == nil {
-			continue
-		}
-		if currPerms.Safe(paramName) {
-			return true
-		}
-	}
-	return false
-}
-
-func (c combinedParamPerms) Forbidden(paramName string) bool {
-	for _, currPerms := range c {
-		if currPerms == nil {
-			continue
-		}
-		if currPerms.Forbidden(paramName) {
-			return true
-		}
-	}
-	return false
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.NewCombinedParamPerms instead.
+var NewCombinedParamPerms = routerwrouter.NewCombinedParamPerms

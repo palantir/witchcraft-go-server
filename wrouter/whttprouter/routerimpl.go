@@ -12,100 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter instead.
 package whttprouter
 
 import (
-	"net/http"
-	"strings"
-
-	"github.com/julienschmidt/httprouter"
-	"github.com/palantir/witchcraft-go-server/v3/wrouter"
+	routerwhttprouter "github.com/palantir/witchcraft-go-router/wrouter/whttprouter"
 )
 
-// New returns a wrouter.RouterImpl backed by a new httprouter.Router configured using the provided parameters.
-func New(params ...Param) wrouter.RouterImpl {
-	r := httprouter.New()
-	for _, p := range params {
-		p.apply(r)
-	}
-	return (*router)(r)
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.Param instead.
+type Param = routerwhttprouter.Param
 
-type Param interface {
-	apply(*httprouter.Router)
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.New instead.
+var New = routerwhttprouter.New
 
-type paramFunc func(*httprouter.Router)
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.RedirectTrailingSlash instead.
+var RedirectTrailingSlash = routerwhttprouter.RedirectTrailingSlash
 
-func (f paramFunc) apply(r *httprouter.Router) {
-	f(r)
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.RedirectFixedPath instead.
+var RedirectFixedPath = routerwhttprouter.RedirectFixedPath
 
-func RedirectTrailingSlash(redirect bool) Param {
-	return paramFunc(func(r *httprouter.Router) {
-		r.RedirectTrailingSlash = redirect
-	})
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.HandleMethodNotAllowed instead.
+var HandleMethodNotAllowed = routerwhttprouter.HandleMethodNotAllowed
 
-func RedirectFixedPath(redirect bool) Param {
-	return paramFunc(func(r *httprouter.Router) {
-		r.RedirectFixedPath = redirect
-	})
-}
-
-func HandleMethodNotAllowed(notAllowed bool) Param {
-	return paramFunc(func(r *httprouter.Router) {
-		r.HandleMethodNotAllowed = notAllowed
-	})
-}
-
-func HandleOPTIONS(handle bool) Param {
-	return paramFunc(func(r *httprouter.Router) {
-		r.HandleOPTIONS = handle
-	})
-}
-
-type router httprouter.Router
-
-func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	(*httprouter.Router)(r).ServeHTTP(w, req)
-}
-
-func (r *router) Register(method string, pathSegments []wrouter.PathSegment, handler http.Handler) {
-	(*httprouter.Router)(r).Handler(method, r.convertPathParams(pathSegments), handler)
-}
-
-func (r *router) RegisterNotFoundHandler(handler http.Handler) {
-	(*httprouter.Router)(r).NotFound = handler
-}
-
-func (r *router) PathParams(req *http.Request, pathVarNames []string) map[string]string {
-	_, vars, _ := (*httprouter.Router)(r).Lookup(req.Method, req.URL.Path)
-	if len(vars) == 0 {
-		return nil
-	}
-	params := make(map[string]string)
-	for i := range vars {
-		// strip preceding forward slashes for trailing match path params. httprouter is implemented such that,
-		// for a trailing parameter for the form "/{param*}", the path "/var/foo/bar.txt" will match with a
-		// value of "/var/foo/bar.txt". However, the contract of zappermux stipulates that the match should be
-		// of the form "var/foo/bar.txt", so strip the preceding slash to fulfill this contract.
-		params[vars[i].Key] = strings.TrimPrefix(vars[i].Value, "/")
-	}
-	return params
-}
-
-func (r *router) convertPathParams(pathSegments []wrouter.PathSegment) string {
-	pathParts := make([]string, len(pathSegments))
-	for i, segment := range pathSegments {
-		switch segment.Type {
-		case wrouter.PathParamSegment:
-			pathParts[i] = ":" + segment.Value
-		case wrouter.TrailingPathParamSegment:
-			pathParts[i] = "*" + segment.Value
-		default:
-			pathParts[i] = segment.Value
-		}
-	}
-	return "/" + strings.Join(pathParts, "/")
-}
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.HandleOPTIONS instead.
+var HandleOPTIONS = routerwhttprouter.HandleOPTIONS
