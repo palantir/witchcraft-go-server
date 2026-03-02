@@ -66,8 +66,8 @@ github.com/palantir/witchcraft-go-logging v1.65.0 h1:CVmQpIoPyd4BZlGy2o2ly/ZwvZi
 github.com/palantir/witchcraft-go-logging v1.65.0/go.mod h1:JObk9cX3zIcKeO3IF37FhdAHUjIMHkhbCDHler1foZU=
 github.com/palantir/witchcraft-go-params v1.39.0 h1:Ucz9wY9CmF7ItG7P0juw3MXp0nCZMR+bR7QPWV/i4O8=
 github.com/palantir/witchcraft-go-params v1.39.0/go.mod h1:YzqUGbLRvIEg8NeJMenPouHrWuUmrlylMyJooe5lAWY=
-github.com/palantir/witchcraft-go-router v0.1.0 h1:0vc+g2M+7ApX8PH3HRM8nVpr8lxiKmhbbsa7Ecg59LQ=
-github.com/palantir/witchcraft-go-router v0.1.0/go.mod h1:7ho0KzmQPXcAKipSFT0pZoz1nlU/7IQJdfURIV6/DkQ=
+github.com/palantir/witchcraft-go-router v1.0.0 h1:DrDdWDWpee90k2tLhZvxk0dWqXhoGjz8bvYYo+aWP5M=
+github.com/palantir/witchcraft-go-router v1.0.0/go.mod h1:7ho0KzmQPXcAKipSFT0pZoz1nlU/7IQJdfURIV6/DkQ=
 github.com/palantir/witchcraft-go-tasks v0.10.0 h1:fXI7iRkJMiUPdv1bpJKlYzvCHKQ8ZEeza6zz+Lunzos=
 github.com/palantir/witchcraft-go-tasks v0.10.0/go.mod h1:DwcozvhGJMTXkVFFUvPb/i3aglXeDn1/sa2hSX71qY8=
 github.com/palantir/witchcraft-go-tracing v1.41.0 h1:L3pZd7lsZR5rBAzWJ/FAyAo79JlQwxB7Uk6NSL7hrOI=
