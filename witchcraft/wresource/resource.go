@@ -16,8 +16,8 @@
 package wresource
 
 import (
-	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	routerwresource "github.com/palantir/witchcraft-go-router/wresource"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wresource.Resource instead.

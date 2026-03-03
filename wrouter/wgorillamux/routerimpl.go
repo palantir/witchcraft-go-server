@@ -18,8 +18,8 @@ package wgorillamux
 import (
 	"net/http"
 
-	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	routerwgorillamux "github.com/palantir/witchcraft-go-router/wrouter/wgorillamux"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/wgorillamux.Param instead.

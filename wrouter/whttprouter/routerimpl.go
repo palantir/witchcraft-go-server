@@ -16,8 +16,8 @@
 package whttprouter
 
 import (
-	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	routerwhttprouter "github.com/palantir/witchcraft-go-router/wrouter/whttprouter"
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 )
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.Param instead.
