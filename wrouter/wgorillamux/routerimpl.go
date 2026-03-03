@@ -16,6 +16,9 @@
 package wgorillamux
 
 import (
+	"net/http"
+
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	routerwgorillamux "github.com/palantir/witchcraft-go-router/wrouter/wgorillamux"
 )
 
@@ -23,16 +26,26 @@ import (
 type Param = routerwgorillamux.Param
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/wgorillamux.New instead.
-var New = routerwgorillamux.New
+func New(params ...Param) wrouter.RouterImpl {
+	return routerwgorillamux.New(params...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/wgorillamux.NotFoundHandler instead.
-var NotFoundHandler = routerwgorillamux.NotFoundHandler
+func NotFoundHandler(h http.Handler) Param {
+	return routerwgorillamux.NotFoundHandler(h)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/wgorillamux.StrictSlash instead.
-var StrictSlash = routerwgorillamux.StrictSlash
+func StrictSlash(value bool) Param {
+	return routerwgorillamux.StrictSlash(value)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/wgorillamux.SkipClean instead.
-var SkipClean = routerwgorillamux.SkipClean
+func SkipClean(value bool) Param {
+	return routerwgorillamux.SkipClean(value)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/wgorillamux.UseEncodedPath instead.
-var UseEncodedPath = routerwgorillamux.UseEncodedPath
+func UseEncodedPath() Param {
+	return routerwgorillamux.UseEncodedPath()
+}

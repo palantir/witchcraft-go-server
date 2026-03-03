@@ -26,10 +26,16 @@ type RootRouter = routerwrouter.RootRouter
 type RootRouterParam = routerwrouter.RootRouterParam
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.New instead.
-var New = routerwrouter.New
+func New(impl RouterImpl, params ...RootRouterParam) RootRouter {
+	return routerwrouter.New(impl, params...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RootRouterParamAddRequestHandlerMiddleware instead.
-var RootRouterParamAddRequestHandlerMiddleware = routerwrouter.RootRouterParamAddRequestHandlerMiddleware
+func RootRouterParamAddRequestHandlerMiddleware(reqHandler ...RequestHandlerMiddleware) RootRouterParam {
+	return routerwrouter.RootRouterParamAddRequestHandlerMiddleware(reqHandler...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RootRouterParamAddRouteHandlerMiddleware instead.
-var RootRouterParamAddRouteHandlerMiddleware = routerwrouter.RootRouterParamAddRouteHandlerMiddleware
+func RootRouterParamAddRouteHandlerMiddleware(routeReqHandler ...RouteHandlerMiddleware) RootRouterParam {
+	return routerwrouter.RootRouterParamAddRouteHandlerMiddleware(routeReqHandler...)
+}

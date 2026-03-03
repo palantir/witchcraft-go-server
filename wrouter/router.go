@@ -16,6 +16,8 @@
 package wrouter
 
 import (
+	"net/http"
+
 	routerwrouter "github.com/palantir/witchcraft-go-router/wrouter"
 )
 
@@ -41,4 +43,6 @@ type RequestVals = routerwrouter.RequestVals
 type ResponseVals = routerwrouter.ResponseVals
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.PathParams instead.
-var PathParams = routerwrouter.PathParams
+func PathParams(r *http.Request) map[string]string {
+	return routerwrouter.PathParams(r)
+}

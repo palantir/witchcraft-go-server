@@ -16,6 +16,7 @@
 package wresource
 
 import (
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	routerwresource "github.com/palantir/witchcraft-go-router/wresource"
 )
 
@@ -32,4 +33,6 @@ const (
 )
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wresource.New instead.
-var New = routerwresource.New
+func New(resourceName string, router wrouter.Router) Resource {
+	return routerwresource.New(resourceName, router)
+}

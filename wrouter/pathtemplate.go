@@ -23,4 +23,6 @@ import (
 type PathTemplate = routerwrouter.PathTemplate
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.NewPathTemplate instead.
-var NewPathTemplate = routerwrouter.NewPathTemplate
+func NewPathTemplate(in string) (PathTemplate, error) {
+	return routerwrouter.NewPathTemplate(in)
+}

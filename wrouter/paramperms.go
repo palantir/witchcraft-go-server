@@ -26,4 +26,6 @@ type RouteParamPerms = routerwrouter.RouteParamPerms
 type ParamPerms = routerwrouter.ParamPerms
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.NewCombinedParamPerms instead.
-var NewCombinedParamPerms = routerwrouter.NewCombinedParamPerms
+func NewCombinedParamPerms(paramPerms ...ParamPerms) ParamPerms {
+	return routerwrouter.NewCombinedParamPerms(paramPerms...)
+}

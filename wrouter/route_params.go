@@ -16,6 +16,7 @@
 package wrouter
 
 import (
+	"github.com/palantir/pkg/metrics"
 	routerwrouter "github.com/palantir/witchcraft-go-router/wrouter"
 )
 
@@ -23,31 +24,51 @@ import (
 type RouteParam = routerwrouter.RouteParam
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteParamPermsParam instead.
-var RouteParamPermsParam = routerwrouter.RouteParamPermsParam
+func RouteParamPermsParam(perms RouteParamPerms) RouteParam {
+	return routerwrouter.RouteParamPermsParam(perms)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.SafePathParams instead.
-var SafePathParams = routerwrouter.SafePathParams
+func SafePathParams(safeParams ...string) RouteParam {
+	return routerwrouter.SafePathParams(safeParams...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ForbiddenPathParams instead.
-var ForbiddenPathParams = routerwrouter.ForbiddenPathParams
+func ForbiddenPathParams(forbiddenParams ...string) RouteParam {
+	return routerwrouter.ForbiddenPathParams(forbiddenParams...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.SafeQueryParams instead.
-var SafeQueryParams = routerwrouter.SafeQueryParams
+func SafeQueryParams(safeParams ...string) RouteParam {
+	return routerwrouter.SafeQueryParams(safeParams...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ForbiddenQueryParams instead.
-var ForbiddenQueryParams = routerwrouter.ForbiddenQueryParams
+func ForbiddenQueryParams(forbiddenParams ...string) RouteParam {
+	return routerwrouter.ForbiddenQueryParams(forbiddenParams...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.SafeHeaderParams instead.
-var SafeHeaderParams = routerwrouter.SafeHeaderParams
+func SafeHeaderParams(safeParams ...string) RouteParam {
+	return routerwrouter.SafeHeaderParams(safeParams...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ForbiddenHeaderParams instead.
-var ForbiddenHeaderParams = routerwrouter.ForbiddenHeaderParams
+func ForbiddenHeaderParams(forbiddenParams ...string) RouteParam {
+	return routerwrouter.ForbiddenHeaderParams(forbiddenParams...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.MetricTags instead.
-var MetricTags = routerwrouter.MetricTags
+func MetricTags(tags metrics.Tags) RouteParam {
+	return routerwrouter.MetricTags(tags)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.DisableTelemetry instead.
-var DisableTelemetry = routerwrouter.DisableTelemetry
+func DisableTelemetry() RouteParam {
+	return routerwrouter.DisableTelemetry()
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteMiddleware instead.
-var RouteMiddleware = routerwrouter.RouteMiddleware
+func RouteMiddleware(middleware RouteHandlerMiddleware) RouteParam {
+	return routerwrouter.RouteMiddleware(middleware)
+}

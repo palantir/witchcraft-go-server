@@ -16,6 +16,7 @@
 package whttprouter
 
 import (
+	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	routerwhttprouter "github.com/palantir/witchcraft-go-router/wrouter/whttprouter"
 )
 
@@ -23,16 +24,26 @@ import (
 type Param = routerwhttprouter.Param
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.New instead.
-var New = routerwhttprouter.New
+func New(params ...Param) wrouter.RouterImpl {
+	return routerwhttprouter.New(params...)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.RedirectTrailingSlash instead.
-var RedirectTrailingSlash = routerwhttprouter.RedirectTrailingSlash
+func RedirectTrailingSlash(redirect bool) Param {
+	return routerwhttprouter.RedirectTrailingSlash(redirect)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.RedirectFixedPath instead.
-var RedirectFixedPath = routerwhttprouter.RedirectFixedPath
+func RedirectFixedPath(redirect bool) Param {
+	return routerwhttprouter.RedirectFixedPath(redirect)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.HandleMethodNotAllowed instead.
-var HandleMethodNotAllowed = routerwhttprouter.HandleMethodNotAllowed
+func HandleMethodNotAllowed(notAllowed bool) Param {
+	return routerwhttprouter.HandleMethodNotAllowed(notAllowed)
+}
 
 // Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter/whttprouter.HandleOPTIONS instead.
-var HandleOPTIONS = routerwhttprouter.HandleOPTIONS
+func HandleOPTIONS(handle bool) Param {
+	return routerwhttprouter.HandleOPTIONS(handle)
+}
