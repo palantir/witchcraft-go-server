@@ -3,8 +3,6 @@ module github.com/palantir/witchcraft-go-server/v3
 go 1.25.0
 
 require (
-	github.com/gorilla/mux v1.8.1
-	github.com/julienschmidt/httprouter v1.3.0
 	github.com/nmiyake/pkg/dirs v1.1.0
 	github.com/palantir/conjure-go-runtime/v3 v3.3.0
 	github.com/palantir/go-encrypted-config-value v1.40.0
@@ -21,6 +19,7 @@ require (
 	github.com/palantir/witchcraft-go-health/v2 v2.2.0
 	github.com/palantir/witchcraft-go-logging v1.65.0
 	github.com/palantir/witchcraft-go-params v1.39.0
+	github.com/palantir/witchcraft-go-router v1.0.0
 	github.com/palantir/witchcraft-go-tasks v0.10.0
 	github.com/palantir/witchcraft-go-tracing v1.41.0
 	github.com/stretchr/testify v1.11.1
@@ -32,6 +31,8 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
+	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/palantir/pkg v1.1.0 // indirect
 	github.com/palantir/pkg/bytesbuffers v1.3.0 // indirect

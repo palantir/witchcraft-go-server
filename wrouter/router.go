@@ -12,111 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter instead.
 package wrouter
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/palantir/pkg/metrics"
+	routerwrouter "github.com/palantir/witchcraft-go-router/wrouter"
 )
 
-type Router interface {
-	// Register registers the provided handler for this router for the provided method (GET, POST, etc.) and path.
-	// The RouteParam parameters specifies any path, query or header parameters that should be considered safe or
-	// forbidden for the purposes of logging.
-	Register(method, path string, handler http.Handler, params ...RouteParam) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.Router instead.
+type Router = routerwrouter.Router
 
-	// RegisteredRoutes returns a slice of all of the routes registered with this router in sorted order.
-	RegisteredRoutes() []RouteSpec
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RequestHandlerMiddleware instead.
+type RequestHandlerMiddleware = routerwrouter.RequestHandlerMiddleware
 
-	// Get is a shorthand for Register(http.MethodGet, path, handler, params...)
-	Get(path string, handler http.Handler, params ...RouteParam) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteHandlerMiddleware instead.
+type RouteHandlerMiddleware = routerwrouter.RouteHandlerMiddleware
 
-	// Head is a shorthand for Register(http.MethodHead, path, handler, params...)
-	Head(path string, handler http.Handler, params ...RouteParam) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteRequestHandler instead.
+type RouteRequestHandler = routerwrouter.RouteRequestHandler
 
-	// Post is a shorthand for Register(http.MethodPost, path, handler, params...)
-	Post(path string, handler http.Handler, params ...RouteParam) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RouteSpec instead.
+type RouteSpec = routerwrouter.RouteSpec
 
-	// Put is a shorthand for Register(http.MethodPut, path, handler, params...)
-	Put(path string, handler http.Handler, params ...RouteParam) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.RequestVals instead.
+type RequestVals = routerwrouter.RequestVals
 
-	// Patch is a shorthand for Register(http.MethodPatch, path, handler, params...)
-	Patch(path string, handler http.Handler, params ...RouteParam) error
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.ResponseVals instead.
+type ResponseVals = routerwrouter.ResponseVals
 
-	// Delete is a shorthand for Register(http.MethodDelete, path, handler, params...)
-	Delete(path string, handler http.Handler, params ...RouteParam) error
-
-	// Subrouter returns a new Router that is a child of this Router. A child router is effectively an alias to the root
-	// router -- any routes registered on the child router are registered on the root router with all of the prefixes up
-	// to the child router.
-	Subrouter(path string, params ...RouteParam) Router
-
-	// Path returns the path stored by this router. The path is empty for the root router, while subrouters will return
-	// only the portion of the path managed by the subrouter.
-	Path() string
-
-	// Parent returns the parent router of this Router, or nil if this router is the root router.
-	Parent() Router
-
-	// RootRouter returns the RootRouter for this router (which may be itself).
-	RootRouter() RootRouter
-}
-
-// RequestHandlerMiddleware is registered on a router and runs on all requests before the path template and params are parsed.
-// Implementations must call the 'next' handler or write a response to the ResponseWriter.
-type RequestHandlerMiddleware func(rw http.ResponseWriter, r *http.Request, next http.Handler)
-
-// RouteHandlerMiddleware runs on requests after the path template and params are parsed.
-// If registered on a router, it runs on all routes.
-// If registered on a specific route using RouteMiddleware, will run on the specific registered route after router-global middlewares.
-// Implementations must call the 'next' handler or write a response to the ResponseWriter.
-type RouteHandlerMiddleware func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals, next RouteRequestHandler)
-
-type RouteRequestHandler func(rw http.ResponseWriter, r *http.Request, reqVals RequestVals)
-
-// RouteSpec is the specification of a full route. Consists of the HTTP method and path template for the route.
-type RouteSpec struct {
-	Method       string
-	PathTemplate string
-}
-
-type RequestVals struct {
-	Spec          RouteSpec
-	PathParamVals map[string]string
-	ParamPerms    RouteParamPerms
-	MetricTags    metrics.Tags
-	// DisableTelemetry instructs the logging middleware to skip over
-	// generating metrics, request, and trace logs for a request.
-	DisableTelemetry bool
-}
-
-type ResponseVals struct {
-	RespStatus  int
-	RespSize    int64
-	ReqDuration time.Duration
-}
-
-type routeSpecs []RouteSpec
-
-func (r routeSpecs) Len() int      { return len(r) }
-func (r routeSpecs) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
-func (r routeSpecs) Less(i, j int) bool {
-	if r[i].PathTemplate != r[j].PathTemplate {
-		return r[i].PathTemplate < r[j].PathTemplate
-	}
-	return r[i].Method < r[j].Method
-}
-
-type pathParamsContextKeyType string
-
-const pathParamsContextKey = pathParamsContextKeyType("wrouterPathParams")
-
+// Deprecated: Use github.com/palantir/witchcraft-go-router/wrouter.PathParams instead.
 func PathParams(r *http.Request) map[string]string {
-	params, ok := r.Context().Value(pathParamsContextKey).(map[string]string)
-	if !ok {
-		return nil
-	}
-	return params
+	return routerwrouter.PathParams(r)
 }
