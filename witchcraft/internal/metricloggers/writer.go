@@ -16,6 +16,7 @@ package metricloggers
 
 import (
 	"io"
+	"sync/atomic"
 
 	"github.com/palantir/pkg/metrics"
 )
@@ -47,4 +48,30 @@ func (m *metricWriter) Write(p []byte) (int, error) {
 		m.recorder.RecordSLSLogLength(n)
 	}
 	return n, err
+}
+
+var _ io.Writer = (*ToggleableWriter)(nil)
+
+// ToggleableWriter is an io.Writer that can be atomically enabled or disabled at runtime.
+// When disabled, Write calls return len(p), nil without writing anything.
+type ToggleableWriter struct {
+	w       io.Writer
+	enabled atomic.Bool
+}
+
+func NewToggleableWriter(w io.Writer) *ToggleableWriter {
+	t := &ToggleableWriter{w: w}
+	t.enabled.Store(true)
+	return t
+}
+
+func (t *ToggleableWriter) Write(p []byte) (n int, err error) {
+	if t.enabled.Load() {
+		return t.w.Write(p)
+	}
+	return len(p), nil
+}
+
+func (t *ToggleableWriter) SetEnabled(enabled bool) {
+	t.enabled.Store(enabled)
 }

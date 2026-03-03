@@ -78,17 +78,23 @@ func (s *Server) initDefaultLoggers(useConsoleLog bool, logLevel wlog.LogLevel, 
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		trc1log.New(logWriterFn("trace")), registry)
 
+	// Shared toggleable writer for all audit.2 output (direct and dual-logged)
+	audit2BaseWriter := newDefaultLogOutputWriter("audit", useConsoleLog, loggerStdoutWriter)
+	s.toggleableAudit2Writer = metricloggers.NewToggleableWriter(
+		metricloggers.NewMetricWriter(audit2BaseWriter, registry, "audit"),
+	)
+
 	var audit2Logger audit2log.Logger
 	if s.dualLogAuditV2ToAuditV3 {
-		audit2Logger = audit2log.NewDualLogger(logWriterFn("audit"), logWriterFn("audit.v3"))
+		audit2Logger = audit2log.NewDualLogger(s.toggleableAudit2Writer, logWriterFn("audit.v3"))
 	} else {
-		audit2Logger = audit2log.New(logWriterFn("audit"))
+		audit2Logger = audit2log.New(s.toggleableAudit2Writer)
 	}
 	s.audit2Logger = metricloggers.NewAudit2LoggerWithDualLogging(audit2Logger, registry, s.dualLogAuditV2ToAuditV3)
 
 	var audit3Logger audit3log.Logger
 	if s.dualLogAuditV3ToAuditV2 {
-		audit3Logger = audit3log.NewDualLogger(logWriterFn("audit.v3"), logWriterFn("audit"))
+		audit3Logger = audit3log.NewDualLogger(logWriterFn("audit.v3"), s.toggleableAudit2Writer)
 	} else {
 		audit3Logger = audit3log.New(logWriterFn("audit.v3"))
 	}
@@ -142,8 +148,11 @@ func (s *Server) initWrappedLoggers(useConsoleLog bool, productName, productVers
 		wrapped1log.New(logWriterFn("metrics"), logLevel, productName, productVersion).Metric(), registry)
 	s.trcLogger = metricloggers.NewTrc1Logger(
 		wrapped1log.New(logWriterFn("trace"), logLevel, productName, productVersion).Trace(), registry)
+	audit2BaseWriter := newDefaultLogOutputWriter("audit", useConsoleLog, loggerStdoutWriter)
+	s.toggleableAudit2Writer = metricloggers.NewToggleableWriter(
+		metricloggers.NewMetricWriter(audit2BaseWriter, registry, "audit"))
 	s.audit2Logger = metricloggers.NewAudit2Logger(
-		wrapped1log.New(logWriterFn("audit"), logLevel, productName, productVersion).Audit(), registry)
+		wrapped1log.New(s.toggleableAudit2Writer, logLevel, productName, productVersion).Audit(), registry)
 	audit3Logger := metricloggers.NewAudit3Logger(
 		wrapped1log.New(logWriterFn("audit.v3"), logLevel, productName, productVersion).AuditV3(), registry)
 	s.audit3Logger.Store(&audit3Logger)
@@ -171,6 +180,12 @@ func resolveHostName() (string, error) {
 }
 
 func (s *Server) updateAuditLoggerConfig(auditConfig *config.AuditConfig) {
+	// Update audit.2 log emission independent of the audit3 logger state
+	if s.toggleableAudit2Writer != nil {
+		enabled := auditConfig == nil || auditConfig.ProduceAudit2Logs == nil || *auditConfig.ProduceAudit2Logs
+		s.toggleableAudit2Writer.SetEnabled(enabled)
+	}
+
 	audit3Logger := *s.audit3Logger.Load()
 	if audit3Logger == nil {
 		return
