@@ -54,6 +54,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/config"
 	"github.com/palantir/witchcraft-go-server/v3/status"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/dependencyhealth"
+	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/metricloggers"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/middleware"
 	refreshablehealth "github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/refreshable"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wdebug"
@@ -224,6 +225,10 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// if true, initializes loggers such that any entry written to the "audit.3" logger
 	// is also dual-logged to the "audit.2" logger.
 	dualLogAuditV3ToAuditV2 bool
+
+	// toggleableAudit2Writer is the shared toggleable writer for all "audit" (v2) file output.
+	// Disabling it suppresses all audit.2 output, including dual-logged entries from the audit.3 logger.
+	toggleableAudit2Writer *metricloggers.ToggleableWriter
 
 	// jobRunnerHealthCheck is the health check source used by the JobManager to report job execution health.
 	// If nil, a default health check with type "WITCHCRAFT_JOB_RUNNER" is created.
