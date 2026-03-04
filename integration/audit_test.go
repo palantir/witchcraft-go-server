@@ -30,6 +30,7 @@ import (
 
 	"github.com/palantir/pkg/httpserver"
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/refreshable"
 	"github.com/palantir/pkg/rid"
 	"github.com/palantir/pkg/uuid"
 	v2 "github.com/palantir/witchcraft-go-logging/conjure/foundry/audit/api/category/v2"
@@ -268,7 +269,7 @@ func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 			require.NoError(t, err)
 
 			server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
-				func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+				func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
 					return nil, info.Router.Register("GET", "/testAuditLog", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						if tc.logAuditV3 {
 							audit3log.FromContext(r.Context()).Audit("LogToAudit3", audit3log.AuditResultSuccess)
@@ -279,8 +280,8 @@ func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 					}))
 				},
 				&logOutputBuffer,
-				func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
-					srv := createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, refreshable.New(runtimeCfgYML))
+				func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
+					srv := createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, refreshable.NewDefaultRefreshable(runtimeCfgYML))
 					if tc.enableDualV3ToV2 {
 						srv = srv.WithEnableDualLogAuditV3ToAuditV2()
 					}
@@ -329,19 +330,18 @@ func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 		err = os.WriteFile(runtimeConfigPath, runtimeCfgYML, 0644)
 		require.NoError(t, err)
 
-		fileRefreshable := refreshable.NewFileRefreshable(context.Background(), runtimeConfigPath)
-		_, err = fileRefreshable.Validation()
+		fileRefreshable, err := refreshablefile.NewFileRefreshable(context.Background(), runtimeConfigPath)
 		require.NoError(t, err)
 
 		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
-			func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
+			func(ctx context.Context, info witchcraft.InitInfo) (func(), error) {
 				return nil, info.Router.Register("GET", "/testAuditLog", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					audit2log.FromContext(r.Context()).Audit("LogToAudit2", audit2log.AuditResultSuccess)
 					w.WriteHeader(http.StatusOK)
 				}))
 			},
 			&logOutputBuffer,
-			func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
+			func(t *testing.T, initFn witchcraft.InitFunc, installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server {
 				return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshable)
 			},
 		)
