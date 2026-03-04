@@ -172,6 +172,7 @@ type RefreshableAuditConfigPtr interface {
 	Stack() refreshable.String
 	Service() refreshable.String
 	Environment() refreshable.String
+	ProduceAudit2Logs() refreshable.BoolPtr
 }
 
 type RefreshingAuditConfigPtr struct {
@@ -234,6 +235,12 @@ func (r RefreshingAuditConfigPtr) Environment() refreshable.String {
 	}))
 }
 
+func (r RefreshingAuditConfigPtr) ProduceAudit2Logs() refreshable.BoolPtr {
+	return refreshable.NewBoolPtr(r.MapAuditConfigPtr(func(i *AuditConfig) interface{} {
+		return i.ProduceAudit2Logs
+	}))
+}
+
 type RefreshableAuditConfig interface {
 	refreshable.Refreshable
 	CurrentAuditConfig() AuditConfig
@@ -246,6 +253,7 @@ type RefreshableAuditConfig interface {
 	Stack() refreshable.String
 	Service() refreshable.String
 	Environment() refreshable.String
+	ProduceAudit2Logs() refreshable.BoolPtr
 }
 
 type RefreshingAuditConfig struct {
@@ -305,6 +313,12 @@ func (r RefreshingAuditConfig) Service() refreshable.String {
 func (r RefreshingAuditConfig) Environment() refreshable.String {
 	return refreshable.NewString(r.MapAuditConfig(func(i AuditConfig) interface{} {
 		return i.Environment
+	}))
+}
+
+func (r RefreshingAuditConfig) ProduceAudit2Logs() refreshable.BoolPtr {
+	return refreshable.NewBoolPtr(r.MapAuditConfig(func(i AuditConfig) interface{} {
+		return i.ProduceAudit2Logs
 	}))
 }
 
