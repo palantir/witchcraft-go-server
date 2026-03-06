@@ -189,8 +189,8 @@ func getSecretRefreshable(ctx context.Context, diagnosticsConfig refreshable.Ref
 	if _, err := fileRefreshable.Validation(); err != nil {
 		return nil, err
 	}
-	secretStringFromFileRefreshable := refreshable.MapContext(ctx, fileRefreshable, func(b []byte) string {
-		return string(b)
+	secretStringFromFileRefreshable, _ := refreshable.MapFromValidated(fileRefreshable, func(t []byte) string {
+		return string(t)
 	})
 	return secretStringFromFileRefreshable, nil
 }

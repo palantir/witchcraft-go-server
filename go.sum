@@ -20,8 +20,8 @@ github.com/nmiyake/pkg/dirs v1.1.0 h1:qyTzK3bTqAJfekQcU6vlydM/YRxhHsv6MiRFEwTkJc
 github.com/nmiyake/pkg/dirs v1.1.0/go.mod h1:lGSUDZPexhLt+aWYfPHXsqnt+HFr2l/+lbEMWUhdZ/U=
 github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7sjsSdg=
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
-github.com/palantir/conjure-go-runtime/v3 v3.3.0 h1:nqrSSDJaP7n4r+IiMpTAA60d0WMQBo0VcK14QYuS9zU=
-github.com/palantir/conjure-go-runtime/v3 v3.3.0/go.mod h1:2a+UJT4fPHiZ/i/gBPN/lQeIPeT4L9Ln9slkWDMZgBY=
+github.com/palantir/conjure-go-runtime/v3 v3.4.0 h1:sNgGFfR4wtBFkGNSOhhyvsLo8TDvJnUujTvd2P4LSlk=
+github.com/palantir/conjure-go-runtime/v3 v3.4.0/go.mod h1:zQ/7jqp1KgxT5dUmcjTdWNcJAeIP3zd/IZUCe0AddX0=
 github.com/palantir/go-encrypted-config-value v1.40.0 h1:Hoo0e5YJgTGtbfbuk5dgLuG9zcbINN8FObp78JHJ9kk=
 github.com/palantir/go-encrypted-config-value v1.40.0/go.mod h1:blniDgGf4xjjPcSQy8h4Ux7yB45vIcTBvNeq9RXNUE0=
 github.com/palantir/go-metrics v1.1.1 h1:YL/UmptBjrC6iSCTVr7vfuIcjL0M359Da3/gBGNny10=
@@ -38,8 +38,8 @@ github.com/palantir/pkg/metrics v1.10.1 h1:NG/TSZIOtdCKS5pXSWhG6Wk2fzZhxa3MuINpQ
 github.com/palantir/pkg/metrics v1.10.1/go.mod h1:etZRED9/ZNlDPR4SAm6tZhyQI0HmAN1ecHf+wR1HaDY=
 github.com/palantir/pkg/objmatcher v1.2.0 h1:cR0IX2NXAhR1hRFBFUwA7y/+m4CtpXUCm5tabqdvS6I=
 github.com/palantir/pkg/objmatcher v1.2.0/go.mod h1:ekDpUDezSoBcD47CUWo9xbYTGycIkiM2ODvxHCUR+lQ=
-github.com/palantir/pkg/refreshable/v2 v2.6.0 h1:LbIpxnrUZ4NVs6HfveNFYcVfst6SFAWARYIbw3qtsHo=
-github.com/palantir/pkg/refreshable/v2 v2.6.0/go.mod h1:0Og1iRoyMOHpjjk5wBuRhgazUbqLTo8KfdqJe1h9+0g=
+github.com/palantir/pkg/refreshable/v2 v2.7.1 h1:GunC+jDPkCWf7KEmdxPKCGWAeG+DmTAL3UUR1e43AJc=
+github.com/palantir/pkg/refreshable/v2 v2.7.1/go.mod h1:0Og1iRoyMOHpjjk5wBuRhgazUbqLTo8KfdqJe1h9+0g=
 github.com/palantir/pkg/retry v1.3.0 h1:uHrY3sv4q3XefvVLyqKIK1frXE9ZxtCtNtvijAkwW4k=
 github.com/palantir/pkg/retry v1.3.0/go.mod h1:HzOR3eLw/9PiujskMpjaC6m3uU8fy53s6NszjbmpbOQ=
 github.com/palantir/pkg/rid v1.2.0 h1:sEdklNKk4hrDm0JsUyICYakbc+16GrC6pYxMFjfqXkE=

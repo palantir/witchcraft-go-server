@@ -51,7 +51,7 @@ type TLSConfigurationParams struct {
 }
 
 func NewRefreshableTransport(ctx context.Context, p refreshable.Refreshable[TransportParams], refreshableConfig refreshable.Validated[*tls.Config], dialer ContextDialer) http.RoundTripper {
-	mapped, _ := refreshable.Merge(p, refreshableConfig, func(p TransportParams, t *tls.Config) *http.Transport {
+	mapped, _ := refreshable.MergeValidatedAndRefreshable(ctx, refreshableConfig, p, func(t *tls.Config, p TransportParams) *http.Transport {
 		return newTransport(ctx, p, t, dialer)
 	})
 	return &RefreshableTransport{Refreshable: mapped}
@@ -60,11 +60,11 @@ func NewRefreshableTransport(ctx context.Context, p refreshable.Refreshable[Tran
 // RefreshableTransport implements http.RoundTripper backed by a refreshable *http.Transport.
 // The transport and internal dialer are each rebuilt when any of their respective parameters are updated.
 type RefreshableTransport struct {
-	refreshable.Refreshable[*http.Transport]
+	Refreshable refreshable.Validated[*http.Transport]
 }
 
 func (r *RefreshableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	return r.Current().RoundTrip(req)
+	return r.Refreshable.Unvalidated().RoundTrip(req)
 }
 
 func newTransport(ctx context.Context, p TransportParams, tlsConfig *tls.Config, dialer ContextDialer) *http.Transport {

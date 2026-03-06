@@ -4,13 +4,13 @@ go 1.25.0
 
 require (
 	github.com/nmiyake/pkg/dirs v1.1.0
-	github.com/palantir/conjure-go-runtime/v3 v3.3.0
+	github.com/palantir/conjure-go-runtime/v3 v3.4.0
 	github.com/palantir/go-encrypted-config-value v1.40.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.2.0
 	github.com/palantir/pkg/metrics v1.10.1
 	github.com/palantir/pkg/objmatcher v1.2.0
-	github.com/palantir/pkg/refreshable/v2 v2.6.0
+	github.com/palantir/pkg/refreshable/v2 v2.7.1
 	github.com/palantir/pkg/rid v1.2.0
 	github.com/palantir/pkg/signals v1.2.0
 	github.com/palantir/pkg/tlsconfig v1.5.0
