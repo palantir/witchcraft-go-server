@@ -46,6 +46,22 @@ type ReflectTypeConjureErrorDecoder struct {
 	registry map[string]reflect.Type
 }
 
+// MustRegisterErrorTypes registers the provided error types in the decoder.
+// Panics if any error type is already registered or if any type does not implement Error.
+func (d *ReflectTypeConjureErrorDecoder) MustRegisterErrorTypes(errorTypes ...Error) *ReflectTypeConjureErrorDecoder {
+	for _, errorType := range errorTypes {
+		name := errorType.Name()
+		typ := reflect.TypeOf(errorType)
+		if typ.Kind() != reflect.Pointer {
+			panic(fmt.Errorf("error type %v must be a pointer", typ))
+		}
+		if err := d.RegisterErrorType(name, typ.Elem()); err != nil {
+			panic(err)
+		}
+	}
+	return d
+}
+
 func (d *ReflectTypeConjureErrorDecoder) RegisterErrorType(name string, typ reflect.Type) error {
 	if existing, exists := d.registry[name]; exists {
 		return fmt.Errorf("ErrorName %v already registered as %v", name, existing)
