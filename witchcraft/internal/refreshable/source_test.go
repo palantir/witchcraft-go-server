@@ -31,7 +31,7 @@ func TestNewValidatingRefreshableHealthCheckSource_HealthStatus(t *testing.T) {
 	ctx := svc1log.WithLogger(context.Background(), svc1log.NewFromCreator(os.Stdout, wlog.DebugLevel, wlog.NewJSONMarshalLoggerProvider().NewLeveledLogger))
 	testHealthCheckType := health.CheckType("TEST_HEALTH_CHECK")
 	testRefreshable := refreshable.New("initial-value")
-	validatingRefreshable, _, err := refreshable.Validate(testRefreshable, func(i string) error {
+	validatingRefreshable, _, err := refreshable.Validate(ctx, testRefreshable, func(_ context.Context, i string) error {
 		if i == "validation-failing-value" {
 			return werror.Error("fail validation", werror.SafeParam("key", "value"))
 		}

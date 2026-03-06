@@ -542,5 +542,6 @@ func getConfiguredFileRefreshable(t *testing.T) refreshable.Refreshable[[]byte] 
 	r := refreshable.NewFileRefreshableWithTicker(ctx, "var/conf/runtime.yml", time.Tick(time.Millisecond*30))
 	_, err := r.Validation()
 	require.NoError(t, err)
-	return r
+	out, _ := refreshable.MapFromValidated(r, func(b []byte) []byte { return b })
+	return out
 }

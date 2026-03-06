@@ -124,6 +124,7 @@ func TestAuditLogRuntimeConfigLiveReloaded(t *testing.T) {
 	fileRefreshable := refreshable.NewFileRefreshable(context.Background(), runtimeConfigPath)
 	_, err = fileRefreshable.Validation()
 	require.NoError(t, err)
+	fileRefreshableR, _ := refreshable.MapFromValidated(fileRefreshable, func(b []byte) []byte { return b })
 
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		// if "inServerInit" is false, emit audit logs as a result of calling the endpoint. Verifies that audit
@@ -137,7 +138,7 @@ func TestAuditLogRuntimeConfigLiveReloaded(t *testing.T) {
 
 		return nil, nil
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
-		return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshable)
+		return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshableR)
 	})
 	defer func() {
 		require.NoError(t, server.Close())
@@ -333,6 +334,7 @@ func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 		fileRefreshable := refreshable.NewFileRefreshable(context.Background(), runtimeConfigPath)
 		_, err = fileRefreshable.Validation()
 		require.NoError(t, err)
+		fileRefreshableR, _ := refreshable.MapFromValidated(fileRefreshable, func(b []byte) []byte { return b })
 
 		server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port,
 			func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (func(), error) {
@@ -343,7 +345,7 @@ func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 			},
 			&logOutputBuffer,
 			func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
-				return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshable)
+				return createTestServerWithRuntimeConfigProvider(initFn, installCfg, logOutputBuffer, fileRefreshableR)
 			},
 		)
 		defer func() { require.NoError(t, server.Close()) }()
