@@ -357,8 +357,8 @@ func (s *Server[I, R]) WithInstallConfigValidation(opts config.InstallConfigVali
 // WithRuntimeConfig configures the server to use the provided runtime configuration. The provided runtime configuration
 // must support being marshaled as YAML.
 func (s *Server[I, R]) WithRuntimeConfig(in R) *Server[I, R] {
-	s.runtimeConfigProvider = func(_ context.Context) refreshable.Validated[[]byte] {
-		v, _, _ := refreshable.MapWithError(refreshable.New(in), func(in R) ([]byte, error) {
+	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
+		v, _, _ := refreshable.MapWithError(ctx, refreshable.New(in), func(ctx context.Context, in R) ([]byte, error) {
 			return yaml.Marshal(in)
 		})
 		return v
@@ -369,11 +369,11 @@ func (s *Server[I, R]) WithRuntimeConfig(in R) *Server[I, R] {
 // WithRuntimeConfigProvider configures the server to use the provided Refreshable as its runtime configuration. The
 // value provided by the refreshable must be the byte slice for the runtime configuration.
 func (s *Server[I, R]) WithRuntimeConfigProvider(r refreshable.Refreshable[[]byte]) *Server[I, R] {
-	s.runtimeConfigProvider = func(context.Context) refreshable.Validated[[]byte] {
+	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
 		if v, ok := r.(refreshable.Validated[[]byte]); ok {
 			return v
 		}
-		v, _, _ := refreshable.Validate(r, func([]byte) error { return nil })
+		v, _, _ := refreshable.Validate(ctx, r, func(context.Context, []byte) error { return nil })
 		return v
 	}
 	return s
@@ -1004,7 +1004,7 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 	var isStartup atomic.Bool
 	isStartup.Store(true)
 
-	unmarshalledRuntimeConfig, _, err := refreshable.MapWithError(runtimeConfigProvider, func(cfgBytes []byte) (R, error) {
+	unmarshalledRuntimeConfigValidated, _, err := refreshable.MapValidated(ctx, runtimeConfigProvider, func(ctx context.Context, cfgBytes []byte) (R, error) {
 		startup := isStartup.Swap(false)
 
 		cfgBytes, err := s.decryptConfigBytes(cfgBytes)
@@ -1038,6 +1038,9 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 		lastValidationErr.Store(nil)
 		return runtimeCfg, nil
 	})
+	unmarshalledRuntimeConfig, _ := refreshable.MapFromValidated(unmarshalledRuntimeConfigValidated, func(r R) R {
+		return r
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1046,7 +1049,7 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 		refreshablehealth.NewValidatingRefreshableHealthCheckSource(
 			runtimeConfigReloadCheckType,
 			refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
-			refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
+			refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfigValidated),
 		),
 	}
 
