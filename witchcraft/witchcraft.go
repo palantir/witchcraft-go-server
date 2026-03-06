@@ -771,10 +771,13 @@ func (s *Server[I, R]) Start() (rErr error) {
 	ctx = s.withLoggers(ctx)
 
 	// load runtime configuration
-	refreshableRuntimeCfg, configHealthCheckSources, err := s.initRuntimeConfig(ctx)
+	refreshableRuntimeCfgValidated, configHealthCheckSources, err := s.initRuntimeConfig(ctx)
 	if err != nil {
 		return err
 	}
+	refreshableRuntimeCfg, _ := refreshable.MapFromValidated(refreshableRuntimeCfgValidated, func(r R) R {
+		return r
+	})
 	internalHealthCheckSources := configHealthCheckSources
 
 	// set up SERVICE_DEPENDENCY check
@@ -986,7 +989,7 @@ func (s *Server[I, R]) initInstallConfig() (zero I, _ error) {
 	return installConfigStruct, nil
 }
 
-func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.Refreshable[R], hcSrcs []healthstatus.HealthCheckSource, rErr error) {
+func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.Validated[R], hcSrcs []healthstatus.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
 		s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
@@ -1004,7 +1007,7 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 	var isStartup atomic.Bool
 	isStartup.Store(true)
 
-	unmarshalledRuntimeConfigValidated, _, err := refreshable.MapValidated(ctx, runtimeConfigProvider, func(ctx context.Context, cfgBytes []byte) (R, error) {
+	unmarshalledRuntimeConfig, _, err := refreshable.MapValidated(ctx, runtimeConfigProvider, func(ctx context.Context, cfgBytes []byte) (R, error) {
 		startup := isStartup.Swap(false)
 
 		cfgBytes, err := s.decryptConfigBytes(cfgBytes)
@@ -1038,9 +1041,6 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 		lastValidationErr.Store(nil)
 		return runtimeCfg, nil
 	})
-	unmarshalledRuntimeConfig, _ := refreshable.MapFromValidated(unmarshalledRuntimeConfigValidated, func(r R) R {
-		return r
-	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1049,7 +1049,7 @@ func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.
 		refreshablehealth.NewValidatingRefreshableHealthCheckSource(
 			runtimeConfigReloadCheckType,
 			refreshablehealth.ValidationErrFunc(runtimeConfigProvider),
-			refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfigValidated),
+			refreshablehealth.ValidationErrFunc(unmarshalledRuntimeConfig),
 		),
 	}
 
