@@ -36,7 +36,7 @@ require (
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/palantir/pkg v1.1.0 // indirect
 	github.com/palantir/pkg/bytesbuffers v1.3.0 // indirect
-	github.com/palantir/pkg/datetime v1.3.0 // indirect
+	github.com/palantir/pkg/datetime v1.4.0 // indirect
 	github.com/palantir/pkg/retry v1.3.0 // indirect
 	github.com/palantir/pkg/safejson v1.2.0 // indirect
 	github.com/palantir/pkg/safelong v1.3.0 // indirect
