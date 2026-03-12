@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/nmiyake/pkg/dirs v1.1.0
 	github.com/palantir/conjure-go-runtime/v3 v3.5.0
-	github.com/palantir/go-encrypted-config-value v1.40.0
+	github.com/palantir/go-encrypted-config-value v1.41.0
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg/httpserver v1.2.0
 	github.com/palantir/pkg/metrics v1.10.1
