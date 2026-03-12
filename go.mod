@@ -18,7 +18,7 @@ require (
 	github.com/palantir/witchcraft-go-error v1.42.0
 	github.com/palantir/witchcraft-go-health/v2 v2.3.0
 	github.com/palantir/witchcraft-go-logging v1.66.0
-	github.com/palantir/witchcraft-go-params v1.39.0
+	github.com/palantir/witchcraft-go-params v1.40.0
 	github.com/palantir/witchcraft-go-router v1.0.0
 	github.com/palantir/witchcraft-go-tasks v0.10.0
 	github.com/palantir/witchcraft-go-tracing v1.42.0
