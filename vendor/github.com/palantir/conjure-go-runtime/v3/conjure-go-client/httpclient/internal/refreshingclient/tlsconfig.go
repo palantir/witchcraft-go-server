@@ -55,7 +55,9 @@ func NewTLSConfig(ctx context.Context, p TLSParams) (*tls.Config, error) {
 	if len(p.CABytes) > 0 {
 		var certPoolOptions []tlsconfig.CertPoolOption
 		for _, ca := range p.CABytes {
-			certPoolOptions = append(certPoolOptions, tlsconfig.CertPoolOptionCABytes(ca))
+			if len(ca) > 0 {
+				certPoolOptions = append(certPoolOptions, tlsconfig.CertPoolOptionCABytes(ca))
+			}
 		}
 		tlsParams = append(tlsParams, tlsconfig.ClientRootCAs(tlsconfig.CertPoolFromCertPoolOptions(certPoolOptions)))
 	}
