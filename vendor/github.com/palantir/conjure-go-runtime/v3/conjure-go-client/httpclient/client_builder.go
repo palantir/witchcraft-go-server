@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-client/httpclient/internal"
@@ -161,11 +162,30 @@ func (b *httpClientBuilder) getRefreshableTLSConfig(ctx context.Context) (refres
 	return refreshingclient.NewRefreshableTLSConfig(ctx, tlsParams)
 }
 
+// Deprecated: prefer [NewClientWithContext].
+//
 // NewClient returns a configured client ready for use.
-// We apply "sane defaults" before applying the provided params.
+// The builder used to build this client is provided with a Context that is associated with the lifetime of the returned
+// struct that implements Client, and may be canceled when the pointer to the struct is no longer reachable.
 func NewClient(params ...ClientParam) (Client, error) {
-	b := newClientBuilder()
-	return newClient(context.TODO(), b, params...)
+	ctx, cancelFn := context.WithCancel(context.Background())
+	// note: does not delegate to NewClientWithContext because runtime.AddCleanup needs the actual pointer
+	client, err := newClient(ctx, newClientBuilder(), params...)
+	if client == nil {
+		cancelFn()
+	} else {
+		runtime.AddCleanup(client, func(cancel context.CancelFunc) { cancel() }, cancelFn)
+	}
+	return client, err
+}
+
+// NewClientWithContext returns a configured client ready for use.
+// The provided ctx is used to build the client and is provided to any functions in the builder that require a Context.
+// If the provided ctx is canceled, background tasks associated with the returned Client may also be canceled and the
+// Client may no longer be valid.
+// Sane defaults are applied to the builder before applying the provided params.
+func NewClientWithContext(ctx context.Context, params ...ClientParam) (Client, error) {
+	return newClient(ctx, newClientBuilder(), params...)
 }
 
 // NewClientFromRefreshableConfig returns a configured client ready for use.
@@ -178,7 +198,7 @@ func NewClientFromRefreshableConfig(ctx context.Context, config refreshable.Refr
 	return newClient(ctx, b, params...)
 }
 
-func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (Client, error) {
+func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (*clientImpl, error) {
 	for _, p := range params {
 		if p == nil {
 			continue
@@ -230,15 +250,34 @@ func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (Cl
 	}, nil
 }
 
-// NewHTTPClient returns a configured http client ready for use.
-// We apply "sane defaults" before applying the provided params.
-func NewHTTPClient(params ...HTTPClientParam) (*http.Client, error) {
+// NewHTTPClientWithContext returns a configured *http.Client ready for use.
+// The provided ctx is used to build the client and is provided to any functions in the builder that require a Context.
+// If the provided ctx is canceled, background tasks associated with the returned *http.Client may also be canceled and
+// the *http.Client may no longer be valid.
+// Sane defaults are applied to the builder before applying the provided params.
+func NewHTTPClientWithContext(ctx context.Context, params ...HTTPClientParam) (*http.Client, error) {
 	b := newClientBuilder()
-	provider, err := b.HTTP.Build(context.TODO(), params...)
+	provider, err := b.HTTP.Build(ctx, params...)
 	if err != nil {
 		return nil, err
 	}
 	return provider.Current(), nil
+}
+
+// Deprecated: prefer [NewHTTPClientWithContext].
+//
+// NewHTTPClient returns a configured *http.Client ready for use.
+// The builder used to build this client is provided with a Context that is associated with the lifetime of the returned
+// *http.Client, and may be canceled when the pointer is no longer reachable.
+func NewHTTPClient(params ...HTTPClientParam) (*http.Client, error) {
+	ctx, cancelFn := context.WithCancel(context.Background())
+	client, err := NewHTTPClientWithContext(ctx, params...)
+	if client == nil {
+		cancelFn()
+	} else {
+		runtime.AddCleanup(client, func(cancel context.CancelFunc) { cancel() }, cancelFn)
+	}
+	return client, err
 }
 
 // NewHTTPClientFromRefreshableConfig returns a configured http client ready for use.
