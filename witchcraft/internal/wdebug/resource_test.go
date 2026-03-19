@@ -17,9 +17,12 @@ package wdebug
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -35,7 +38,7 @@ func TestDebugResource(t *testing.T) {
 	ctx := context.Background()
 	r := wrouter.New(whttprouter.New())
 	secret := refreshable.New("secret1")
-	err := RegisterRoute(ctx, r, secret)
+	err := RegisterRoute(ctx, r, secret, func() []wdebug.DiagnosticHandler { return nil })
 	require.NoError(t, err)
 
 	server := httptest.NewServer(r)
@@ -103,6 +106,14 @@ func TestDebugResource(t *testing.T) {
 		})
 	}
 
+	t.Run("400 on unsupported diagnostic type", func(t *testing.T) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/unknown.type.v1", server.URL), nil)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer "+secret.Current())
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
 	t.Run("401 on invalid auth header", func(t *testing.T) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/%s", server.URL, DiagnosticTypeAllocsProfileV1), nil)
 		require.NoError(t, err)
@@ -119,4 +130,64 @@ func TestDebugResource(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
+}
+
+func TestDebugResource_LateRegisteredCustomHandler(t *testing.T) {
+	ctx := context.Background()
+	r := wrouter.New(whttprouter.New())
+	secret := refreshable.New("secret1")
+	var handlers atomic.Pointer[[]wdebug.DiagnosticHandler]
+	provider := func() []wdebug.DiagnosticHandler {
+		if p := handlers.Load(); p != nil {
+			return *p
+		}
+		return nil
+	}
+	err := RegisterRoute(ctx, r, secret, provider)
+	require.NoError(t, err)
+	server := httptest.NewServer(r)
+	defer server.Close()
+	// Before registering custom handler, the type should return 400
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/custom.test.v1", server.URL), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+secret.Current())
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	// Register a custom handler after route setup (simulates async init)
+	customHandler := testDiagnosticHandler{
+		diagnosticType: "custom.test.v1",
+		content:        `{"status":"ok"}`,
+	}
+	registered := []wdebug.DiagnosticHandler{customHandler}
+	handlers.Store(&registered)
+	// Now the custom handler should be resolvable
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/debug/diagnostic/custom.test.v1", server.URL), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+secret.Current())
+	resp, err = http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	require.Equal(t, "true", resp.Header.Get("Safe-Loggable"))
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	var parsed map[string]string
+	require.NoError(t, json.Unmarshal(body, &parsed))
+	require.Equal(t, "ok", parsed["status"])
+}
+
+type testDiagnosticHandler struct {
+	diagnosticType wdebug.DiagnosticType
+	content        string
+}
+
+func (h testDiagnosticHandler) Type() wdebug.DiagnosticType { return h.diagnosticType }
+func (h testDiagnosticHandler) Documentation() string       { return "test handler" }
+func (h testDiagnosticHandler) ContentType() string         { return "application/json" }
+func (h testDiagnosticHandler) SafeLoggable() bool          { return true }
+func (h testDiagnosticHandler) Extension() string           { return "json" }
+func (h testDiagnosticHandler) WriteDiagnostic(_ context.Context, w io.Writer) error {
+	_, err := io.WriteString(w, h.content)
+	return err
 }

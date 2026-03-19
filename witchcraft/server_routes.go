@@ -54,7 +54,7 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 	if err != nil {
 		return err
 	}
-	if err := wdebug.RegisterRoute(ctx, mgmtRouterWithContextPath, secretRefreshable, s.customDiagnosticHandlers...); err != nil {
+	if err := wdebug.RegisterRoute(ctx, mgmtRouterWithContextPath, secretRefreshable, s.getCustomDiagnosticHandlers); err != nil {
 		return err
 	}
 

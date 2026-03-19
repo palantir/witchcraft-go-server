@@ -129,7 +129,7 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// specifies the handlers to invoke upon health status changes. The LoggingHealthStatusChangeHandler is added by default.
 	healthStatusChangeHandlers []status.HealthStatusChangeHandler
 
-	customDiagnosticHandlers []wdebug.DiagnosticHandler
+	customDiagnosticHandlers atomic.Pointer[[]wdebug.DiagnosticHandler]
 
 	// if true, disables the SERVICE_DEPENDENCY health check.
 	disableServiceDependencyHealth bool
@@ -622,9 +622,26 @@ func (s *Server[I, R]) WithHealthStatusChangeHandlers(handlers ...status.HealthS
 
 // WithCustomDiagnosticHandlers configures the application's custom diagnostic handlers.
 // This adds to the default diagnostic handlers provided by the server.
+// It is safe to call this method after the server has started (e.g., from a goroutine
+// spawned during initialization); handlers will be visible to diagnostic requests
+// immediately after registration.
 func (s *Server[I, R]) WithCustomDiagnosticHandlers(handlers ...wdebug.DiagnosticHandler) *Server[I, R] {
-	s.customDiagnosticHandlers = append(s.customDiagnosticHandlers, handlers...)
+	var current []wdebug.DiagnosticHandler
+	if p := s.customDiagnosticHandlers.Load(); p != nil {
+		current = *p
+	}
+	newSlice := make([]wdebug.DiagnosticHandler, len(current)+len(handlers))
+	copy(newSlice, current)
+	copy(newSlice[len(current):], handlers)
+	s.customDiagnosticHandlers.Store(&newSlice)
 	return s
+}
+
+func (s *Server[I, R]) getCustomDiagnosticHandlers() []wdebug.DiagnosticHandler {
+	if p := s.customDiagnosticHandlers.Load(); p != nil {
+		return *p
+	}
+	return nil
 }
 
 // WithEnableDualLogAuditV2ToAuditV3 enables dual-writing audit v2 logs to audit v3 logs.
