@@ -135,8 +135,8 @@ github.com/palantir/witchcraft-go-router/wresource
 github.com/palantir/witchcraft-go-router/wrouter
 github.com/palantir/witchcraft-go-router/wrouter/wgorillamux
 github.com/palantir/witchcraft-go-router/wrouter/whttprouter
-# github.com/palantir/witchcraft-go-tasks v0.10.0
-## explicit; go 1.25.0
+# github.com/palantir/witchcraft-go-tasks v0.11.0
+## explicit; go 1.26.0
 github.com/palantir/witchcraft-go-tasks/function
 github.com/palantir/witchcraft-go-tasks/jobs
 github.com/palantir/witchcraft-go-tasks/parallel
