@@ -84,7 +84,7 @@ github.com/palantir/pkg/transform
 ## explicit; go 1.25.0
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
-# github.com/palantir/witchcraft-go-error v1.43.0
+# github.com/palantir/witchcraft-go-error v1.44.0
 ## explicit; go 1.26.0
 github.com/palantir/witchcraft-go-error
 github.com/palantir/witchcraft-go-error/internal/errors
