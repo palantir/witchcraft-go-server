@@ -42,11 +42,11 @@ type testDiagnosticHandler struct {
 	diagnosticType wdebug.DiagnosticType
 }
 
-func (h testDiagnosticHandler) Type() wdebug.DiagnosticType                          { return h.diagnosticType }
-func (h testDiagnosticHandler) Documentation() string                                 { return "test diagnostic" }
-func (h testDiagnosticHandler) ContentType() string                                   { return "text/plain" }
-func (h testDiagnosticHandler) SafeLoggable() bool                                    { return true }
-func (h testDiagnosticHandler) Extension() string                                     { return "txt" }
+func (h testDiagnosticHandler) Type() wdebug.DiagnosticType { return h.diagnosticType }
+func (h testDiagnosticHandler) Documentation() string       { return "test diagnostic" }
+func (h testDiagnosticHandler) ContentType() string         { return "text/plain" }
+func (h testDiagnosticHandler) SafeLoggable() bool          { return true }
+func (h testDiagnosticHandler) Extension() string           { return "txt" }
 func (h testDiagnosticHandler) WriteDiagnostic(_ context.Context, w io.Writer) error {
 	_, err := w.Write([]byte("ok"))
 	return err
