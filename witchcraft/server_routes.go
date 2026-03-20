@@ -31,6 +31,7 @@ import (
 	"github.com/palantir/witchcraft-go-server/v3/status/routes"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/middleware"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/internal/wdebug"
+	wdebugapi "github.com/palantir/witchcraft-go-server/v3/witchcraft/wdebug"
 	"github.com/palantir/witchcraft-go-server/v3/witchcraft/wresource"
 	"github.com/palantir/witchcraft-go-server/v3/wrouter"
 	"github.com/palantir/witchcraft-go-tracing/wtracing"
@@ -54,7 +55,10 @@ func (s *Server[I, R]) addRoutes(ctx context.Context, mgmtRouterWithContextPath 
 	if err != nil {
 		return err
 	}
-	if err := wdebug.RegisterRoute(ctx, mgmtRouterWithContextPath, secretRefreshable, s.customDiagnosticHandlers...); err != nil {
+	if s.customDiagnosticHandlers == nil {
+		s.customDiagnosticHandlers = refreshable.New(map[wdebugapi.DiagnosticType]wdebugapi.DiagnosticHandler{})
+	}
+	if err := wdebug.RegisterRoute(ctx, mgmtRouterWithContextPath, secretRefreshable, s.customDiagnosticHandlers); err != nil {
 		return err
 	}
 

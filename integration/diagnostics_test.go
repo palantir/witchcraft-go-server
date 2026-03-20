@@ -173,12 +173,12 @@ func TestServer_DiagnosticRegisteredInInitGoroutineNotFound(t *testing.T) {
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode, "builder-registered diagnostic should return 200")
-	// InitInfo goroutine-registered diagnostic should NOT be served (proves the bug)
+	// InitInfo goroutine-registered diagnostic should also be served (refreshable picks up late registrations)
 	req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("https://localhost:%d/%s/debug/diagnostic/%s", port, basePath, "custom.initinfo.v1"), nil)
 	require.NoError(t, err)
 	resp, err = client.Do(req)
 	require.NoError(t, err)
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode, "initInfo goroutine-registered diagnostic should return 400 because it was registered after addRoutes snapshot")
+	require.Equal(t, http.StatusOK, resp.StatusCode, "initInfo goroutine-registered diagnostic should return 200 because customDiagnosticHandlers is a refreshable")
 	select {
 	case err := <-serverErr:
 		require.NoError(t, err)
