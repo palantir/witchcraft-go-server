@@ -17,6 +17,7 @@ package refreshingclient
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/palantir/pkg/tlsconfig"
@@ -59,7 +60,11 @@ func NewTLSConfig(ctx context.Context, p TLSParams) (*tls.Config, error) {
 				certPoolOptions = append(certPoolOptions, tlsconfig.CertPoolOptionCABytes(ca))
 			}
 		}
-		tlsParams = append(tlsParams, tlsconfig.ClientRootCAs(tlsconfig.CertPoolFromCertPoolOptions(certPoolOptions)))
+		certPool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, werror.WrapWithContextParams(ctx, err, "failed to build SystemCertPool")
+		}
+		tlsParams = append(tlsParams, tlsconfig.ClientRootCAs(tlsconfig.AugmentCertPoolWithCertPoolOptions(certPool, certPoolOptions)))
 	}
 	if p.CertFile != "" && p.KeyFile != "" {
 		tlsParams = append(tlsParams, tlsconfig.ClientKeyPairFiles(p.CertFile, p.KeyFile))
