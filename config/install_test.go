@@ -55,12 +55,13 @@ server:
 			KeyFile:        "keyFile",
 		},
 		MetricsEmitFrequency:      time.Second,
-		TraceSampleRate:           asFloat(0.5),
-		ManagementTraceSampleRate: asFloat(0.6),
+		TraceSampleRate:           new(0.5),
+		ManagementTraceSampleRate: new(0.6),
 		UseConsoleLog:             true,
 	}, install)
 }
 
+//go:fix inline
 func asFloat(f float64) *float64 {
-	return &f
+	return new(f)
 }

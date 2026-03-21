@@ -200,7 +200,7 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	disableHTTP2 bool
 
 	// configYAMLUnmarshalFn is the function used to unmarshal YAML configuration. By default, this is yaml.Unmarshal.
-	configYAMLUnmarshalFn func(in []byte, out interface{}) (err error)
+	configYAMLUnmarshalFn func(in []byte, out any) (err error)
 
 	// request logger configuration
 

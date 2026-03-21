@@ -127,7 +127,7 @@ type customLivenessSource struct {
 	metadata   map[string]string
 }
 
-func (c customLivenessSource) Status() (respStatus int, metadata interface{}) {
+func (c customLivenessSource) Status() (respStatus int, metadata any) {
 	return c.statusCode, c.metadata
 }
 
@@ -138,7 +138,7 @@ type customReadinessSource struct {
 	metadata   map[string]string
 }
 
-func (c customReadinessSource) Status() (respStatus int, metadata interface{}) {
+func (c customReadinessSource) Status() (respStatus int, metadata any) {
 	return c.statusCode, c.metadata
 }
 

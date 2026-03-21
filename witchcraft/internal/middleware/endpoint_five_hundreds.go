@@ -82,7 +82,7 @@ func (e *EndpointFiveHundredsHealthCheck) currentStatus() *health.HealthCheckRes
 	hasEndpoints := false
 	failingEndpoints := make([]string, 0)
 	brokenEndpoints := make([]string, 0)
-	e.endpoints.Range(func(key, value interface{}) bool {
+	e.endpoints.Range(func(key, value any) bool {
 		hasEndpoints = true
 		endpoint := key.(string)
 		status := value.(*endpointFiveHundredsStatus)
@@ -112,7 +112,7 @@ func (e *EndpointFiveHundredsHealthCheck) currentStatus() *health.HealthCheckRes
 			message += "\n" + endpointFiveHundredsBrokenEndpointsMessage
 		}
 		result.Message = &message
-		result.Params = map[string]interface{}{
+		result.Params = map[string]any{
 			"brokenEndpoints":  brokenEndpoints,  // endpoints that have never returned a non-500 status code
 			"failingEndpoints": failingEndpoints, // endpoints that have returned 500 status codes in every window
 		}
@@ -124,7 +124,7 @@ func (e *EndpointFiveHundredsHealthCheck) currentStatus() *health.HealthCheckRes
 }
 
 func (e *EndpointFiveHundredsHealthCheck) shiftWindow() {
-	e.endpoints.Range(func(key, value interface{}) bool {
+	e.endpoints.Range(func(key, value any) bool {
 		value.(*endpointFiveHundredsStatus).shift()
 		return true
 	})

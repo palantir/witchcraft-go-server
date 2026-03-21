@@ -35,18 +35,18 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 	t.Run("update default config", func(t *testing.T) {
 		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Default: httpclient.ClientConfig{
-				APIToken: stringPtr("secret"),
+				APIToken: new("secret"),
 			},
 		})
-		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("secret")}, blankConfig.Current())
+		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: new("secret")}, blankConfig.Current())
 	})
 	t.Run("update services config", func(t *testing.T) {
 		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{serviceName: {
-				APIToken: stringPtr("different secret"),
+				APIToken: new("different secret"),
 			}},
 		})
-		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("different secret")}, blankConfig.Current())
+		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: new("different secret")}, blankConfig.Current())
 	})
 	t.Run("add extra configs", func(t *testing.T) {
 		discovery.WithDefaultConfig(httpclient.ClientConfig{
@@ -57,12 +57,12 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 		})
 		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{serviceName: {
-				APIToken: stringPtr("new secret"),
+				APIToken: new("new secret"),
 			}},
 		})
 		require.Equal(t, httpclient.ClientConfig{
 			ServiceName:  serviceName,
-			APIToken:     stringPtr("new secret"),
+			APIToken:     new("new secret"),
 			ReadTimeout:  durationPtr(time.Second),
 			WriteTimeout: durationPtr(time.Second),
 		}, blankConfig.Current())
@@ -101,5 +101,8 @@ func TestServiceDiscovery_ClientOverrides(t *testing.T) {
 	})
 }
 
-func durationPtr(d time.Duration) *time.Duration { return &d }
-func stringPtr(s string) *string                 { return &s }
+//go:fix inline
+func durationPtr(d time.Duration) *time.Duration { return new(d) }
+
+//go:fix inline
+func stringPtr(s string) *string { return new(s) }

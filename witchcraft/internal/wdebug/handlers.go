@@ -142,7 +142,7 @@ func (h handlerCPUProfile1MinuteV1) WriteDiagnostic(ctx context.Context, w io.Wr
 
 	if err := pprof.StartCPUProfile(w); err != nil {
 		err = werror.WrapWithContextParams(ctx, err, "failed to start CPU profile")
-		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]interface{}{
+		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]any{
 			"message": err.Error(),
 		}))
 	}
@@ -240,7 +240,7 @@ func (h handlerTrace1MinuteV1) WriteDiagnostic(ctx context.Context, w io.Writer)
 
 	if err := trace.Start(w); err != nil {
 		err = werror.WrapWithContextParams(ctx, err, "failed to start execution tracer")
-		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]interface{}{
+		return errors.WrapWithConflict(err, wparams.NewSafeParamStorer(map[string]any{
 			"message": err.Error(),
 		}))
 	}
@@ -279,9 +279,9 @@ func (h handlerMetricNamesV1) WriteDiagnostic(ctx context.Context, w io.Writer) 
 	// Assume that the metric registry is bound to the context by WC middleware
 	registry := metrics.FromContext(ctx)
 
-	result := make([]map[string]interface{}, 0)
+	result := make([]map[string]any, 0)
 	registry.Each(func(name string, tags metrics.Tags, value metrics.MetricVal) {
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"name": name,
 			"tags": tags.ToMap(),
 		})

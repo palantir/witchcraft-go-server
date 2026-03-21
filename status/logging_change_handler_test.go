@@ -50,7 +50,7 @@ func TestLoggingChangeHandler(t *testing.T) {
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]interface{}{}),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]any{}),
 				},
 			},
 			expected: &expectedLog{
@@ -62,7 +62,7 @@ func TestLoggingChangeHandler(t *testing.T) {
 			name: "log info when new status code is 200",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]interface{}{}),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]any{}),
 				},
 			},
 			curr: health.HealthStatus{
@@ -79,12 +79,12 @@ func TestLoggingChangeHandler(t *testing.T) {
 			name: "log warn when new status code is 520",
 			prev: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]interface{}{}),
+					"TEST": sources.UnhealthyHealthCheckResult("TEST", "message", map[string]any{}),
 				},
 			},
 			curr: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
-					"TEST": sources.RepairingHealthCheckResult("TEST", "message", map[string]interface{}{}),
+					"TEST": sources.RepairingHealthCheckResult("TEST", "message", map[string]any{}),
 				},
 			},
 			expected: &expectedLog{

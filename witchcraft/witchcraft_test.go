@@ -94,7 +94,7 @@ func TestFatalErrorLogging(t *testing.T) {
 		{
 			Name: "panic init function with object",
 			InitFn: func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (cleanup func(), rErr error) {
-				panic(map[string]interface{}{"k": "v"})
+				panic(map[string]any{"k": "v"})
 			},
 			VerifyLog: func(t *testing.T, logOutput []byte) {
 				svc1LogLines := getLogMessagesOfType(t, "service.1", logOutput)
@@ -103,7 +103,7 @@ func TestFatalErrorLogging(t *testing.T) {
 				require.NoError(t, json.Unmarshal(svc1LogLines[0], &log))
 				assert.Equal(t, logging.New_LogLevel(logging.LogLevel_ERROR), log.Level)
 				assert.Equal(t, "panic recovered", log.Message)
-				assert.Equal(t, map[string]interface{}{"k": "v"}, log.UnsafeParams["recovered"])
+				assert.Equal(t, map[string]any{"k": "v"}, log.UnsafeParams["recovered"])
 				assert.NotEmpty(t, log.Stacktrace)
 			},
 		},
@@ -470,7 +470,7 @@ func TestServer_Start_MultipleRuns(t *testing.T) {
 	server, cleanup := newServer("127.0.0.1", 0)
 	defer cleanup()
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		testStop(t, server, func(server *witchcraft.Server[config.Install, config.Runtime], ctx context.Context) error {
 			return server.Close()
 		})
@@ -576,7 +576,7 @@ func getLogMessagesOfType(t *testing.T, typ string, logOutput []byte) [][]byte {
 		if len(line) == 0 {
 			continue
 		}
-		var currEntry map[string]interface{}
+		var currEntry map[string]any
 		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
 		if logLineType, ok := currEntry["type"]; ok && logLineType == typ {
 			logLines = append(logLines, line)
@@ -595,13 +595,13 @@ func getWrappedLogMessagesOfType(t *testing.T, entityName, entityVersion, typ st
 		if len(line) == 0 {
 			continue
 		}
-		var currEntry map[string]interface{}
+		var currEntry map[string]any
 		assert.NoError(t, json.Unmarshal(line, &currEntry), "failed to parse json line %q", string(line))
 		assert.Equal(t, "wrapped.1", currEntry["type"])
 		assert.Equal(t, entityName, currEntry["entityName"])
 		assert.Equal(t, entityVersion, currEntry["entityVersion"])
-		if payload, ok := currEntry["payload"].(map[string]interface{}); ok {
-			if payloadLog, ok := payload[payload["type"].(string)].(map[string]interface{}); ok {
+		if payload, ok := currEntry["payload"].(map[string]any); ok {
+			if payloadLog, ok := payload[payload["type"].(string)].(map[string]any); ok {
 				if payloadLogLineType, ok := payloadLog["type"]; ok && payloadLogLineType == typ {
 					if payloadBytes, err := json.Marshal(payloadLog); err == nil {
 						logLines = append(logLines, payloadBytes)

@@ -151,7 +151,7 @@ func TestRequestTelemetryMiddleware(t *testing.T) {
 	assert.Equal(t, []string{"max-age=31536000"}, resp.Header["Strict-Transport-Security"])
 
 	testLogParams := func(t *testing.T, logBytes []byte) {
-		logMap := make(map[string]interface{})
+		logMap := make(map[string]any)
 		assert.NoError(t, json.Unmarshal(logBytes, &logMap), "failed to unmarshal log output: %s", string(logBytes))
 		logType := logMap[wlog.TypeKey]
 		assert.Equal(t, testReqIDs.UID, logMap[wlog.UIDKey], "%s UID mismatch", logType)
@@ -185,7 +185,7 @@ func TestRequestMetricRequestMeterMiddleware(t *testing.T) {
 		_, _ = fmt.Fprint(rw, "ok")
 	})
 
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	r.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		vals := metric.Values()
 		m[name] = vals
@@ -253,7 +253,7 @@ func TestRequestMetricHandlerWithTags(t *testing.T) {
 		require.NoError(t, err)
 		wRouter.ServeHTTP(w, req)
 
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		tagsMap := make(map[string]metrics.Tags)
 		r.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 			vals := metrics.ToMetricVal(metric).Values()

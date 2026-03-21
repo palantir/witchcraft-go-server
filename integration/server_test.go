@@ -207,9 +207,9 @@ func TestManagementRoutes(t *testing.T) {
 			var healthResp health.HealthStatus
 			require.NoError(t, json.Unmarshal(body, &healthResp))
 			require.Equal(t, health.HealthStatus{Checks: map[health.CheckType]health.HealthCheckResult{
-				"CONFIG_RELOAD":          {Type: "CONFIG_RELOAD", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
-				"ENDPOINT_FIVE_HUNDREDS": {Type: "ENDPOINT_FIVE_HUNDREDS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
-				"SERVER_STATUS":          {Type: "SERVER_STATUS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]interface{}{}},
+				"CONFIG_RELOAD":          {Type: "CONFIG_RELOAD", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]any{}},
+				"ENDPOINT_FIVE_HUNDREDS": {Type: "ENDPOINT_FIVE_HUNDREDS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]any{}},
+				"SERVER_STATUS":          {Type: "SERVER_STATUS", State: health.New_HealthState(health.HealthState_HEALTHY), Params: map[string]any{}},
 			}}, healthResp)
 		})
 	}
@@ -361,7 +361,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 	t.Run("request log", func(t *testing.T) {
 		// find request log for 404, assert trace ID matches request
 		reqlogs := getLogMessagesOfType(t, "request.2", logOutputBuffer.Bytes())
-		var notFoundReqLogs []map[string]interface{}
+		var notFoundReqLogs []map[string]any
 		for _, reqlog := range reqlogs {
 			if reqlog["traceId"] == testTraceID {
 				notFoundReqLogs = append(notFoundReqLogs, reqlog)
@@ -378,7 +378,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 	t.Run("service log", func(t *testing.T) {
 		// find service log for 404, assert trace ID matches request
 		svclogs := getLogMessagesOfType(t, "service.1", logOutputBuffer.Bytes())
-		var notFoundSvcLogs []map[string]interface{}
+		var notFoundSvcLogs []map[string]any
 		for _, svclog := range svclogs {
 			if svclog["traceId"] == testTraceID {
 				notFoundSvcLogs = append(notFoundSvcLogs, svclog)
@@ -388,7 +388,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 			svclog := notFoundSvcLogs[0]
 			assert.Equal(t, "INFO", svclog["level"])
 			assert.Equal(t, "Error handling request", svclog["message"])
-			assert.Equal(t, map[string]interface{}{
+			assert.Equal(t, map[string]any{
 				"errorInstanceId": cerr.InstanceID().String(),
 				"errorName":       "Default:NotFound",
 			}, svclog["params"])

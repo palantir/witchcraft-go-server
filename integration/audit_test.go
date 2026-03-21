@@ -236,17 +236,17 @@ func TestAuditLog_ProduceAudit2LogsConfig(t *testing.T) {
 		},
 		{
 			name:              "true ProduceAudit2Logs emits audit.2 logs",
-			produceAudit2:     toPtr(true),
+			produceAudit2:     new(true),
 			wantAudit2Entries: 1,
 		},
 		{
 			name:              "false ProduceAudit2Logs suppresses audit.2 logs",
-			produceAudit2:     toPtr(false),
+			produceAudit2:     new(false),
 			wantAudit2Entries: 0,
 		},
 		{
 			name:              "false ProduceAudit2Logs suppresses dual-logged audit.3-to-audit.2 entries",
-			produceAudit2:     toPtr(false),
+			produceAudit2:     new(false),
 			logAuditV3:        true,
 			enableDualV3ToV2:  true,
 			wantAudit2Entries: 0,
@@ -411,7 +411,7 @@ func testAuditLogHelper(t *testing.T, logAuditV2, dualLogAuditV2ToAuditV3, logAu
 
 		categoryVal := v2.NewAuditCategoryV2FromRequestSearch(
 			v2.RequestSearch{
-				RequestSearchQuery:   toPtr("test-search-query"),
+				RequestSearchQuery:   new("test-search-query"),
 				RequestSearchResults: searchResultsVal,
 			},
 		)
@@ -658,8 +658,8 @@ func sortMetricByCountValueDescending(a, b logging.MetricLogV1) int {
 
 func extractLogEntries[LogT any](t *testing.T, loggerOutput, logTypeName string) []LogT {
 	var logEntries []LogT
-	parts := strings.Split(loggerOutput, "\n")
-	for _, curr := range parts {
+	parts := strings.SplitSeq(loggerOutput, "\n")
+	for curr := range parts {
 		typedLogEntry := struct {
 			Type string `json:"type"`
 		}{}
@@ -710,8 +710,9 @@ func filterMatchingLogEntries[LogT any](entries []LogT, matcher func(LogT) bool)
 	return logEntries
 }
 
+//go:fix inline
 func toPtr[T any](in T) *T {
-	return &in
+	return new(in)
 }
 
 func stringPtrValue[T ~string](in *T) string {

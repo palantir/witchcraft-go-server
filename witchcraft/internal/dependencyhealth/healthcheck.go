@@ -97,7 +97,7 @@ func (h *ServiceDependencyHealthCheck) HealthStatus(context.Context) health.Heal
 		Type:    serviceDependencyCheckType,
 		State:   health.New_HealthState(health.HealthState_HEALTHY),
 		Message: &serviceDependencyMsgHealthy,
-		Params:  map[string]interface{}{},
+		Params:  map[string]any{},
 	}
 	var containsUnhealthyService bool
 	for serviceName, serviceHosts := range allServices {

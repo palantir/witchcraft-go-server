@@ -31,7 +31,7 @@ func loggingHealthStatusChangeHandler() HealthStatusChangeHandler {
 func logIfHealthChanged(ctx context.Context, previousHealth, newHealth health.HealthStatus) {
 	previousCode, newCode := status.HealthStatusCode(previousHealth), status.HealthStatusCode(newHealth)
 	if previousCode != newCode {
-		params := map[string]interface{}{
+		params := map[string]any{
 			"previousHealthStatusCode": previousCode,
 			"newHealthStatusCode":      newCode,
 			"newHealthStatus":          newHealth.Checks,
@@ -46,7 +46,7 @@ func logIfHealthChanged(ctx context.Context, previousHealth, newHealth health.He
 		}
 		return
 	}
-	svc1log.FromContext(ctx).Info("Health checks content changed without status change.", svc1log.SafeParams(map[string]interface{}{
+	svc1log.FromContext(ctx).Info("Health checks content changed without status change.", svc1log.SafeParams(map[string]any{
 		"statusCode":      newCode,
 		"newHealthStatus": newHealth.Checks,
 	}))

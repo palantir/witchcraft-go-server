@@ -47,7 +47,7 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 						Type:    serviceDependencyCheckType,
 						State:   health.New_HealthState(health.HealthState_HEALTHY),
 						Message: &serviceDependencyMsgHealthy,
-						Params:  map[string]interface{}{},
+						Params:  map[string]any{},
 					},
 				},
 			},
@@ -66,7 +66,7 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 						Type:    serviceDependencyCheckType,
 						State:   health.New_HealthState(health.HealthState_HEALTHY),
 						Message: &serviceDependencyMsgServiceImpaired,
-						Params: map[string]interface{}{
+						Params: map[string]any{
 							"serviceA": []string{"hostB:443"},
 						},
 					},
@@ -91,7 +91,7 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 						Type:    serviceDependencyCheckType,
 						State:   health.New_HealthState(health.HealthState_WARNING),
 						Message: &serviceDependencyMsgServiceFailed,
-						Params: map[string]interface{}{
+						Params: map[string]any{
 							"serviceA": []string{"hostA:443", "hostB:443"},
 							"serviceB": []string{"hostB:443"},
 						},

@@ -53,8 +53,7 @@ func TestJobManager_AddJobs_RegistersHealthOnce(t *testing.T) {
 		healthRegisterCount++
 	}
 	jobManager := NewJobManager(healthCheckSource, registerHealth)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	job1 := jobs.NewDefaultJob("job1", function.NewRunnableFromFunc(func(ctx context.Context) error {
 		return nil
 	}))
@@ -73,8 +72,7 @@ func TestJobManager_AddJobs_StartsJobs(t *testing.T) {
 	)
 	registerHealth := func(healthSource healthstatus.HealthCheckSource) {}
 	jobManager := NewJobManager(healthCheckSource, registerHealth)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	var jobRan atomic.Bool
 	job := jobs.NewDefaultJob("test-job", function.NewRunnableFromFunc(func(ctx context.Context) error {
 		jobRan.Store(true)

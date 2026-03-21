@@ -15,7 +15,6 @@
 package middleware
 
 import (
-	"context"
 	"testing"
 
 	"github.com/palantir/witchcraft-go-health/v2/conjure/witchcraft/api/health"
@@ -24,8 +23,7 @@ import (
 )
 
 func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	endpoint := wrouter.RouteSpec{Method: "GET", PathTemplate: "/test"}
 	endpoint2 := wrouter.RouteSpec{Method: "POST", PathTemplate: "/test"}
@@ -90,9 +88,9 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			},
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
-				Message: ptrTo(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
+				Message: new(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
 				State:   health.New_HealthState(health.HealthState_WARNING),
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"brokenEndpoints":  []string{"GET /test"},
 					"failingEndpoints": []string{},
 				},
@@ -111,9 +109,9 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			},
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
-				Message: ptrTo(endpointFiveHundredsMessage),
+				Message: new(endpointFiveHundredsMessage),
 				State:   health.New_HealthState(health.HealthState_WARNING),
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"brokenEndpoints":  []string{},
 					"failingEndpoints": []string{"GET /test"},
 				},
@@ -146,9 +144,9 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			},
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
-				Message: ptrTo(endpointFiveHundredsMessage),
+				Message: new(endpointFiveHundredsMessage),
 				State:   health.New_HealthState(health.HealthState_WARNING),
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"brokenEndpoints":  []string{},
 					"failingEndpoints": []string{"GET /test"},
 				},
@@ -168,8 +166,8 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
 				State:   health.New_HealthState(health.HealthState_HEALTHY),
-				Message: ptrTo(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
-				Params: map[string]interface{}{
+				Message: new(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
+				Params: map[string]any{
 					"brokenEndpoints":  []string{"GET /test"},
 					"failingEndpoints": []string{},
 				},
@@ -187,9 +185,9 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 			},
 			Expected: &health.HealthCheckResult{
 				Type:    endpointFiveHundredsCheckType,
-				Message: ptrTo(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
+				Message: new(endpointFiveHundredsMessage + "\n" + endpointFiveHundredsBrokenEndpointsMessage),
 				State:   health.New_HealthState(health.HealthState_WARNING),
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"brokenEndpoints":  []string{"GET /test"},
 					"failingEndpoints": []string{"DELETE /test"},
 				},
@@ -219,6 +217,7 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 
 }
 
+//go:fix inline
 func ptrTo[T any](v T) *T {
-	return &v
+	return new(v)
 }

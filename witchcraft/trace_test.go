@@ -124,7 +124,7 @@ func TestGetTracingOptions(t *testing.T) {
 				scaleMaxUint64(.7): false,
 				math.MaxUint64:     false,
 			},
-			sampleRate: asFloat(.5),
+			sampleRate: new(.5),
 		},
 	} {
 		t.Run(fmt.Sprint(test.name), func(t *testing.T) {
@@ -144,6 +144,7 @@ func scaleMaxUint64(f float64) uint64 {
 	return uint64(math.MaxUint64 * f)
 }
 
+//go:fix inline
 func asFloat(f float64) *float64 {
-	return &f
+	return new(f)
 }

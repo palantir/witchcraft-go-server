@@ -69,7 +69,7 @@ func TestAddStatusRoutes(t *testing.T) {
 		func() {
 			r := wrouter.New(whttprouter.New(), nil)
 			resource := wresource.New("test", r)
-			err := tc.routeFunc(resource, refreshable.New[healthstatus.Source](statusFunc(func() (int, interface{}) {
+			err := tc.routeFunc(resource, refreshable.New[healthstatus.Source](statusFunc(func() (int, any) {
 				return tc.status, tc.metadata
 			})))
 			require.NoError(t, err, "Case %d", i)
@@ -115,7 +115,7 @@ func TestAddHealthRoute(t *testing.T) {
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
 						State:  health.New_HealthState(health.HealthState_HEALTHY),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 				},
 			},
@@ -130,12 +130,12 @@ func TestAddHealthRoute(t *testing.T) {
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
 						State:  health.New_HealthState(health.HealthState_HEALTHY),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 					"SERVER_ERROR": {
 						Type:   "SERVER_ERROR",
 						State:  health.New_HealthState(health.HealthState_ERROR),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 				},
 			},
@@ -150,17 +150,17 @@ func TestAddHealthRoute(t *testing.T) {
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
 						State:  health.New_HealthState(health.HealthState_HEALTHY),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 					"SERVER_TERMINAL": {
 						Type:   "SERVER_TERMINAL",
 						State:  health.New_HealthState(health.HealthState_TERMINAL),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 					"SERVER_ERROR": {
 						Type:   "SERVER_ERROR",
 						State:  health.New_HealthState(health.HealthState_ERROR),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 				},
 			},
@@ -175,7 +175,7 @@ func TestAddHealthRoute(t *testing.T) {
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
 						State:  health.New_HealthState(health.HealthState_HEALTHY),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 				},
 			},
@@ -190,7 +190,7 @@ func TestAddHealthRoute(t *testing.T) {
 					"SCHEMA_VERSION": {
 						Type:   "SCHEMA_VERSION",
 						State:  health.New_HealthState(health.HealthState_HEALTHY),
-						Params: make(map[string]interface{}),
+						Params: make(map[string]any),
 					},
 				},
 			},
@@ -232,9 +232,9 @@ func TestAddHealthRoute(t *testing.T) {
 	}
 }
 
-type statusFunc func() (int, interface{})
+type statusFunc func() (int, any)
 
-func (f statusFunc) Status() (int, interface{}) {
+func (f statusFunc) Status() (int, any) {
 	return f()
 }
 
