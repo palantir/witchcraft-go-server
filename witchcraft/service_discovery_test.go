@@ -35,36 +35,36 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 	t.Run("update default config", func(t *testing.T) {
 		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Default: httpclient.ClientConfig{
-				APIToken: stringPtr("secret"),
+				APIToken: new("secret"),
 			},
 		})
-		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("secret")}, blankConfig.Current())
+		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: new("secret")}, blankConfig.Current())
 	})
 	t.Run("update services config", func(t *testing.T) {
 		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{serviceName: {
-				APIToken: stringPtr("different secret"),
+				APIToken: new("different secret"),
 			}},
 		})
-		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: stringPtr("different secret")}, blankConfig.Current())
+		require.Equal(t, httpclient.ClientConfig{ServiceName: serviceName, APIToken: new("different secret")}, blankConfig.Current())
 	})
 	t.Run("add extra configs", func(t *testing.T) {
 		discovery.WithDefaultConfig(httpclient.ClientConfig{
-			ReadTimeout: durationPtr(time.Second),
+			ReadTimeout: new(time.Second),
 		})
 		discovery.WithServiceConfig(serviceName, httpclient.ClientConfig{
-			WriteTimeout: durationPtr(time.Second),
+			WriteTimeout: new(time.Second),
 		})
 		defaultRefreshable.Update(httpclient.ServicesConfig{
 			Services: map[string]httpclient.ClientConfig{serviceName: {
-				APIToken: stringPtr("new secret"),
+				APIToken: new("new secret"),
 			}},
 		})
 		require.Equal(t, httpclient.ClientConfig{
 			ServiceName:  serviceName,
-			APIToken:     stringPtr("new secret"),
-			ReadTimeout:  durationPtr(time.Second),
-			WriteTimeout: durationPtr(time.Second),
+			APIToken:     new("new secret"),
+			ReadTimeout:  new(time.Second),
+			WriteTimeout: new(time.Second),
 		}, blankConfig.Current())
 	})
 	t.Run("revert to empty config", func(t *testing.T) {
@@ -73,8 +73,8 @@ func TestServiceDiscovery_RefreshableClientConfig(t *testing.T) {
 		})
 		require.Equal(t, httpclient.ClientConfig{
 			ServiceName:  serviceName,
-			ReadTimeout:  durationPtr(time.Second),
-			WriteTimeout: durationPtr(time.Second),
+			ReadTimeout:  new(time.Second),
+			WriteTimeout: new(time.Second),
 		}, blankConfig.Current())
 	})
 }
@@ -100,6 +100,3 @@ func TestServiceDiscovery_ClientOverrides(t *testing.T) {
 		require.Equal(t, 2*time.Second, client.Current().Timeout)
 	})
 }
-
-func durationPtr(d time.Duration) *time.Duration { return &d }
-func stringPtr(s string) *string                 { return &s }

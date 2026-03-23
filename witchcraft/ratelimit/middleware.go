@@ -116,9 +116,6 @@ func (l *limiter) decrement(ctx context.Context) {
 
 // limit returns the current value of l.limit, or zero if the limit is negative.
 func (l *limiter) limit() int64 {
-	current := l.Limit.Current()
-	if current < 0 {
-		current = 0
-	}
+	current := max(l.Limit.Current(), 0)
 	return int64(current)
 }

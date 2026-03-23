@@ -79,7 +79,7 @@ type LoggerConfig struct {
 	Level wlog.LogLevel `yaml:"level"`
 }
 
-func (c *LoggerConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (c *LoggerConfig) UnmarshalYAML(unmarshal func(any) error) error {
 	type loggerConfigAlias LoggerConfig
 	var cfg loggerConfigAlias
 	if err := unmarshal(&cfg); err != nil {

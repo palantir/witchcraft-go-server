@@ -115,7 +115,7 @@ func TestEmitMetrics(t *testing.T) {
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
-			assert.Equal(t, map[string]interface{}{"count": json.Number("13")}, metricLog.Values)
+			assert.Equal(t, map[string]any{"count": json.Number("13")}, metricLog.Values)
 			assert.Equal(t, map[string]string{"key": "val"}, metricLog.Tags)
 		case "server.response":
 			seenResponseTimer = true
@@ -344,16 +344,18 @@ func TestMetricWriter(t *testing.T) {
 	port, err := httpserver.AvailablePort()
 	require.NoError(t, err)
 
-	superLongLogLine := "super long line"
-	for i := 0; i < 15; i++ {
-		superLongLogLine += " " + superLongLogLine
+	var superLongLogLine strings.Builder
+	superLongLogLine.WriteString("super long line")
+	for range 15 {
+		superLongLogLine.WriteString(" ")
+		superLongLogLine.WriteString(superLongLogLine.String())
 	}
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it
 	metrics.DefaultMetricsRegistry = metrics.NewRootMetricsRegistry()
 	server, serverErr, cleanup := createAndRunCustomTestServer(t, port, port, func(ctx context.Context, info witchcraft.InitInfo[config.Install, config.Runtime]) (deferFn func(), rErr error) {
 		// These log lines will happen after the MetricWriters are initialized, so we should expect to see one sls.logging.length per line
-		audit2log.FromContext(ctx).Audit(superLongLogLine, audit2log.AuditResultSuccess)
+		audit2log.FromContext(ctx).Audit(superLongLogLine.String(), audit2log.AuditResultSuccess)
 
 		return func() {}, nil
 	}, logOutputBuffer, func(t *testing.T, initFn witchcraft.InitFunc[config.Install, config.Runtime], installCfg config.Install, logOutputBuffer io.Writer) *witchcraft.Server[config.Install, config.Runtime] {
@@ -396,7 +398,7 @@ func TestMetricWriter(t *testing.T) {
 				require.True(t, ok)
 				max, err := maxJSON.Int64()
 				require.NoError(t, err)
-				require.Greater(t, max, int64(len(superLongLogLine)))
+				require.Greater(t, max, int64(len(superLongLogLine.String())))
 			}
 		default:
 		}
@@ -488,7 +490,7 @@ func TestEmitMetricsEmptyBlocklist(t *testing.T) {
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
-			assert.Equal(t, map[string]interface{}{"count": json.Number("13")}, metricLog.Values)
+			assert.Equal(t, map[string]any{"count": json.Number("13")}, metricLog.Values)
 			assert.Equal(t, map[string]string{"key": "val"}, metricLog.Tags)
 		case "server.response":
 			seenResponseTimer = true
@@ -655,7 +657,7 @@ func TestMetricTypeValueBlocklist(t *testing.T) {
 		case "my-counter":
 			seenMyCounter = true
 			assert.Equal(t, "counter", metricLog.MetricType, "my-counter metric had incorrect type")
-			assert.Equal(t, map[string]interface{}{"count": json.Number("13")}, metricLog.Values)
+			assert.Equal(t, map[string]any{"count": json.Number("13")}, metricLog.Values)
 			assert.Equal(t, map[string]string{"key": "val"}, metricLog.Tags)
 		case "server.response":
 			seenResponseTimer = true

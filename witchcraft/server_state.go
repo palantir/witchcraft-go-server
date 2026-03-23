@@ -87,7 +87,7 @@ func (s *serverStateManager) compareAndSwapState(oldState, newState ServerState)
 	return atomic.CompareAndSwapInt32(&s.serverRunning, int32(oldState), int32(newState))
 }
 
-func (s *serverStateManager) Status() (int, interface{}) {
+func (s *serverStateManager) Status() (int, any) {
 	if !s.Running() {
 		return http.StatusServiceUnavailable, nil
 	}
