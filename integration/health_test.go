@@ -696,8 +696,3 @@ func (cwt healthCheckWithType) HealthStatus(context.Context) health.HealthStatus
 		},
 	}
 }
-
-//go:fix inline
-func stringPtr(s string) *string {
-	return new(s)
-}

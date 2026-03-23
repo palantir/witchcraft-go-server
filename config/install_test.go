@@ -60,8 +60,3 @@ server:
 		UseConsoleLog:             true,
 	}, install)
 }
-
-//go:fix inline
-func asFloat(f float64) *float64 {
-	return new(f)
-}

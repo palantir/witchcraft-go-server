@@ -143,8 +143,3 @@ func TestGetTracingOptions(t *testing.T) {
 func scaleMaxUint64(f float64) uint64 {
 	return uint64(math.MaxUint64 * f)
 }
-
-//go:fix inline
-func asFloat(f float64) *float64 {
-	return new(f)
-}

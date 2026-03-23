@@ -216,8 +216,3 @@ func TestEndpointFiveHundredsHealthCheck(t *testing.T) {
 	}
 
 }
-
-//go:fix inline
-func ptrTo[T any](v T) *T {
-	return new(v)
-}

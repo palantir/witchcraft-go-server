@@ -347,7 +347,8 @@ func TestMetricWriter(t *testing.T) {
 	var superLongLogLine strings.Builder
 	superLongLogLine.WriteString("super long line")
 	for range 15 {
-		superLongLogLine.WriteString(" " + superLongLogLine).String()
+		superLongLogLine.WriteString(" ")
+		superLongLogLine.WriteString(superLongLogLine.String())
 	}
 
 	// ensure that registry used in this test is unique/does not have any past metrics registered on it

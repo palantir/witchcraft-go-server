@@ -710,11 +710,6 @@ func filterMatchingLogEntries[LogT any](entries []LogT, matcher func(LogT) bool)
 	return logEntries
 }
 
-//go:fix inline
-func toPtr[T any](in T) *T {
-	return new(in)
-}
-
 func stringPtrValue[T ~string](in *T) string {
 	if in == nil {
 		return ""
