@@ -113,7 +113,11 @@ func (h *ServiceDependencyHealthCheck) HealthStatus(context.Context) health.Heal
 	}
 	if containsUnhealthyService {
 		result.Message = &serviceDependencyMsgServiceFailed
-		result.State = health.New_HealthState(health.HealthState_WARNING)
+		if h.hosts.FullWindowElapsed() {
+			result.State = health.New_HealthState(health.HealthState_WARNING)
+		} else {
+			result.State = health.New_HealthState(health.HealthState_REPAIRING)
+		}
 	}
 
 	return health.HealthStatus{

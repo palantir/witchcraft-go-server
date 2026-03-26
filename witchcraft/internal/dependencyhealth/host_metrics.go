@@ -28,6 +28,7 @@ type HostPort string
 type HostMetricsRegistry interface {
 	HostMetrics(serviceName string, hostname string, port string) HostStatus
 	AllServices() map[ServiceName]map[HostPort]HostStatus
+	FullWindowElapsed() bool
 }
 
 type HostStatus interface {
@@ -48,6 +49,7 @@ func NewHostRegistry(windowSize time.Duration) HostMetricsRegistry {
 	return &hostMetricsRegistry{
 		registry:   map[ServiceName]map[HostPort]*hostStatus{},
 		windowSize: windowSize,
+		start:      time.Now(),
 	}
 }
 
@@ -55,6 +57,12 @@ type hostMetricsRegistry struct {
 	mux        sync.Mutex
 	registry   map[ServiceName]map[HostPort]*hostStatus
 	windowSize time.Duration
+	start      time.Time
+}
+
+func (h *hostMetricsRegistry) FullWindowElapsed() bool {
+	deadline := h.start.Add(h.windowSize)
+	return time.Now().After(deadline)
 }
 
 func (h *hostMetricsRegistry) HostMetrics(serviceName string, hostname string, port string) HostStatus {

@@ -24,9 +24,10 @@ import (
 
 func TestServiceDependencyHealthCheck(t *testing.T) {
 	for _, test := range []struct {
-		Name     string
-		Services map[ServiceName]map[HostPort]HostStatus
-		Expected health.HealthStatus
+		Name       string
+		Services   map[ServiceName]map[HostPort]HostStatus
+		FullWindow bool
+		Expected   health.HealthStatus
 	}{
 		{
 			Name:     "empty",
@@ -74,7 +75,7 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 			},
 		},
 		{
-			Name: "all impaired",
+			Name: "all impaired after full window",
 			Services: map[ServiceName]map[HostPort]HostStatus{
 				"serviceA": {
 					"hostA:443": mockHostMetrics{active: true, healthy: false},
@@ -85,6 +86,7 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 					"hostB:443": mockHostMetrics{active: true, healthy: false},
 				},
 			},
+			FullWindow: true,
 			Expected: health.HealthStatus{
 				Checks: map[health.CheckType]health.HealthCheckResult{
 					serviceDependencyCheckType: {
@@ -99,9 +101,37 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "all impaired before full window",
+			Services: map[ServiceName]map[HostPort]HostStatus{
+				"serviceA": {
+					"hostA:443": mockHostMetrics{active: true, healthy: false},
+					"hostB:443": mockHostMetrics{active: true, healthy: false},
+				},
+				"serviceB": {
+					"hostA:443": mockHostMetrics{active: true, healthy: true},
+					"hostB:443": mockHostMetrics{active: true, healthy: false},
+				},
+			},
+			FullWindow: false,
+			Expected: health.HealthStatus{
+				Checks: map[health.CheckType]health.HealthCheckResult{
+					serviceDependencyCheckType: {
+						Type:    serviceDependencyCheckType,
+						State:   health.New_HealthState(health.HealthState_REPAIRING),
+						Message: &serviceDependencyMsgServiceFailed,
+						Params: map[string]interface{}{
+							"serviceA": []string{"hostA:443", "hostB:443"},
+							"serviceB": []string{"hostB:443"},
+						},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			hc := &ServiceDependencyHealthCheck{hosts: mockHostMetricsRegistry{services: test.Services}}
+			hosts := mockHostMetricsRegistry{services: test.Services, fullWindow: test.FullWindow}
+			hc := &ServiceDependencyHealthCheck{hosts: hosts}
 			result := hc.HealthStatus(context.Background())
 			assert.Equal(t, test.Expected, result)
 		})
@@ -109,7 +139,8 @@ func TestServiceDependencyHealthCheck(t *testing.T) {
 }
 
 type mockHostMetricsRegistry struct {
-	services map[ServiceName]map[HostPort]HostStatus
+	services   map[ServiceName]map[HostPort]HostStatus
+	fullWindow bool
 }
 
 func (m mockHostMetricsRegistry) HostMetrics(string, string, string) HostStatus {
@@ -118,6 +149,10 @@ func (m mockHostMetricsRegistry) HostMetrics(string, string, string) HostStatus 
 
 func (m mockHostMetricsRegistry) AllServices() map[ServiceName]map[HostPort]HostStatus {
 	return m.services
+}
+
+func (m mockHostMetricsRegistry) FullWindowElapsed() bool {
+	return m.fullWindow
 }
 
 type mockHostMetrics struct {
