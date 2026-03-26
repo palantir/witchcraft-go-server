@@ -148,6 +148,14 @@ type Server[I config.BaseInstallConfig, R config.BaseRuntimeConfig] struct {
 	// If this function returns an error, the server is not started and the error is returned.
 	initFn InitFunc[I, R]
 
+	// leaderElectorProvider, if set, creates a LeaderElector that gates initFn execution
+	// on leadership acquisition. When leadership is lost, the server shuts down gracefully.
+	leaderElectorProvider LeaderElectorProvider[I, R]
+
+	// cancelLeaderElection cancels the leader election context when the server is shut down.
+	// This is set when leader election is started and cleared when it completes.
+	cancelLeaderElection context.CancelFunc
+
 	// provides the encrypted-config-value key that is used to decrypt encrypted values in configuration. If nil, a
 	// default provider that reads the key from the file at "var/conf/encrypted-config-value.key" is used.
 	ecvKeyProvider ECVKeyProvider
@@ -318,6 +326,16 @@ func (s *Server[I, R]) WithInitFunc(initFn InitFunc[I, R]) *Server[I, R] {
 	return s
 }
 
+// WithLeaderElection configures the server to use leader election.
+// The provider function is called with the install and runtime configuration,
+// allowing the LeaderElector to be constructed with access to configuration values.
+// When configured, WithInitFunc is deferred until leadership is acquired.
+// When leadership is lost, the server shuts down gracefully.
+func (s *Server[I, R]) WithLeaderElection(provider LeaderElectorProvider[I, R]) *Server[I, R] {
+	s.leaderElectorProvider = provider
+	return s
+}
+
 // WithInstallConfig configures the server to use the provided install configuration. The provided install configuration
 // must support being marshaled as YAML.
 func (s *Server[I, R]) WithInstallConfig(installConfigStruct I) *Server[I, R] {
@@ -437,6 +455,9 @@ func (s *Server[I, R]) WithClientAuth(clientAuth tls.ClientAuthType) *Server[I, 
 // WithHealth configures the server to use the specified health check sources to report the server's health. If multiple
 // healthSource's results have the same key, the result from the latest entry in healthSources will be used. These
 // results are combined with the server's built-in health source, which uses the `SERVER_STATUS` key.
+//
+// This method can be called multiple times to add additional health sources. It can also be called after server
+// startup (e.g., from within InitFunc) to dynamically add health sources.
 func (s *Server[I, R]) WithHealth(healthSources ...healthstatus.HealthCheckSource) *Server[I, R] {
 	if s.healthCheckSources == nil {
 		s.healthCheckSources = refreshable.New([]healthstatus.HealthCheckSource{})
@@ -841,17 +862,23 @@ func (s *Server[I, R]) Start() (rErr error) {
 
 	s.initStackTraceHandler(ctx)
 	s.initShutdownSignalHandler(ctx)
-	taskManager := s.getTaskManager(ctx)
-	if s.initFn != nil {
+
+	// runInitFn executes the init function and returns the cleanup function.
+	// It sets up tracing, service discovery, and calls the user-provided initFn.
+	runInitFn := func(initCtx context.Context) (func(), error) {
+		if s.initFn == nil {
+			return nil, nil
+		}
+		taskManager := s.getTaskManager(ctx)
 		traceReporter := wtracing.NewNoopReporter()
 		if s.trcLogger != nil {
 			traceReporter = s.trcLogger
 		}
 		tracer, err := wzipkin.NewTracer(traceReporter, s.getApplicationTracingOptions(baseInstallCfg)...)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		ctx = wtracing.ContextWithTracer(ctx, tracer)
+		initCtx = wtracing.ContextWithTracer(initCtx, tracer)
 
 		refreshableServicesConfig, _ := refreshable.Map(refreshableRuntimeCfg, func(t R) httpclient.ServicesConfig {
 			return t.BaseRuntimeConfig().ServiceDiscovery
@@ -865,9 +892,9 @@ func (s *Server[I, R]) Start() (rErr error) {
 			})
 		}
 
-		svc1log.FromContext(ctx).Debug("Running server initialization function.")
+		svc1log.FromContext(initCtx).Debug("Running server initialization function.")
 		cleanupFn, err := s.initFn(
-			ctx,
+			initCtx,
 			InitInfo[I, R]{
 				Router: &configurableRouterImpl[I, R]{
 					Router: newMultiRouterImpl(router, mgmtRouter),
@@ -881,15 +908,115 @@ func (s *Server[I, R]) Start() (rErr error) {
 			},
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if cleanupFn != nil {
-			defer cleanupFn()
-		}
+		// add all internally defined health check sources after running the initFn.
+		s.WithHealth(internalHealthCheckSources...)
+		return cleanupFn, nil
 	}
 
-	// add all internally defined health check sources to the user supplied ones after running the initFn.
-	s.WithHealth(internalHealthCheckSources...)
+	if s.leaderElectorProvider != nil {
+		// Leader election requires a separate management port so health/liveness/readiness
+		// endpoints can be served while waiting for leadership.
+		mgmtPort := baseInstallCfg.Server.ManagementPort
+		if mgmtPort == 0 || mgmtPort == baseInstallCfg.Server.Port {
+			return werror.ErrorWithContextParams(ctx, "leader election requires a separate management port (server.management-port must be set and differ from server.port)")
+		}
+
+		// Create the leader elector using the provider
+		leaderElector, err := s.leaderElectorProvider(ctx, fullInstallCfg, refreshableRuntimeCfg)
+		if err != nil {
+			return werror.Wrap(err, "failed to create leader elector")
+		}
+
+		// With leader election: register routes first, then start servers, then run leader election.
+		// initFn is deferred until leadership is acquired. Health sources use a refreshable so
+		// health checks added by initFn will be picked up dynamically.
+		if err := s.addRoutes(ctx, mgmtRouter, refreshableRuntimeCfg); err != nil {
+			return err
+		}
+
+		// Start management server (required for leader election, validated above)
+		mgmtStart, mgmtShutdown, err := s.newMgmtServer(baseInstallCfg.ProductName, baseInstallCfg.Server, mgmtRouter.RootRouter())
+		if err != nil {
+			return err
+		}
+		go wapp.RunWithRecoveryLogging(ctx, func(ctx context.Context) {
+			if err := mgmtStart(); err != nil {
+				svc1log.FromContext(ctx).Error("management server failed", svc1log.Stacktrace(err))
+			}
+		})
+		defer func() {
+			if err := mgmtShutdown(ctx); err != nil {
+				svc1log.FromContext(ctx).Error("management server failed to shutdown", svc1log.Stacktrace(err))
+			}
+		}()
+
+		httpServer, svrStart, _, err := s.newServer(baseInstallCfg.ProductName, baseInstallCfg.Server, router.RootRouter(), s.connStateCallback(ctx))
+		if err != nil {
+			return err
+		}
+		s.httpServer = httpServer
+		if s.disableKeepAlives {
+			s.httpServer.SetKeepAlivesEnabled(false)
+		}
+		if s.disableHTTP2 {
+			s.httpServer.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler))
+		}
+
+		if !s.stateManager.compareAndSwapState(ServerInitializing, ServerRunning) {
+			return werror.ErrorWithContextParams(ctx, "server was shut down before it could start")
+		}
+
+		// Start HTTP server in background
+		serverErrCh := make(chan error, 1)
+		go func() {
+			serverErrCh <- svrStart()
+		}()
+
+		// Create a cancellable context for leader election that gets cancelled on server shutdown
+		leaderCtx, cancelLeader := context.WithCancel(ctx)
+		s.cancelLeaderElection = cancelLeader
+		defer func() {
+			s.cancelLeaderElection = nil
+		}()
+
+		// Run leader election - blocks until context is cancelled
+		var cleanupFn func()
+		leaderErr := leaderElector.Run(leaderCtx, LeaderCallbacks{
+			OnStartedLeading: func(leaderCtx context.Context) {
+				svc1log.FromContext(ctx).Info("Acquired leadership, running initialization.")
+				var err error
+				cleanupFn, err = runInitFn(leaderCtx)
+				if err != nil {
+					svc1log.FromContext(ctx).Error("Initialization failed after acquiring leadership", svc1log.Stacktrace(err))
+					s.Shutdown(ctx)
+				}
+			},
+			OnStoppedLeading: func() {
+				svc1log.FromContext(ctx).Info("Lost leadership, shutting down server.")
+				if cleanupFn != nil {
+					cleanupFn()
+				}
+				s.Shutdown(ctx)
+			},
+		})
+		if leaderErr != nil {
+			svc1log.FromContext(ctx).Error("Leader election failed", svc1log.Stacktrace(leaderErr))
+		}
+
+		// Wait for server to finish
+		return <-serverErrCh
+	}
+
+	// Without leader election: existing behavior - run initFn before starting servers
+	cleanupFn, err := runInitFn(ctx)
+	if err != nil {
+		return err
+	}
+	if cleanupFn != nil {
+		defer cleanupFn()
+	}
 
 	// add routes for health, liveness and readiness. Must be done after initFn to ensure that any
 	// health/liveness/readiness configuration updated by initFn is applied.
@@ -1189,6 +1316,10 @@ func (s *Server[I, R]) State() ServerState {
 
 func (s *Server[I, R]) Shutdown(ctx context.Context) error {
 	s.svcLogger.Info("Shutting down server")
+	// Cancel leader election context if it's running
+	if s.cancelLeaderElection != nil {
+		s.cancelLeaderElection()
+	}
 	return stopServer(s, func(svr *http.Server) error {
 		if err := svr.Shutdown(ctx); err != nil && (ctx.Err() == nil || !errors.Is(err, ctx.Err())) {
 			// error is non-nil and not a context error: indicates that there was an error shutting down
