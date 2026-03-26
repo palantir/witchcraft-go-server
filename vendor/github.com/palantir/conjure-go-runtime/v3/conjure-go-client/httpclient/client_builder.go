@@ -231,11 +231,16 @@ func newClient(ctx context.Context, b *clientBuilder, params ...ClientParam) (*c
 	if !b.HTTP.DisableRecovery {
 		recovery = recoveryMiddleware{}
 	}
+	// Extract URIScorerBuilder before closing over it so the closure does not
+	// capture the entire *clientBuilder. Capturing b keeps all derived
+	// refreshable wrappers reachable from the root config's subscriber chain,
+	// preventing runtime.AddCleanup from firing and leaking subscriptions.
+	uriScorerBuilder := b.URIScorerBuilder
 	uriScorer := internal.NewRefreshableURIScoringMiddleware(b.URIs, func(uris []string) internal.URIScoringMiddleware {
-		if b.URIScorerBuilder == nil {
+		if uriScorerBuilder == nil {
 			return internal.NewBalancedURIScoringMiddleware(uris, func() int64 { return time.Now().UnixNano() })
 		}
-		return b.URIScorerBuilder(uris)
+		return uriScorerBuilder(uris)
 	})
 	return &clientImpl{
 		serviceName:            b.HTTP.ServiceName,
@@ -361,9 +366,17 @@ func newClientBuilderFromRefreshableConfig(ctx context.Context, config refreshab
 	b.HTTP.DisableMetrics, _ = refreshable.MapFromValidated(validParams, func(p refreshingclient.ValidatedClientParams) bool {
 		return p.DisableMetrics
 	})
+	// Use MapFromValidated to create an intermediate refreshable for MetricsTags
+	// instead of capturing validParams (a derivedValidated wrapper) directly in
+	// the closure. Capturing the wrapper creates a reference cycle:
+	//   config → v → timeout.inner → transport → metricsMiddleware → validParams → v
+	// which prevents runtime.AddCleanup from firing on the wrapper.
+	metricsTags, _ := refreshable.MapFromValidated(validParams, func(p refreshingclient.ValidatedClientParams) metrics.Tags {
+		return p.MetricsTags
+	})
 	b.HTTP.MetricsTagProviders = append(b.HTTP.MetricsTagProviders,
 		TagsProviderFunc(func(*http.Request, *http.Response, error) metrics.Tags {
-			return validParams.Unvalidated().MetricsTags
+			return metricsTags.Current()
 		}))
 
 	apiToken, _ := refreshable.MapFromValidated(validParams, func(p refreshingclient.ValidatedClientParams) *string {

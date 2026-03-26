@@ -27,13 +27,13 @@ type Codec interface {
 // A Decoder decodes a serialized message.
 type Decoder interface {
 	Accept() string
-	Decode(r io.Reader, v interface{}) error
-	Unmarshal(data []byte, v interface{}) error
+	Decode(r io.Reader, v any) error
+	Unmarshal(data []byte, v any) error
 }
 
 // An Encoder serializes a message.
 type Encoder interface {
 	ContentType() string
-	Encode(w io.Writer, v interface{}) error
-	Marshal(v interface{}) ([]byte, error)
+	Encode(w io.Writer, v any) error
+	Marshal(v any) ([]byte, error)
 }

@@ -24,7 +24,7 @@ import (
 
 var globalRegistry = NewReflectTypeConjureErrorDecoder()
 
-var errorInterfaceType = reflect.TypeOf((*Error)(nil)).Elem()
+var errorInterfaceType = reflect.TypeFor[Error]()
 
 // RegisterErrorType registers an error name and its go type in a global registry.
 // The type should be a struct type whose pointer implements Error.
@@ -77,7 +77,7 @@ func (d *ReflectTypeConjureErrorDecoder) DecodeConjureError(errorName string, bo
 	typ, ok := d.registry[errorName]
 	if !ok {
 		// Unrecognized error name, fall back to genericError
-		typ = reflect.TypeOf(genericError{})
+		typ = reflect.TypeFor[genericError]()
 	}
 	instance := reflect.New(typ).Interface()
 	if err := codecs.JSON.Unmarshal(body, &instance); err != nil {

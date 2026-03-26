@@ -60,7 +60,7 @@ func WithPath(path string) RequestParam {
 
 // WithPathf sets the path for the request. This will be joined with
 // one of the BaseURLs set on the client
-func WithPathf(format string, args ...interface{}) RequestParam {
+func WithPathf(format string, args ...any) RequestParam {
 	return WithPath(fmt.Sprintf(format, args...))
 }
 
@@ -87,7 +87,7 @@ func WithQueryValues(query url.Values) RequestParam {
 //
 //	input := api.RequestInput{Foo: "bar"}
 //	resp, err := client.Do(..., WithRequestBody(input, codecs.JSON), ...)
-func WithRequestBody(input interface{}, encoder codecs.Encoder) RequestParam {
+func WithRequestBody(input any, encoder codecs.Encoder) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		b.bodyMiddleware.requestInput = input
 		b.bodyMiddleware.requestEncoder = encoder
@@ -129,7 +129,7 @@ func WithBinaryRequestBody(input RequestBody) RequestParam {
 }
 
 // WithJSONRequest sets the request body to the input marshaled using the JSON codec.
-func WithJSONRequest(input interface{}) RequestParam {
+func WithJSONRequest(input any) RequestParam {
 	return WithRequestBody(input, codecs.JSON)
 }
 
@@ -143,7 +143,7 @@ func WithJSONRequest(input interface{}) RequestParam {
 //	return output, nil
 //
 // In the case of an empty response, output will be unmodified (left nil).
-func WithResponseBody(output interface{}, decoder codecs.Decoder) RequestParam {
+func WithResponseBody(output any, decoder codecs.Decoder) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		b.bodyMiddleware.responseOutput = output
 		b.bodyMiddleware.responseDecoder = decoder
@@ -175,12 +175,12 @@ func WithRawResponseBody() RequestParam {
 
 // WithJSONResponse unmarshals the response body using the JSON codec.
 // The request will return an error if decoding fails.
-func WithJSONResponse(output interface{}) RequestParam {
+func WithJSONResponse(output any) RequestParam {
 	return WithResponseBody(output, codecs.JSON)
 }
 
 // WithCompressedRequest wraps the 'codec'-encoded request body in zlib compression.
-func WithCompressedRequest(input interface{}, codec codecs.Codec) RequestParam {
+func WithCompressedRequest(input any, codec codecs.Codec) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		b.headers.Set("Content-Encoding", "deflate")
 		b.bodyMiddleware.requestInput = input
@@ -191,7 +191,7 @@ func WithCompressedRequest(input interface{}, codec codecs.Codec) RequestParam {
 }
 
 // WithSnappyCompressedRequest wraps the 'codec'-encoded request body in snappy compression.
-func WithSnappyCompressedRequest(input interface{}, codec codecs.Codec) RequestParam {
+func WithSnappyCompressedRequest(input any, codec codecs.Codec) RequestParam {
 	return requestParamFunc(func(b *requestBuilder) error {
 		b.headers.Set("Content-Encoding", "snappy")
 		b.bodyMiddleware.requestInput = input

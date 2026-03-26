@@ -34,7 +34,7 @@ func (codecFormURLEncoded) Accept() string {
 	return contentTypeFormURLEncoded
 }
 
-func (codecFormURLEncoded) Decode(r io.Reader, v interface{}) error {
+func (codecFormURLEncoded) Decode(r io.Reader, v any) error {
 	query, err := io.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("failed to read all query bytes: %s", err.Error())
@@ -51,7 +51,7 @@ func (codecFormURLEncoded) Decode(r io.Reader, v interface{}) error {
 	return nil
 }
 
-func (c codecFormURLEncoded) Unmarshal(data []byte, v interface{}) error {
+func (c codecFormURLEncoded) Unmarshal(data []byte, v any) error {
 	return c.Decode(bytes.NewBuffer(data), v)
 }
 
@@ -59,7 +59,7 @@ func (codecFormURLEncoded) ContentType() string {
 	return contentTypeFormURLEncoded
 }
 
-func (codecFormURLEncoded) Encode(w io.Writer, v interface{}) error {
+func (codecFormURLEncoded) Encode(w io.Writer, v any) error {
 	values, ok := v.(url.Values)
 	if !ok {
 		return fmt.Errorf("could not decode, expected destination to be url.Values, actual: %T", v)
@@ -72,7 +72,7 @@ func (codecFormURLEncoded) Encode(w io.Writer, v interface{}) error {
 	return nil
 }
 
-func (c codecFormURLEncoded) Marshal(v interface{}) ([]byte, error) {
+func (c codecFormURLEncoded) Marshal(v any) ([]byte, error) {
 	var buffer bytes.Buffer
 	err := c.Encode(&buffer, v)
 	if err != nil {

@@ -24,13 +24,13 @@ import (
 )
 
 type bodyMiddleware struct {
-	requestInput   interface{}
+	requestInput   any
 	requestEncoder codecs.Encoder
 
 	// if rawOutput is true, the body of the response is not drained before returning -- it is the responsibility of the
 	// caller to read from and properly close the response body.
 	rawOutput       bool
-	responseOutput  interface{}
+	responseOutput  any
 	responseDecoder codecs.Decoder
 
 	bufferPool bytesbuffers.Pool

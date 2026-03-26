@@ -35,7 +35,7 @@ func (codecProtobuf) Accept() string {
 	return contentTypeProtobuf
 }
 
-func (codecProtobuf) Decode(r io.Reader, v interface{}) error {
+func (codecProtobuf) Decode(r io.Reader, v any) error {
 	msg, ok := v.(proto.Message)
 	if !ok {
 		return werror.Error("failed to decode protobuf data from type which does not implement proto.Message")
@@ -48,7 +48,7 @@ func (codecProtobuf) Decode(r io.Reader, v interface{}) error {
 	return proto.Unmarshal(data, msg)
 }
 
-func (c codecProtobuf) Unmarshal(data []byte, v interface{}) error {
+func (c codecProtobuf) Unmarshal(data []byte, v any) error {
 	msg, ok := v.(proto.Message)
 	if !ok {
 		return werror.Error("failed to decode protobuf data from type which does not implement proto.Message")
@@ -60,7 +60,7 @@ func (codecProtobuf) ContentType() string {
 	return contentTypeProtobuf
 }
 
-func (c codecProtobuf) Encode(w io.Writer, v interface{}) error {
+func (c codecProtobuf) Encode(w io.Writer, v any) error {
 	buf, err := c.Marshal(v)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (c codecProtobuf) Encode(w io.Writer, v interface{}) error {
 	return err
 }
 
-func (c codecProtobuf) Marshal(v interface{}) ([]byte, error) {
+func (c codecProtobuf) Marshal(v any) ([]byte, error) {
 	msg, ok := v.(proto.Message)
 	if !ok {
 		return nil, werror.Error("failed to encode protobuf data from type which does not implement proto.Message")
