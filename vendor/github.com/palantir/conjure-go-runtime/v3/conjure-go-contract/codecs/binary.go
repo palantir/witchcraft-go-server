@@ -36,7 +36,7 @@ func (codecBinary) Accept() string {
 	return contentTypeBinary
 }
 
-func (codecBinary) Decode(r io.Reader, v interface{}) error {
+func (codecBinary) Decode(r io.Reader, v any) error {
 	w, ok := v.(io.Writer)
 	if !ok {
 		return werror.Error("failed to decode binary data into type which does not implement io.Writer")
@@ -50,7 +50,7 @@ func (codecBinary) Decode(r io.Reader, v interface{}) error {
 	return nil
 }
 
-func (c codecBinary) Unmarshal(data []byte, v interface{}) error {
+func (c codecBinary) Unmarshal(data []byte, v any) error {
 	return c.Decode(bytes.NewReader(data), v)
 }
 
@@ -58,7 +58,7 @@ func (codecBinary) ContentType() string {
 	return contentTypeBinary
 }
 
-func (codecBinary) Encode(w io.Writer, v interface{}) error {
+func (codecBinary) Encode(w io.Writer, v any) error {
 	r, ok := v.(io.Reader)
 	if !ok {
 		return werror.Error("failed to encode binary data from type which does not implement io.Reader")
@@ -72,7 +72,7 @@ func (codecBinary) Encode(w io.Writer, v interface{}) error {
 	return nil
 }
 
-func (c codecBinary) Marshal(v interface{}) ([]byte, error) {
+func (c codecBinary) Marshal(v any) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := c.Encode(&buf, v); err != nil {
 		return nil, err

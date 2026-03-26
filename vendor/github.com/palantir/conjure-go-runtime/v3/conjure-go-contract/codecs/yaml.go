@@ -38,11 +38,11 @@ func (codecYAML) Accept() string {
 	return contentTypeYAML
 }
 
-func (c codecYAML) Decode(r io.Reader, v interface{}) error {
+func (c codecYAML) Decode(r io.Reader, v any) error {
 	return yaml.NewDecoder(r).Decode(v)
 }
 
-func (c codecYAML) Unmarshal(data []byte, v interface{}) error {
+func (c codecYAML) Unmarshal(data []byte, v any) error {
 	return yaml.Unmarshal(data, *&v) // work around outparamcheck
 }
 
@@ -50,7 +50,7 @@ func (codecYAML) ContentType() string {
 	return contentTypeYAML
 }
 
-func (c codecYAML) Encode(w io.Writer, v interface{}) error {
+func (c codecYAML) Encode(w io.Writer, v any) error {
 	encoder := yaml.NewEncoder(w)
 	err := encoder.Encode(v)
 	if err != nil {
@@ -63,6 +63,6 @@ func (c codecYAML) Encode(w io.Writer, v interface{}) error {
 	return nil
 }
 
-func (c codecYAML) Marshal(v interface{}) ([]byte, error) {
+func (c codecYAML) Marshal(v any) ([]byte, error) {
 	return yaml.Marshal(v)
 }

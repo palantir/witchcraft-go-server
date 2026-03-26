@@ -37,7 +37,7 @@ func (c codecSNAPPY) Accept() string {
 	return c.contentCodec.Accept()
 }
 
-func (c codecSNAPPY) Decode(r io.Reader, v interface{}) error {
+func (c codecSNAPPY) Decode(r io.Reader, v any) error {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (c codecSNAPPY) Decode(r io.Reader, v interface{}) error {
 	return c.contentCodec.Unmarshal(decoded, v)
 }
 
-func (c codecSNAPPY) Unmarshal(data []byte, v interface{}) error {
+func (c codecSNAPPY) Unmarshal(data []byte, v any) error {
 	decoded, err := snappy.Decode(nil, data)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func (c codecSNAPPY) ContentType() string {
 	return c.contentCodec.ContentType()
 }
 
-func (c codecSNAPPY) Encode(w io.Writer, v interface{}) error {
+func (c codecSNAPPY) Encode(w io.Writer, v any) error {
 	data, err := c.contentCodec.Marshal(v)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (c codecSNAPPY) Encode(w io.Writer, v interface{}) error {
 	return err
 }
 
-func (c codecSNAPPY) Marshal(v interface{}) ([]byte, error) {
+func (c codecSNAPPY) Marshal(v any) ([]byte, error) {
 	data, err := c.contentCodec.Marshal(v)
 	if err != nil {
 		return nil, err

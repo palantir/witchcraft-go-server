@@ -36,7 +36,7 @@ func (c codecZLIB) Accept() string {
 	return c.contentCodec.Accept()
 }
 
-func (c codecZLIB) Decode(r io.Reader, v interface{}) (err error) {
+func (c codecZLIB) Decode(r io.Reader, v any) (err error) {
 	zlibReader, err := zlib.NewReader(r)
 	defer func() {
 		if closeErr := zlibReader.Close(); err == nil && closeErr != nil {
@@ -49,7 +49,7 @@ func (c codecZLIB) Decode(r io.Reader, v interface{}) (err error) {
 	return c.contentCodec.Decode(zlibReader, v)
 }
 
-func (c codecZLIB) Unmarshal(data []byte, v interface{}) error {
+func (c codecZLIB) Unmarshal(data []byte, v any) error {
 	return c.Decode(bytes.NewBuffer(data), v)
 }
 
@@ -57,7 +57,7 @@ func (c codecZLIB) ContentType() string {
 	return c.contentCodec.ContentType()
 }
 
-func (c codecZLIB) Encode(w io.Writer, v interface{}) (err error) {
+func (c codecZLIB) Encode(w io.Writer, v any) (err error) {
 	zlibWriter := zlib.NewWriter(w)
 	defer func() {
 		if closeErr := zlibWriter.Close(); err == nil && closeErr != nil {
@@ -67,7 +67,7 @@ func (c codecZLIB) Encode(w io.Writer, v interface{}) (err error) {
 	return c.contentCodec.Encode(zlibWriter, v)
 }
 
-func (c codecZLIB) Marshal(v interface{}) ([]byte, error) {
+func (c codecZLIB) Marshal(v any) ([]byte, error) {
 	var buffer bytes.Buffer
 	err := c.Encode(&buffer, v)
 	if err != nil {

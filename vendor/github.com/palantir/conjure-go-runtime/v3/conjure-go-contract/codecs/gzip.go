@@ -36,7 +36,7 @@ func (c codecGZIP) Accept() string {
 	return c.contentCodec.Accept()
 }
 
-func (c codecGZIP) Decode(r io.Reader, v interface{}) (err error) {
+func (c codecGZIP) Decode(r io.Reader, v any) (err error) {
 	gzipReader, err := gzip.NewReader(r)
 	if err != nil {
 		return fmt.Errorf("failed to create gzip reader: %w", err)
@@ -49,7 +49,7 @@ func (c codecGZIP) Decode(r io.Reader, v interface{}) (err error) {
 	return c.contentCodec.Decode(gzipReader, v)
 }
 
-func (c codecGZIP) Unmarshal(data []byte, v interface{}) error {
+func (c codecGZIP) Unmarshal(data []byte, v any) error {
 	return c.Decode(bytes.NewBuffer(data), v)
 }
 
@@ -57,7 +57,7 @@ func (c codecGZIP) ContentType() string {
 	return c.contentCodec.ContentType()
 }
 
-func (c codecGZIP) Encode(w io.Writer, v interface{}) (err error) {
+func (c codecGZIP) Encode(w io.Writer, v any) (err error) {
 	gzipWriter := gzip.NewWriter(w)
 	defer func() {
 		if closeErr := gzipWriter.Close(); err == nil && closeErr != nil {
@@ -67,7 +67,7 @@ func (c codecGZIP) Encode(w io.Writer, v interface{}) (err error) {
 	return c.contentCodec.Encode(gzipWriter, v)
 }
 
-func (c codecGZIP) Marshal(v interface{}) ([]byte, error) {
+func (c codecGZIP) Marshal(v any) ([]byte, error) {
 	var buffer bytes.Buffer
 	err := c.Encode(&buffer, v)
 	if err != nil {

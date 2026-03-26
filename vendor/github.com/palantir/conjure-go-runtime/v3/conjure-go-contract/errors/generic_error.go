@@ -21,6 +21,7 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	"github.com/palantir/conjure-go-runtime/v3/conjure-go-contract/codecs"
 	"github.com/palantir/pkg/uuid"
@@ -97,18 +98,16 @@ func (e genericError) InstanceID() uuid.UUID {
 	return e.errorInstanceID
 }
 
-func (e genericError) safeParams() map[string]interface{} {
+func (e genericError) safeParams() map[string]any {
 	// Copy safe params map (so we don't mutate the underlying one) and add errorInstanceId
-	safeParams := make(map[string]interface{}, len(e.params.SafeParams())+1)
-	for k, v := range e.params.SafeParams() {
-		safeParams[k] = v
-	}
+	safeParams := make(map[string]any, len(e.params.SafeParams())+1)
+	maps.Copy(safeParams, e.params.SafeParams())
 	safeParams["errorInstanceId"] = e.errorInstanceID
 	safeParams["errorName"] = e.Name()
 	return safeParams
 }
 
-func (e genericError) SafeParams() map[string]interface{} {
+func (e genericError) SafeParams() map[string]any {
 	safeParams, _ := werror.ParamsFromError(e.cause)
 	for k, v := range e.safeParams() {
 		if _, exists := safeParams[k]; !exists {
@@ -118,7 +117,7 @@ func (e genericError) SafeParams() map[string]interface{} {
 	return safeParams
 }
 
-func (e genericError) UnsafeParams() map[string]interface{} {
+func (e genericError) UnsafeParams() map[string]any {
 	_, unsafeParams := werror.ParamsFromError(e.cause)
 	for k, v := range e.params.UnsafeParams() {
 		if _, exists := unsafeParams[k]; !exists {
@@ -152,7 +151,7 @@ func (e *genericError) UnmarshalJSON(data []byte) (err error) {
 	e.errorInstanceID = se.ErrorInstanceID
 
 	if len(se.Parameters) > 0 {
-		params := make(map[string]interface{})
+		params := make(map[string]any)
 		if err := codecs.JSON.Unmarshal(se.Parameters, &params); err != nil {
 			return err
 		}
@@ -163,15 +162,11 @@ func (e *genericError) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
-func mergeParams(storer wparams.ParamStorer) map[string]interface{} {
+func mergeParams(storer wparams.ParamStorer) map[string]any {
 	safeParams, unsafeParams := storer.SafeParams(), storer.UnsafeParams()
-	params := make(map[string]interface{}, len(safeParams)+len(unsafeParams))
-	for k, v := range unsafeParams {
-		params[k] = v
-	}
-	for k, v := range safeParams {
-		params[k] = v
-	}
+	params := make(map[string]any, len(safeParams)+len(unsafeParams))
+	maps.Copy(params, unsafeParams)
+	maps.Copy(params, safeParams)
 	return params
 }
 

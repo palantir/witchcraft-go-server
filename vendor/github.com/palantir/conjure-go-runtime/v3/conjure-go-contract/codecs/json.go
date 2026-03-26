@@ -36,14 +36,14 @@ func (codecJSON) Accept() string {
 	return contentTypeJSON
 }
 
-func (codecJSON) Decode(r io.Reader, v interface{}) error {
+func (codecJSON) Decode(r io.Reader, v any) error {
 	if err := safejson.Decoder(r).Decode(v); err != nil {
 		return fmt.Errorf("failed to decode JSON-encoded value: %s", err.Error())
 	}
 	return nil
 }
 
-func (c codecJSON) Unmarshal(data []byte, v interface{}) error {
+func (c codecJSON) Unmarshal(data []byte, v any) error {
 	return safejson.Unmarshal(data, v)
 }
 
@@ -51,13 +51,13 @@ func (codecJSON) ContentType() string {
 	return contentTypeJSON
 }
 
-func (codecJSON) Encode(w io.Writer, v interface{}) error {
+func (codecJSON) Encode(w io.Writer, v any) error {
 	if err := safejson.Encoder(w).Encode(v); err != nil {
 		return fmt.Errorf("failed to JSON-encode value: %s", err.Error())
 	}
 	return nil
 }
 
-func (c codecJSON) Marshal(v interface{}) ([]byte, error) {
+func (c codecJSON) Marshal(v any) ([]byte, error) {
 	return safejson.Marshal(v)
 }

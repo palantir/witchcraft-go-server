@@ -36,7 +36,7 @@ func (codecPlain) Accept() string {
 	return contentTypePlain
 }
 
-func (codecPlain) Decode(r io.Reader, v interface{}) error {
+func (codecPlain) Decode(r io.Reader, v any) error {
 	text, err := io.ReadAll(r)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func (codecPlain) Decode(r io.Reader, v interface{}) error {
 	return Plain.Unmarshal(text, v)
 }
 
-func (codecPlain) Unmarshal(data []byte, v interface{}) error {
+func (codecPlain) Unmarshal(data []byte, v any) error {
 	switch t := v.(type) {
 	case *string:
 		*t = string(data)
@@ -59,7 +59,7 @@ func (codecPlain) ContentType() string {
 	return contentTypePlain
 }
 
-func (codecPlain) Encode(w io.Writer, v interface{}) error {
+func (codecPlain) Encode(w io.Writer, v any) error {
 	data, err := Plain.Marshal(v)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (codecPlain) Encode(w io.Writer, v interface{}) error {
 	return err
 }
 
-func (codecPlain) Marshal(v interface{}) ([]byte, error) {
+func (codecPlain) Marshal(v any) ([]byte, error) {
 	switch t := v.(type) {
 	case string:
 		return []byte(t), nil
@@ -76,7 +76,7 @@ func (codecPlain) Marshal(v interface{}) ([]byte, error) {
 		return t.MarshalText()
 	default:
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			return Plain.Marshal(val.Elem().Interface())
 		}
 	}

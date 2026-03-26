@@ -77,10 +77,10 @@ func (d restErrorDecoder) Handles(resp *http.Response) bool {
 }
 
 func (d restErrorDecoder) DecodeError(resp *http.Response) error {
-	safeParams := map[string]interface{}{
+	safeParams := map[string]any{
 		"statusCode": resp.StatusCode,
 	}
-	unsafeParams := map[string]interface{}{}
+	unsafeParams := map[string]any{}
 	if resp.StatusCode >= http.StatusTemporaryRedirect &&
 		resp.StatusCode < http.StatusBadRequest {
 		location, err := resp.Location()

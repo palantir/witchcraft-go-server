@@ -27,7 +27,7 @@ import (
 // WriteJSONResponse marshals the provided object to JSON using a JSON encoder with SetEscapeHTML(false) and writes the
 // resulting JSON as a JSON response to the provided http.ResponseWriter with the provided status code. If marshaling
 // the provided object as JSON results in an error, writes a 500 response with the text content of the error.
-func WriteJSONResponse(w http.ResponseWriter, obj interface{}, status int) {
+func WriteJSONResponse(w http.ResponseWriter, obj any, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
