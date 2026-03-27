@@ -357,10 +357,11 @@ func (s *Server[I, R]) WithInstallConfigValidation(opts config.InstallConfigVali
 // WithRuntimeConfig configures the server to use the provided runtime configuration. The provided runtime configuration
 // must support being marshaled as YAML.
 func (s *Server[I, R]) WithRuntimeConfig(in R) *Server[I, R] {
-	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
-		v, _, _ := refreshable.MapWithError(ctx, refreshable.New(in), func(ctx context.Context, in R) ([]byte, error) {
+	v, _, _ := refreshable.MapWithError(context.TODO(), refreshable.New(in),
+		func(ctx context.Context, in R) ([]byte, error) {
 			return yaml.Marshal(in)
 		})
+	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
 		return v
 	}
 	return s
@@ -369,11 +370,12 @@ func (s *Server[I, R]) WithRuntimeConfig(in R) *Server[I, R] {
 // WithRuntimeConfigProvider configures the server to use the provided Refreshable as its runtime configuration. The
 // value provided by the refreshable must be the byte slice for the runtime configuration.
 func (s *Server[I, R]) WithRuntimeConfigProvider(r refreshable.Refreshable[[]byte]) *Server[I, R] {
+	var v refreshable.Validated[[]byte]
+	var ok bool
+	if v, ok = r.(refreshable.Validated[[]byte]); !ok {
+		v, _, _ = refreshable.Validate(context.TODO(), r, func(context.Context, []byte) error { return nil })
+	}
 	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
-		if v, ok := r.(refreshable.Validated[[]byte]); ok {
-			return v
-		}
-		v, _, _ := refreshable.Validate(ctx, r, func(context.Context, []byte) error { return nil })
 		return v
 	}
 	return s
@@ -390,8 +392,9 @@ func (s *Server[I, R]) WithRuntimeConfigProviderFunc(f func(ctx context.Context)
 // The server will create a refreshable.Refreshable using the file at the provided path (and will thus live-reload the
 // configuration based on updates to the file).
 func (s *Server[I, R]) WithRuntimeConfigFromFile(fpath string) *Server[I, R] {
+	fileRefreshable := refreshable.NewFileRefreshable(context.TODO(), fpath)
 	s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
-		return refreshable.NewFileRefreshable(ctx, fpath)
+		return fileRefreshable
 	}
 	return s
 }
@@ -1002,8 +1005,9 @@ func (s *Server[I, R]) initInstallConfig() (zero I, _ error) {
 func (s *Server[I, R]) initRuntimeConfig(ctx context.Context) (rCfg refreshable.Validated[R], hcSrcs []healthstatus.HealthCheckSource, rErr error) {
 	if s.runtimeConfigProvider == nil {
 		// if runtime provider is not specified, use a file-based one
+		fileRefreshable := refreshable.NewFileRefreshable(ctx, runtimeConfigPath)
 		s.runtimeConfigProvider = func(ctx context.Context) refreshable.Validated[[]byte] {
-			return refreshable.NewFileRefreshable(ctx, runtimeConfigPath)
+			return fileRefreshable
 		}
 	}
 
